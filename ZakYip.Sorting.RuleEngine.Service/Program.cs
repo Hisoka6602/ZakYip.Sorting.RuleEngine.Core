@@ -108,9 +108,11 @@ public class Program
 
         // 添加内存缓存（带可配置的绝对过期和滑动过期）
         // Add memory cache with configurable absolute and sliding expiration
+        // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
+        var cacheSizeLimit = builder.Configuration.GetValue<long?>("Cache:SizeLimit") ?? 1024;
         builder.Services.AddMemoryCache(options =>
         {
-            options.SizeLimit = null; // 不限制缓存大小
+            options.SizeLimit = cacheSizeLimit; // 设置缓存大小限制
             options.CompactionPercentage = 0.25; // 压缩百分比
         });
 
