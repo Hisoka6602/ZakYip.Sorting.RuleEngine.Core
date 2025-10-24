@@ -22,6 +22,111 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("FormattedCurl")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ParcelId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("RequestBody")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RequestHeaders")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RequestTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RequestUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ResponseBody")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponseHeaders")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ResponseStatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResponseTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParcelId")
+                        .HasDatabaseName("IX_api_comm_logs_ParcelId");
+
+                    b.HasIndex("RequestTime")
+                        .IsDescending()
+                        .HasDatabaseName("IX_api_comm_logs_RequestTime_Desc");
+
+                    b.ToTable("api_communication_logs", (string)null);
+                });
+
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.Chute", b =>
+                {
+                    b.Property<long>("ChuteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("ChuteId"));
+
+                    b.Property<string>("ChuteCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("ChuteName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("ChuteId");
+
+                    b.HasIndex("ChuteCode")
+                        .HasDatabaseName("IX_chutes_ChuteCode");
+
+                    b.HasIndex("ChuteName")
+                        .HasDatabaseName("IX_chutes_ChuteName");
+
+                    b.ToTable("chutes", (string)null);
+                });
+
             modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.CommunicationLog", b =>
                 {
                     b.Property<long>("Id")
@@ -75,13 +180,184 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                     b.ToTable("communication_logs", (string)null);
                 });
 
-            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.LogEntry", b =>
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Barcode")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CommunicationTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("DwsAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("FormattedContent")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("OriginalContent")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<decimal?>("Volume")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Weight")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Barcode")
+                        .HasDatabaseName("IX_dws_comm_logs_Barcode");
+
+                    b.HasIndex("CommunicationTime")
+                        .IsDescending()
+                        .HasDatabaseName("IX_dws_comm_logs_Time_Desc");
+
+                    b.ToTable("dws_communication_logs", (string)null);
+                });
+
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.MatchingLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ApiContent")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CartOccupancy")
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<long?>("ChuteId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DwsContent")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("MatchedRuleId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("MatchingReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("MatchingTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ParcelId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChuteId")
+                        .HasDatabaseName("IX_matching_logs_ChuteId");
+
+                    b.HasIndex("MatchingTime")
+                        .IsDescending()
+                        .HasDatabaseName("IX_matching_logs_Time_Desc");
+
+                    b.HasIndex("ParcelId")
+                        .HasDatabaseName("IX_matching_logs_ParcelId");
+
+                    b.ToTable("matching_logs", (string)null);
+                });
+
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CommunicationTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CommunicationType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("ExtractedCartNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ExtractedParcelId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("FormattedContent")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("OriginalContent")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("SorterAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunicationTime")
+                        .IsDescending()
+                        .HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
+
+                    b.HasIndex("ExtractedParcelId")
+                        .HasDatabaseName("IX_sorter_comm_logs_ParcelId");
+
+                    b.ToTable("sorter_communication_logs", (string)null);
+                });
+
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.LogEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");

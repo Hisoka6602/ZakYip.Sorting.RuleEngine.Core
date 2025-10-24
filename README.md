@@ -904,11 +904,70 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 }
 ```
 
-## 最新实现功能 (v1.5.0)
+## 最新实现功能 (v1.6.0)
 
 ### 新增功能
 
-#### 1. 性能指标收集和监控（新增）
+#### 1. 枚举类型定义（新增）
+- ✅ **BarcodeMatchPreset枚举** - 定义条码匹配预设类型
+  - StartsWith - 以指定字符串开头
+  - Contains - 包含指定字符串
+  - NotContains - 不包含指定字符串
+  - AllDigits - 全数字
+  - Alphanumeric - 字母和数字组合
+  - Length - 指定长度范围
+  - Regex - 自定义正则表达式
+- ✅ **ApiResponseMatchType枚举** - 定义API响应匹配类型
+  - String - 字符串查找（正向）
+  - StringReverse - 字符串查找（反向）
+  - Regex - 正则表达式匹配
+  - Json - JSON字段匹配
+
+#### 2. 格口管理（新增）
+- ✅ **Chute实体** - 格口信息管理
+  - ChuteId (long) - 格口ID，自增主键
+  - ChuteName - 格口名称
+  - ChuteCode - 格口编号（可选）
+  - Description - 格口描述
+  - IsEnabled - 是否启用
+  - CreatedAt/UpdatedAt - 创建/更新时间
+- ✅ 数据库表和索引配置
+- ✅ 支持MySQL和SQLite双数据库
+
+#### 3. 专用通信日志表（新增）
+- ✅ **SorterCommunicationLog** - 分拣机通信日志
+  - 分拣机地址、通信类型（接收/发送）
+  - 原始内容、格式化内容
+  - 提取的包裹ID、小车号（接收时）
+  - 通信时间、成功状态、错误信息
+- ✅ **DwsCommunicationLog** - DWS通信日志
+  - DWS地址、原始内容、格式化内容
+  - 条码、重量、体积
+  - 通信时间、成功状态、错误信息
+- ✅ **ApiCommunicationLog** - API通信日志
+  - 包裹ID、请求地址、请求/响应内容
+  - 请求/响应头、状态码
+  - 请求时间、耗时、响应时间
+  - 格式化的Curl内容
+- ✅ **MatchingLog** - 匹配日志
+  - 包裹ID、关联的DWS/API内容
+  - 匹配的规则ID、匹配依据
+  - 格口ID、小车占位数量
+  - 匹配时间、成功状态、错误信息
+
+#### 4. 数据库优化（新增）
+- ✅ 所有表的ID字段统一使用long类型（自增主键）
+- ✅ 为所有日志表创建了合适的索引
+  - 按时间降序索引，优化查询性能
+  - 按关键字段索引（包裹ID、条码、格口ID等）
+- ✅ 支持MySQL和SQLite双数据库
+- ✅ 自动创建EF Core数据库迁移
+
+## 历史版本功能 (v1.5.0)
+
+### 已实现功能
+
+#### 1. 性能指标收集和监控
 - ✅ 创建性能指标实体（PerformanceMetric）
 - ✅ 创建性能指标仓储接口（IPerformanceMetricRepository）
 - ✅ 创建性能指标收集服务（PerformanceMetricService）
@@ -916,7 +975,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 - ✅ 支持P50/P95/P99延迟统计
 - ✅ 详细文档：[PERFORMANCE_METRICS.md](./PERFORMANCE_METRICS.md)
 
-#### 2. 多种匹配方法（新增）
+#### 2. 多种匹配方法
 - ✅ **条码正则匹配** (BarcodeRegexMatcher)
   - 支持预设选项：STARTSWITH、CONTAINS、NOTCONTAINS、ALLDIGITS、ALPHANUMERIC、LENGTH
   - 支持自定义正则表达式
@@ -936,13 +995,13 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
   - 灵活的自定义表达式
 - ✅ 详细文档：[MATCHING_METHODS.md](./MATCHING_METHODS.md)
 
-#### 3. 多规则匹配支持（新增）
+#### 3. 多规则匹配支持
 - ✅ 一个格口ID可以匹配多条规则
 - ✅ 系统收集所有匹配的规则
 - ✅ 按优先级返回最高优先级规则的格口号
 - ✅ 记录匹配到的规则数量
 
-#### 4. 完善的单元测试（新增）
+#### 4. 完善的单元测试
 - ✅ BarcodeRegexMatcherTests - 条码正则匹配测试
 - ✅ WeightMatcherTests - 重量匹配测试
 - ✅ VolumeMatcherTests - 体积匹配测试
@@ -1015,23 +1074,26 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 ### 优化方向
 
 #### 短期优化（1-2周）
-1. **适配器配置界面** - 添加API端点支持运行时切换适配器
-2. **通信日志查询API** - 提供API查询和导出通信日志
-3. **性能监控** - 添加性能指标收集和监控
+1. **格口管理API** - 添加格口的增删改查API端点
+2. **日志查询API** - 提供专用日志表的查询和导出API
+3. **格口分配优化** - 基于格口使用情况的智能分配算法
+4. **枚举使用重构** - 在matcher中使用新定义的枚举类型
 
 #### 中期优化（1-3个月）
-1. **监控面板** - 开发实时监控面板显示系统状态
-2. **更多适配器** - 支持更多厂商的DWS和分拣机设备
-3. **负载均衡** - 支持多实例部署和负载均衡
-4. **性能测试** - 压力测试和性能基准测试
-5. **文档完善** - 完善开发文档和部署文档
+1. **监控面板** - 开发实时监控面板显示系统状态和日志统计
+2. **格口利用率统计** - 统计分析格口使用情况和分拣效率
+3. **日志归档策略** - 实现日志表的自动归档和清理
+4. **更多适配器** - 支持更多厂商的DWS和分拣机设备
+5. **负载均衡** - 支持多实例部署和负载均衡
+6. **性能测试** - 压力测试和性能基准测试
 
 #### 长期优化（3-6个月）
 1. **微服务架构** - 拆分为微服务架构，提高可扩展性
 2. **容器化部署** - 支持Docker和Kubernetes部署
-3. **AI规则引擎** - 引入机器学习优化规则匹配
+3. **AI规则引擎** - 引入机器学习优化规则匹配和格口分配
 4. **国际化** - 支持多语言界面
 5. **云原生** - 支持云平台部署（Azure, AWS, 阿里云）
+6. **大数据分析** - 基于日志数据的深度分析和报表
 
 ## 测试工具使用
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
@@ -10,9 +11,11 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
 {
     [DbContext(typeof(SqliteLogDbContext))]
-    partial class SqliteLogDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251024130053_AddNewLogTables")]
+    partial class AddNewLogTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.15");
