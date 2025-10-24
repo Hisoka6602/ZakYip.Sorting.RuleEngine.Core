@@ -9,13 +9,15 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 /// </summary>
 public class SqliteLogDbContextFactory : IDesignTimeDbContextFactory<SqliteLogDbContext>
 {
+    private const string ConnectionString = "Data Source=logs.db";
+
     public SqliteLogDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<SqliteLogDbContext>();
         
         // 使用虚拟连接字符串进行迁移生成
         // Use dummy connection string for migration generation
-        optionsBuilder.UseSqlite("Data Source=logs.db");
+        optionsBuilder.UseSqlite(ConnectionString);
 
         return new SqliteLogDbContext(optionsBuilder.Options);
     }
