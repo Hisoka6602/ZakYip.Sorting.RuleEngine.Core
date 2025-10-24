@@ -53,7 +53,14 @@ public class ResilientLogRepository : ILogRepository
                 OnClosed = args =>
                 {
                     _logger.LogInformation("MySQL熔断器关闭，开始同步SQLite数据到MySQL");
-                    _ = Task.Run(SyncSqliteToMySqlAsync);
+                    _ = Task.Run(SyncSqliteToMySqlAsync)
+                        .ContinueWith(t =>
+                        {
+                            if (t.Exception != null)
+                            {
+                                _logger.LogError(t.Exception, "同步SQLite到MySQL时发生未处理异常");
+                            }
+                        }, TaskContinuationOptions.OnlyOnFaulted);
                     return ValueTask.CompletedTask;
                 },
                 OnHalfOpened = args =>
