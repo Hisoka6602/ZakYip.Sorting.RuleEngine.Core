@@ -1,0 +1,239 @@
+using LiteDB;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
+using ZakYip.Sorting.RuleEngine.Application.Services;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Service.Configuration;
+
+namespace ZakYip.Sorting.RuleEngine.Service;
+
+/// <summary>
+/// 主程序入口
+/// Main program entry point - Windows Service with MiniAPI
+/// </summary>
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        // 配置Windows服务
+        // Configure Windows Service
+        builder.Host.UseWindowsService();
+
+        // 配置应用设置
+        // Configure application settings
+        var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
+            ?? new AppSettings();
+
+        // 注册配置
+        // Register configuration
+        builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+
+        // 配置LiteDB（用于配置存储）
+        // Configure LiteDB for configuration storage
+        builder.Services.AddSingleton<ILiteDatabase>(sp =>
+        {
+            var dbPath = Path.GetDirectoryName(appSettings.LiteDb.ConnectionString.Replace("Filename=", "").Split(';')[0]);
+            if (!string.IsNullOrEmpty(dbPath) && !Directory.Exists(dbPath))
+            {
+                Directory.CreateDirectory(dbPath);
+            }
+            return new LiteDatabase(appSettings.LiteDb.ConnectionString);
+        });
+
+        // 配置日志数据库（MySQL优先，失败时降级到SQLite）
+        // Configure logging database (MySQL first, fallback to SQLite)
+        if (appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString))
+        {
+            try
+            {
+                builder.Services.AddDbContext<MySqlLogDbContext>(options =>
+                    options.UseMySql(
+                        appSettings.MySql.ConnectionString,
+                        ServerVersion.AutoDetect(appSettings.MySql.ConnectionString)));
+                
+                builder.Services.AddScoped<ILogRepository, MySqlLogRepository>();
+            }
+            catch
+            {
+                // 降级到SQLite
+                // Fallback to SQLite
+                ConfigureSqliteLogging(builder.Services, appSettings);
+            }
+        }
+        else
+        {
+            // 使用SQLite
+            // Use SQLite
+            ConfigureSqliteLogging(builder.Services, appSettings);
+        }
+
+        // 配置HttpClient用于第三方API
+        // Configure HttpClient for third-party API
+        builder.Services.AddHttpClient<IThirdPartyApiClient, ThirdPartyApiClient>(client =>
+        {
+            client.BaseAddress = new Uri(appSettings.ThirdPartyApi.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(appSettings.ThirdPartyApi.TimeoutSeconds);
+            
+            if (!string.IsNullOrEmpty(appSettings.ThirdPartyApi.ApiKey))
+            {
+                client.DefaultRequestHeaders.Add("X-API-Key", appSettings.ThirdPartyApi.ApiKey);
+            }
+        });
+
+        // 注册仓储
+        // Register repositories
+        builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
+
+        // 注册应用服务
+        // Register application services
+        builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
+        builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
+
+        // 添加控制器和API服务
+        // Add controllers and API services
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        
+        if (appSettings.MiniApi.EnableSwagger)
+        {
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new()
+                {
+                    Title = "分拣规则引擎 API",
+                    Version = "v1",
+                    Description = "ZakYip 分拣规则引擎核心系统 API"
+                });
+            });
+        }
+
+        // 配置CORS
+        // Configure CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
+        var app = builder.Build();
+
+        // 初始化数据库
+        // Initialize databases
+        InitializeDatabases(app.Services, appSettings);
+
+        // 配置HTTP管道
+        // Configure HTTP pipeline
+        if (app.Environment.IsDevelopment() || appSettings.MiniApi.EnableSwagger)
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "分拣规则引擎 API v1");
+            });
+        }
+
+        app.UseCors();
+        app.UseRouting();
+        app.MapControllers();
+
+        // 添加最小API端点
+        // Add minimal API endpoints
+        ConfigureMinimalApi(app);
+
+        app.Run();
+    }
+
+    /// <summary>
+    /// 配置SQLite日志
+    /// Configure SQLite logging
+    /// </summary>
+    private static void ConfigureSqliteLogging(IServiceCollection services, AppSettings appSettings)
+    {
+        var dbPath = Path.GetDirectoryName(appSettings.Sqlite.ConnectionString.Replace("Data Source=", "").Split(';')[0]);
+        if (!string.IsNullOrEmpty(dbPath) && !Directory.Exists(dbPath))
+        {
+            Directory.CreateDirectory(dbPath);
+        }
+
+        services.AddDbContext<SqliteLogDbContext>(options =>
+            options.UseSqlite(appSettings.Sqlite.ConnectionString));
+        
+        services.AddScoped<ILogRepository, SqliteLogRepository>();
+    }
+
+    /// <summary>
+    /// 初始化数据库
+    /// Initialize databases
+    /// </summary>
+    private static void InitializeDatabases(IServiceProvider services, AppSettings appSettings)
+    {
+        using var scope = services.CreateScope();
+
+        // 确保MySQL或SQLite数据库创建
+        // Ensure MySQL or SQLite database is created
+        if (appSettings.MySql.Enabled)
+        {
+            try
+            {
+                var mysqlContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
+                mysqlContext?.Database.EnsureCreated();
+            }
+            catch
+            {
+                // 如果MySQL失败，使用SQLite
+                // If MySQL fails, use SQLite
+                var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
+                sqliteContext?.Database.EnsureCreated();
+            }
+        }
+        else
+        {
+            var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
+            sqliteContext?.Database.EnsureCreated();
+        }
+    }
+
+    /// <summary>
+    /// 配置最小API端点
+    /// Configure minimal API endpoints
+    /// </summary>
+    private static void ConfigureMinimalApi(WebApplication app)
+    {
+        // 健康检查端点
+        // Health check endpoint
+        app.MapGet("/health", () => Results.Ok(new
+        {
+            status = "healthy",
+            timestamp = DateTime.UtcNow
+        }))
+        .WithName("HealthCheck")
+        .WithOpenApi();
+
+        // 版本信息端点
+        // Version info endpoint
+        app.MapGet("/version", () => Results.Ok(new
+        {
+            version = "1.0.0",
+            name = "ZakYip.Sorting.RuleEngine.Core",
+            description = "分拣规则引擎核心系统"
+        }))
+        .WithName("Version")
+        .WithOpenApi();
+    }
+}
+
