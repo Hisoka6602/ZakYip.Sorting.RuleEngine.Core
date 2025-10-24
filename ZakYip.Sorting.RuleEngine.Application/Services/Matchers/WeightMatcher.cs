@@ -20,15 +20,10 @@ public class WeightMatcher
         {
             // 替换表达式中的Weight为实际值
             var expr = expression
-                .Replace("Weight", weight.ToString(), StringComparison.OrdinalIgnoreCase)
-                .Replace("and", "&&", StringComparison.OrdinalIgnoreCase)
-                .Replace("or", "||", StringComparison.OrdinalIgnoreCase)
-                .Replace("&", "&&")
-                .Replace("|", "||")
-                .Replace("=", "==");
+                .Replace("Weight", weight.ToString(), StringComparison.OrdinalIgnoreCase);
 
-            // 修正双等号重复问题
-            expr = expr.Replace("====", "==");
+            // 标准化逻辑操作符
+            expr = NormalizeLogicalOperators(expr);
 
             // 计算布尔表达式
             return EvaluateBooleanExpression(expr);
@@ -37,6 +32,28 @@ public class WeightMatcher
         {
             return false;
         }
+    }
+
+    private string NormalizeLogicalOperators(string expression)
+    {
+        // 替换and/or为&&/||
+        expression = System.Text.RegularExpressions.Regex.Replace(
+            expression, 
+            @"\band\b", 
+            "&&", 
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+        expression = System.Text.RegularExpressions.Regex.Replace(
+            expression, 
+            @"\bor\b", 
+            "||", 
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // 替换单个&或|为双符号
+        expression = System.Text.RegularExpressions.Regex.Replace(expression, @"(?<![&|])&(?![&|])", "&&");
+        expression = System.Text.RegularExpressions.Regex.Replace(expression, @"(?<![&|])\|(?![&|])", "||");
+
+        return expression;
     }
 
     private bool EvaluateBooleanExpression(string expression)
@@ -103,7 +120,18 @@ public class WeightMatcher
                 return left == right;
             }
         }
-        else if (expression.Contains(">"))
+        else if (expression.Contains("=") && !expression.Contains(">") && !expression.Contains("<"))
+        {
+            // 处理单个等号（不是>=或<=）
+            var parts = expression.Split(new[] { "=" }, StringSplitOptions.None);
+            if (parts.Length == 2 && 
+                decimal.TryParse(parts[0].Trim(), out decimal left) && 
+                decimal.TryParse(parts[1].Trim(), out decimal right))
+            {
+                return left == right;
+            }
+        }
+        else if (expression.Contains(">") && !expression.Contains(">="))
         {
             var parts = expression.Split(new[] { ">" }, StringSplitOptions.None);
             if (parts.Length == 2 && 
@@ -113,7 +141,7 @@ public class WeightMatcher
                 return left > right;
             }
         }
-        else if (expression.Contains("<"))
+        else if (expression.Contains("<") && !expression.Contains("<="))
         {
             var parts = expression.Split(new[] { "<" }, StringSplitOptions.None);
             if (parts.Length == 2 && 
