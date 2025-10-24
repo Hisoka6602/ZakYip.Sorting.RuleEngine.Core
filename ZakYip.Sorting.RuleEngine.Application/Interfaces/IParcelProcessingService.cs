@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.Interfaces;
 
 /// <summary>
 /// 包裹处理服务接口
-/// Parcel processing service interface - main application service
 /// </summary>
 public interface IParcelProcessingService
 {

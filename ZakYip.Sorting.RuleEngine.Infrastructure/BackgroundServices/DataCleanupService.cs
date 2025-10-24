@@ -11,7 +11,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// 数据清理后台服务（基于空闲策略）
-/// Background service for automatic data cleanup based on idle strategy
 /// </summary>
 public class DataCleanupService : BackgroundService
 {

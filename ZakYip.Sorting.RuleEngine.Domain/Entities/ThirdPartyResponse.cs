@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
 /// 第三方API响应实体
-/// Third-party API response entity
 /// </summary>
 public class ThirdPartyResponse
 {

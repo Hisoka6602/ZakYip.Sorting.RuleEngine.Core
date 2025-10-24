@@ -5,7 +5,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 /// <summary>
 /// MySQL日志仓储实现
-/// MySQL-based log repository for persistent logging
 /// </summary>
 public class MySqlLogRepository : ILogRepository
 {

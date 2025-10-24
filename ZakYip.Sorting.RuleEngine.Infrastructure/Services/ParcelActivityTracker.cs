@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 /// <summary>
 /// 包裹活动追踪器实现
-/// Implementation of parcel activity tracker
 /// </summary>
 public class ParcelActivityTracker : IParcelActivityTracker
 {

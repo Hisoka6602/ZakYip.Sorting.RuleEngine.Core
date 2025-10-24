@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 分拣机适配器接口，支持多厂商协议
-/// Sorter adapter interface for supporting multiple vendor protocols
 /// </summary>
 public interface ISorterAdapter
 {

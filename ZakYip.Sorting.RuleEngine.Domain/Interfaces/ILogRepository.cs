@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 日志仓储接口
-/// Log repository interface for persisting operation logs
 /// </summary>
 public interface ILogRepository
 {

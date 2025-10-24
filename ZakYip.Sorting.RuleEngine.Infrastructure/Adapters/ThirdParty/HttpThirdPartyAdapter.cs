@@ -11,7 +11,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.ThirdParty;
 
 /// <summary>
 /// HTTP协议第三方API适配器（通用实现）
-/// HTTP protocol third-party API adapter (generic implementation)
 /// </summary>
 public class HttpThirdPartyAdapter : IThirdPartyAdapter
 {

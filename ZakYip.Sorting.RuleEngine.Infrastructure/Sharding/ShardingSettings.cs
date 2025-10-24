@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 
 /// <summary>
 /// 数据库分片配置
-/// Database sharding configuration
 /// </summary>
 public class ShardingSettings
 {

@@ -8,7 +8,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// MySQL自动调谐服务
-/// MySQL auto-tuning service for performance optimization
 /// </summary>
 public class MySqlAutoTuningService : BackgroundService
 {

@@ -6,7 +6,6 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
 /// 包裹处理API控制器
-/// Parcel processing API controller
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -25,7 +24,6 @@ public class ParcelController : ControllerBase
 
     /// <summary>
     /// 处理单个包裹
-    /// Process a single parcel
     /// </summary>
     /// <param name="request">包裹处理请求</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -64,7 +62,6 @@ public class ParcelController : ControllerBase
 
     /// <summary>
     /// 批量处理包裹
-    /// Process multiple parcels in batch
     /// </summary>
     /// <param name="requests">包裹处理请求列表</param>
     /// <param name="cancellationToken">取消令牌</param>

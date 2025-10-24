@@ -8,7 +8,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 
 /// <summary>
 /// 分片日志数据库上下文
-/// Sharded log database context for time-based partitioning
 /// </summary>
 public class ShardedLogDbContext : DbContext
 {
@@ -57,7 +56,6 @@ public class ShardedLogDbContext : DbContext
 
 /// <summary>
 /// 包裹处理日志条目
-/// Parcel processing log entry for sharding
 /// </summary>
 public class ParcelLogEntry
 {

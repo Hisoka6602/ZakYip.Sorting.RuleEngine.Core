@@ -10,7 +10,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// 数据归档后台服务
-/// Background service for archiving hot data to cold storage
 /// </summary>
 public class DataArchiveService : BackgroundService
 {

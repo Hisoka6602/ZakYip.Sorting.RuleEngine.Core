@@ -5,7 +5,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
 /// <summary>
 /// SQLite日志仓储实现（降级方案）
-/// SQLite-based log repository for fallback logging
 /// </summary>
 public class SqliteLogRepository : ILogRepository
 {

@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 包裹创建事件
-/// Event triggered when a parcel is created from sorting machine signal
 /// </summary>
 public class ParcelCreatedEvent : INotification
 {
@@ -30,7 +29,6 @@ public class ParcelCreatedEvent : INotification
     
     /// <summary>
     /// 包裹序号（用于保证FIFO顺序）
-    /// Sequence number to ensure FIFO ordering
     /// </summary>
     public long SequenceNumber { get; init; }
 }

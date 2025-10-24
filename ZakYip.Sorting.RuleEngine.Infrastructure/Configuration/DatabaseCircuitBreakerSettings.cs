@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 
 /// <summary>
 /// 数据库熔断器配置
-/// Database circuit breaker settings
 /// </summary>
 public class DatabaseCircuitBreakerSettings
 {

@@ -7,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 
 /// <summary>
 /// TCP协议分拣机适配器
-/// TCP protocol sorter adapter for standard TCP communication
 /// </summary>
 public class TcpSorterAdapter : ISorterAdapter
 {

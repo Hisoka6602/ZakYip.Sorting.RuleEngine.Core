@@ -8,7 +8,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 
 /// <summary>
 /// DWS数据接收事件处理器
-/// Handler for DWS data received events - uploads data to third-party API
 /// </summary>
 public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedEvent>
 {

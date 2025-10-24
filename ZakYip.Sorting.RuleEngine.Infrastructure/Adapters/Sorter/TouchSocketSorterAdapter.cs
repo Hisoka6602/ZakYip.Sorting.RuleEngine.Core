@@ -9,6 +9,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 
 /// <summary>
 /// 基于TouchSocket的分拣机TCP适配器
+/// 支持自动重连和高性能消息发送
 /// </summary>
 public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
 {
@@ -18,6 +19,9 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
     private readonly int _port;
     private TcpClient? _tcpClient;
     private readonly object _lockObj = new();
+    private readonly int _reconnectIntervalMs;
+    private readonly int _receiveBufferSize;
+    private readonly int _sendBufferSize;
 
     public string AdapterName => "TouchSocket-Sorter";
     public string ProtocolType => "TCP";
@@ -26,12 +30,18 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         string host,
         int port,
         ILogger<TouchSocketSorterAdapter> logger,
-        ICommunicationLogRepository communicationLogRepository)
+        ICommunicationLogRepository communicationLogRepository,
+        int reconnectIntervalMs = 5000,
+        int receiveBufferSize = 8192,
+        int sendBufferSize = 8192)
     {
         _host = host;
         _port = port;
         _logger = logger;
         _communicationLogRepository = communicationLogRepository;
+        _reconnectIntervalMs = reconnectIntervalMs;
+        _receiveBufferSize = receiveBufferSize;
+        _sendBufferSize = sendBufferSize;
     }
 
     /// <summary>
@@ -118,7 +128,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
                 .SetRemoteIPHost(new IPHost($"{_host}:{_port}"))
                 .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
 
-            await _tcpClient.ConnectAsync();
+            await _tcpClient.ConnectAsync(_reconnectIntervalMs); // 自动重连间隔
             
             _logger.LogInformation("TCP连接已建立，地址: {Host}:{Port}", _host, _port);
             await _communicationLogRepository.LogCommunicationAsync(

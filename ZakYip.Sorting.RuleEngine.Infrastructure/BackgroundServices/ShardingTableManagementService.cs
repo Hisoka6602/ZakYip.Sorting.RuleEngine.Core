@@ -9,7 +9,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// 分片表自动管理服务
-/// Background service for automatic sharding table management
 /// </summary>
 public class ShardingTableManagementService : BackgroundService
 {

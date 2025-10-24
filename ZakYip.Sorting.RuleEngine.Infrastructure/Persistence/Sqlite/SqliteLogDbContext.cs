@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
 /// <summary>
 /// SQLite日志数据库上下文（降级方案）
-/// SQLite database context for logging (fallback solution)
 /// </summary>
 public class SqliteLogDbContext : DbContext
 {
@@ -43,7 +42,6 @@ public class SqliteLogDbContext : DbContext
 
 /// <summary>
 /// SQLite日志实体
-/// SQLite log entity
 /// </summary>
 public class LogEntry
 {

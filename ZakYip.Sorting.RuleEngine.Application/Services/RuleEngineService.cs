@@ -8,7 +8,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
 /// <summary>
 /// 规则引擎服务实现
-/// Rule engine service for evaluating sorting rules with high performance
 /// </summary>
 public class RuleEngineService : IRuleEngineService
 {

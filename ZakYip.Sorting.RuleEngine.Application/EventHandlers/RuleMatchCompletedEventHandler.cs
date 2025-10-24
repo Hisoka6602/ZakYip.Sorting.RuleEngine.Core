@@ -7,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 
 /// <summary>
 /// 规则匹配完成事件处理器
-/// Handler for rule match completion - sends result to sorting machine
 /// </summary>
 public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchCompletedEvent>
 {

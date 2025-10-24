@@ -5,7 +5,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 第三方API响应接收事件
-/// Event triggered when third-party API response is received
 /// </summary>
 public class ThirdPartyResponseReceivedEvent : INotification
 {
