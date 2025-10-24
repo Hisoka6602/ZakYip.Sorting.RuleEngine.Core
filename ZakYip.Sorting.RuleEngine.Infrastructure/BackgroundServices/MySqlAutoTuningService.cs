@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Models;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
@@ -224,41 +225,4 @@ public class MySqlAutoTuningService : BackgroundService
             _logger.LogWarning(ex, "优化查询缓存失败");
         }
     }
-}
-
-/// <summary>
-/// 表统计信息
-/// </summary>
-public class TableStatistics
-{
-    public string TableName { get; set; } = string.Empty;
-    public long RowCount { get; set; }
-    public decimal SizeMB { get; set; }
-}
-
-/// <summary>
-/// 索引使用信息
-/// </summary>
-public class IndexUsageInfo
-{
-    public string DatabaseName { get; set; } = string.Empty;
-    public string TableName { get; set; } = string.Empty;
-    public string IndexName { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// 连接状态信息
-/// </summary>
-public class ConnectionStatus
-{
-    public string VariableName { get; set; } = string.Empty;
-    public string Value { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// 慢查询信息
-/// </summary>
-public class SlowQueryInfo
-{
-    public int Count { get; set; }
 }

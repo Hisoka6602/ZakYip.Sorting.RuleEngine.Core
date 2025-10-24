@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -45,7 +46,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             {
                 ParcelId = notification.ParcelId,
                 Barcode = notification.DwsData.Barcode,
-                Status = Domain.Entities.ParcelStatus.Processing
+                Status = ParcelStatus.Processing
             };
 
             var response = await _thirdPartyApiClient.UploadDataAsync(

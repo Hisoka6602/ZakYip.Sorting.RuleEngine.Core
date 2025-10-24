@@ -4,6 +4,7 @@ using Microsoft.Extensions.ObjectPool;
 using ZakYip.Sorting.RuleEngine.Application.DTOs;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;

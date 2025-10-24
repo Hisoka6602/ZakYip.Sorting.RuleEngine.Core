@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
@@ -47,20 +49,4 @@ public class ParcelInfo
     /// Processing status
     /// </summary>
     public ParcelStatus Status { get; set; } = ParcelStatus.Pending;
-}
-
-/// <summary>
-/// 包裹处理状态枚举
-/// Parcel processing status enumeration
-/// </summary>
-public enum ParcelStatus
-{
-    /// <summary>待处理</summary>
-    Pending = 0,
-    /// <summary>处理中</summary>
-    Processing = 1,
-    /// <summary>已完成</summary>
-    Completed = 2,
-    /// <summary>失败</summary>
-    Failed = 3
 }
