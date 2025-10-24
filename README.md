@@ -15,11 +15,16 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **弹性架构** - 数据库熔断器（可配置失败率、熔断时长），自动降级和数据同步，防止系统雪崩
 - ✅ **自动数据管理** - 可配置的数据清理（默认90天）和归档服务，自动维护数据生命周期
 - ✅ **MySQL自动调谐** - 性能监控、索引分析、连接池优化和慢查询识别
-- ✅ **多协议支持** - 支持TCP/HTTP等多种协议，通过适配器模式扩展多厂商对接
-- ✅ **清晰架构** - 采用DDD分层架构，零边界入侵
+- ✅ **多协议支持** - 支持TCP/HTTP/SignalR等多种协议，通过适配器模式扩展多厂商对接
+- ✅ **热切换支持** - 适配器管理器支持运行时热切换，无需重启服务即可切换DWS/分拣机适配器
+- ✅ **TouchSocket集成** - 使用TouchSocket库实现高性能TCP通信
+- ✅ **通信日志** - 全量记录TCP/SignalR/HTTP通信日志，支持问题追踪和调试
+- ✅ **测试工具** - 提供分拣机信号模拟测试控制台，便于开发和测试
+- ✅ **自动迁移** - EF Core自动应用数据库迁移，部署时自动创建表和索引
+- ✅ **清晰架构** - 采用DDD分层架构，所有类、枚举、事件独立文件存放
 - ✅ **中央包管理** - 使用Directory.Packages.props统一管理NuGet包版本
 - ✅ **完整测试** - 单元测试覆盖核心功能
-- ✅ **完整中文注释** - 所有代码都包含详细的中文和英文注释
+- ✅ **中文注释** - 核心代码使用中文注释
 
 ## 架构设计
 
@@ -84,6 +89,8 @@ ZakYip.Sorting.RuleEngine/
 - **Polly** - 弹性和瞬态故障处理（重试、熔断器）
 - **IMemoryCache** - 滑动过期内存缓存
 - **System.Threading.Channels** - FIFO队列实现
+- **TouchSocket** - 高性能TCP通信库
+- **SignalR** - 实时双向通信
 - **Swagger/OpenAPI** - API文档
 - **Object Pool** - 对象池优化性能
 - **xUnit / Moq** - 单元测试框架
@@ -447,21 +454,74 @@ DEFAULT                # 默认规则（匹配所有）
 
 - **结构化日志** - 使用Microsoft.Extensions.Logging
 - **数据库日志** - 持久化到MySQL或SQLite
+- **通信日志** - 全量记录TCP/SignalR/HTTP通信，存储到communication_logs表
 - **健康检查** - `/health` 端点监控服务状态
 - **熔断器监控** - 记录熔断器状态变化和异常
 
-## 多协议支持
+## 多协议支持和热切换
 
-系统通过适配器模式支持多种通信协议：
+系统通过适配器模式支持多种通信协议，并支持运行时热切换：
+
+### DWS适配器（IDwsAdapter）
+- **TouchSocket TCP** - `TouchSocketDwsAdapter` 高性能TCP通信
+- **支持热切换** - 可在运行时切换不同厂商的DWS设备
+- **自动重连** - 连接断开时自动重连
+- **完整日志** - 记录所有接收的DWS数据到数据库
+
+使用示例：
+```csharp
+// 注册DWS适配器
+services.AddSingleton<IDwsAdapter>(sp => 
+    new TouchSocketDwsAdapter("192.168.1.100", 8001, logger, commLogRepo));
+
+// 使用适配器管理器支持热切换
+services.AddSingleton<IAdapterManager<IDwsAdapter>>(sp => 
+    new AdapterManager<IDwsAdapter>(
+        sp.GetServices<IDwsAdapter>(), 
+        "TouchSocket-DWS", 
+        logger));
+```
 
 ### 分拣机适配器（ISorterAdapter）
-- **TCP协议** - `TcpSorterAdapter` 支持标准TCP通信
-- **可扩展** - 通过实现`ISorterAdapter`接口支持其他厂商协议
+- **TouchSocket TCP** - `TouchSocketSorterAdapter` 高性能TCP通信
+- **标准TCP** - `TcpSorterAdapter` 支持标准TCP通信
+- **支持热切换** - 可在运行时切换不同厂商的分拣机
+- **完整日志** - 记录所有发送的分拣指令到数据库
+
+使用示例：
+```csharp
+// 注册分拣机适配器
+services.AddSingleton<ISorterAdapter>(sp => 
+    new TouchSocketSorterAdapter("192.168.1.200", 9000, logger, commLogRepo));
+
+// 使用适配器管理器支持热切换
+services.AddSingleton<IAdapterManager<ISorterAdapter>>(sp => 
+    new AdapterManager<ISorterAdapter>(
+        sp.GetServices<ISorterAdapter>(), 
+        "TouchSocket-Sorter", 
+        logger));
+```
 
 ### 第三方API适配器（IThirdPartyAdapter）
 - **HTTP协议** - `HttpThirdPartyAdapter` 带熔断器的HTTP通信
-- **TCP协议** - 可扩展支持TCP协议API
+- **支持热切换** - 可在运行时切换不同的API提供商
 - **可扩展** - 通过实现`IThirdPartyAdapter`接口支持其他协议
+
+### 热切换使用
+
+```csharp
+// 获取适配器管理器
+var adapterManager = serviceProvider.GetService<IAdapterManager<IDwsAdapter>>();
+
+// 运行时切换到其他适配器（无需重启服务）
+await adapterManager.SwitchAdapterAsync("OtherVendor-DWS");
+
+// 获取当前活动的适配器
+var currentAdapter = adapterManager.GetActiveAdapter();
+
+// 获取所有可用适配器
+var allAdapters = adapterManager.GetAllAdapters();
+```
 
 ## 测试
 
@@ -514,6 +574,31 @@ dotnet test --filter "FullyQualifiedName~RuleEngineServiceTests"
 
 2. 在`Program.cs`中注册适配器
 
+### 添加新的DWS适配器
+
+1. 实现`IDwsAdapter`接口：
+   ```csharp
+   public class CustomDwsAdapter : IDwsAdapter
+   {
+       public string AdapterName => "CustomVendor-DWS";
+       public string ProtocolType => "TCP";
+       
+       public event Func<DwsData, Task>? OnDwsDataReceived;
+       
+       public async Task StartAsync(CancellationToken cancellationToken)
+       {
+           // 实现启动逻辑
+       }
+       
+       public async Task StopAsync(CancellationToken cancellationToken)
+       {
+           // 实现停止逻辑
+       }
+   }
+   ```
+
+2. 在Program.cs中注册适配器到AdapterManager
+
 ### 添加新的第三方API适配器
 
 1. 实现`IThirdPartyAdapter`接口：
@@ -531,6 +616,28 @@ dotnet test --filter "FullyQualifiedName~RuleEngineServiceTests"
    ```
 
 2. 在依赖注入中注册适配器
+
+### 查询通信日志
+
+通信日志存储在`communication_logs`表中，可以通过ICommunicationLogRepository查询：
+
+```csharp
+// 获取最近的通信日志
+var logs = await communicationLogRepository.GetLogsAsync(
+    startTime: DateTime.UtcNow.AddHours(-1),
+    type: CommunicationType.Tcp,
+    parcelId: "PKG001",
+    maxRecords: 100);
+
+// 遍历日志
+foreach (var log in logs)
+{
+    Console.WriteLine($"{log.CreatedAt}: {log.Direction} {log.Message}");
+    if (!log.IsSuccess)
+    {
+        Console.WriteLine($"  错误: {log.ErrorMessage}");
+    }
+}
 
 ### 自定义第三方API
 
@@ -556,6 +663,93 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
     return Ok();
 }
 ```
+
+## 最新实现功能 (v1.3.0)
+
+### 已实现的新功能
+
+#### 1. 自动数据库迁移
+- ✅ EF Core自动迁移，部署时自动创建数据库表
+- ✅ 自动应用迁移更新，支持MySQL和SQLite
+- ✅ 在Program.cs中实现，启动时自动执行
+
+#### 2. 适配器热切换
+- ✅ 实现IAdapterManager<T>接口，支持运行时切换适配器
+- ✅ 支持切换DWS适配器（不同厂商、不同协议）
+- ✅ 支持切换分拣机适配器（不同厂商、不同协议）
+- ✅ 支持切换第三方API适配器
+- ✅ 无需重启服务即可热切换
+
+#### 3. TouchSocket TCP通信
+- ✅ 集成TouchSocket高性能TCP库
+- ✅ 实现TouchSocketDwsAdapter用于DWS数据接收
+- ✅ 实现TouchSocketSorterAdapter用于分拣机通信
+- ✅ 支持自动重连和异常处理
+
+#### 4. SignalR支持
+- ✅ 添加Microsoft.AspNetCore.SignalR.Client包
+- ✅ 支持实时双向通信
+- ✅ 可用于分拣机信号和DWS数据传输
+
+#### 5. 通信日志记录
+- ✅ 新增CommunicationLog实体存储所有通信日志
+- ✅ 记录TCP、SignalR、HTTP通信的全量日志
+- ✅ 支持按类型、时间、包裹ID查询日志
+- ✅ 自动记录发送/接收方向、成功/失败状态
+
+#### 6. 代码结构优化
+- ✅ 所有枚举独立文件存放（ParcelStatus, WorkItemType, CommunicationType等）
+- ✅ 所有枚举添加Description特性，使用中文描述
+- ✅ 将嵌套类移到独立文件（ParcelProcessingContext, ParcelWorkItem）
+- ✅ 代码注释改为中文
+
+#### 7. 测试工具
+- ✅ 创建ZakYip.Sorting.RuleEngine.TestConsole测试控制台
+- ✅ 支持模拟分拣机信号发送（HTTP API）
+- ✅ 支持模拟DWS数据发送（TCP）
+- ✅ 提供交互式命令行界面
+
+### 优化方向
+
+#### 短期优化（1-2周）
+1. **SignalR Hub实现** - 创建SignalR Hub用于实时通信
+2. **适配器配置界面** - 添加API端点支持运行时切换适配器
+3. **通信日志查询API** - 提供API查询和导出通信日志
+4. **性能优化** - 优化TouchSocket连接池和消息处理
+5. **英文注释清理** - 完成所有英文注释的移除
+
+#### 中期优化（1-3个月）
+1. **监控面板** - 开发实时监控面板显示系统状态
+2. **更多适配器** - 支持更多厂商的DWS和分拣机设备
+3. **负载均衡** - 支持多实例部署和负载均衡
+4. **性能测试** - 压力测试和性能基准测试
+5. **文档完善** - 完善开发文档和部署文档
+
+#### 长期优化（3-6个月）
+1. **微服务架构** - 拆分为微服务架构，提高可扩展性
+2. **容器化部署** - 支持Docker和Kubernetes部署
+3. **AI规则引擎** - 引入机器学习优化规则匹配
+4. **国际化** - 支持多语言界面
+5. **云原生** - 支持云平台部署（Azure, AWS, 阿里云）
+
+## 测试工具使用
+
+### 运行测试控制台
+
+```bash
+cd ZakYip.Sorting.RuleEngine.TestConsole
+dotnet run
+```
+
+测试控制台提供两种模式：
+
+**模式1：模拟分拣机信号**
+- 通过HTTP API发送包裹创建信号到主系统
+- 测试分拣机信号接收流程
+
+**模式2：模拟DWS数据**
+- 通过TCP发送DWS测量数据到主系统
+- 测试DWS数据接收和处理流程
 
 ## 贡献
 
