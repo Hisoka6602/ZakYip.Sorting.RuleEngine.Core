@@ -109,4 +109,222 @@ public class ThirdPartyApiClient : IThirdPartyApiClient
             };
         }
     }
+
+    /// <summary>
+    /// 扫描包裹
+    /// Scan parcel to register it in the third-party system
+    /// </summary>
+    public async Task<ThirdPartyResponse> ScanParcelAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("开始扫描包裹，条码: {Barcode}", barcode);
+
+            // 构造请求数据
+            // Build request data
+            var requestData = new
+            {
+                barcode,
+                scanTime = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            // 发送POST请求
+            // Send POST request
+            var response = await _httpClient.PostAsync("/api/parcel/scan", content, cancellationToken);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "扫描包裹成功，条码: {Barcode}, 状态码: {StatusCode}",
+                    barcode, response.StatusCode);
+
+                return new ThirdPartyResponse
+                {
+                    Success = true,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = "Parcel scanned successfully",
+                    Data = responseContent
+                };
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
+                    barcode, response.StatusCode, responseContent);
+
+                return new ThirdPartyResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Scan Error: {response.StatusCode}",
+                    Data = responseContent
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "扫描包裹异常，条码: {Barcode}", barcode);
+
+            return new ThirdPartyResponse
+            {
+                Success = false,
+                Code = "ERROR",
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 请求格口
+    /// Request a chute/gate number for the parcel
+    /// </summary>
+    public async Task<ThirdPartyResponse> RequestChuteAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("开始请求格口，条码: {Barcode}", barcode);
+
+            // 构造请求数据
+            // Build request data
+            var requestData = new
+            {
+                barcode,
+                requestTime = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            // 发送POST请求
+            // Send POST request
+            var response = await _httpClient.PostAsync("/api/chute/request", content, cancellationToken);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "请求格口成功，条码: {Barcode}, 状态码: {StatusCode}",
+                    barcode, response.StatusCode);
+
+                return new ThirdPartyResponse
+                {
+                    Success = true,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = "Chute requested successfully",
+                    Data = responseContent
+                };
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "请求格口失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
+                    barcode, response.StatusCode, responseContent);
+
+                return new ThirdPartyResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Chute Request Error: {response.StatusCode}",
+                    Data = responseContent
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "请求格口异常，条码: {Barcode}", barcode);
+
+            return new ThirdPartyResponse
+            {
+                Success = false,
+                Code = "ERROR",
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 上传图片
+    /// Upload image to third-party API
+    /// </summary>
+    public async Task<ThirdPartyResponse> UploadImageAsync(
+        string barcode,
+        byte[] imageData,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("开始上传图片，条码: {Barcode}, 图片大小: {Size} bytes", barcode, imageData.Length);
+
+            // 构造multipart/form-data请求
+            // Build multipart/form-data request
+            using var formContent = new MultipartFormDataContent();
+            
+            // 添加条码字段
+            formContent.Add(new StringContent(barcode), "barcode");
+            
+            // 添加图片文件
+            var imageContent = new ByteArrayContent(imageData);
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            formContent.Add(imageContent, "image", $"{barcode}.jpg");
+
+            // 发送POST请求
+            // Send POST request
+            var response = await _httpClient.PostAsync("/api/image/upload", formContent, cancellationToken);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "上传图片成功，条码: {Barcode}, 状态码: {StatusCode}",
+                    barcode, response.StatusCode);
+
+                return new ThirdPartyResponse
+                {
+                    Success = true,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = "Image uploaded successfully",
+                    Data = responseContent
+                };
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "上传图片失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
+                    barcode, response.StatusCode, responseContent);
+
+                return new ThirdPartyResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Image Upload Error: {response.StatusCode}",
+                    Data = responseContent
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "上传图片异常，条码: {Barcode}", barcode);
+
+            return new ThirdPartyResponse
+            {
+                Success = false,
+                Code = "ERROR",
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+    }
 }
