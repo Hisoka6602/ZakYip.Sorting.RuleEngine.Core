@@ -7,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 
 /// <summary>
 /// LiteDB规则仓储实现
-/// LiteDB-based rule repository for configuration persistence
 /// </summary>
 public class LiteDbRuleRepository : IRuleRepository
 {

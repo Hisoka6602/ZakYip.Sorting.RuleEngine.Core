@@ -11,6 +11,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 
 /// <summary>
 /// 基于TouchSocket的DWS TCP适配器
+/// 支持连接池和高性能消息处理
 /// </summary>
 public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
 {
@@ -20,6 +21,9 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
     private readonly int _port;
     private TcpService? _tcpService;
     private bool _isRunning;
+    private readonly int _maxConnections;
+    private readonly int _receiveBufferSize;
+    private readonly int _sendBufferSize;
 
     public string AdapterName => "TouchSocket-DWS";
     public string ProtocolType => "TCP";
@@ -30,12 +34,18 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         string host,
         int port,
         ILogger<TouchSocketDwsAdapter> logger,
-        ICommunicationLogRepository communicationLogRepository)
+        ICommunicationLogRepository communicationLogRepository,
+        int maxConnections = 1000,
+        int receiveBufferSize = 8192,
+        int sendBufferSize = 8192)
     {
         _host = host;
         _port = port;
         _logger = logger;
         _communicationLogRepository = communicationLogRepository;
+        _maxConnections = maxConnections;
+        _receiveBufferSize = receiveBufferSize;
+        _sendBufferSize = sendBufferSize;
     }
 
     /// <summary>
@@ -54,6 +64,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
             _tcpService = new TcpService();
             var config = new TouchSocketConfig();
             config.SetListenIPHosts(new IPHost[] { new IPHost($"{_host}:{_port}") })
+                .SetMaxCount(_maxConnections) // 设置最大连接数（连接池大小）
                 .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
                 .ConfigureContainer(a =>
                 {

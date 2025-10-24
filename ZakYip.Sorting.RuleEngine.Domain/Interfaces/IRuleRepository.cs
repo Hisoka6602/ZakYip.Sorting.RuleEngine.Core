@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 规则仓储接口
-/// Rule repository interface for managing sorting rules
 /// </summary>
 public interface IRuleRepository
 {

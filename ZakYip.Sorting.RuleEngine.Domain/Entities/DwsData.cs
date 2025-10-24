@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
 /// DWS（尺寸重量扫描）数据实体
-/// DWS (Dimension Weight Scan) data entity containing barcode, weight, and volume information
 /// </summary>
 public class DwsData
 {

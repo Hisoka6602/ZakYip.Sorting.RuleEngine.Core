@@ -7,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 
 /// <summary>
 /// 第三方API响应接收事件处理器
-/// Handler for third-party API response - triggers rule matching
 /// </summary>
 public class ThirdPartyResponseReceivedEventHandler : INotificationHandler<ThirdPartyResponseReceivedEvent>
 {

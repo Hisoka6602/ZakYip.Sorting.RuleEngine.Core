@@ -11,7 +11,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
 /// <summary>
 /// 包裹处理服务实现
-/// High-performance parcel processing service with object pooling
 /// </summary>
 public class ParcelProcessingService : IParcelProcessingService
 {

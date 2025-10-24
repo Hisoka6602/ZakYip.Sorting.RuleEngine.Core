@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs;
 
 /// <summary>
 /// 包裹处理响应DTO
-/// Parcel processing response data transfer object
 /// </summary>
 public class ParcelProcessResponse
 {

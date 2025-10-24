@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 规则匹配完成事件
-/// Event triggered when rule matching is completed and chute number is determined
 /// </summary>
 public class RuleMatchCompletedEvent : INotification
 {
@@ -25,7 +24,6 @@ public class RuleMatchCompletedEvent : INotification
     
     /// <summary>
     /// 占用小车个数
-    /// Number of carts occupied
     /// </summary>
     public int CartCount { get; init; } = 1;
     

@@ -5,7 +5,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
 /// <summary>
 /// 设计时工厂，用于EF Core迁移
-/// Design-time factory for EF Core migrations
 /// </summary>
 public class SqliteLogDbContextFactory : IDesignTimeDbContextFactory<SqliteLogDbContext>
 {

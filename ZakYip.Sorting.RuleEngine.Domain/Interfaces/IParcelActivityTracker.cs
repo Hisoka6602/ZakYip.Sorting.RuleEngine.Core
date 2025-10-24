@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 包裹活动追踪器接口
-/// Interface for tracking parcel creation activity
 /// </summary>
 public interface IParcelActivityTracker
 {

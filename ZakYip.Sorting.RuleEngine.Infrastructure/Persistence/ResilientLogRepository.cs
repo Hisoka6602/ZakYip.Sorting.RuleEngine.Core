@@ -12,7 +12,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 
 /// <summary>
 /// 带熔断器的日志仓储实现，自动降级到SQLite
-/// Resilient log repository with circuit breaker, auto-fallback to SQLite
 /// </summary>
 public class ResilientLogRepository : ILogRepository
 {

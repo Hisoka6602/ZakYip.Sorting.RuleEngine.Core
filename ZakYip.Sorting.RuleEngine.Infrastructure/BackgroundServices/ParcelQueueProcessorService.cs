@@ -7,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// 包裹队列处理后台服务
-/// Background service to process the parcel queue with FIFO ordering
 /// </summary>
 public class ParcelQueueProcessorService : BackgroundService
 {

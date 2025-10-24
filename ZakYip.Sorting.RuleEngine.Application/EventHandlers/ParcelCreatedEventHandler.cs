@@ -7,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 
 /// <summary>
 /// 包裹创建事件处理器
-/// Handler for parcel creation events - creates parcel space in cache
 /// </summary>
 public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent>
 {

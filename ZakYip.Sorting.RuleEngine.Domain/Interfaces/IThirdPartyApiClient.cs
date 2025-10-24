@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 第三方API客户端接口
-/// Third-party API client interface for external integrations
 /// </summary>
 public interface IThirdPartyApiClient
 {

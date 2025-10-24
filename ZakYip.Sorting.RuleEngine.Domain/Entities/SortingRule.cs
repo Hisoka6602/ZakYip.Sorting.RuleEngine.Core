@@ -2,7 +2,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
 /// 分拣规则实体
-/// Sorting rule entity for defining chute allocation rules
 /// </summary>
 public class SortingRule
 {

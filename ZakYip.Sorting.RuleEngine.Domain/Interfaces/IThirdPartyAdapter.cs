@@ -4,7 +4,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 第三方API适配器接口，支持多厂商协议
-/// Third-party API adapter interface for supporting multiple vendor protocols
 /// </summary>
 public interface IThirdPartyAdapter
 {

@@ -5,7 +5,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// DWS数据接收事件
-/// Event triggered when DWS data is received for a parcel
 /// </summary>
 public class DwsDataReceivedEvent : INotification
 {
