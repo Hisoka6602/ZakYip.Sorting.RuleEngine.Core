@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="$(coverlet.collector_Version)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Microsoft.NET.Test.Sdk_Version)" />
+    <PackageReference Include="xunit" Version="$(xunit_Version)" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="$(xunit.runner.visualstudio_Version)" />
+    <PackageReference Include="Moq" Version="$(Moq_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

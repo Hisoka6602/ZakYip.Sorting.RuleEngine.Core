@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -13,17 +14,18 @@ public class RuleEngineService : IRuleEngineService
 {
     private readonly IRuleRepository _ruleRepository;
     private readonly ILogger<RuleEngineService> _logger;
-    private IEnumerable<SortingRule>? _cachedRules;
-    private DateTime _lastCacheUpdate = DateTime.MinValue;
-    private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(5);
+    private readonly IMemoryCache _cache;
+    private const string CacheKey = "SortingRules";
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
     public RuleEngineService(
         IRuleRepository ruleRepository,
-        ILogger<RuleEngineService> logger)
+        ILogger<RuleEngineService> logger,
+        IMemoryCache cache)
     {
         _ruleRepository = ruleRepository;
         _logger = logger;
+        _cache = cache;
     }
 
     /// <summary>
@@ -67,16 +69,16 @@ public class RuleEngineService : IRuleEngineService
     }
 
     /// <summary>
-    /// 获取缓存的规则列表
-    /// Get cached rules list with automatic refresh
+    /// 获取缓存的规则列表（使用滑动过期缓存）
+    /// Get cached rules list with sliding expiration
     /// </summary>
     private async Task<IEnumerable<SortingRule>> GetCachedRulesAsync(CancellationToken cancellationToken)
     {
-        // 检查缓存是否过期
-        // Check if cache is expired
-        if (_cachedRules != null && DateTime.UtcNow - _lastCacheUpdate < _cacheExpiration)
+        // 尝试从缓存获取
+        // Try to get from cache
+        if (_cache.TryGetValue(CacheKey, out IEnumerable<SortingRule>? cachedRules) && cachedRules != null)
         {
-            return _cachedRules;
+            return cachedRules;
         }
 
         await _cacheLock.WaitAsync(cancellationToken);
@@ -84,22 +86,48 @@ public class RuleEngineService : IRuleEngineService
         {
             // 双重检查
             // Double-check after acquiring lock
-            if (_cachedRules != null && DateTime.UtcNow - _lastCacheUpdate < _cacheExpiration)
+            if (_cache.TryGetValue(CacheKey, out cachedRules) && cachedRules != null)
             {
-                return _cachedRules;
+                return cachedRules;
             }
 
-            _cachedRules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
-            _lastCacheUpdate = DateTime.UtcNow;
+            // 从数据库加载规则
+            // Load rules from database
+            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
 
-            _logger.LogInformation("规则缓存已更新，共 {Count} 条规则", _cachedRules.Count());
+            // 配置滑动过期缓存选项
+            // Configure sliding expiration cache options
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(5))  // 滑动过期5分钟
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(30)) // 绝对过期30分钟
+                .SetPriority(CacheItemPriority.High) // 高优先级，避免被驱逐
+                .RegisterPostEvictionCallback((key, value, reason, state) =>
+                {
+                    _logger.LogInformation("规则缓存被移除，原因: {Reason}", reason);
+                });
 
-            return _cachedRules;
+            // 存入缓存
+            // Store in cache
+            _cache.Set(CacheKey, rules, cacheOptions);
+
+            _logger.LogInformation("规则缓存已更新，共 {Count} 条规则", rules.Count());
+
+            return rules;
         }
         finally
         {
             _cacheLock.Release();
         }
+    }
+
+    /// <summary>
+    /// 手动清除缓存（配置更新时调用）
+    /// Manually clear cache (call when configuration is updated)
+    /// </summary>
+    public void ClearCache()
+    {
+        _cache.Remove(CacheKey);
+        _logger.LogInformation("规则缓存已手动清除");
     }
 
     /// <summary>

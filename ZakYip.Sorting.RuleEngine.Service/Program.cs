@@ -95,6 +95,10 @@ public class Program
         // Register repositories
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
 
+        // 添加内存缓存（带滑动过期）
+        // Add memory cache with sliding expiration
+        builder.Services.AddMemoryCache();
+
         // 注册应用服务
         // Register application services
         builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
@@ -178,33 +182,44 @@ public class Program
 
     /// <summary>
     /// 初始化数据库
-    /// Initialize databases
+    /// Initialize databases with automatic migrations
     /// </summary>
     private static void InitializeDatabases(IServiceProvider services, AppSettings appSettings)
     {
         using var scope = services.CreateScope();
 
-        // 确保MySQL或SQLite数据库创建
-        // Ensure MySQL or SQLite database is created
+        // 确保MySQL或SQLite数据库创建并应用迁移
+        // Ensure MySQL or SQLite database is created and apply migrations
         if (appSettings.MySql.Enabled)
         {
             try
             {
                 var mysqlContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
-                mysqlContext?.Database.EnsureCreated();
+                if (mysqlContext != null)
+                {
+                    // 自动应用数据库迁移
+                    // Automatically apply database migrations
+                    mysqlContext.Database.Migrate();
+                }
             }
             catch
             {
                 // 如果MySQL失败，使用SQLite
                 // If MySQL fails, use SQLite
                 var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
-                sqliteContext?.Database.EnsureCreated();
+                if (sqliteContext != null)
+                {
+                    sqliteContext.Database.Migrate();
+                }
             }
         }
         else
         {
             var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
-            sqliteContext?.Database.EnsureCreated();
+            if (sqliteContext != null)
+            {
+                sqliteContext.Database.Migrate();
+            }
         }
     }
 
