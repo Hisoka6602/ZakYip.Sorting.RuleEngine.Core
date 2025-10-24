@@ -196,6 +196,41 @@ public class ThirdPartyApiClientTests
     }
 
     [Fact]
+    public async Task UploadImageAsync_WithPngContentType_ReturnsSuccessResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var imageData = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG header
+        var responseContent = "{\"success\":true,\"imageId\":\"img_123\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().Contains("/api/image/upload")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.UploadImageAsync(barcode, imageData, "image/png");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("200", result.Code);
+        Assert.Equal("Image uploaded successfully", result.Message);
+        Assert.Contains("success", result.Data);
+    }
+
+    [Fact]
     public async Task UploadImageAsync_Error_ReturnsFailureResponse()
     {
         // Arrange

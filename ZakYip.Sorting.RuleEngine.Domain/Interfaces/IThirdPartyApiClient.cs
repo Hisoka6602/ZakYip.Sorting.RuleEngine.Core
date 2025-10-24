@@ -47,11 +47,13 @@ public interface IThirdPartyApiClient
     /// Upload image to third-party API
     /// </summary>
     /// <param name="barcode">包裹条码</param>
-    /// <param name="imageData">图片数据（Base64编码或字节数组）</param>
+    /// <param name="imageData">图片数据（字节数组）</param>
+    /// <param name="contentType">图片内容类型（例如：image/jpeg, image/png）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>第三方API响应</returns>
     Task<ThirdPartyResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
+        string contentType = "image/jpeg",
         CancellationToken cancellationToken = default);
 }

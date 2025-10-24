@@ -261,11 +261,13 @@ public class ThirdPartyApiClient : IThirdPartyApiClient
     public async Task<ThirdPartyResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
+        string contentType = "image/jpeg",
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("开始上传图片，条码: {Barcode}, 图片大小: {Size} bytes", barcode, imageData.Length);
+            _logger.LogDebug("开始上传图片，条码: {Barcode}, 图片大小: {Size} bytes, 类型: {ContentType}", 
+                barcode, imageData.Length, contentType);
 
             // 构造multipart/form-data请求
             // Build multipart/form-data request
@@ -274,10 +276,22 @@ public class ThirdPartyApiClient : IThirdPartyApiClient
             // 添加条码字段
             formContent.Add(new StringContent(barcode), "barcode");
             
+            // 根据内容类型确定文件扩展名
+            // Determine file extension based on content type
+            var extension = contentType switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/bmp" => ".bmp",
+                "image/webp" => ".webp",
+                _ => ".bin"
+            };
+            
             // 添加图片文件
             var imageContent = new ByteArrayContent(imageData);
-            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-            formContent.Add(imageContent, "image", $"{barcode}.jpg");
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            formContent.Add(imageContent, "image", $"{barcode}{extension}");
 
             // 发送POST请求
             // Send POST request
