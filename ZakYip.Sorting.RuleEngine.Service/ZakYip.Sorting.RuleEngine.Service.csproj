@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ZakYip.Sorting.RuleEngine.Service-31a49ec6-66dc-44ef-b495-c81f95f2aa1b</UserSecretsId>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Core\ZakYip.Sorting.RuleEngine.Core.csproj" />
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>
