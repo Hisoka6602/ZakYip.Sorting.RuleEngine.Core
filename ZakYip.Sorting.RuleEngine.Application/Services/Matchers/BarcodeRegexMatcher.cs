@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
@@ -10,8 +11,28 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 public class BarcodeRegexMatcher
 {
     /// <summary>
-    /// 评估条码正则匹配
-    /// 支持预设选项和自定义正则
+    /// 评估条码正则匹配（使用枚举）
+    /// </summary>
+    public bool Evaluate(BarcodeMatchPreset preset, string parameter, string barcode)
+    {
+        if (string.IsNullOrWhiteSpace(barcode))
+            return false;
+
+        return preset switch
+        {
+            BarcodeMatchPreset.StartsWith => barcode.StartsWith(parameter, StringComparison.OrdinalIgnoreCase),
+            BarcodeMatchPreset.Contains => barcode.Contains(parameter, StringComparison.OrdinalIgnoreCase),
+            BarcodeMatchPreset.NotContains => !barcode.Contains(parameter, StringComparison.OrdinalIgnoreCase),
+            BarcodeMatchPreset.AllDigits => Regex.IsMatch(barcode, @"^\d+$"),
+            BarcodeMatchPreset.Alphanumeric => Regex.IsMatch(barcode, @"^[A-Za-z0-9]+$"),
+            BarcodeMatchPreset.Length => EvaluateLengthRange(parameter, barcode),
+            BarcodeMatchPreset.Regex => EvaluateRegex(parameter, barcode),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// 评估条码正则匹配（使用字符串表达式，保持向后兼容）
     /// </summary>
     public bool Evaluate(string expression, string barcode)
     {
@@ -24,66 +45,76 @@ public class BarcodeRegexMatcher
         if (expr.StartsWith("STARTSWITH:", StringComparison.OrdinalIgnoreCase))
         {
             var prefix = expr.Substring("STARTSWITH:".Length).Trim();
-            return barcode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+            return Evaluate(BarcodeMatchPreset.StartsWith, prefix, barcode);
         }
 
         // 预设选项：包含...字符
         if (expr.StartsWith("CONTAINS:", StringComparison.OrdinalIgnoreCase))
         {
             var substring = expr.Substring("CONTAINS:".Length).Trim();
-            return barcode.Contains(substring, StringComparison.OrdinalIgnoreCase);
+            return Evaluate(BarcodeMatchPreset.Contains, substring, barcode);
         }
 
         // 预设选项：不包含...字符
         if (expr.StartsWith("NOTCONTAINS:", StringComparison.OrdinalIgnoreCase))
         {
             var substring = expr.Substring("NOTCONTAINS:".Length).Trim();
-            return !barcode.Contains(substring, StringComparison.OrdinalIgnoreCase);
+            return Evaluate(BarcodeMatchPreset.NotContains, substring, barcode);
         }
 
         // 预设选项：全数字
         if (expr.Equals("ALLDIGITS", StringComparison.OrdinalIgnoreCase))
         {
-            return Regex.IsMatch(barcode, @"^\d+$");
+            return Evaluate(BarcodeMatchPreset.AllDigits, string.Empty, barcode);
         }
 
         // 预设选项：字母+数字
         if (expr.Equals("ALPHANUMERIC", StringComparison.OrdinalIgnoreCase))
         {
-            return Regex.IsMatch(barcode, @"^[A-Za-z0-9]+$");
+            return Evaluate(BarcodeMatchPreset.Alphanumeric, string.Empty, barcode);
         }
 
         // 预设选项：指定长度范围 LENGTH:min-max
         if (expr.StartsWith("LENGTH:", StringComparison.OrdinalIgnoreCase))
         {
             var lengthSpec = expr.Substring("LENGTH:".Length).Trim();
-            var parts = lengthSpec.Split('-');
-            if (parts.Length == 2 && 
-                int.TryParse(parts[0], out int minLength) && 
-                int.TryParse(parts[1], out int maxLength))
-            {
-                return barcode.Length >= minLength && barcode.Length <= maxLength;
-            }
+            return Evaluate(BarcodeMatchPreset.Length, lengthSpec, barcode);
         }
 
         // 自定义正则表达式（以REGEX:开头）
         if (expr.StartsWith("REGEX:", StringComparison.OrdinalIgnoreCase))
         {
             var pattern = expr.Substring("REGEX:".Length).Trim();
-            try
-            {
-                return Regex.IsMatch(barcode, pattern);
-            }
-            catch
-            {
-                return false;
-            }
+            return Evaluate(BarcodeMatchPreset.Regex, pattern, barcode);
         }
 
         // 默认作为正则表达式处理
+        return Evaluate(BarcodeMatchPreset.Regex, expr, barcode);
+    }
+
+    /// <summary>
+    /// 评估长度范围
+    /// </summary>
+    private bool EvaluateLengthRange(string lengthSpec, string barcode)
+    {
+        var parts = lengthSpec.Split('-');
+        if (parts.Length == 2 && 
+            int.TryParse(parts[0], out int minLength) && 
+            int.TryParse(parts[1], out int maxLength))
+        {
+            return barcode.Length >= minLength && barcode.Length <= maxLength;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 评估正则表达式
+    /// </summary>
+    private bool EvaluateRegex(string pattern, string barcode)
+    {
         try
         {
-            return Regex.IsMatch(barcode, expr);
+            return Regex.IsMatch(barcode, pattern);
         }
         catch
         {

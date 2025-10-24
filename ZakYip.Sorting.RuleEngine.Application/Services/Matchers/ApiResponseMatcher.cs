@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
@@ -10,7 +11,32 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 public class ApiResponseMatcher
 {
     /// <summary>
-    /// 评估API响应匹配表达式
+    /// 评估API响应匹配（使用枚举）
+    /// </summary>
+    public bool Evaluate(ApiResponseMatchType matchType, string parameter, string? responseData)
+    {
+        if (string.IsNullOrWhiteSpace(responseData) || string.IsNullOrWhiteSpace(parameter))
+            return false;
+
+        try
+        {
+            return matchType switch
+            {
+                ApiResponseMatchType.String => responseData.Contains(parameter, StringComparison.OrdinalIgnoreCase),
+                ApiResponseMatchType.StringReverse => responseData.LastIndexOf(parameter, StringComparison.OrdinalIgnoreCase) >= 0,
+                ApiResponseMatchType.Regex => EvaluateRegex(parameter, responseData),
+                ApiResponseMatchType.Json => EvaluateJsonMatch(parameter, responseData),
+                _ => false
+            };
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 评估API响应匹配表达式（保持向后兼容）
     /// 格式示例：
     /// - STRING:keyword (正向字符串查找)
     /// - STRING_REVERSE:keyword (反向字符串查找)
@@ -31,29 +57,28 @@ public class ApiResponseMatcher
             if (expr.StartsWith("STRING:", StringComparison.OrdinalIgnoreCase))
             {
                 var keyword = expr.Substring("STRING:".Length).Trim();
-                return responseData.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                return Evaluate(ApiResponseMatchType.String, keyword, responseData);
             }
 
             // 字符串查找（反向）
             if (expr.StartsWith("STRING_REVERSE:", StringComparison.OrdinalIgnoreCase))
             {
                 var keyword = expr.Substring("STRING_REVERSE:".Length).Trim();
-                // 反向查找：从后往前搜索
-                return responseData.LastIndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+                return Evaluate(ApiResponseMatchType.StringReverse, keyword, responseData);
             }
 
             // 正则查找
             if (expr.StartsWith("REGEX:", StringComparison.OrdinalIgnoreCase))
             {
                 var pattern = expr.Substring("REGEX:".Length).Trim();
-                return Regex.IsMatch(responseData, pattern);
+                return Evaluate(ApiResponseMatchType.Regex, pattern, responseData);
             }
 
             // JSON匹配
             if (expr.StartsWith("JSON:", StringComparison.OrdinalIgnoreCase))
             {
                 var jsonExpr = expr.Substring("JSON:".Length).Trim();
-                return EvaluateJsonMatch(jsonExpr, responseData);
+                return Evaluate(ApiResponseMatchType.Json, jsonExpr, responseData);
             }
 
             return false;
@@ -64,6 +89,17 @@ public class ApiResponseMatcher
         }
     }
 
+    /// <summary>
+    /// 评估正则表达式
+    /// </summary>
+    private bool EvaluateRegex(string pattern, string responseData)
+    {
+        return Regex.IsMatch(responseData, pattern);
+    }
+
+    /// <summary>
+    /// 评估JSON匹配
+    /// </summary>
     private bool EvaluateJsonMatch(string expression, string jsonData)
     {
         try

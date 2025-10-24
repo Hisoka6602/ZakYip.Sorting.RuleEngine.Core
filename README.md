@@ -904,11 +904,72 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 }
 ```
 
-## 最新实现功能 (v1.6.0)
+## 最新实现功能 (v1.7.0)
 
 ### 新增功能
 
-#### 1. 枚举类型定义（新增）
+#### 1. 版本信息查询（新增）
+- ✅ **版本信息API** - 通过HTTP查询系统版本
+  - `/api/version` - 返回系统版本、构建日期等信息
+  - 支持SignalR Hub查询版本（SortingHub、DwsHub的GetVersion方法）
+  - 版本号：1.7.0
+
+#### 2. 日志文件自动清理（新增）
+- ✅ **LogFileCleanupService** - 后台服务定期清理.log文件
+  - 可配置保留天数（默认7天）
+  - 可配置日志目录（默认./logs）
+  - 每小时检查一次，自动删除过期文件
+  - 在appsettings.json中配置LogFileCleanup节
+
+#### 3. 配置文件中文注释（新增）
+- ✅ **appsettings.json完整中文注释** - 所有配置字段都有详细中文注释
+  - LiteDB配置注释
+  - MySQL配置和熔断器参数注释
+  - 分片策略配置注释
+  - API和缓存配置注释
+  - 日志清理配置注释
+
+#### 4. 枚举使用重构（新增）
+- ✅ **BarcodeRegexMatcher重构** - 支持枚举类型匹配
+  - 新增枚举参数方法：`Evaluate(BarcodeMatchPreset preset, string parameter, string barcode)`
+  - 保持向后兼容的字符串表达式方法
+  - 使用BarcodeMatchPreset枚举
+- ✅ **ApiResponseMatcher重构** - 支持枚举类型匹配
+  - 新增枚举参数方法：`Evaluate(ApiResponseMatchType matchType, string parameter, string responseData)`
+  - 保持向后兼容的字符串表达式方法
+  - 使用ApiResponseMatchType枚举
+
+#### 5. 格口管理API（新增）
+- ✅ **ChuteController** - 完整的格口CRUD API
+  - `GET /api/chute` - 获取所有格口
+  - `GET /api/chute/{id}` - 根据ID获取格口
+  - `GET /api/chute/code/{code}` - 根据编号获取格口
+  - `GET /api/chute/enabled` - 获取所有启用的格口
+  - `POST /api/chute` - 创建格口
+  - `PUT /api/chute/{id}` - 更新格口
+  - `DELETE /api/chute/{id}` - 删除格口
+- ✅ **IChuteRepository接口和实现** - LiteDB格口仓储
+
+#### 6. 日志查询和导出API（新增）
+- ✅ **LogController** - 专用日志表查询API
+  - `GET /api/log/matching` - 查询匹配日志，支持分页和时间过滤
+  - `GET /api/log/dws-communication` - 查询DWS通信日志
+  - `GET /api/log/api-communication` - 查询API通信日志
+  - `GET /api/log/sorter-communication` - 查询分拣机通信日志
+  - `GET /api/log/matching/export` - 导出匹配日志为CSV（最多10000条）
+  - 支持按时间范围、包裹ID、条码等条件查询
+
+#### 7. 日志归档策略（已有）
+- ✅ **DataArchiveService** - 已实现数据归档服务
+  - 在appsettings.json中配置ArchiveSchedule（默认每天凌晨3点）
+  - 冷数据阈值配置（默认30天）
+  - 自动统计和归档冷数据
+
+## 历史版本功能 (v1.6.0)
+
+### 已实现功能
+
+#### 1. 枚举类型定义
 - ✅ **BarcodeMatchPreset枚举** - 定义条码匹配预设类型
   - StartsWith - 以指定字符串开头
   - Contains - 包含指定字符串
@@ -923,7 +984,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
   - Regex - 正则表达式匹配
   - Json - JSON字段匹配
 
-#### 2. 格口管理（新增）
+#### 2. 格口管理
 - ✅ **Chute实体** - 格口信息管理
   - ChuteId (long) - 格口ID，自增主键
   - ChuteName - 格口名称
@@ -934,7 +995,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 - ✅ 数据库表和索引配置
 - ✅ 支持MySQL和SQLite双数据库
 
-#### 3. 专用通信日志表（新增）
+#### 3. 专用通信日志表
 - ✅ **SorterCommunicationLog** - 分拣机通信日志
   - 分拣机地址、通信类型（接收/发送）
   - 原始内容、格式化内容
@@ -955,7 +1016,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
   - 格口ID、小车占位数量
   - 匹配时间、成功状态、错误信息
 
-#### 4. 数据库优化（新增）
+#### 4. 数据库优化
 - ✅ 所有表的ID字段统一使用long类型（自增主键）
 - ✅ 为所有日志表创建了合适的索引
   - 按时间降序索引，优化查询性能
@@ -1074,18 +1135,20 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 ### 优化方向
 
 #### 短期优化（1-2周）
-1. **格口管理API** - 添加格口的增删改查API端点
-2. **日志查询API** - 提供专用日志表的查询和导出API
-3. **格口分配优化** - 基于格口使用情况的智能分配算法
-4. **枚举使用重构** - 在matcher中使用新定义的枚举类型
+1. ~~**格口管理API**~~ - ✅ 已完成（v1.7.0）
+2. ~~**日志查询API**~~ - ✅ 已完成（v1.7.0）
+3. ~~**枚举使用重构**~~ - ✅ 已完成（v1.7.0）
+4. **格口分配优化** - 基于格口使用情况的智能分配算法
+5. **版本升级通知** - 当有新版本时自动通知管理员
 
 #### 中期优化（1-3个月）
 1. **监控面板** - 开发实时监控面板显示系统状态和日志统计
 2. **格口利用率统计** - 统计分析格口使用情况和分拣效率
-3. **日志归档策略** - 实现日志表的自动归档和清理
+3. **日志归档优化** - 优化日志表的自动归档和清理性能
 4. **更多适配器** - 支持更多厂商的DWS和分拣机设备
 5. **负载均衡** - 支持多实例部署和负载均衡
 6. **性能测试** - 压力测试和性能基准测试
+7. **Web管理界面** - 开发完整的Web管理控制台
 
 #### 长期优化（3-6个月）
 1. **微服务架构** - 拆分为微服务架构，提高可扩展性
