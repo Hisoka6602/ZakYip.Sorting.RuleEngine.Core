@@ -6,7 +6,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// DWS数据接收事件
 /// </summary>
-public class DwsDataReceivedEvent : INotification
+public record class DwsDataReceivedEvent : INotification
 {
     /// <summary>
     /// 包裹ID

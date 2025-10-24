@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 包裹创建事件
 /// </summary>
-public class ParcelCreatedEvent : INotification
+public record class ParcelCreatedEvent : INotification
 {
     /// <summary>
     /// 包裹ID

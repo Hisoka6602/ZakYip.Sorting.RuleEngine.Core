@@ -6,7 +6,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 第三方API响应接收事件
 /// </summary>
-public class ThirdPartyResponseReceivedEvent : INotification
+public record class ThirdPartyResponseReceivedEvent : INotification
 {
     /// <summary>
     /// 包裹ID
