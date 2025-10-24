@@ -127,6 +127,10 @@ public class Program
         builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
         
+        // 注册包裹活动追踪器（用于空闲检测）
+        // Register parcel activity tracker for idle detection
+        builder.Services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
+        
         // 注册事件驱动服务
         // Register event-driven services
         builder.Services.AddSingleton<ParcelOrchestrationService>();
@@ -141,6 +145,7 @@ public class Program
         builder.Services.AddHostedService<DataCleanupService>();
         builder.Services.AddHostedService<DataArchiveService>();
         builder.Services.AddHostedService<MySqlAutoTuningService>();
+        builder.Services.AddHostedService<ShardingTableManagementService>();
 
         // 添加控制器和API服务
         // Add controllers and API services

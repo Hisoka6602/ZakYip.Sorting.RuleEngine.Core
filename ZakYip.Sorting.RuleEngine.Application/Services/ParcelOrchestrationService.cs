@@ -23,16 +23,20 @@ public class ParcelOrchestrationService
     private readonly ConcurrentDictionary<string, ParcelProcessingContext> _processingContexts;
     private long _sequenceNumber;
 
+    private readonly IParcelActivityTracker? _activityTracker;
+
     public ParcelOrchestrationService(
         ILogger<ParcelOrchestrationService> logger,
         IPublisher publisher,
         IRuleEngineService ruleEngineService,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IParcelActivityTracker? activityTracker = null)
     {
         _logger = logger;
         _publisher = publisher;
         _ruleEngineService = ruleEngineService;
         _cache = cache;
+        _activityTracker = activityTracker;
         
         // 创建有界通道，确保FIFO处理
         // Create bounded channel for FIFO processing
@@ -53,6 +57,9 @@ public class ParcelOrchestrationService
     /// </summary>
     public async Task<bool> CreateParcelAsync(string parcelId, string cartNumber, string? barcode = null, CancellationToken cancellationToken = default)
     {
+        // 记录包裹创建活动（用于空闲检测）
+        _activityTracker?.RecordParcelCreation();
+        
         var sequence = Interlocked.Increment(ref _sequenceNumber);
         
         // 在缓存中开辟空间

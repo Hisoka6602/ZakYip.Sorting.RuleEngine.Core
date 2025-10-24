@@ -3,42 +3,60 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
-/// 数据清理后台服务
-/// Background service for automatic data cleanup based on retention policy
+/// 数据清理后台服务（基于空闲策略）
+/// Background service for automatic data cleanup based on idle strategy
 /// </summary>
 public class DataCleanupService : BackgroundService
 {
     private readonly ILogger<DataCleanupService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly ShardingSettings _settings;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1);
+    private readonly IParcelActivityTracker _activityTracker;
+    private DateTime? _lastCleanupTime;
 
     public DataCleanupService(
         ILogger<DataCleanupService> logger,
         IServiceProvider serviceProvider,
-        IOptions<ShardingSettings> settings)
+        IOptions<ShardingSettings> settings,
+        IParcelActivityTracker activityTracker)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
+        _activityTracker = activityTracker;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("数据清理服务已启动，保留期: {RetentionDays}天", _settings.RetentionDays);
+        _logger.LogInformation(
+            "数据清理服务已启动（基于空闲策略），保留期: {RetentionDays}天，空闲阈值: {IdleMinutes}分钟",
+            _settings.RetentionDays,
+            _settings.IdleMinutesBeforeCleanup);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await PerformCleanupAsync(stoppingToken);
-                await Task.Delay(_checkInterval, stoppingToken);
+                var checkInterval = TimeSpan.FromSeconds(_settings.IdleCheckIntervalSeconds);
+                await Task.Delay(checkInterval, stoppingToken);
+
+                // 检查是否处于空闲状态
+                if (_activityTracker.IsIdle(_settings.IdleMinutesBeforeCleanup))
+                {
+                    var lastActivity = _activityTracker.GetLastActivityTime();
+                    _logger.LogInformation(
+                        "系统处于空闲状态，上次包裹创建时间: {LastActivity}，开始执行数据清理...",
+                        lastActivity?.ToString("yyyy-MM-dd HH:mm:ss") ?? "从未创建");
+
+                    await PerformCleanupAsync(stoppingToken);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -56,10 +74,11 @@ public class DataCleanupService : BackgroundService
 
     private async Task PerformCleanupAsync(CancellationToken cancellationToken)
     {
-        // 检查是否应该执行清理（基于时间）
-        var now = DateTime.UtcNow;
-        if (now.Hour != 2) // 只在凌晨2点执行
+        // 防止频繁清理（每次清理后至少间隔1小时）
+        if (_lastCleanupTime.HasValue && 
+            (DateTime.UtcNow - _lastCleanupTime.Value).TotalHours < 1)
         {
+            _logger.LogDebug("距离上次清理不足1小时，跳过本次清理");
             return;
         }
 
@@ -100,6 +119,9 @@ public class DataCleanupService : BackgroundService
                         parcelDeletedCount);
                 }
             }
+
+            _lastCleanupTime = DateTime.UtcNow;
+            _logger.LogInformation("数据清理完成");
         }
         catch (Exception ex)
         {
