@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="System.Threading.Channels" />
+    <PackageReference Include="MediatR" />
   </ItemGroup>
 
 </Project>

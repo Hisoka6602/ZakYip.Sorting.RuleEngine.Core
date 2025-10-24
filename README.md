@@ -8,9 +8,13 @@ ZakYip分拣规则引擎核心系统是一个高性能的包裹分拣规则引�
 
 - ✅ **Windows服务** - 作为Windows服务运行，稳定可靠
 - ✅ **MiniAPI集成** - 内置Web API用于前端配置和交互
+- ✅ **事件驱动架构** - 使用MediatR实现事件驱动，支持分拣程序信号接收和FIFO队列处理
+- ✅ **数据分片** - 使用EFCore.Sharding实现时间维度分表，支持热冷数据分离
 - ✅ **高性能设计** - 使用HTTP客户端池化、可配置缓存（绝对/滑动过期）、异步处理等技术，适合高频率场景（50次/秒）
 - ✅ **多数据库支持** - LiteDB存储配置，MySQL记录日志，SQLite作为降级方案，支持EF Core自动迁移，优化索引和降序排序
 - ✅ **弹性架构** - 数据库熔断器（可配置失败率、熔断时长），自动降级和数据同步，防止系统雪崩
+- ✅ **自动数据管理** - 可配置的数据清理（默认90天）和归档服务，自动维护数据生命周期
+- ✅ **MySQL自动调谐** - 性能监控、索引分析、连接池优化和慢查询识别
 - ✅ **多协议支持** - 支持TCP/HTTP等多种协议，通过适配器模式扩展多厂商对接
 - ✅ **清晰架构** - 采用DDD分层架构，零边界入侵
 - ✅ **中央包管理** - 使用Directory.Packages.props统一管理NuGet包版本
@@ -72,11 +76,14 @@ ZakYip.Sorting.RuleEngine.Core/
 
 - **.NET 8.0** - 最新的.NET框架
 - **ASP.NET Core Minimal API** - 轻量级Web API
+- **MediatR** - 事件驱动架构实现
+- **EFCore.Sharding** - 时间维度数据分片
 - **LiteDB** - 嵌入式NoSQL数据库（配置存储）
 - **Entity Framework Core** - ORM框架，支持自动迁移
 - **MySQL / SQLite** - 关系型数据库（日志存储）
 - **Polly** - 弹性和瞬态故障处理（重试、熔断器）
 - **IMemoryCache** - 滑动过期内存缓存
+- **System.Threading.Channels** - FIFO队列实现
 - **Swagger/OpenAPI** - API文档
 - **Object Pool** - 对象池优化性能
 - **xUnit / Moq** - 单元测试框架
@@ -158,7 +165,72 @@ sc start "ZakYipSortingEngine"
 
 ## API端点
 
-### 包裹处理API
+### 分拣机信号API（推荐）
+
+#### 1. 创建包裹处理空间
+
+分拣程序推送包裹ID和小车号，系统创建处理空间等待DWS数据。
+
+```http
+POST /api/sortingmachine/create-parcel
+Content-Type: application/json
+
+{
+  "parcelId": "PKG20241024001",
+  "cartNumber": "CART001",
+  "barcode": "1234567890123"
+}
+```
+
+响应：
+
+```json
+{
+  "success": true,
+  "parcelId": "PKG20241024001",
+  "message": "包裹处理空间已创建，等待DWS数据"
+}
+```
+
+#### 2. 接收DWS数据
+
+上传DWS内容，触发第三方API调用和规则匹配。
+
+```http
+POST /api/sortingmachine/receive-dws
+Content-Type: application/json
+
+{
+  "parcelId": "PKG20241024001",
+  "barcode": "1234567890123",
+  "weight": 1500,
+  "length": 300,
+  "width": 200,
+  "height": 150,
+  "volume": 9000
+}
+```
+
+响应：
+
+```json
+{
+  "success": true,
+  "parcelId": "PKG20241024001",
+  "message": "DWS数据已接收，开始处理"
+}
+```
+
+**完整流程说明**：
+1. 分拣程序调用 `create-parcel` 创建包裹处理空间
+2. 包裹进入FIFO队列，保证先进先出处理
+3. 分拣程序调用 `receive-dws` 上传DWS数据
+4. 系统自动上传数据到第三方API
+5. 执行规则匹配，确定格口号
+6. 将结果（格口号、包裹ID、小车号、占用小车数）发送给分拣程序
+7. 关闭处理空间，从缓存删除
+
+### 包裹处理API（兼容旧版）
 
 #### 1. 处理单个包裹
 
@@ -304,7 +376,64 @@ DEFAULT                # 默认规则（匹配所有）
 4. **规则缓存** - 数据库不可用时使用缓存规则
 5. **可配置缓存** - 支持配置绝对过期和滑动过期时间
 
-📚 **详细文档**: 查看 [CIRCUIT_BREAKER.md](./CIRCUIT_BREAKER.md) 了解数据库熔断器的完整配置和使用说明。
+📚 **详细文档**: 
+- [CIRCUIT_BREAKER.md](./CIRCUIT_BREAKER.md) - 数据库熔断器的完整配置和使用说明
+- [EVENT_DRIVEN_AND_SHARDING.md](./EVENT_DRIVEN_AND_SHARDING.md) - 事件驱动架构和数据分片实现指南
+
+## 事件驱动架构
+
+系统采用MediatR实现完整的事件驱动架构：
+
+### 工作流程
+
+```
+1. 分拣程序发送信号 → 创建包裹处理空间（开辟缓存）
+2. 包裹进入FIFO队列 → 保证先进先出处理
+3. 接收DWS数据 → 触发数据处理事件
+4. 上传第三方API → 获取额外信息
+5. 执行规则匹配 → 确定格口号
+6. 发送结果给分拣程序 → 完成分拣
+7. 清理缓存空间 → 释放资源
+```
+
+### 领域事件
+
+- **ParcelCreatedEvent** - 包裹创建事件
+- **DwsDataReceivedEvent** - DWS数据接收事件
+- **ThirdPartyResponseReceivedEvent** - 第三方API响应事件
+- **RuleMatchCompletedEvent** - 规则匹配完成事件
+
+详细说明请查看 [EVENT_DRIVEN_AND_SHARDING.md](./EVENT_DRIVEN_AND_SHARDING.md)
+
+## 数据分片和自动管理
+
+### 时间维度分表
+
+使用EFCore.Sharding实现按时间维度的表分区：
+
+- **月度分片** - 默认策略，适合中等数据量
+- **日度分片** - 适合高频数据场景
+- **周度分片** - 适合低频数据场景
+
+### 热冷数据分离
+
+- **热数据**: 最近30天，存储在主表，频繁访问
+- **冷数据**: 30天以前，可归档到历史表，查询较少
+
+### 自动数据清理
+
+- 默认保留90天数据
+- 每天凌晨2点自动清理
+- 可配置清理策略和保留期
+
+### MySQL自动调谐
+
+后台服务自动监控和优化MySQL性能：
+
+- **表统计分析** - 监控表大小和行数
+- **索引使用分析** - 识别未使用的索引
+- **连接池监控** - 优化连接池配置
+- **慢查询识别** - 发现并优化慢查询
 
 ## 监控和日志
 

@@ -9,10 +9,12 @@ using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Service;
@@ -39,6 +41,10 @@ public class Program
         // 注册配置
         // Register configuration
         builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+        
+        // 注册分片配置
+        // Register sharding configuration
+        builder.Services.Configure<ShardingSettings>(builder.Configuration.GetSection("AppSettings:Sharding"));
         
         // 注册数据库熔断器配置
         // Register database circuit breaker configuration
@@ -120,6 +126,21 @@ public class Program
         // Register application services
         builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
+        
+        // 注册事件驱动服务
+        // Register event-driven services
+        builder.Services.AddSingleton<ParcelOrchestrationService>();
+        builder.Services.AddMediatR(cfg => 
+        {
+            cfg.RegisterServicesFromAssembly(typeof(ZakYip.Sorting.RuleEngine.Application.Services.RuleEngineService).Assembly);
+        });
+        
+        // 注册后台服务
+        // Register background services
+        builder.Services.AddHostedService<ParcelQueueProcessorService>();
+        builder.Services.AddHostedService<DataCleanupService>();
+        builder.Services.AddHostedService<DataArchiveService>();
+        builder.Services.AddHostedService<MySqlAutoTuningService>();
 
         // 添加控制器和API服务
         // Add controllers and API services
