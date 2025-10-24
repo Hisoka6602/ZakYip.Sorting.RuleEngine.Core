@@ -41,6 +41,10 @@ public class Program
         // 注册分片配置
         builder.Services.Configure<ShardingSettings>(builder.Configuration.GetSection("AppSettings:Sharding"));
         
+        // 注册日志文件清理配置
+        builder.Services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.LogFileCleanupSettings>(
+            builder.Configuration.GetSection("AppSettings:LogFileCleanup"));
+        
         // 注册数据库熔断器配置
         builder.Services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
             builder.Configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
@@ -98,6 +102,7 @@ public class Program
 
         // 注册仓储
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
+        builder.Services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
 
         // 添加内存缓存（带可配置的绝对过期和滑动过期）
         // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
@@ -128,6 +133,7 @@ public class Program
         builder.Services.AddHostedService<DataArchiveService>();
         builder.Services.AddHostedService<MySqlAutoTuningService>();
         builder.Services.AddHostedService<ShardingTableManagementService>();
+        builder.Services.AddHostedService<LogFileCleanupService>();
 
         // 添加控制器和API服务
         builder.Services.AddControllers();

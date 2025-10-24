@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-ZakYip.Sorting.RuleEngine.Service-31a49ec6-66dc-44ef-b495-c81f95f2aa1b</UserSecretsId>
     <OutputType>Exe</OutputType>
+    <Version>1.7.0</Version>
+    <AssemblyVersion>1.7.0.0</AssemblyVersion>
+    <FileVersion>1.7.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

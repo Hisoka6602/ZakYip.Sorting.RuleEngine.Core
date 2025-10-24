@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using System.Reflection;
 
 namespace ZakYip.Sorting.RuleEngine.Service.Hubs;
 
@@ -85,6 +86,22 @@ public class SortingHub : Hub
         {
             _logger.LogError(ex, "SignalR发送格口号失败: {ParcelId}", parcelId);
         }
+    }
+
+    /// <summary>
+    /// 获取系统版本信息
+    /// </summary>
+    public Task<object> GetVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
+        
+        return Task.FromResult<object>(new
+        {
+            version = version?.ToString() ?? "1.7.0",
+            productName = "ZakYip 分拣规则引擎",
+            description = "分拣机通信Hub"
+        });
     }
 
     /// <summary>
