@@ -16,8 +16,17 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
     
+    <!-- NLog -->
+    <PackageVersion Include="NLog" Version="5.3.4" />
+    <PackageVersion Include="NLog.Web.AspNetCore" Version="5.3.14" />
+    <PackageVersion Include="NLog.Extensions.Logging" Version="5.3.14" />
+    
     <!-- ASP.NET Core (for MiniAPI) -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
+    
+    <!-- JSON Serialization -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.11" />
     
     <!-- Database -->
     <PackageVersion Include="LiteDB" Version="5.0.21" />
@@ -55,6 +64,9 @@
     
     <!-- TouchSocket for TCP -->
     <PackageVersion Include="TouchSocket" Version="2.1.2" />
+    
+    <!-- Benchmarking -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.2" />

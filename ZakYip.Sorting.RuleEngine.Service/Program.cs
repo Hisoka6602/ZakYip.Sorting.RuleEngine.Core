@@ -1,10 +1,14 @@
 using LiteDB;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NLog;
+using NLog.Web;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -26,14 +30,41 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        // 配置NLog
+        var logger = LogManager.Setup().LoadConfigurationFromFile("nlog.config").GetCurrentClassLogger();
+        
+        try
+        {
+            logger.Info("应用程序启动中...");
+            
+            var builder = WebApplication.CreateBuilder(args);
 
-        // 配置Windows服务
-        builder.Host.UseWindowsService();
+#if !DEBUG
+            // 仅在Release模式下配置Windows服务
+            builder.Host.UseWindowsService();
+            logger.Info("Windows服务模式已启用");
+#else
+            logger.Info("控制台模式运行（DEBUG模式）");
+#endif
 
-        // 配置应用设置
-        var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
-            ?? new AppSettings();
+            // 配置NLog作为日志提供程序
+            builder.Logging.ClearProviders();
+            builder.Host.UseNLog();
+
+            // 配置Kestrel服务器
+            builder.WebHost.UseKestrel(options =>
+            {
+                options.AddServerHeader = false; // 不发送Server头以提高安全性
+                options.Limits.MaxConcurrentConnections = 1000;
+                options.Limits.MaxConcurrentUpgradedConnections = 1000;
+                options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
+                options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+                options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+            });
+
+            // 配置应用设置
+            var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
+                ?? new AppSettings();
 
         // 注册配置
         builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
@@ -103,6 +134,7 @@ public class Program
         // 注册仓储
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
         builder.Services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
+        builder.Services.AddScoped<IThirdPartyApiConfigRepository, LiteDbThirdPartyApiConfigRepository>();
 
         // 添加内存缓存（带可配置的绝对过期和滑动过期）
         // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
@@ -136,7 +168,13 @@ public class Program
         builder.Services.AddHostedService<LogFileCleanupService>();
 
         // 添加控制器和API服务
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            .AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+                options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+                options.SerializerSettings.DateFormatString = "yyyy-MM-dd HH:mm:ss";
+            });
         builder.Services.AddEndpointsApiExplorer();
         
         // 添加SignalR服务
@@ -198,6 +236,16 @@ public class Program
         ConfigureMinimalApi(app);
 
         app.Run();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "应用程序启动时发生严重错误");
+            throw;
+        }
+        finally
+        {
+            LogManager.Shutdown();
+        }
     }
 
     /// <summary>
