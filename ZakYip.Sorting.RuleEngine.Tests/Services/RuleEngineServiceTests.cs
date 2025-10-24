@@ -22,8 +22,10 @@ public class RuleEngineServiceTests
     {
         _mockRuleRepository = new Mock<IRuleRepository>();
         _mockLogger = new Mock<ILogger<RuleEngineService>>();
+        var mockPerfLogger = new Mock<ILogger<PerformanceMetricService>>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
-        _service = new RuleEngineService(_mockRuleRepository.Object, _mockLogger.Object, _memoryCache);
+        var performanceService = new PerformanceMetricService(mockPerfLogger.Object);
+        _service = new RuleEngineService(_mockRuleRepository.Object, _mockLogger.Object, _memoryCache, performanceService);
     }
 
     [Fact]
