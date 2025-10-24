@@ -908,6 +908,76 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 }
 ```
 
+## 最新实现功能 (v1.9.0)
+
+### 新增功能
+
+#### 1. 甘特图数据查询API（新增）
+- ✅ **GanttChartController** - 甘特图数据查询接口
+  - `GET /api/ganttchart/{target}` - 查询指定包裹前后N条数据
+  - `POST /api/ganttchart/query` - POST方式查询（支持复杂参数）
+  - 支持查询前后各100条数据范围
+  - 自动关联匹配日志、DWS通信、API通信、格口信息
+  - 支持MySQL和SQLite双数据库查询
+- ✅ **GanttChartDataItem** - 甘特图数据项DTO
+  - 包含包裹信息、匹配信息、通信时间、格口信息等
+  - 支持时间线可视化展示
+  - 标记目标包裹和序列号
+- ✅ **IGanttChartService** - 甘特图服务接口和实现
+  - 智能查询目标包裹前后数据
+  - 自动降级处理（MySQL → SQLite）
+
+#### 2. 规则安全验证（新增）
+- ✅ **RuleValidationService** - 规则验证服务
+  - 防止代码注入攻击
+  - 检查危险关键字（eval、exec、system、script等）
+  - 验证表达式格式和长度限制
+  - 支持按匹配方法类型验证表达式
+  - 优先级范围验证（0-9999）
+- ✅ **规则控制器集成** - RuleController自动验证
+  - 新增规则时自动验证安全性
+  - 更新规则时自动验证安全性
+  - 验证失败返回详细错误信息
+
+#### 3. API请求日志记录（新增）
+- ✅ **ApiRequestLog实体** - API请求日志表
+  - 记录请求时间、IP、方法、路径、查询字符串
+  - 记录请求头、请求体（最大10KB）
+  - 记录响应时间、状态码、响应头、响应体
+  - 记录耗时、用户标识、成功状态
+- ✅ **ApiRequestLoggingMiddleware** - 请求日志中间件
+  - 自动记录所有API请求
+  - 跳过健康检查、Swagger、SignalR端点
+  - 支持MySQL和SQLite双数据库
+  - 捕获请求和响应完整信息
+  - 计算精确耗时
+- ✅ **数据库集成** - MySQL和SQLite都支持
+  - 自动创建api_request_logs表
+  - 优化的索引设计（时间、路径、IP、方法）
+
+#### 4. 全局模型验证（新增）
+- ✅ **ModelValidationFilter** - 全局验证过滤器
+  - 自动验证所有API请求参数
+  - ModelState自动检查
+  - 统一的错误响应格式
+- ✅ **SortingRule验证特性** - 实体级验证
+  - Required、StringLength、Range等特性
+  - 规则ID、名称、表达式必填验证
+  - 长度限制验证
+  - 优先级范围验证
+
+#### 5. 架构优化（改进）
+- ✅ **移除ThirdPartyResponseReceivedEvent**
+  - 删除不必要的事件定义和处理器
+  - 简化第三方API调用流程
+  - 直接在DwsDataReceivedEventHandler中记录响应
+  - 减少事件传播开销
+- ✅ **中央包管理更新**
+  - 新增Microsoft.AspNetCore.Http.Abstractions
+  - 新增Microsoft.AspNetCore.Http
+  - 新增Microsoft.AspNetCore.Mvc.Core
+  - 统一管理ASP.NET Core相关包
+
 ## 最新实现功能 (v1.8.0)
 
 ### 新增功能
@@ -1231,9 +1301,13 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 5. ~~**第三方API数据库配置**~~ - ✅ 已完成（v1.8.0）
 6. ~~**SignalR/TCP客户端服务**~~ - ✅ 已完成（v1.8.0）
 7. ~~**性能基准测试**~~ - ✅ 已完成（v1.8.0）
-8. **格口分配优化** - 基于格口使用情况的智能分配算法
-9. **版本升级通知** - 当有新版本时自动通知管理员
-10. **异常隔离器** - 为所有可能异常的方法添加Polly策略
+8. ~~**甘特图数据查询API**~~ - ✅ 已完成（v1.9.0）
+9. ~~**规则安全验证**~~ - ✅ 已完成（v1.9.0）
+10. ~~**API请求日志记录**~~ - ✅ 已完成（v1.9.0）
+11. ~~**全局模型验证**~~ - ✅ 已完成（v1.9.0）
+12. **格口分配优化** - 基于格口使用情况的智能分配算法
+13. **版本升级通知** - 当有新版本时自动通知管理员
+14. **异常隔离器** - 为所有可能异常的方法添加Polly策略
 
 #### 中期优化（1-3个月）
 1. **监控面板** - 开发实时监控面板显示系统状态和日志统计
@@ -1244,6 +1318,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 6. **压力测试项目** - 创建专门的压力测试项目
 7. **Web管理界面** - 开发完整的Web管理控制台
 8. **代码审查优化** - double替换为decimal，布尔字段前缀规范化
+9. **数据库迁移工具** - 创建数据库迁移脚本和工具
 
 #### 长期优化（3-6个月）
 1. **微服务架构** - 拆分为微服务架构，提高可扩展性
@@ -1252,6 +1327,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 4. **国际化** - 支持多语言界面
 5. **云原生** - 支持云平台部署（Azure, AWS, 阿里云）
 6. **大数据分析** - 基于日志数据的深度分析和报表
+7. **实时数据流** - 使用Kafka或其他消息队列实现实时数据流处理
 
 ## 性能基准测试
 
