@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 规则匹配完成事件
 /// </summary>
-public class RuleMatchCompletedEvent : INotification
+public record class RuleMatchCompletedEvent : INotification
 {
     /// <summary>
     /// 包裹ID

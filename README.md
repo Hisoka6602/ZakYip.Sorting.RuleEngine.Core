@@ -85,6 +85,7 @@ ZakYip.Sorting.RuleEngine/
 
 - **.NET 8.0** - 最新的.NET框架
 - **ASP.NET Core Minimal API** - 轻量级Web API
+- **Kestrel** - 高性能Web服务器
 - **MediatR** - 事件驱动架构实现
 - **EFCore.Sharding** - 时间维度数据分片
 - **LiteDB** - 嵌入式NoSQL数据库（配置存储）
@@ -95,9 +96,12 @@ ZakYip.Sorting.RuleEngine/
 - **System.Threading.Channels** - FIFO队列实现
 - **TouchSocket** - 高性能TCP通信库
 - **SignalR** - 实时双向通信
+- **NLog** - 高性能日志框架
+- **Newtonsoft.Json** - JSON序列化库
 - **Swagger/OpenAPI** - API文档
 - **Object Pool** - 对象池优化性能
 - **xUnit / Moq** - 单元测试框架
+- **BenchmarkDotNet** - 性能基准测试框架
 - **Windows Services** - Windows服务托管
 
 ## 快速开始
@@ -904,7 +908,92 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 }
 ```
 
-## 最新实现功能 (v1.7.0)
+## 最新实现功能 (v1.8.0)
+
+### 新增功能
+
+#### 1. NLog日志框架集成（新增）
+- ✅ **NLog 5.3.4** - 高性能日志框架
+  - 完整的nlog.config配置文件
+  - 支持多种日志目标：控制台、文件、错误日志、性能日志
+  - 自动日志轮转和归档（7-30天保留期）
+  - 日志级别过滤和分类
+  - UTF-8编码支持
+
+#### 2. Newtonsoft.Json集成（新增）
+- ✅ **Newtonsoft.Json 13.0.3** - JSON序列化库
+  - Microsoft.AspNetCore.Mvc.NewtonsoftJson集成
+  - 配置循环引用处理
+  - 空值忽略选项
+  - 标准化日期格式（yyyy-MM-dd HH:mm:ss）
+
+#### 3. 条件Windows服务支持（改进）
+- ✅ **条件编译** - 仅Release模式使用Windows服务
+  - DEBUG模式下作为控制台应用运行
+  - 使用#if !DEBUG条件编译指令
+  - 便于开发调试
+
+#### 4. Kestrel服务器配置（新增）
+- ✅ **Kestrel优化配置** - ASP.NET Core Web服务器
+  - 最大并发连接数：1000
+  - 请求体大小限制：10MB
+  - Keep-Alive超时：2分钟
+  - 请求头超时：30秒
+  - 关闭Server头以提高安全性
+
+#### 5. 第三方API数据库配置（新增）
+- ✅ **ThirdPartyApiConfig实体** - 使用record class
+  - 支持多个第三方API配置
+  - 存储在LiteDB中
+  - 可配置优先级、超时、自定义头等
+  - 支持HTTP方法和请求体模板
+- ✅ **ThirdPartyApiConfigController** - 完整CRUD API
+  - `GET /api/thirdpartyapiconfig` - 获取所有配置
+  - `GET /api/thirdpartyapiconfig/enabled` - 获取启用的配置
+  - `POST /api/thirdpartyapiconfig` - 创建配置
+  - `PUT /api/thirdpartyapiconfig/{id}` - 更新配置
+  - `DELETE /api/thirdpartyapiconfig/{id}` - 删除配置
+
+#### 6. SignalR客户端服务（新增）
+- ✅ **SignalRClientService** - 支持自动重连
+  - 快速重连策略（0ms, 100ms, 500ms, 1s, 2s）
+  - 连接状态变化事件
+  - 线程安全的连接管理
+  - 方法调用和事件订阅
+  - 实现IAsyncDisposable
+
+#### 7. TCP客户端服务（新增）
+- ✅ **TcpClientService** - 支持自动重连
+  - 自动重连循环（最长2秒间隔）
+  - 数据接收事件
+  - 连接状态变化事件
+  - 发送文本和字节数据
+  - 实现IAsyncDisposable
+
+#### 8. 事件载荷优化（改进）
+- ✅ **所有事件改为record class** - 值语义
+  - ParcelCreatedEvent
+  - DwsDataReceivedEvent
+  - ThirdPartyResponseReceivedEvent
+  - RuleMatchCompletedEvent
+  - 使用required关键字而非构造函数
+
+#### 9. 性能基准测试（新增）
+- ✅ **ZakYip.Sorting.RuleEngine.Benchmarks项目** - BenchmarkDotNet框架
+  - RuleMatchingBenchmarks - 7个基准测试
+    - 条码匹配（StartsWith, Contains, Regex）
+    - 重量匹配（简单、复杂表达式）
+    - 体积匹配（简单、复杂表达式）
+  - 内存诊断和性能排名
+  - 可扩展的基准测试架构
+
+#### 10. 性能优化特性（改进）
+- ✅ **MethodImpl特性** - 极致性能优化
+  - SignalRClientService使用AggressiveInlining
+  - TcpClientService使用AggressiveInlining
+  - 关键路径方法内联优化
+
+## 历史版本功能 (v1.7.0)
 
 ### 新增功能
 
@@ -1138,8 +1227,13 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 1. ~~**格口管理API**~~ - ✅ 已完成（v1.7.0）
 2. ~~**日志查询API**~~ - ✅ 已完成（v1.7.0）
 3. ~~**枚举使用重构**~~ - ✅ 已完成（v1.7.0）
-4. **格口分配优化** - 基于格口使用情况的智能分配算法
-5. **版本升级通知** - 当有新版本时自动通知管理员
+4. ~~**NLog日志框架**~~ - ✅ 已完成（v1.8.0）
+5. ~~**第三方API数据库配置**~~ - ✅ 已完成（v1.8.0）
+6. ~~**SignalR/TCP客户端服务**~~ - ✅ 已完成（v1.8.0）
+7. ~~**性能基准测试**~~ - ✅ 已完成（v1.8.0）
+8. **格口分配优化** - 基于格口使用情况的智能分配算法
+9. **版本升级通知** - 当有新版本时自动通知管理员
+10. **异常隔离器** - 为所有可能异常的方法添加Polly策略
 
 #### 中期优化（1-3个月）
 1. **监控面板** - 开发实时监控面板显示系统状态和日志统计
@@ -1147,8 +1241,9 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 3. **日志归档优化** - 优化日志表的自动归档和清理性能
 4. **更多适配器** - 支持更多厂商的DWS和分拣机设备
 5. **负载均衡** - 支持多实例部署和负载均衡
-6. **性能测试** - 压力测试和性能基准测试
+6. **压力测试项目** - 创建专门的压力测试项目
 7. **Web管理界面** - 开发完整的Web管理控制台
+8. **代码审查优化** - double替换为decimal，布尔字段前缀规范化
 
 #### 长期优化（3-6个月）
 1. **微服务架构** - 拆分为微服务架构，提高可扩展性
@@ -1157,6 +1252,31 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 4. **国际化** - 支持多语言界面
 5. **云原生** - 支持云平台部署（Azure, AWS, 阿里云）
 6. **大数据分析** - 基于日志数据的深度分析和报表
+
+## 性能基准测试
+
+系统包含完整的性能基准测试项目（BenchmarkDotNet框架）：
+
+### 运行基准测试
+
+```bash
+cd ZakYip.Sorting.RuleEngine.Benchmarks
+dotnet run -c Release
+```
+
+### 可用基准测试
+
+1. **RuleMatchingBenchmarks** - 规则匹配性能测试
+   - 条码正则匹配（StartsWith, Contains, Regex）
+   - 重量匹配（简单、复杂表达式）
+   - 体积匹配（简单、复杂表达式）
+
+### 基准测试特性
+
+- ✅ 内存诊断 - 跟踪内存分配
+- ✅ 性能排名 - 自动排序最快到最慢
+- ✅ 统计数据 - P50/P95/P99延迟
+- ✅ 可扩展 - 轻松添加新的基准测试
 
 ## 测试工具使用
 
