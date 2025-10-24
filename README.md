@@ -15,9 +15,10 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **弹性架构** - 数据库熔断器（可配置失败率、熔断时长），自动降级和数据同步，防止系统雪崩
 - ✅ **自动数据管理** - 可配置的数据清理（默认90天）和归档服务，自动维护数据生命周期
 - ✅ **MySQL自动调谐** - 性能监控、索引分析、连接池优化和慢查询识别
-- ✅ **多协议支持** - 支持TCP/HTTP/SignalR等多种协议，通过适配器模式扩展多厂商对接
+- ✅ **多协议支持** - 支持TCP/SignalR等多种协议，通过适配器模式扩展多厂商对接
+- ✅ **SignalR Hub** - 提供SortingHub和DwsHub实现实时双向通信，生产环境推荐使用
 - ✅ **热切换支持** - 适配器管理器支持运行时热切换，无需重启服务即可切换DWS/分拣机适配器
-- ✅ **TouchSocket集成** - 使用TouchSocket库实现高性能TCP通信
+- ✅ **TouchSocket优化** - 使用TouchSocket库实现高性能TCP通信，支持连接池和自动重连
 - ✅ **通信日志** - 全量记录TCP/SignalR/HTTP通信日志，支持问题追踪和调试
 - ✅ **测试工具** - 提供分拣机信号模拟测试控制台，便于开发和测试
 - ✅ **自动迁移** - EF Core自动应用数据库迁移，部署时自动创建表和索引
@@ -170,9 +171,132 @@ sc create "ZakYipSortingEngine" binPath="C:\path\to\publish\ZakYip.Sorting.RuleE
 sc start "ZakYipSortingEngine"
 ```
 
-## API端点
+## 通信方式
 
-### 分拣机信号API（推荐）
+### SignalR Hub（生产环境推荐）
+
+系统提供SignalR Hub用于实时双向通信，这是**生产环境推荐的通信方式**。
+
+#### 1. 分拣机Hub（SortingHub）
+
+连接地址：`/hubs/sorting`
+
+**方法：创建包裹处理空间**
+```javascript
+// 客户端调用
+const result = await connection.invoke("CreateParcel", "PKG20241024001", "CART001", "1234567890123");
+// 返回: { success: true, parcelId: "PKG20241024001", message: "包裹处理空间已创建，等待DWS数据" }
+```
+
+**接收格口号结果**
+```javascript
+// 客户端监听
+connection.on("ReceiveChuteNumber", (parcelId, chuteNumber, cartNumber, cartCount) => {
+    console.log(`包裹 ${parcelId} 分配到格口 ${chuteNumber}`);
+});
+```
+
+#### 2. DWS Hub（DwsHub）
+
+连接地址：`/hubs/dws`
+
+**方法：接收DWS数据**
+```javascript
+// 客户端调用
+const result = await connection.invoke("ReceiveDwsData", 
+    "PKG20241024001", 
+    "1234567890123", 
+    1500,  // weight
+    300,   // length
+    200,   // width
+    150,   // height
+    9000   // volume
+);
+// 返回: { success: true, parcelId: "PKG20241024001", message: "DWS数据已接收，开始处理" }
+```
+
+#### 3. SignalR连接示例（C#）
+
+```csharp
+using Microsoft.AspNetCore.SignalR.Client;
+
+// 分拣机连接
+var sortingConnection = new HubConnectionBuilder()
+    .WithUrl("http://localhost:5000/hubs/sorting")
+    .WithAutomaticReconnect()
+    .Build();
+
+// 监听格口号
+sortingConnection.On<string, string, string, int>("ReceiveChuteNumber", 
+    (parcelId, chuteNumber, cartNumber, cartCount) =>
+{
+    Console.WriteLine($"包裹 {parcelId} 分配到格口 {chuteNumber}");
+});
+
+await sortingConnection.StartAsync();
+
+// 创建包裹
+var result = await sortingConnection.InvokeAsync<object>(
+    "CreateParcel", "PKG001", "CART001", "123456");
+
+// DWS连接
+var dwsConnection = new HubConnectionBuilder()
+    .WithUrl("http://localhost:5000/hubs/dws")
+    .WithAutomaticReconnect()
+    .Build();
+
+await dwsConnection.StartAsync();
+
+// 发送DWS数据
+var dwsResult = await dwsConnection.InvokeAsync<object>(
+    "ReceiveDwsData", "PKG001", "123456", 1500, 300, 200, 150, 9000);
+```
+
+#### 4. TouchSocket TCP通信（生产环境推荐）
+
+系统使用TouchSocket库实现高性能TCP通信，支持连接池和自动重连。
+
+**DWS TCP适配器配置**：
+- 默认最大连接数：1000
+- 可配置接收缓冲区大小：8192字节
+- 可配置发送缓冲区大小：8192字节
+- 支持连接池管理
+
+**分拣机TCP适配器配置**：
+- 自动重连间隔：5000毫秒
+- 可配置缓冲区大小：8192字节
+- 支持自动断线重连
+
+**使用示例**：
+```csharp
+// DWS适配器
+var dwsAdapter = new TouchSocketDwsAdapter(
+    host: "192.168.1.100",
+    port: 8001,
+    logger: logger,
+    communicationLogRepository: commLogRepo,
+    maxConnections: 1000,        // 可选，默认1000
+    receiveBufferSize: 8192,     // 可选，默认8192
+    sendBufferSize: 8192         // 可选，默认8192
+);
+
+// 分拣机适配器
+var sorterAdapter = new TouchSocketSorterAdapter(
+    host: "192.168.1.200",
+    port: 9000,
+    logger: logger,
+    communicationLogRepository: commLogRepo,
+    reconnectIntervalMs: 5000,   // 可选，默认5000
+    receiveBufferSize: 8192,     // 可选，默认8192
+    sendBufferSize: 8192         // 可选，默认8192
+);
+```
+
+### HTTP API（仅用于测试）
+
+**注意**：HTTP API仅用于测试和调试，生产环境中分拣程序和DWS应使用TCP或SignalR通信。
+
+#### 分拣机信号API
 
 #### 1. 创建包裹处理空间
 
@@ -363,8 +487,9 @@ DEFAULT                # 默认规则（匹配所有）
 3. **异步处理** - 全面使用async/await模式
 4. **批量处理** - 支持并行批量处理包裹
 5. **连接复用** - HttpClient复用，减少连接开销
-6. **索引优化** - 数据库表建立适当索引
-7. **自动迁移** - EF Core自动应用数据库迁移，简化部署
+6. **TouchSocket优化** - TCP连接池（默认1000连接），自动重连（5秒间隔），缓冲区优化（8KB）
+7. **索引优化** - 数据库表建立适当索引
+8. **自动迁移** - EF Core自动应用数据库迁移，简化部署
 
 ## 弹性和降级策略
 
@@ -460,19 +585,38 @@ DEFAULT                # 默认规则（匹配所有）
 
 ## 多协议支持和热切换
 
-系统通过适配器模式支持多种通信协议，并支持运行时热切换：
+系统通过适配器模式支持多种通信协议（TCP/SignalR），并支持运行时热切换。
+
+**重要说明**：生产环境中，分拣程序和DWS设备应使用TCP或SignalR通信，不应使用HTTP API。HTTP API仅用于测试和调试。
+
+### SignalR Hub（推荐）
+- **SortingHub** - `/hubs/sorting` 分拣机实时通信
+- **DwsHub** - `/hubs/dws` DWS实时通信
+- **自动重连** - 支持自动重连机制
+- **双向通信** - 支持服务端主动推送消息
+- **完整日志** - 记录所有SignalR通信到数据库
 
 ### DWS适配器（IDwsAdapter）
 - **TouchSocket TCP** - `TouchSocketDwsAdapter` 高性能TCP通信
+  - 连接池大小：默认1000，可配置
+  - 缓冲区大小：默认8192字节，可配置
+  - 支持并发连接管理
 - **支持热切换** - 可在运行时切换不同厂商的DWS设备
-- **自动重连** - 连接断开时自动重连
 - **完整日志** - 记录所有接收的DWS数据到数据库
 
 使用示例：
 ```csharp
-// 注册DWS适配器
+// 注册DWS适配器（带优化配置）
 services.AddSingleton<IDwsAdapter>(sp => 
-    new TouchSocketDwsAdapter("192.168.1.100", 8001, logger, commLogRepo));
+    new TouchSocketDwsAdapter(
+        host: "192.168.1.100", 
+        port: 8001, 
+        logger: logger, 
+        commLogRepo: commLogRepo,
+        maxConnections: 1000,      // 可选
+        receiveBufferSize: 8192,   // 可选
+        sendBufferSize: 8192       // 可选
+    ));
 
 // 使用适配器管理器支持热切换
 services.AddSingleton<IAdapterManager<IDwsAdapter>>(sp => 
@@ -484,15 +628,26 @@ services.AddSingleton<IAdapterManager<IDwsAdapter>>(sp =>
 
 ### 分拣机适配器（ISorterAdapter）
 - **TouchSocket TCP** - `TouchSocketSorterAdapter` 高性能TCP通信
+  - 自动重连：默认5秒间隔，可配置
+  - 缓冲区大小：默认8192字节，可配置
+  - 断线自动恢复
 - **标准TCP** - `TcpSorterAdapter` 支持标准TCP通信
 - **支持热切换** - 可在运行时切换不同厂商的分拣机
 - **完整日志** - 记录所有发送的分拣指令到数据库
 
 使用示例：
 ```csharp
-// 注册分拣机适配器
+// 注册分拣机适配器（带优化配置）
 services.AddSingleton<ISorterAdapter>(sp => 
-    new TouchSocketSorterAdapter("192.168.1.200", 9000, logger, commLogRepo));
+    new TouchSocketSorterAdapter(
+        host: "192.168.1.200", 
+        port: 9000, 
+        logger: logger, 
+        commLogRepo: commLogRepo,
+        reconnectIntervalMs: 5000,  // 可选
+        receiveBufferSize: 8192,    // 可选
+        sendBufferSize: 8192        // 可选
+    ));
 
 // 使用适配器管理器支持热切换
 services.AddSingleton<IAdapterManager<ISorterAdapter>>(sp => 
@@ -664,46 +819,63 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 }
 ```
 
-## 最新实现功能 (v1.3.0)
+## 最新实现功能 (v1.4.0)
 
 ### 已实现的新功能
 
-#### 1. 自动数据库迁移
+#### 1. SignalR Hub实现（新增）
+- ✅ 创建SortingHub用于分拣机实时通信（/hubs/sorting）
+- ✅ 创建DwsHub用于DWS实时通信（/hubs/dws）
+- ✅ 在Program.cs中配置SignalR服务
+- ✅ 支持自动重连和双向通信
+- ✅ 生产环境推荐使用SignalR或TCP，HTTP仅用于测试
+
+#### 2. 通信方式优化（新增）
+- ✅ 明确分拣程序和DWS只使用TCP/SignalR通信
+- ✅ HTTP API标记为仅用于测试和调试
+- ✅ 添加通信方式选择指南
+
+#### 3. TouchSocket连接池优化（新增）
+- ✅ TouchSocketDwsAdapter添加连接池配置（最大连接数：默认1000）
+- ✅ TouchSocketSorterAdapter添加自动重连配置（默认5秒间隔）
+- ✅ 可配置缓冲区大小（默认8192字节）
+- ✅ 优化消息处理性能
+
+#### 4. 代码质量改进（新增）
+- ✅ 移除所有英文注释，统一使用中文注释
+- ✅ 优化代码可读性和维护性
+
+#### 5. 自动数据库迁移
 - ✅ EF Core自动迁移，部署时自动创建数据库表
 - ✅ 自动应用迁移更新，支持MySQL和SQLite
 - ✅ 在Program.cs中实现，启动时自动执行
 
-#### 2. 适配器热切换
+#### 6. 适配器热切换
 - ✅ 实现IAdapterManager<T>接口，支持运行时切换适配器
 - ✅ 支持切换DWS适配器（不同厂商、不同协议）
 - ✅ 支持切换分拣机适配器（不同厂商、不同协议）
 - ✅ 支持切换第三方API适配器
 - ✅ 无需重启服务即可热切换
 
-#### 3. TouchSocket TCP通信
+#### 7. TouchSocket TCP通信
 - ✅ 集成TouchSocket高性能TCP库
 - ✅ 实现TouchSocketDwsAdapter用于DWS数据接收
 - ✅ 实现TouchSocketSorterAdapter用于分拣机通信
 - ✅ 支持自动重连和异常处理
 
-#### 4. SignalR支持
-- ✅ 添加Microsoft.AspNetCore.SignalR.Client包
-- ✅ 支持实时双向通信
-- ✅ 可用于分拣机信号和DWS数据传输
-
-#### 5. 通信日志记录
+#### 8. 通信日志记录
 - ✅ 新增CommunicationLog实体存储所有通信日志
 - ✅ 记录TCP、SignalR、HTTP通信的全量日志
 - ✅ 支持按类型、时间、包裹ID查询日志
 - ✅ 自动记录发送/接收方向、成功/失败状态
 
-#### 6. 代码结构优化
+#### 9. 代码结构优化
 - ✅ 所有枚举独立文件存放（ParcelStatus, WorkItemType, CommunicationType等）
 - ✅ 所有枚举添加Description特性，使用中文描述
 - ✅ 将嵌套类移到独立文件（ParcelProcessingContext, ParcelWorkItem）
-- ✅ 代码注释改为中文
+- ✅ 代码注释统一使用中文
 
-#### 7. 测试工具
+#### 10. 测试工具
 - ✅ 创建ZakYip.Sorting.RuleEngine.TestConsole测试控制台
 - ✅ 支持模拟分拣机信号发送（HTTP API）
 - ✅ 支持模拟DWS数据发送（TCP）
@@ -712,11 +884,9 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 ### 优化方向
 
 #### 短期优化（1-2周）
-1. **SignalR Hub实现** - 创建SignalR Hub用于实时通信
-2. **适配器配置界面** - 添加API端点支持运行时切换适配器
-3. **通信日志查询API** - 提供API查询和导出通信日志
-4. **性能优化** - 优化TouchSocket连接池和消息处理
-5. **英文注释清理** - 完成所有英文注释的移除
+1. **适配器配置界面** - 添加API端点支持运行时切换适配器
+2. **通信日志查询API** - 提供API查询和导出通信日志
+3. **性能监控** - 添加性能指标收集和监控
 
 #### 中期优化（1-3个月）
 1. **监控面板** - 开发实时监控面板显示系统状态
