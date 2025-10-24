@@ -35,6 +35,12 @@ public class AppSettings
     /// MiniAPI configuration
     /// </summary>
     public MiniApiSettings MiniApi { get; set; } = new();
+    
+    /// <summary>
+    /// 缓存配置
+    /// Cache configuration
+    /// </summary>
+    public CacheSettings Cache { get; set; } = new();
 }
 
 /// <summary>
@@ -54,6 +60,12 @@ public class MySqlSettings
 {
     public string ConnectionString { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
+    
+    /// <summary>
+    /// 熔断器配置
+    /// Circuit breaker configuration
+    /// </summary>
+    public CircuitBreakerSettings CircuitBreaker { get; set; } = new();
 }
 
 /// <summary>
@@ -84,4 +96,54 @@ public class MiniApiSettings
 {
     public string[] Urls { get; set; } = new[] { "http://localhost:5000" };
     public bool EnableSwagger { get; set; } = true;
+}
+
+/// <summary>
+/// 熔断器配置
+/// Circuit breaker settings
+/// </summary>
+public class CircuitBreakerSettings
+{
+    /// <summary>
+    /// 失败率阈值（0.0-1.0），默认0.5（50%）
+    /// Failure ratio threshold (0.0-1.0), default 0.5 (50%)
+    /// </summary>
+    public double FailureRatio { get; set; } = 0.5;
+    
+    /// <summary>
+    /// 最小吞吐量（在采样周期内的最小请求数），默认10
+    /// Minimum throughput (minimum number of requests in sampling duration), default 10
+    /// </summary>
+    public int MinimumThroughput { get; set; } = 10;
+    
+    /// <summary>
+    /// 采样周期（秒），默认30秒
+    /// Sampling duration in seconds, default 30
+    /// </summary>
+    public int SamplingDurationSeconds { get; set; } = 30;
+    
+    /// <summary>
+    /// 熔断持续时间（秒），默认1200秒（20分钟）
+    /// Break duration in seconds, default 1200 (20 minutes)
+    /// </summary>
+    public int BreakDurationSeconds { get; set; } = 1200;
+}
+
+/// <summary>
+/// 缓存配置
+/// Cache settings
+/// </summary>
+public class CacheSettings
+{
+    /// <summary>
+    /// 绝对过期时间（秒），默认3600秒（1小时）
+    /// Absolute expiration time in seconds, default 3600 (1 hour)
+    /// </summary>
+    public int AbsoluteExpirationSeconds { get; set; } = 3600;
+    
+    /// <summary>
+    /// 滑动过期时间（秒），默认600秒（10分钟）
+    /// Sliding expiration time in seconds, default 600 (10 minutes)
+    /// </summary>
+    public int SlidingExpirationSeconds { get; set; } = 600;
 }

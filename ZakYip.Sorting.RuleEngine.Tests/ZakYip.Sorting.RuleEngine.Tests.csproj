@@ -9,11 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="$(coverlet.collector_Version)" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Microsoft.NET.Test.Sdk_Version)" />
-    <PackageReference Include="xunit" Version="$(xunit_Version)" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="$(xunit.runner.visualstudio_Version)" />
-    <PackageReference Include="Moq" Version="$(Moq_Version)" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
   </ItemGroup>
 
   <ItemGroup>

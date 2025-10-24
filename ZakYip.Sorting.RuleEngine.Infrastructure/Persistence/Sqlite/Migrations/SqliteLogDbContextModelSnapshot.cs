@@ -41,9 +41,16 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("Level")
+                        .HasDatabaseName("IX_log_entries_Level");
 
-                    b.HasIndex("Level");
+                    b.HasIndex("CreatedAt")
+                        .IsDescending()
+                        .HasDatabaseName("IX_log_entries_CreatedAt_Desc");
+
+                    b.HasIndex("Level", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_log_entries_Level_CreatedAt");
 
                     b.ToTable("log_entries", (string)null);
                 });

@@ -9,6 +9,7 @@ using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
@@ -38,6 +39,11 @@ public class Program
         // 注册配置
         // Register configuration
         builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+        
+        // 注册数据库熔断器配置
+        // Register database circuit breaker configuration
+        builder.Services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
+            builder.Configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
 
         // 配置LiteDB（用于配置存储）
         // Configure LiteDB for configuration storage
@@ -51,8 +57,10 @@ public class Program
             return new LiteDatabase(appSettings.LiteDb.ConnectionString);
         });
 
-        // 配置日志数据库（MySQL优先，失败时降级到SQLite）
-        // Configure logging database (MySQL first, fallback to SQLite)
+        // 配置日志数据库（带熔断器的弹性日志仓储）
+        // Configure logging database (Resilient log repository with circuit breaker)
+        ConfigureSqliteLogging(builder.Services, appSettings);
+        
         if (appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString))
         {
             try
@@ -60,22 +68,25 @@ public class Program
                 builder.Services.AddDbContext<MySqlLogDbContext>(options =>
                     options.UseMySql(
                         appSettings.MySql.ConnectionString,
-                        ServerVersion.AutoDetect(appSettings.MySql.ConnectionString)));
+                        ServerVersion.AutoDetect(appSettings.MySql.ConnectionString)),
+                    ServiceLifetime.Scoped);
                 
-                builder.Services.AddScoped<ILogRepository, MySqlLogRepository>();
+                // 使用带熔断器的弹性日志仓储
+                // Use resilient log repository with circuit breaker
+                builder.Services.AddScoped<ILogRepository, ResilientLogRepository>();
             }
             catch
             {
-                // 降级到SQLite
-                // Fallback to SQLite
-                ConfigureSqliteLogging(builder.Services, appSettings);
+                // MySQL配置失败，使用SQLite仓储
+                // MySQL configuration failed, use SQLite repository
+                builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
             }
         }
         else
         {
-            // 使用SQLite
-            // Use SQLite
-            ConfigureSqliteLogging(builder.Services, appSettings);
+            // MySQL未启用，直接使用SQLite仓储
+            // MySQL not enabled, use SQLite repository directly
+            builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
         }
 
         // 配置HttpClient用于第三方API
@@ -95,9 +106,15 @@ public class Program
         // Register repositories
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
 
-        // 添加内存缓存（带滑动过期）
-        // Add memory cache with sliding expiration
-        builder.Services.AddMemoryCache();
+        // 添加内存缓存（带可配置的绝对过期和滑动过期）
+        // Add memory cache with configurable absolute and sliding expiration
+        // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
+        var cacheSizeLimit = builder.Configuration.GetValue<long?>("Cache:SizeLimit") ?? 1024;
+        builder.Services.AddMemoryCache(options =>
+        {
+            options.SizeLimit = cacheSizeLimit; // 设置缓存大小限制
+            options.CompactionPercentage = 0.25; // 压缩百分比
+        });
 
         // 注册应用服务
         // Register application services
