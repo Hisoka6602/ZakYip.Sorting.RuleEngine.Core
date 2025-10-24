@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36603.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Core", "ZakYip.Sorting.RuleEngine.Core\ZakYip.Sorting.RuleEngine.Core.csproj", "{9C4B8CBC-F53F-48DD-A896-7526FE097717}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine", "ZakYip.Sorting.RuleEngine\ZakYip.Sorting.RuleEngine.csproj", "{9C4B8CBC-F53F-48DD-A896-7526FE097717}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Domain", "ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj", "{FA1A5522-AB38-41D4-98B7-CEB251FAF18F}"
 EndProject
