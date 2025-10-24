@@ -6,7 +6,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
 /// 分拣机信号接收API控制器
-/// Sorting machine signal receiving API controller
+/// 注意：此HTTP API仅用于测试和调试，生产环境中分拣程序和DWS应使用TCP或SignalR通信
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -25,7 +25,7 @@ public class SortingMachineController : ControllerBase
 
     /// <summary>
     /// 接收分拣程序信号，创建包裹处理空间
-    /// Receive sorting machine signal to create parcel processing space
+    /// 注意：仅用于测试，生产环境请使用SignalR Hub (/hubs/sorting) 或 TCP适配器
     /// </summary>
     /// <param name="request">包裹创建请求</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -80,7 +80,7 @@ public class SortingMachineController : ControllerBase
 
     /// <summary>
     /// 接收DWS数据
-    /// Receive DWS data for a parcel
+    /// 注意：仅用于测试，生产环境请使用SignalR Hub (/hubs/dws) 或 TCP适配器
     /// </summary>
     /// <param name="request">DWS数据请求</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -145,7 +145,6 @@ public class SortingMachineController : ControllerBase
 
 /// <summary>
 /// 包裹创建请求
-/// Parcel creation request from sorting machine
 /// </summary>
 public class ParcelCreationRequest
 {
@@ -167,7 +166,6 @@ public class ParcelCreationResponse
 
 /// <summary>
 /// DWS数据请求
-/// DWS data request
 /// </summary>
 public class DwsDataRequest
 {
@@ -182,7 +180,6 @@ public class DwsDataRequest
 
 /// <summary>
 /// DWS数据响应
-/// DWS data response
 /// </summary>
 public class DwsDataResponse
 {
