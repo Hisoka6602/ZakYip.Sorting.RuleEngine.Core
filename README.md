@@ -1,8 +1,8 @@
-# ZakYip.Sorting.RuleEngine.Core
+# ZakYip.Sorting.RuleEngine
 
 ## 项目简介
 
-ZakYip分拣规则引擎核心系统是一个高性能的包裹分拣规则引擎，用于处理分拣程序的包裹信息和DWS（尺寸重量扫描）数据，通过自定义规则分析计算格口号，实现自动化分拣。
+ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，用于处理分拣程序的包裹信息和DWS（尺寸重量扫描）数据，通过自定义规则分析计算格口号，实现自动化分拣。
 
 ## 核心特性
 
@@ -26,7 +26,7 @@ ZakYip分拣规则引擎核心系统是一个高性能的包裹分拣规则引�
 项目采用清晰的分层架构（Clean Architecture / DDD）：
 
 ```
-ZakYip.Sorting.RuleEngine.Core/
+ZakYip.Sorting.RuleEngine/
 ├── ZakYip.Sorting.RuleEngine.Domain/          # 领域层
 │   ├── Entities/                              # 实体
 │   │   ├── ParcelInfo.cs                      # 包裹信息实体
@@ -102,7 +102,7 @@ ZakYip.Sorting.RuleEngine.Core/
 ```bash
 # 克隆仓库
 git clone https://github.com/Hisoka6602/ZakYip.Sorting.RuleEngine.Core.git
-cd ZakYip.Sorting.RuleEngine.Core
+cd ZakYip.Sorting.RuleEngine
 
 # 还原依赖并构建
 dotnet restore
@@ -423,8 +423,16 @@ DEFAULT                # 默认规则（匹配所有）
 ### 自动数据清理
 
 - 默认保留90天数据
-- 每天凌晨2点自动清理
+- **基于空闲策略清理**（默认30分钟无包裹创建后触发）
+- 清理可被新包裹创建打断
 - 可配置清理策略和保留期
+
+### 分片表自动管理
+
+- **自动创建分片表**（根据策略提前创建）
+- 支持日度、周度、月度分片
+- 自动创建索引优化性能
+- 每小时检查确保表存在
 
 ### MySQL自动调谐
 
@@ -564,4 +572,8 @@ MIT License
 
 ---
 
-**注意**: 本系统设计用于高频率场景，确保硬件资源充足以获得最佳性能。
+**注意**: 
+- 本系统设计用于高频率场景，确保硬件资源充足以获得最佳性能。
+- 项目已重命名为 `ZakYip.Sorting.RuleEngine`（移除了 `.Core` 后缀）。
+- 数据清理策略已从定时改为基于空闲检测（默认30分钟无包裹创建后触发清理）。
+- 新增分片表自动创建和管理功能。

@@ -1,14 +1,46 @@
 # Implementation Summary - ZakYip Sorting Rule Engine
 
-**Date**: 2025-10-24  
-**Version**: 1.1.0  
+**Date**: 2025-10-24 (Updated)
+**Version**: 1.2.0  
 **Status**: ✅ All Requirements Completed
+
+---
+
+## Latest Updates (Version 1.2.0)
+
+### 1. Idle-Based Data Cleanup Strategy
+- **Changed from**: Timer-based cleanup (every day at 2 AM)
+- **Changed to**: Idle-based cleanup (after 30 minutes of no parcel creation)
+- **Implementation**:
+  - Created `IParcelActivityTracker` interface and implementation
+  - Modified `DataCleanupService` to check system idle state
+  - Cleanup is interruptible when new parcel is created
+  - Added `IdleMinutesBeforeCleanup` and `IdleCheckIntervalSeconds` configuration
+  - Prevents frequent cleanups with 1-hour minimum interval
+
+### 2. Automatic Sharding Table Management
+- **Enhancement**: Added automatic creation and management of sharded tables
+- **Implementation**:
+  - Created `ShardingTableManagementService` background service
+  - Automatically creates tables based on strategy (Daily/Weekly/Monthly)
+  - Pre-creates tables for future periods (7 days, 4 weeks, or 3 months ahead)
+  - Runs hourly to ensure tables exist before data arrives
+  - Creates tables with proper indexes for optimal performance
+
+### 3. Project and Solution Rename
+- **Changed from**: `ZakYip.Sorting.RuleEngine.Core` 
+- **Changed to**: `ZakYip.Sorting.RuleEngine`
+- **Files affected**:
+  - Solution file renamed: `ZakYip.Sorting.RuleEngine.Core.sln` → `ZakYip.Sorting.RuleEngine.sln`
+  - Project folder renamed: `ZakYip.Sorting.RuleEngine.Core/` → `ZakYip.Sorting.RuleEngine/`
+  - Project file renamed: `ZakYip.Sorting.RuleEngine.Core.csproj` → `ZakYip.Sorting.RuleEngine.csproj`
+  - All documentation updated to reflect new naming
 
 ---
 
 ## Overview
 
-This document summarizes the implementation of all 10 requirements from the problem statement for the ZakYip Sorting Rule Engine Core system.
+This document summarizes the implementation of all requirements from the problem statement for the ZakYip Sorting Rule Engine system.
 
 ## Requirements Implementation Status
 

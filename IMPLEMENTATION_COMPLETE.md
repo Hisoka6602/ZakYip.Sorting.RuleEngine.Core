@@ -1,16 +1,16 @@
 # 实施总结 / Implementation Summary
 
-## ZakYip分拣规则引擎核心系统 - 事件驱动架构和数据分片实施
+## ZakYip分拣规则引擎系统 - 事件驱动架构和数据分片实施
 
-### Implementation Summary - ZakYip Sorting Rule Engine Core
+### Implementation Summary - ZakYip Sorting Rule Engine
 
 ---
 
 ## 项目概述 / Project Overview
 
-本次实施为ZakYip分拣规则引擎核心系统添加了完整的事件驱动架构、数据分片管理、自动化数据维护和MySQL性能优化功能。
+本次实施为ZakYip分拣规则引擎系统添加了完整的事件驱动架构、数据分片管理、自动化数据维护和MySQL性能优化功能。
 
-This implementation adds a complete event-driven architecture, data sharding management, automated data maintenance, and MySQL performance optimization to the ZakYip Sorting Rule Engine Core system.
+This implementation adds a complete event-driven architecture, data sharding management, automated data maintenance, and MySQL performance optimization to the ZakYip Sorting Rule Engine system.
 
 ---
 
@@ -361,9 +361,9 @@ Service Layer (服务层)
 
 ## 总结 / Conclusion
 
-本次实施成功为ZakYip分拣规则引擎核心系统添加了完整的事件驱动架构和数据分片功能，满足了所有原始需求：
+本次实施成功为ZakYip分拣规则引擎系统添加了完整的事件驱动架构和数据分片功能，满足了所有原始需求：
 
-This implementation successfully adds complete event-driven architecture and data sharding capabilities to the ZakYip Sorting Rule Engine Core system, meeting all original requirements:
+This implementation successfully adds complete event-driven architecture and data sharding capabilities to the ZakYip Sorting Rule Engine system, meeting all original requirements:
 
 ✅ **需求1**: 使用MediatR实现事件驱动架构
 ✅ **需求2**: 使用EFCore.Sharding实现时间维度分表
