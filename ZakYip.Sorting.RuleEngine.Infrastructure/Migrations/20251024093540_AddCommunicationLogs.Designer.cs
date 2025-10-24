@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 #nullable disable
 
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlLogDbContext))]
-    partial class MySqlLogDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251024093540_AddCommunicationLogs")]
+    partial class AddCommunicationLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

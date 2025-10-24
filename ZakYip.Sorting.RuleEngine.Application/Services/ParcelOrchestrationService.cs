@@ -6,12 +6,14 @@ using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Application.Enums;
+using ZakYip.Sorting.RuleEngine.Application.Models;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
 /// <summary>
 /// 包裹处理编排服务
-/// Parcel processing orchestration service with FIFO ordering and concurrent processing
 /// </summary>
 public class ParcelOrchestrationService
 {
@@ -53,7 +55,6 @@ public class ParcelOrchestrationService
 
     /// <summary>
     /// 接收分拣程序信号，创建包裹处理空间
-    /// Receive sorting machine signal and create parcel processing space
     /// </summary>
     public async Task<bool> CreateParcelAsync(string parcelId, string cartNumber, string? barcode = null, CancellationToken cancellationToken = default)
     {
@@ -63,7 +64,6 @@ public class ParcelOrchestrationService
         var sequence = Interlocked.Increment(ref _sequenceNumber);
         
         // 在缓存中开辟空间
-        // Allocate space in cache
         var context = new ParcelProcessingContext
         {
             ParcelId = parcelId,
@@ -95,7 +95,6 @@ public class ParcelOrchestrationService
 
     /// <summary>
     /// 接收DWS数据
-    /// Receive DWS data for a parcel
     /// </summary>
     public async Task<bool> ReceiveDwsDataAsync(string parcelId, DwsData dwsData, CancellationToken cancellationToken = default)
     {
@@ -123,8 +122,7 @@ public class ParcelOrchestrationService
     }
 
     /// <summary>
-    /// 处理队列中的工作项
-    /// Process work items from the queue (FIFO)
+    /// 处理队列中的工作项（FIFO）
     /// </summary>
     public async Task ProcessQueueAsync(CancellationToken cancellationToken)
     {
@@ -217,45 +215,7 @@ public class ParcelOrchestrationService
     private int CalculateCartCount(DwsData dwsData)
     {
         // 根据体积或重量计算占用小车数
-        // Calculate cart count based on volume or weight
         // 简单示例：大于100000立方厘米占用2个小车
         return dwsData.Volume > 100000 ? 2 : 1;
     }
-}
-
-/// <summary>
-/// 包裹处理上下文
-/// Parcel processing context stored in cache
-/// </summary>
-public class ParcelProcessingContext
-{
-    public required string ParcelId { get; init; }
-    public required string CartNumber { get; init; }
-    public string? Barcode { get; init; }
-    public long SequenceNumber { get; init; }
-    public DateTime CreatedAt { get; init; }
-    public DateTime? DwsReceivedAt { get; set; }
-    public DwsData? DwsData { get; set; }
-    public ThirdPartyResponse? ThirdPartyResponse { get; set; }
-}
-
-/// <summary>
-/// 工作项
-/// Work item for the processing queue
-/// </summary>
-public class ParcelWorkItem
-{
-    public required string ParcelId { get; init; }
-    public long SequenceNumber { get; init; }
-    public required WorkItemType WorkType { get; init; }
-}
-
-/// <summary>
-/// 工作项类型
-/// Work item type
-/// </summary>
-public enum WorkItemType
-{
-    Create,
-    ProcessDws
 }

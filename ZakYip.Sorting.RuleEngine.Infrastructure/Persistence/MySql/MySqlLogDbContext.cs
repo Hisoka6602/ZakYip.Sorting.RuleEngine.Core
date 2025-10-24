@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 /// <summary>
 /// MySQL日志实体
-/// MySQL log entity for persistent logging
 /// </summary>
 public class LogEntry
 {
@@ -17,7 +17,6 @@ public class LogEntry
 
 /// <summary>
 /// MySQL日志数据库上下文
-/// MySQL database context for logging
 /// </summary>
 public class MySqlLogDbContext : DbContext
 {
@@ -27,6 +26,7 @@ public class MySqlLogDbContext : DbContext
     }
 
     public DbSet<LogEntry> LogEntries { get; set; } = null!;
+    public DbSet<CommunicationLog> CommunicationLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,16 +40,36 @@ public class MySqlLogDbContext : DbContext
             entity.Property(e => e.CreatedAt).IsRequired();
             
             // 索引：Level字段用于日志级别筛选
-            // Index: Level field for log level filtering
             entity.HasIndex(e => e.Level).HasDatabaseName("IX_log_entries_Level");
             
             // 索引：CreatedAt字段按降序排序，用于时间范围查询和排序
-            // Index: CreatedAt field in descending order for time range queries and sorting
             entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_log_entries_CreatedAt_Desc");
             
             // 复合索引：Level + CreatedAt，优化按日志级别和时间的查询
-            // Composite index: Level + CreatedAt for optimized queries by log level and time
             entity.HasIndex(e => new { e.Level, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_log_entries_Level_CreatedAt");
+        });
+
+        modelBuilder.Entity<CommunicationLog>(entity =>
+        {
+            entity.ToTable("communication_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
+            entity.Property(e => e.Direction).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.ParcelId).HasMaxLength(100);
+            entity.Property(e => e.RemoteAddress).HasMaxLength(200);
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            
+            // 索引：ParcelId用于按包裹查询
+            entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_communication_logs_ParcelId");
+            
+            // 索引：CreatedAt按降序，用于时间范围查询
+            entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_communication_logs_CreatedAt_Desc");
+            
+            // 复合索引：CommunicationType + CreatedAt
+            entity.HasIndex(e => new { e.CommunicationType, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_communication_logs_Type_CreatedAt");
         });
     }
 }

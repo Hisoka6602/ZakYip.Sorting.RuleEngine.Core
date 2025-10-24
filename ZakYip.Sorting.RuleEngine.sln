@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Tests", "ZakYip.Sorting.RuleEngine.Tests\ZakYip.Sorting.RuleEngine.Tests.csproj", "{81BB4E19-350E-450C-A1EB-1AC272440211}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.TestConsole", "ZakYip.Sorting.RuleEngine.TestConsole\ZakYip.Sorting.RuleEngine.TestConsole.csproj", "{0E166932-E042-4E3A-A243-AB6ED668A4CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{81BB4E19-350E-450C-A1EB-1AC272440211}.Release|x64.Build.0 = Release|Any CPU
 		{81BB4E19-350E-450C-A1EB-1AC272440211}.Release|x86.ActiveCfg = Release|Any CPU
 		{81BB4E19-350E-450C-A1EB-1AC272440211}.Release|x86.Build.0 = Release|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Debug|x64.Build.0 = Debug|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Debug|x86.Build.0 = Debug|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Release|x64.ActiveCfg = Release|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Release|x64.Build.0 = Release|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Release|x86.ActiveCfg = Release|Any CPU
+		{0E166932-E042-4E3A-A243-AB6ED668A4CB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

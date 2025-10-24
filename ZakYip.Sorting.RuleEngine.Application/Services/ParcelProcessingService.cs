@@ -5,6 +5,7 @@ using ZakYip.Sorting.RuleEngine.Application.DTOs;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
@@ -53,7 +54,6 @@ public class ParcelProcessingService : IParcelProcessingService
             _logger.LogInformation("开始处理包裹: {ParcelId}", request.ParcelId);
 
             // 创建包裹实体
-            // Create parcel entity
             var parcelInfo = new ParcelInfo
             {
                 ParcelId = request.ParcelId,
@@ -63,7 +63,6 @@ public class ParcelProcessingService : IParcelProcessingService
             };
 
             // 创建DWS数据（如果提供）
-            // Create DWS data if provided
             DwsData? dwsData = null;
             if (request.Weight.HasValue || request.Volume.HasValue)
             {
