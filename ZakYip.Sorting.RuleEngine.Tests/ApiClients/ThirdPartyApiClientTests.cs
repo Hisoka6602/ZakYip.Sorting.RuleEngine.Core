@@ -1,0 +1,343 @@
+using System.Net;
+using System.Text;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Moq.Protected;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+
+namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
+
+/// <summary>
+/// 第三方API客户端测试
+/// Third-party API client tests
+/// </summary>
+public class ThirdPartyApiClientTests
+{
+    private readonly Mock<ILogger<ThirdPartyApiClient>> _loggerMock;
+
+    public ThirdPartyApiClientTests()
+    {
+        _loggerMock = new Mock<ILogger<ThirdPartyApiClient>>();
+    }
+
+    private ThirdPartyApiClient CreateClient(HttpMessageHandler handler)
+    {
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.example.com")
+        };
+        return new ThirdPartyApiClient(httpClient, _loggerMock.Object);
+    }
+
+    [Fact]
+    public async Task ScanParcelAsync_Success_ReturnsSuccessResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var responseContent = "{\"success\":true,\"parcelId\":\"12345\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().Contains("/api/parcel/scan")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.ScanParcelAsync(barcode);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("200", result.Code);
+        Assert.Equal("Parcel scanned successfully", result.Message);
+        Assert.Contains("success", result.Data);
+    }
+
+    [Fact]
+    public async Task ScanParcelAsync_Error_ReturnsFailureResponse()
+    {
+        // Arrange
+        var barcode = "INVALID";
+        var responseContent = "{\"error\":\"Invalid barcode\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.ScanParcelAsync(barcode);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("400", result.Code);
+        Assert.Contains("Scan Error", result.Message);
+    }
+
+    [Fact]
+    public async Task RequestChuteAsync_Success_ReturnsSuccessResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var responseContent = "{\"success\":true,\"chuteNumber\":\"A-101\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().Contains("/api/chute/request")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.RequestChuteAsync(barcode);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("200", result.Code);
+        Assert.Equal("Chute requested successfully", result.Message);
+        Assert.Contains("chuteNumber", result.Data);
+    }
+
+    [Fact]
+    public async Task RequestChuteAsync_Error_ReturnsFailureResponse()
+    {
+        // Arrange
+        var barcode = "NOTFOUND";
+        var responseContent = "{\"error\":\"Parcel not found\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NotFound,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.RequestChuteAsync(barcode);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("404", result.Code);
+        Assert.Contains("Chute Request Error", result.Message);
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_Success_ReturnsSuccessResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var imageData = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }; // JPEG header
+        var responseContent = "{\"success\":true,\"imageId\":\"img_123\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().Contains("/api/image/upload")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.UploadImageAsync(barcode, imageData);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("200", result.Code);
+        Assert.Equal("Image uploaded successfully", result.Message);
+        Assert.Contains("success", result.Data);
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_WithPngContentType_ReturnsSuccessResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var imageData = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG header
+        var responseContent = "{\"success\":true,\"imageId\":\"img_123\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().Contains("/api/image/upload")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.UploadImageAsync(barcode, imageData, "image/png");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("200", result.Code);
+        Assert.Equal("Image uploaded successfully", result.Message);
+        Assert.Contains("success", result.Data);
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_Error_ReturnsFailureResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var imageData = new byte[] { 0x00, 0x00 }; // Invalid image
+        var responseContent = "{\"error\":\"Invalid image format\"}";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.UploadImageAsync(barcode, imageData);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("400", result.Code);
+        Assert.Contains("Image Upload Error", result.Message);
+    }
+
+    [Fact]
+    public async Task ScanParcelAsync_Exception_ReturnsErrorResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network error"));
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.ScanParcelAsync(barcode);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("ERROR", result.Code);
+        Assert.Contains("Network error", result.Message);
+    }
+
+    [Fact]
+    public async Task RequestChuteAsync_Exception_ReturnsErrorResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new TimeoutException("Request timeout"));
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.RequestChuteAsync(barcode);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("ERROR", result.Code);
+        Assert.Contains("Request timeout", result.Message);
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_Exception_ReturnsErrorResponse()
+    {
+        // Arrange
+        var barcode = "TEST123456";
+        var imageData = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Upload failed"));
+
+        var client = CreateClient(handlerMock.Object);
+
+        // Act
+        var result = await client.UploadImageAsync(barcode, imageData);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("ERROR", result.Code);
+        Assert.Contains("Upload failed", result.Message);
+    }
+}
