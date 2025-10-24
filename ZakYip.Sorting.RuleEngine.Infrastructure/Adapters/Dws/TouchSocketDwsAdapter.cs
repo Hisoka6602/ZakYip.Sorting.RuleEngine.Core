@@ -120,7 +120,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         }
     }
 
-    private async Task OnDataReceived(SocketClient client, string data)
+    private async Task OnDataReceived(ITcpSession client, string data)
     {
         try
         {
@@ -163,9 +163,9 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
     /// </summary>
     private class DwsDataPlugin : PluginBase, ITcpReceivedPlugin
     {
-        private Func<SocketClient, string, Task>? _onDataReceived;
+        private Func<ITcpSession, string, Task>? _onDataReceived;
 
-        public DwsDataPlugin SetOnDataReceived(Func<SocketClient, string, Task> handler)
+        public DwsDataPlugin SetOnDataReceived(Func<ITcpSession, string, Task> handler)
         {
             _onDataReceived = handler;
             return this;
@@ -173,10 +173,10 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
 
         public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
         {
-            if (_onDataReceived != null && client is SocketClient socketClient)
+            if (_onDataReceived != null)
             {
-                var data = Encoding.UTF8.GetString(e.ByteBlock.Buffer, 0, e.ByteBlock.Len);
-                await _onDataReceived(socketClient, data);
+                var data = Encoding.UTF8.GetString(e.ByteBlock.ToArray());
+                await _onDataReceived(client, data);
             }
             await e.InvokeNext();
         }
@@ -194,7 +194,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
             _logger = logger;
         }
 
-        public LogLevel LogLevel { get; set; } = TouchSocket.Core.LogLevel.Trace;
+        public TouchSocket.Core.LogLevel LogLevel { get; set; } = TouchSocket.Core.LogLevel.Trace;
 
         public void Log(TouchSocket.Core.LogLevel logLevel, object source, string message, Exception exception)
         {
