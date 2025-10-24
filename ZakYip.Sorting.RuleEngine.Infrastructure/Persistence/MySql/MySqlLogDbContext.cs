@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 /// </summary>
 public class LogEntry
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Level { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public string? Details { get; set; }
@@ -27,6 +27,11 @@ public class MySqlLogDbContext : DbContext
 
     public DbSet<LogEntry> LogEntries { get; set; } = null!;
     public DbSet<CommunicationLog> CommunicationLogs { get; set; } = null!;
+    public DbSet<Chute> Chutes { get; set; } = null!;
+    public DbSet<SorterCommunicationLog> SorterCommunicationLogs { get; set; } = null!;
+    public DbSet<DwsCommunicationLog> DwsCommunicationLogs { get; set; } = null!;
+    public DbSet<ApiCommunicationLog> ApiCommunicationLogs { get; set; } = null!;
+    public DbSet<MatchingLog> MatchingLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +75,114 @@ public class MySqlLogDbContext : DbContext
             
             // 复合索引：CommunicationType + CreatedAt
             entity.HasIndex(e => new { e.CommunicationType, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_communication_logs_Type_CreatedAt");
+        });
+
+        modelBuilder.Entity<Chute>(entity =>
+        {
+            entity.ToTable("chutes");
+            entity.HasKey(e => e.ChuteId);
+            entity.Property(e => e.ChuteName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.ChuteCode).HasMaxLength(50);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.IsEnabled).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            
+            // 索引：ChuteName用于按名称查询
+            entity.HasIndex(e => e.ChuteName).HasDatabaseName("IX_chutes_ChuteName");
+            
+            // 索引：ChuteCode用于按编号查询
+            entity.HasIndex(e => e.ChuteCode).HasDatabaseName("IX_chutes_ChuteCode");
+        });
+
+        modelBuilder.Entity<SorterCommunicationLog>(entity =>
+        {
+            entity.ToTable("sorter_communication_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SorterAddress).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.CommunicationType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.OriginalContent).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.FormattedContent).HasMaxLength(2000);
+            entity.Property(e => e.ExtractedParcelId).HasMaxLength(100);
+            entity.Property(e => e.ExtractedCartNumber).HasMaxLength(100);
+            entity.Property(e => e.CommunicationTime).IsRequired();
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            
+            // 索引：ExtractedParcelId用于按包裹查询
+            entity.HasIndex(e => e.ExtractedParcelId).HasDatabaseName("IX_sorter_comm_logs_ParcelId");
+            
+            // 索引：CommunicationTime按降序
+            entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
+        });
+
+        modelBuilder.Entity<DwsCommunicationLog>(entity =>
+        {
+            entity.ToTable("dws_communication_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DwsAddress).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.OriginalContent).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.FormattedContent).HasMaxLength(2000);
+            entity.Property(e => e.Barcode).HasMaxLength(100);
+            entity.Property(e => e.Weight).HasPrecision(18, 2);
+            entity.Property(e => e.Volume).HasPrecision(18, 2);
+            entity.Property(e => e.CommunicationTime).IsRequired();
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            
+            // 索引：Barcode用于按条码查询
+            entity.HasIndex(e => e.Barcode).HasDatabaseName("IX_dws_comm_logs_Barcode");
+            
+            // 索引：CommunicationTime按降序
+            entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_dws_comm_logs_Time_Desc");
+        });
+
+        modelBuilder.Entity<ApiCommunicationLog>(entity =>
+        {
+            entity.ToTable("api_communication_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ParcelId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.RequestUrl).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.RequestBody).HasColumnType("text");
+            entity.Property(e => e.RequestHeaders).HasColumnType("text");
+            entity.Property(e => e.RequestTime).IsRequired();
+            entity.Property(e => e.DurationMs).IsRequired();
+            entity.Property(e => e.ResponseBody).HasColumnType("text");
+            entity.Property(e => e.ResponseStatusCode);
+            entity.Property(e => e.ResponseHeaders).HasColumnType("text");
+            entity.Property(e => e.FormattedCurl).HasColumnType("text");
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            
+            // 索引：ParcelId用于按包裹查询
+            entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_api_comm_logs_ParcelId");
+            
+            // 索引：RequestTime按降序
+            entity.HasIndex(e => e.RequestTime).IsDescending().HasDatabaseName("IX_api_comm_logs_RequestTime_Desc");
+        });
+
+        modelBuilder.Entity<MatchingLog>(entity =>
+        {
+            entity.ToTable("matching_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ParcelId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.DwsContent).HasColumnType("text");
+            entity.Property(e => e.ApiContent).HasColumnType("text");
+            entity.Property(e => e.MatchedRuleId).HasMaxLength(100);
+            entity.Property(e => e.MatchingReason).HasMaxLength(500);
+            entity.Property(e => e.ChuteId);
+            entity.Property(e => e.CartOccupancy).IsRequired();
+            entity.Property(e => e.MatchingTime).IsRequired();
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            
+            // 索引：ParcelId用于按包裹查询
+            entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_matching_logs_ParcelId");
+            
+            // 索引：MatchingTime按降序
+            entity.HasIndex(e => e.MatchingTime).IsDescending().HasDatabaseName("IX_matching_logs_Time_Desc");
+            
+            // 索引：ChuteId用于按格口查询
+            entity.HasIndex(e => e.ChuteId).HasDatabaseName("IX_matching_logs_ChuteId");
         });
     }
 }
