@@ -25,8 +25,18 @@ public class SqliteLogDbContext : DbContext
             entity.Property(e => e.Message).HasMaxLength(1000).IsRequired();
             entity.Property(e => e.Details);
             entity.Property(e => e.CreatedAt).IsRequired();
-            entity.HasIndex(e => e.Level);
-            entity.HasIndex(e => e.CreatedAt);
+            
+            // 索引：Level字段用于日志级别筛选
+            // Index: Level field for log level filtering
+            entity.HasIndex(e => e.Level).HasDatabaseName("IX_log_entries_Level");
+            
+            // 索引：CreatedAt字段按降序排序，用于时间范围查询和排序
+            // Index: CreatedAt field in descending order for time range queries and sorting
+            entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_log_entries_CreatedAt_Desc");
+            
+            // 复合索引：Level + CreatedAt，优化按日志级别和时间的查询
+            // Composite index: Level + CreatedAt for optimized queries by log level and time
+            entity.HasIndex(e => new { e.Level, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_log_entries_Level_CreatedAt");
         });
     }
 }
