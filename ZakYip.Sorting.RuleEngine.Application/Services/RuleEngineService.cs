@@ -3,6 +3,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
@@ -14,22 +16,32 @@ public class RuleEngineService : IRuleEngineService
     private readonly IRuleRepository _ruleRepository;
     private readonly ILogger<RuleEngineService> _logger;
     private readonly IMemoryCache _cache;
+    private readonly PerformanceMetricService _performanceService;
     private const string CacheKey = "SortingRules";
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
+
+    // 新增匹配器
+    private readonly BarcodeRegexMatcher _barcodeMatcher = new();
+    private readonly WeightMatcher _weightMatcher = new();
+    private readonly VolumeMatcher _volumeMatcher = new();
+    private readonly OcrMatcher _ocrMatcher = new();
+    private readonly ApiResponseMatcher _apiResponseMatcher = new();
+    private readonly LowCodeExpressionMatcher _lowCodeMatcher = new();
 
     public RuleEngineService(
         IRuleRepository ruleRepository,
         ILogger<RuleEngineService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        PerformanceMetricService performanceService)
     {
         _ruleRepository = ruleRepository;
         _logger = logger;
         _cache = cache;
+        _performanceService = performanceService;
     }
 
     /// <summary>
-    /// 评估规则并返回格口号
-    /// Evaluate rules and return chute number with caching for performance
+    /// 评估规则并返回格口号（支持多规则匹配）
     /// </summary>
     public async Task<string?> EvaluateRulesAsync(
         ParcelInfo parcelInfo,
@@ -37,44 +49,60 @@ public class RuleEngineService : IRuleEngineService
         ThirdPartyResponse? thirdPartyResponse,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            // 获取启用的规则（使用缓存提高性能）
-            // Get enabled rules with caching for performance
-            var rules = await GetCachedRulesAsync(cancellationToken);
-
-            // 按优先级顺序评估规则
-            // Evaluate rules in priority order
-            foreach (var rule in rules)
+        return await _performanceService.ExecuteWithMetricsAsync(
+            "RuleEvaluation",
+            async () =>
             {
-                if (EvaluateRule(rule, parcelInfo, dwsData, thirdPartyResponse))
+                try
                 {
-                    _logger.LogDebug(
-                        "规则匹配成功: {RuleId} - {RuleName}, 包裹: {ParcelId}, 格口: {Chute}",
-                        rule.RuleId, rule.RuleName, parcelInfo.ParcelId, rule.TargetChute);
+                    // 获取启用的规则（使用缓存提高性能）
+                    var rules = await GetCachedRulesAsync(cancellationToken);
 
-                    return rule.TargetChute;
+                    // 收集所有匹配的规则
+                    var matchedRules = new List<SortingRule>();
+
+                    // 按优先级顺序评估规则
+                    foreach (var rule in rules)
+                    {
+                        if (EvaluateRule(rule, parcelInfo, dwsData, thirdPartyResponse))
+                        {
+                            matchedRules.Add(rule);
+                            _logger.LogDebug(
+                                "规则匹配成功: {RuleId} - {RuleName}, 包裹: {ParcelId}, 格口: {Chute}",
+                                rule.RuleId, rule.RuleName, parcelInfo.ParcelId, rule.TargetChute);
+                        }
+                    }
+
+                    // 如果有匹配的规则，返回优先级最高的（第一个匹配的）
+                    if (matchedRules.Any())
+                    {
+                        var selectedRule = matchedRules.First();
+                        _logger.LogInformation(
+                            "包裹 {ParcelId} 匹配到 {Count} 条规则，选择优先级最高的规则: {RuleId}, 格口: {Chute}",
+                            parcelInfo.ParcelId, matchedRules.Count, selectedRule.RuleId, selectedRule.TargetChute);
+                        return selectedRule.TargetChute;
+                    }
+
+                    _logger.LogWarning("未找到匹配的规则，包裹: {ParcelId}", parcelInfo.ParcelId);
+                    return null;
                 }
-            }
-
-            _logger.LogWarning("未找到匹配的规则，包裹: {ParcelId}", parcelInfo.ParcelId);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "规则评估失败，包裹: {ParcelId}", parcelInfo.ParcelId);
-            throw;
-        }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "规则评估失败，包裹: {ParcelId}", parcelInfo.ParcelId);
+                    throw;
+                }
+            },
+            parcelInfo.ParcelId,
+            null,
+            cancellationToken);
     }
 
     /// <summary>
     /// 获取缓存的规则列表（使用滑动过期缓存）
-    /// Get cached rules list with sliding expiration
     /// </summary>
     private async Task<IEnumerable<SortingRule>> GetCachedRulesAsync(CancellationToken cancellationToken)
     {
         // 尝试从缓存获取
-        // Try to get from cache
         if (_cache.TryGetValue(CacheKey, out IEnumerable<SortingRule>? cachedRules) && cachedRules != null)
         {
             return cachedRules;
@@ -84,18 +112,15 @@ public class RuleEngineService : IRuleEngineService
         try
         {
             // 双重检查
-            // Double-check after acquiring lock
             if (_cache.TryGetValue(CacheKey, out cachedRules) && cachedRules != null)
             {
                 return cachedRules;
             }
 
             // 从数据库加载规则
-            // Load rules from database
             var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
 
             // 配置滑动过期缓存选项
-            // Configure sliding expiration cache options
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(5))  // 滑动过期5分钟
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(30)) // 绝对过期30分钟
@@ -106,7 +131,6 @@ public class RuleEngineService : IRuleEngineService
                 });
 
             // 存入缓存
-            // Store in cache
             _cache.Set(CacheKey, rules, cacheOptions);
 
             _logger.LogInformation("规则缓存已更新，共 {Count} 条规则", rules.Count());
@@ -121,7 +145,6 @@ public class RuleEngineService : IRuleEngineService
 
     /// <summary>
     /// 手动清除缓存（配置更新时调用）
-    /// Manually clear cache (call when configuration is updated)
     /// </summary>
     public void ClearCache()
     {
@@ -131,7 +154,6 @@ public class RuleEngineService : IRuleEngineService
 
     /// <summary>
     /// 评估单个规则
-    /// Evaluate a single rule against parcel data
     /// </summary>
     private bool EvaluateRule(
         SortingRule rule,
@@ -141,50 +163,51 @@ public class RuleEngineService : IRuleEngineService
     {
         try
         {
-            // 简单的条件表达式评估
-            // Simple condition expression evaluation
-            // 支持的格式示例:
-            // - "Weight > 1000" - 重量大于1000克
-            // - "Volume < 50000" - 体积小于50000立方厘米
-            // - "Barcode CONTAINS 'SF'" - 条码包含SF
-            // - "CartNumber == 'CART001'" - 小车号等于CART001
-
             var condition = rule.ConditionExpression.Trim();
 
-            // Weight条件
-            if (condition.StartsWith("Weight", StringComparison.OrdinalIgnoreCase) && dwsData != null)
+            // 根据匹配方法类型选择不同的评估器
+            switch (rule.MatchingMethod)
             {
-                return EvaluateNumericCondition(condition, "Weight", dwsData.Weight);
-            }
+                case MatchingMethodType.BarcodeRegex:
+                    var barcode = parcelInfo.Barcode ?? dwsData?.Barcode ?? string.Empty;
+                    return _barcodeMatcher.Evaluate(condition, barcode);
 
-            // Volume条件
-            if (condition.StartsWith("Volume", StringComparison.OrdinalIgnoreCase) && dwsData != null)
-            {
-                return EvaluateNumericCondition(condition, "Volume", dwsData.Volume);
-            }
+                case MatchingMethodType.WeightMatch:
+                    if (dwsData != null)
+                    {
+                        return _weightMatcher.Evaluate(condition, dwsData.Weight);
+                    }
+                    return false;
 
-            // Barcode条件
-            if (condition.StartsWith("Barcode", StringComparison.OrdinalIgnoreCase))
-            {
-                var barcode = parcelInfo.Barcode ?? dwsData?.Barcode ?? string.Empty;
-                return EvaluateStringCondition(condition, "Barcode", barcode);
-            }
+                case MatchingMethodType.VolumeMatch:
+                    if (dwsData != null)
+                    {
+                        return _volumeMatcher.Evaluate(condition, dwsData);
+                    }
+                    return false;
 
-            // CartNumber条件
-            if (condition.StartsWith("CartNumber", StringComparison.OrdinalIgnoreCase))
-            {
-                return EvaluateStringCondition(condition, "CartNumber", parcelInfo.CartNumber);
-            }
+                case MatchingMethodType.OcrMatch:
+                    if (thirdPartyResponse?.OcrData != null)
+                    {
+                        return _ocrMatcher.Evaluate(condition, thirdPartyResponse.OcrData);
+                    }
+                    return false;
 
-            // 默认：如果条件为"DEFAULT"或空，则匹配
-            // Default: match if condition is "DEFAULT" or empty
-            if (string.IsNullOrWhiteSpace(condition) || 
-                condition.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+                case MatchingMethodType.ApiResponseMatch:
+                    if (thirdPartyResponse?.Data != null)
+                    {
+                        return _apiResponseMatcher.Evaluate(condition, thirdPartyResponse.Data);
+                    }
+                    return false;
 
-            return false;
+                case MatchingMethodType.LowCodeExpression:
+                    return _lowCodeMatcher.Evaluate(condition, parcelInfo, dwsData, thirdPartyResponse);
+
+                case MatchingMethodType.LegacyExpression:
+                default:
+                    // 使用传统的评估方法（兼容旧版）
+                    return EvaluateLegacyExpression(condition, parcelInfo, dwsData, thirdPartyResponse);
+            }
         }
         catch (Exception ex)
         {
@@ -194,13 +217,55 @@ public class RuleEngineService : IRuleEngineService
     }
 
     /// <summary>
+    /// 评估传统表达式（兼容旧版）
+    /// </summary>
+    private bool EvaluateLegacyExpression(
+        string condition,
+        ParcelInfo parcelInfo,
+        DwsData? dwsData,
+        ThirdPartyResponse? thirdPartyResponse)
+    {
+        // Weight条件
+        if (condition.StartsWith("Weight", StringComparison.OrdinalIgnoreCase) && dwsData != null)
+        {
+            return EvaluateNumericCondition(condition, "Weight", dwsData.Weight);
+        }
+
+        // Volume条件
+        if (condition.StartsWith("Volume", StringComparison.OrdinalIgnoreCase) && dwsData != null)
+        {
+            return EvaluateNumericCondition(condition, "Volume", dwsData.Volume);
+        }
+
+        // Barcode条件
+        if (condition.StartsWith("Barcode", StringComparison.OrdinalIgnoreCase))
+        {
+            var barcode = parcelInfo.Barcode ?? dwsData?.Barcode ?? string.Empty;
+            return EvaluateStringCondition(condition, "Barcode", barcode);
+        }
+
+        // CartNumber条件
+        if (condition.StartsWith("CartNumber", StringComparison.OrdinalIgnoreCase))
+        {
+            return EvaluateStringCondition(condition, "CartNumber", parcelInfo.CartNumber);
+        }
+
+        // 默认：如果条件为"DEFAULT"或空，则匹配
+        if (string.IsNullOrWhiteSpace(condition) ||
+            condition.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 评估数值条件
-    /// Evaluate numeric conditions (greater than, less than, greater than or equal, less than or equal, equal)
     /// </summary>
     private bool EvaluateNumericCondition(string condition, string fieldName, decimal value)
     {
         // 使用正则表达式解析条件
-        // Parse condition using regex
         var pattern = $@"{fieldName}\s*([><=]+)\s*(\d+\.?\d*)";
         var match = Regex.Match(condition, pattern, RegexOptions.IgnoreCase);
 
@@ -222,7 +287,6 @@ public class RuleEngineService : IRuleEngineService
 
     /// <summary>
     /// 评估字符串条件
-    /// Evaluate string conditions (equals, contains, starts with, ends with)
     /// </summary>
     private bool EvaluateStringCondition(string condition, string fieldName, string value)
     {

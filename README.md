@@ -26,6 +26,9 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **中央包管理** - 使用Directory.Packages.props统一管理NuGet包版本
 - ✅ **完整测试** - 单元测试覆盖核心功能
 - ✅ **中文注释** - 核心代码使用中文注释
+- ✅ **性能监控** - 全面的性能指标收集和监控（v1.5.0新增）
+- ✅ **多种匹配方法** - 支持6种匹配方法：条码正则、重量、体积、OCR、API响应、低代码表达式（v1.5.0新增）
+- ✅ **多规则匹配** - 一个格口可匹配多条规则，按优先级选择（v1.5.0新增）
 
 ## 架构设计
 
@@ -451,32 +454,101 @@ DELETE /api/rule/RULE001
 
 ## 规则表达式语法
 
-规则引擎支持以下条件表达式：
+规则引擎支持多种匹配方法，每种方法针对不同的使用场景进行了优化。
 
-### 数值比较
+### 匹配方法类型
+
+#### 1. 条码正则匹配 (BarcodeRegex)
+
+支持预设选项和自定义正则表达式：
+
+```
+STARTSWITH:SF          # 条码以SF开头
+CONTAINS:ABC           # 条码包含ABC
+NOTCONTAINS:XYZ        # 条码不包含XYZ
+ALLDIGITS              # 条码全为数字
+ALPHANUMERIC           # 条码为字母+数字
+LENGTH:5-10            # 条码长度在5-10之间
+REGEX:^SF\d{6}$        # 自定义正则表达式
+```
+
+#### 2. 重量匹配 (WeightMatch)
+
+支持复杂的逻辑表达式：
+
+```
+Weight > 50                           # 重量大于50克
+Weight < 100 and Weight > 10          # 重量在10-100克之间
+Weight > 1000 or Weight < 50          # 重量大于1000克或小于50克
+```
+
+#### 3. 体积匹配 (VolumeMatch)
+
+支持长宽高和体积的复杂表达式：
+
+```
+Length > 20 and Width > 10            # 长度大于20且宽度大于10
+Height = 20.5 or Volume > 200         # 高度等于20.5或体积大于200
+Length > 500 or Width > 400           # 超大件判断
+```
+
+#### 4. OCR匹配 (OcrMatch)
+
+支持地址段码和电话后缀匹配：
+
+```
+firstSegmentCode=^64\d*$              # 第一段码以64开头（使用正则）
+recipientPhoneSuffix=1234             # 收件人电话后缀为1234
+firstSegmentCode=^64\d*$ and recipientPhoneSuffix=1234  # 组合条件
+```
+
+#### 5. API响应内容匹配 (ApiResponseMatch)
+
+支持字符串查找、正则查找和JSON匹配：
+
+```
+STRING:keyword                        # 在响应中查找关键字
+REGEX:\d{3}                          # 使用正则表达式匹配
+JSON:status=success                   # 匹配JSON字段
+JSON:data.user.name=John              # 匹配嵌套JSON字段
+```
+
+#### 6. 低代码表达式匹配 (LowCodeExpression)
+
+支持混合使用多种条件：
+
+```
+if(Weight>10) and firstSegmentCode=^64\d*$
+Weight > 50 and Length > 300
+Barcode=STARTSWITH:SF and Volume > 1000
+```
+
+#### 7. 传统表达式 (LegacyExpression - 默认)
+
+兼容旧版本的表达式语法：
 
 ```
 Weight > 1000          # 重量大于1000克
-Weight >= 500          # 重量大于等于500克
-Weight < 2000          # 重量小于2000克
-Weight == 1500         # 重量等于1500克
-Volume > 50000         # 体积大于50000立方厘米
-```
-
-### 字符串匹配
-
-```
-Barcode CONTAINS 'SF'          # 条码包含SF
-Barcode STARTSWITH '123'       # 条码以123开头
-Barcode ENDSWITH '890'         # 条码以890结尾
-CartNumber == 'CART001'        # 小车号等于CART001
-```
-
-### 默认规则
-
-```
+Barcode CONTAINS 'SF'  # 条码包含SF
+Volume < 50000         # 体积小于50000立方厘米
 DEFAULT                # 默认规则（匹配所有）
 ```
+
+### 示例规则配置
+
+```json
+{
+  "ruleId": "R001",
+  "ruleName": "顺丰快递",
+  "matchingMethod": "BarcodeRegex",
+  "conditionExpression": "STARTSWITH:SF",
+  "targetChute": "CHUTE-SF-01",
+  "priority": 1,
+  "isEnabled": true
+}
+```
+
+详细文档请查看 [MATCHING_METHODS.md](./MATCHING_METHODS.md)
 
 ## 性能优化
 
@@ -490,6 +562,19 @@ DEFAULT                # 默认规则（匹配所有）
 6. **TouchSocket优化** - TCP连接池（默认1000连接），自动重连（5秒间隔），缓冲区优化（8KB）
 7. **索引优化** - 数据库表建立适当索引
 8. **自动迁移** - EF Core自动应用数据库迁移，简化部署
+9. **性能监控** - 全面的性能指标收集和监控（v1.5.0新增）
+
+### 性能指标监控
+
+系统自动收集以下性能指标：
+
+- **规则评估时长** - 跟踪每次规则评估的执行时间
+- **API调用时长** - 监控第三方API调用性能
+- **数据库操作时长** - 跟踪数据库操作性能
+- **成功率统计** - 统计操作成功率
+- **P50/P95/P99延迟** - 提供详细的延迟分布统计
+
+性能指标自动记录到日志系统，支持查询和分析。详细文档请查看 [PERFORMANCE_METRICS.md](./PERFORMANCE_METRICS.md)
 
 ## 弹性和降级策略
 
@@ -819,9 +904,55 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 }
 ```
 
-## 最新实现功能 (v1.4.0)
+## 最新实现功能 (v1.5.0)
 
-### 已实现的新功能
+### 新增功能
+
+#### 1. 性能指标收集和监控（新增）
+- ✅ 创建性能指标实体（PerformanceMetric）
+- ✅ 创建性能指标仓储接口（IPerformanceMetricRepository）
+- ✅ 创建性能指标收集服务（PerformanceMetricService）
+- ✅ 集成到规则引擎服务，自动收集规则评估性能
+- ✅ 支持P50/P95/P99延迟统计
+- ✅ 详细文档：[PERFORMANCE_METRICS.md](./PERFORMANCE_METRICS.md)
+
+#### 2. 多种匹配方法（新增）
+- ✅ **条码正则匹配** (BarcodeRegexMatcher)
+  - 支持预设选项：STARTSWITH、CONTAINS、NOTCONTAINS、ALLDIGITS、ALPHANUMERIC、LENGTH
+  - 支持自定义正则表达式
+- ✅ **重量匹配** (WeightMatcher)
+  - 支持表达式：>、=、<、&/and、|/or
+- ✅ **体积匹配** (VolumeMatcher)
+  - 支持Length、Width、Height、Volume的复杂表达式
+- ✅ **OCR匹配** (OcrMatcher)
+  - 支持地址段码匹配（三段码、第一/二/三段码）
+  - 支持收件人/寄件人地址和电话后缀匹配
+- ✅ **API响应内容匹配** (ApiResponseMatcher)
+  - 字符串查找（正向/反向）
+  - 正则查找
+  - JSON匹配（支持嵌套字段）
+- ✅ **低代码表达式匹配** (LowCodeExpressionMatcher)
+  - 支持混合使用多种条件
+  - 灵活的自定义表达式
+- ✅ 详细文档：[MATCHING_METHODS.md](./MATCHING_METHODS.md)
+
+#### 3. 多规则匹配支持（新增）
+- ✅ 一个格口ID可以匹配多条规则
+- ✅ 系统收集所有匹配的规则
+- ✅ 按优先级返回最高优先级规则的格口号
+- ✅ 记录匹配到的规则数量
+
+#### 4. 完善的单元测试（新增）
+- ✅ BarcodeRegexMatcherTests - 条码正则匹配测试
+- ✅ WeightMatcherTests - 重量匹配测试
+- ✅ VolumeMatcherTests - 体积匹配测试
+- ✅ OcrMatcherTests - OCR匹配测试
+- ✅ ApiResponseMatcherTests - API响应匹配测试
+- ✅ 总计70个单元测试，全部通过
+
+## 历史版本功能 (v1.4.0)
+
+### 已实现的功能
 
 #### 1. SignalR Hub实现（新增）
 - ✅ 创建SortingHub用于分拣机实时通信（/hubs/sorting）
