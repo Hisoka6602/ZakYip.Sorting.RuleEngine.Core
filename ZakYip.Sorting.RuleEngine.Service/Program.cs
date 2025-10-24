@@ -154,7 +154,7 @@ public class Program
             });
         }
 
-        // 配置CORS（SignalR需要）
+        // 配置CORS（用于API和SignalR等端点）
         builder.Services.AddCors(options =>
         {
             options.AddDefaultPolicy(policy =>
