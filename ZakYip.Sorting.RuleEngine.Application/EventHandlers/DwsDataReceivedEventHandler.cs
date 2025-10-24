@@ -38,7 +38,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             $"DWS数据已接收: {notification.ParcelId}",
             $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³");
 
-        // 上传DWS数据到第三方API
+        // 主动上传DWS数据到第三方API（主动调用，不发布事件）
         try
         {
             var parcelInfo = new Domain.Entities.ParcelInfo
@@ -53,14 +53,12 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 notification.DwsData,
                 cancellationToken);
 
-            // 发布第三方响应接收事件
+            // 记录第三方API响应（主动调用的响应，直接记录，不通过事件）
             if (response != null)
             {
-                await _publisher.Publish(new ThirdPartyResponseReceivedEvent
-                {
-                    ParcelId = notification.ParcelId,
-                    Response = response
-                }, cancellationToken);
+                await _logRepository.LogInfoAsync(
+                    $"第三方API响应已接收: {notification.ParcelId}",
+                    $"成功: {response.Success}, 消息: {response.Message}");
             }
         }
         catch (Exception ex)

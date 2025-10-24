@@ -32,6 +32,7 @@ public class MySqlLogDbContext : DbContext
     public DbSet<DwsCommunicationLog> DwsCommunicationLogs { get; set; } = null!;
     public DbSet<ApiCommunicationLog> ApiCommunicationLogs { get; set; } = null!;
     public DbSet<MatchingLog> MatchingLogs { get; set; } = null!;
+    public DbSet<ApiRequestLog> ApiRequestLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -183,6 +184,39 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：ChuteId用于按格口查询
             entity.HasIndex(e => e.ChuteId).HasDatabaseName("IX_matching_logs_ChuteId");
+        });
+
+        modelBuilder.Entity<ApiRequestLog>(entity =>
+        {
+            entity.ToTable("api_request_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RequestTime).IsRequired();
+            entity.Property(e => e.RequestIp).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.RequestMethod).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.RequestPath).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.QueryString).HasMaxLength(2000);
+            entity.Property(e => e.RequestHeaders).HasColumnType("text");
+            entity.Property(e => e.RequestBody).HasColumnType("text");
+            entity.Property(e => e.ResponseTime);
+            entity.Property(e => e.ResponseStatusCode);
+            entity.Property(e => e.ResponseHeaders).HasColumnType("text");
+            entity.Property(e => e.ResponseBody).HasColumnType("text");
+            entity.Property(e => e.DurationMs).IsRequired();
+            entity.Property(e => e.UserId).HasMaxLength(100);
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+
+            // 索引：RequestTime按降序，用于时间范围查询
+            entity.HasIndex(e => e.RequestTime).IsDescending().HasDatabaseName("IX_api_request_logs_RequestTime_Desc");
+
+            // 索引：RequestPath用于按路径查询
+            entity.HasIndex(e => e.RequestPath).HasDatabaseName("IX_api_request_logs_RequestPath");
+
+            // 索引：RequestIp用于按IP查询
+            entity.HasIndex(e => e.RequestIp).HasDatabaseName("IX_api_request_logs_RequestIp");
+
+            // 复合索引：RequestMethod + RequestTime
+            entity.HasIndex(e => new { e.RequestMethod, e.RequestTime }).IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Method_Time");
         });
     }
 }

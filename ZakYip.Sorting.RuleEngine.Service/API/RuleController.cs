@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -6,7 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
 /// 规则管理API控制器
-/// Rule management API controller
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -14,13 +14,16 @@ public class RuleController : ControllerBase
 {
     private readonly IRuleRepository _ruleRepository;
     private readonly ILogger<RuleController> _logger;
+    private readonly RuleValidationService _validationService;
 
     public RuleController(
         IRuleRepository ruleRepository,
-        ILogger<RuleController> logger)
+        ILogger<RuleController> logger,
+        RuleValidationService validationService)
     {
         _ruleRepository = ruleRepository;
         _logger = logger;
+        _validationService = validationService;
     }
 
     /// <summary>
@@ -86,7 +89,6 @@ public class RuleController : ControllerBase
 
     /// <summary>
     /// 添加规则
-    /// Add a new rule
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<SortingRule>> AddRule(
@@ -95,6 +97,14 @@ public class RuleController : ControllerBase
     {
         try
         {
+            // 验证规则安全性
+            var validation = _validationService.ValidateRule(rule);
+            if (!validation.IsValid)
+            {
+                _logger.LogWarning("规则验证失败: {RuleId} - {Error}", rule.RuleId, validation.ErrorMessage);
+                return BadRequest(new { error = validation.ErrorMessage });
+            }
+
             _logger.LogInformation("添加规则: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
 
             var addedRule = await _ruleRepository.AddAsync(rule, cancellationToken);
@@ -109,7 +119,6 @@ public class RuleController : ControllerBase
 
     /// <summary>
     /// 更新规则
-    /// Update an existing rule
     /// </summary>
     [HttpPut("{ruleId}")]
     public async Task<ActionResult<SortingRule>> UpdateRule(
@@ -122,6 +131,14 @@ public class RuleController : ControllerBase
             if (ruleId != rule.RuleId)
             {
                 return BadRequest(new { message = "规则ID不匹配" });
+            }
+
+            // 验证规则安全性
+            var validation = _validationService.ValidateRule(rule);
+            if (!validation.IsValid)
+            {
+                _logger.LogWarning("规则验证失败: {RuleId} - {Error}", rule.RuleId, validation.ErrorMessage);
+                return BadRequest(new { error = validation.ErrorMessage });
             }
 
             _logger.LogInformation("更新规则: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);

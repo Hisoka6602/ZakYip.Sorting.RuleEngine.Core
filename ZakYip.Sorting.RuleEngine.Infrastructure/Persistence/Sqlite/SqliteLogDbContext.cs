@@ -20,6 +20,7 @@ public class SqliteLogDbContext : DbContext
     public DbSet<DwsCommunicationLog> DwsCommunicationLogs { get; set; } = null!;
     public DbSet<ApiCommunicationLog> ApiCommunicationLogs { get; set; } = null!;
     public DbSet<MatchingLog> MatchingLogs { get; set; } = null!;
+    public DbSet<ApiRequestLog> ApiRequestLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -152,6 +153,32 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_matching_logs_ParcelId");
             entity.HasIndex(e => e.MatchingTime).IsDescending().HasDatabaseName("IX_matching_logs_Time_Desc");
             entity.HasIndex(e => e.ChuteId).HasDatabaseName("IX_matching_logs_ChuteId");
+        });
+
+        modelBuilder.Entity<ApiRequestLog>(entity =>
+        {
+            entity.ToTable("api_request_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RequestTime).IsRequired();
+            entity.Property(e => e.RequestIp).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.RequestMethod).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.RequestPath).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.QueryString).HasMaxLength(2000);
+            entity.Property(e => e.RequestHeaders);
+            entity.Property(e => e.RequestBody);
+            entity.Property(e => e.ResponseTime);
+            entity.Property(e => e.ResponseStatusCode);
+            entity.Property(e => e.ResponseHeaders);
+            entity.Property(e => e.ResponseBody);
+            entity.Property(e => e.DurationMs).IsRequired();
+            entity.Property(e => e.UserId).HasMaxLength(100);
+            entity.Property(e => e.IsSuccess).IsRequired();
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+
+            entity.HasIndex(e => e.RequestTime).IsDescending().HasDatabaseName("IX_api_request_logs_RequestTime_Desc");
+            entity.HasIndex(e => e.RequestPath).HasDatabaseName("IX_api_request_logs_RequestPath");
+            entity.HasIndex(e => e.RequestIp).HasDatabaseName("IX_api_request_logs_RequestIp");
+            entity.HasIndex(e => new { e.RequestMethod, e.RequestTime }).IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Method_Time");
         });
     }
 }
