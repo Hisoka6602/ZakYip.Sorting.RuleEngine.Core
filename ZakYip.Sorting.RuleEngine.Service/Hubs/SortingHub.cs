@@ -69,9 +69,9 @@ public class SortingHub : Hub
     }
 
     /// <summary>
-    /// 发送格口号到分拣机
+    /// 仅服务器端调用：发送格口号到分拣机
     /// </summary>
-    public async Task SendChuteNumber(string parcelId, string chuteNumber, string cartNumber, int cartCount)
+    private async Task SendChuteNumber(string parcelId, string chuteNumber, string cartNumber, int cartCount)
     {
         try
         {
