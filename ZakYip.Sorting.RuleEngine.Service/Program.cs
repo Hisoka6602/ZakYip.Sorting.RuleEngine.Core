@@ -148,6 +148,8 @@ public class Program
         // 注册应用服务
         builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
+        builder.Services.AddScoped<RuleValidationService>();
+        builder.Services.AddScoped<IGanttChartService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.GanttChartService>();
         
         // 注册包裹活动追踪器（用于空闲检测）
         builder.Services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
@@ -168,7 +170,11 @@ public class Program
         builder.Services.AddHostedService<LogFileCleanupService>();
 
         // 添加控制器和API服务
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(options =>
+        {
+            // 添加全局模型验证过滤器
+            options.Filters.Add<ZakYip.Sorting.RuleEngine.Infrastructure.Filters.ModelValidationFilter>();
+        })
             .AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
@@ -215,6 +221,10 @@ public class Program
         InitializeDatabases(app.Services, appSettings);
 
         // 配置HTTP管道
+        
+        // 添加API请求日志中间件
+        app.UseMiddleware<ZakYip.Sorting.RuleEngine.Infrastructure.Middleware.ApiRequestLoggingMiddleware>();
+
         if (app.Environment.IsDevelopment() || appSettings.MiniApi.EnableSwagger)
         {
             app.UseSwagger();
