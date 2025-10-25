@@ -105,7 +105,7 @@ public class Program
                 // Use configured server version or default version to avoid connecting to database during service configuration
                 var serverVersion = !string.IsNullOrEmpty(appSettings.MySql.ServerVersion)
                     ? ServerVersion.Parse(appSettings.MySql.ServerVersion)
-                    : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21
+                    : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21，作为最低兼容版本。可通过配置使用更高版本（如8.0.33），但默认选择8.0.21以确保与大多数生产环境兼容。
                 
                 builder.Services.AddDbContext<MySqlLogDbContext>(options =>
                     options.UseMySql(
