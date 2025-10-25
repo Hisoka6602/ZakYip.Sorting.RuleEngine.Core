@@ -3,30 +3,42 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
 /// <summary>
-/// MySQL自动调谐服务
+/// 数据库自动调谐服务
+/// Database auto-tuning service
 /// </summary>
 public class MySqlAutoTuningService : BackgroundService
 {
     private readonly ILogger<MySqlAutoTuningService> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDatabaseDialect _dialect;
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(6);
 
     public MySqlAutoTuningService(
         ILogger<MySqlAutoTuningService> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IDatabaseDialect dialect)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _dialect = dialect;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("MySQL自动调谐服务已启动");
+        // 如果数据库不支持性能监控，跳过
+        if (!_dialect.SupportsPerformanceMonitoring)
+        {
+            _logger.LogInformation("当前数据库不支持性能监控，自动调谐服务将不运行");
+            return;
+        }
+
+        _logger.LogInformation("数据库自动调谐服务已启动");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -41,17 +53,17 @@ public class MySqlAutoTuningService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "MySQL自动调谐过程中发生错误");
+                _logger.LogError(ex, "数据库自动调谐过程中发生错误");
                 await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
             }
         }
 
-        _logger.LogInformation("MySQL自动调谐服务已停止");
+        _logger.LogInformation("数据库自动调谐服务已停止");
     }
 
     private async Task PerformAutoTuningAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("开始执行MySQL自动调谐...");
+        _logger.LogInformation("开始执行数据库自动调谐...");
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
@@ -92,7 +104,7 @@ public class MySqlAutoTuningService : BackgroundService
             // 4. 优化查询缓存
             await OptimizeQueryCacheAsync(dbContext, cancellationToken);
 
-            _logger.LogInformation("MySQL自动调谐完成");
+            _logger.LogInformation("数据库自动调谐完成");
         }
         catch (Exception ex)
         {
@@ -105,15 +117,8 @@ public class MySqlAutoTuningService : BackgroundService
         try
         {
             // 获取表统计信息
-            var tableStats = await dbContext.Database.SqlQueryRaw<TableStatistics>(@"
-                SELECT 
-                    table_name as TableName,
-                    table_rows as RowCount,
-                    ROUND((data_length + index_length) / 1024 / 1024, 2) as SizeMB
-                FROM information_schema.TABLES
-                WHERE table_schema = DATABASE()
-                ORDER BY (data_length + index_length) DESC
-            ").ToListAsync(cancellationToken);
+            var sql = _dialect.GetTableStatisticsQuery();
+            var tableStats = await dbContext.Database.SqlQueryRaw<TableStatistics>(sql).ToListAsync(cancellationToken);
 
             foreach (var stat in tableStats)
             {
@@ -141,17 +146,8 @@ public class MySqlAutoTuningService : BackgroundService
         try
         {
             // 查询未使用的索引
-            var unusedIndexes = await dbContext.Database.SqlQueryRaw<IndexUsageInfo>(@"
-                SELECT 
-                    OBJECT_SCHEMA as DatabaseName,
-                    OBJECT_NAME as TableName,
-                    INDEX_NAME as IndexName
-                FROM performance_schema.table_io_waits_summary_by_index_usage
-                WHERE INDEX_NAME IS NOT NULL
-                AND INDEX_NAME != 'PRIMARY'
-                AND COUNT_STAR = 0
-                AND OBJECT_SCHEMA = DATABASE()
-            ").ToListAsync(cancellationToken);
+            var sql = _dialect.GetIndexUsageQuery();
+            var unusedIndexes = await dbContext.Database.SqlQueryRaw<IndexUsageInfo>(sql).ToListAsync(cancellationToken);
 
             foreach (var index in unusedIndexes)
             {
@@ -176,14 +172,8 @@ public class MySqlAutoTuningService : BackgroundService
         try
         {
             // 获取连接池状态
-            var connectionStatus = await dbContext.Database.SqlQueryRaw<ConnectionStatus>(@"
-                SHOW STATUS WHERE Variable_name IN (
-                    'Threads_connected', 
-                    'Threads_running', 
-                    'Max_used_connections',
-                    'Aborted_connects'
-                )
-            ").ToListAsync(cancellationToken);
+            var sql = _dialect.GetConnectionStatusQuery();
+            var connectionStatus = await dbContext.Database.SqlQueryRaw<ConnectionStatus>(sql).ToListAsync(cancellationToken);
 
             foreach (var status in connectionStatus)
             {
@@ -216,13 +206,8 @@ public class MySqlAutoTuningService : BackgroundService
         try
         {
             // 获取慢查询统计
-            var slowQueries = await dbContext.Database.SqlQueryRaw<SlowQueryInfo>(@"
-                SELECT 
-                    COUNT(*) as Count
-                FROM information_schema.processlist
-                WHERE time > 5
-                AND command != 'Sleep'
-            ").FirstOrDefaultAsync(cancellationToken);
+            var sql = _dialect.GetSlowQueryStatisticsQuery();
+            var slowQueries = await dbContext.Database.SqlQueryRaw<SlowQueryInfo>(sql).FirstOrDefaultAsync(cancellationToken);
 
             if (slowQueries != null && slowQueries.Count > 0)
             {
