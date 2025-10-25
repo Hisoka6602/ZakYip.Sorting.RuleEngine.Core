@@ -54,7 +54,7 @@ public class PerformanceMetricSummary
     /// <summary>
     /// 平均执行时长（毫秒）
     /// </summary>
-    public double AverageDurationMs { get; set; }
+    public decimal AverageDurationMs { get; set; }
 
     /// <summary>
     /// 最小执行时长（毫秒）
@@ -69,15 +69,15 @@ public class PerformanceMetricSummary
     /// <summary>
     /// P50执行时长（毫秒）
     /// </summary>
-    public double P50DurationMs { get; set; }
+    public decimal P50DurationMs { get; set; }
 
     /// <summary>
     /// P95执行时长（毫秒）
     /// </summary>
-    public double P95DurationMs { get; set; }
+    public decimal P95DurationMs { get; set; }
 
     /// <summary>
     /// P99执行时长（毫秒）
     /// </summary>
-    public double P99DurationMs { get; set; }
+    public decimal P99DurationMs { get; set; }
 }

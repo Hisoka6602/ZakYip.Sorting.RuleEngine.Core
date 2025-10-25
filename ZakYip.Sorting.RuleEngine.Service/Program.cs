@@ -98,23 +98,27 @@ public class Program
         {
             try
             {
+                logger.Info("尝试配置MySQL数据库连接...");
                 builder.Services.AddDbContext<MySqlLogDbContext>(options =>
                     options.UseMySql(
                         appSettings.MySql.ConnectionString,
                         ServerVersion.AutoDetect(appSettings.MySql.ConnectionString)),
                     ServiceLifetime.Scoped);
                 
+                logger.Info("MySQL数据库连接配置成功，使用弹性日志仓储");
                 // 使用带熔断器的弹性日志仓储
                 builder.Services.AddScoped<ILogRepository, ResilientLogRepository>();
             }
-            catch
+            catch (Exception ex)
             {
                 // MySQL配置失败，使用SQLite仓储
+                logger.Warn(ex, "MySQL数据库连接配置失败，降级使用SQLite仓储: {Message}", ex.Message);
                 builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
             }
         }
         else
         {
+            logger.Info("MySQL未启用或连接字符串为空，使用SQLite仓储");
             // MySQL未启用，直接使用SQLite仓储
             builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
         }
@@ -151,6 +155,7 @@ public class Program
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
         builder.Services.AddScoped<RuleValidationService>();
         builder.Services.AddScoped<IGanttChartService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.GanttChartService>();
+        builder.Services.AddScoped<IChuteStatisticsService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ChuteStatisticsService>();
         
         // 注册包裹活动追踪器（用于空闲检测）
         builder.Services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
@@ -281,6 +286,7 @@ public class Program
     /// </summary>
     private static void InitializeDatabases(IServiceProvider services, AppSettings appSettings)
     {
+        var logger = LogManager.GetCurrentClassLogger();
         using var scope = services.CreateScope();
 
         // 确保MySQL或SQLite数据库创建并应用迁移
@@ -291,26 +297,48 @@ public class Program
                 var mysqlContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
                 if (mysqlContext != null)
                 {
+                    logger.Info("尝试应用MySQL数据库迁移...");
                     // 自动应用数据库迁移
                     mysqlContext.Database.Migrate();
+                    logger.Info("MySQL数据库迁移成功");
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // 如果MySQL失败，使用SQLite
-                var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
-                if (sqliteContext != null)
+                logger.Warn(ex, "MySQL数据库迁移失败，降级使用SQLite: {Message}", ex.Message);
+                try
                 {
-                    sqliteContext.Database.Migrate();
+                    var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
+                    if (sqliteContext != null)
+                    {
+                        logger.Info("应用SQLite数据库迁移...");
+                        sqliteContext.Database.Migrate();
+                        logger.Info("SQLite数据库迁移成功");
+                    }
+                }
+                catch (Exception sqliteEx)
+                {
+                    logger.Error(sqliteEx, "SQLite数据库迁移也失败: {Message}", sqliteEx.Message);
                 }
             }
         }
         else
         {
-            var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
-            if (sqliteContext != null)
+            try
             {
-                sqliteContext.Database.Migrate();
+                logger.Info("MySQL未启用，使用SQLite数据库");
+                var sqliteContext = scope.ServiceProvider.GetService<SqliteLogDbContext>();
+                if (sqliteContext != null)
+                {
+                    logger.Info("应用SQLite数据库迁移...");
+                    sqliteContext.Database.Migrate();
+                    logger.Info("SQLite数据库迁移成功");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "SQLite数据库迁移失败: {Message}", ex.Message);
             }
         }
     }
