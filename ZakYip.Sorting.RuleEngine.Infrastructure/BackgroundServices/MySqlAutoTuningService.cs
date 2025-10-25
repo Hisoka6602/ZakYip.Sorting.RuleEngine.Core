@@ -62,6 +62,22 @@ public class MySqlAutoTuningService : BackgroundService
             return;
         }
 
+        // 检查数据库连接是否可用
+        try
+        {
+            var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
+            if (!canConnect)
+            {
+                _logger.LogWarning("数据库连接不可用，跳过调谐");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "检查数据库连接时发生错误，跳过调谐");
+            return;
+        }
+
         try
         {
             // 1. 分析表统计信息

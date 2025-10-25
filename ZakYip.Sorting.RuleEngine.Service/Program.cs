@@ -299,6 +299,15 @@ public class Program
                 if (mysqlContext != null)
                 {
                     logger.Info("尝试应用MySQL数据库迁移...");
+                    
+                    // 首先检查数据库连接
+                    var canConnect = mysqlContext.Database.CanConnect();
+                    if (!canConnect)
+                    {
+                        logger.Warn("无法连接到MySQL数据库");
+                        throw new InvalidOperationException("无法连接到MySQL数据库");
+                    }
+                    
                     // 自动应用数据库迁移
                     mysqlContext.Database.Migrate();
                     logger.Info("MySQL数据库迁移成功");
