@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Integration;
 
@@ -22,8 +24,7 @@ public class DependencyInjectionTests
             new LiteDB.LiteDatabase(new System.IO.MemoryStream()));
         
         // Register repository
-        services.AddScoped<IPerformanceMetricRepository, 
-            Infrastructure.Persistence.LiteDb.LiteDbPerformanceMetricRepository>();
+        services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         
         var serviceProvider = services.BuildServiceProvider();
         
@@ -48,14 +49,11 @@ public class DependencyInjectionTests
         services.AddLogging();
         
         // Register repositories
-        services.AddScoped<IChuteRepository, 
-            Infrastructure.Persistence.LiteDb.LiteDbChuteRepository>();
-        services.AddScoped<IPerformanceMetricRepository, 
-            Infrastructure.Persistence.LiteDb.LiteDbPerformanceMetricRepository>();
+        services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
+        services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         
         // Register service
-        services.AddScoped<IChuteStatisticsService, 
-            Infrastructure.Services.ChuteStatisticsService>();
+        services.AddScoped<IChuteStatisticsService, ChuteStatisticsService>();
         
         var serviceProvider = services.BuildServiceProvider();
         
@@ -73,8 +71,7 @@ public class DependencyInjectionTests
         var services = new ServiceCollection();
         services.AddSingleton<LiteDB.ILiteDatabase>(sp => 
             new LiteDB.LiteDatabase(new System.IO.MemoryStream()));
-        services.AddScoped<IPerformanceMetricRepository, 
-            Infrastructure.Persistence.LiteDb.LiteDbPerformanceMetricRepository>();
+        services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         
         var serviceProvider = services.BuildServiceProvider();
         var repository = serviceProvider.GetRequiredService<IPerformanceMetricRepository>();
