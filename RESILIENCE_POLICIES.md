@@ -55,7 +55,7 @@ BackoffType: Exponential (指数退避)
 
 ### 2. 规则引擎服务
 
-**服务**: `RuleEngineService`  
+**服务**: `RuleEngineService`
 **建议策略**:
 - 重试策略: 对临时性失败重试2次
 - 超时策略: 单个规则评估5秒超时
@@ -242,6 +242,7 @@ var pipeline = new ResiliencePipelineBuilder()
 
 ## 参考资源
 
-- [Polly Documentation](https://www.pollydocs.org/)
+- [Polly Documentation](https://github.com/App-vNext/Polly)
+- [The Polly Project](https://www.thepollyproject.org/)
 - [Resilience Patterns](https://docs.microsoft.com/en-us/azure/architecture/patterns/category/resiliency)
 - [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
