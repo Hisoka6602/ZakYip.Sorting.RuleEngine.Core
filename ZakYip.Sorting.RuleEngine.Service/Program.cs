@@ -155,6 +155,7 @@ public class Program
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
         builder.Services.AddScoped<RuleValidationService>();
         builder.Services.AddScoped<IGanttChartService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.GanttChartService>();
+        builder.Services.AddScoped<IChuteStatisticsService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ChuteStatisticsService>();
         
         // 注册包裹活动追踪器（用于空闲检测）
         builder.Services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
