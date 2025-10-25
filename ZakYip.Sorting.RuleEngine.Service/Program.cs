@@ -99,10 +99,17 @@ public class Program
             try
             {
                 logger.Info("尝试配置MySQL数据库连接...");
+                
+                // 使用配置的服务器版本或默认版本，避免在服务配置阶段连接数据库
+                // Use configured server version or default version to avoid connecting to database during service configuration
+                var serverVersion = !string.IsNullOrEmpty(appSettings.MySql.ServerVersion)
+                    ? ServerVersion.Parse(appSettings.MySql.ServerVersion)
+                    : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21
+                
                 builder.Services.AddDbContext<MySqlLogDbContext>(options =>
                     options.UseMySql(
                         appSettings.MySql.ConnectionString,
-                        ServerVersion.AutoDetect(appSettings.MySql.ConnectionString)),
+                        serverVersion),
                     ServiceLifetime.Scoped);
                 
                 logger.Info("MySQL数据库连接配置成功，使用弹性日志仓储");
