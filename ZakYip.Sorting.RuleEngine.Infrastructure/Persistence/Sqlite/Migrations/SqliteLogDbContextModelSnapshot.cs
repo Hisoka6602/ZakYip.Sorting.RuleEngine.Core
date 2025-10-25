@@ -79,6 +79,85 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                     b.ToTable("api_communication_logs", (string)null);
                 });
 
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.ApiRequestLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("QueryString")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestBody")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestHeaders")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestIp")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestMethod")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RequestTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResponseBody")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResponseHeaders")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ResponseStatusCode")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ResponseTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestIp")
+                        .HasDatabaseName("IX_api_request_logs_RequestIp");
+
+                    b.HasIndex("RequestPath")
+                        .HasDatabaseName("IX_api_request_logs_RequestPath");
+
+                    b.HasIndex("RequestTime")
+                        .IsDescending()
+                        .HasDatabaseName("IX_api_request_logs_RequestTime_Desc");
+
+                    b.HasIndex("RequestMethod", "RequestTime")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_api_request_logs_Method_Time");
+
+                    b.ToTable("api_request_logs", (string)null);
+                });
+
             modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.Chute", b =>
                 {
                     b.Property<long>("ChuteId")
