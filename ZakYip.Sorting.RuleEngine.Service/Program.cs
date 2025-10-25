@@ -146,6 +146,7 @@ public class Program
         });
 
         // 注册应用服务
+        builder.Services.AddScoped<PerformanceMetricService>();
         builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
         builder.Services.AddScoped<RuleValidationService>();

@@ -4,6 +4,19 @@
 
 ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，用于处理分拣程序的包裹信息和DWS（尺寸重量扫描）数据，通过自定义规则分析计算格口号，实现自动化分拣。
 
+## 最新更新
+
+### v1.9.1 (2025-10-25)
+- ✅ **修复服务构造异常** - 修复依赖注入配置问题
+  - 在 DI 容器中注册 `PerformanceMetricService` 服务（Scoped 生命周期）
+  - 修复 `ParcelOrchestrationService` 服务生命周期不匹配问题
+    - 从直接注入 `IRuleEngineService` 改为注入 `IServiceProvider`
+    - 在需要时创建作用域访问 Scoped 服务，避免 Singleton 服务直接依赖 Scoped 服务
+  - 解决了服务启动时的多个 `AggregateException` 错误
+  - 所有 182 个单元测试通过
+  - 项目编译成功，无错误
+  - 服务成功启动，无依赖注入错误
+
 ## 核心特性
 
 - ✅ **Windows服务** - 作为Windows服务运行，稳定可靠

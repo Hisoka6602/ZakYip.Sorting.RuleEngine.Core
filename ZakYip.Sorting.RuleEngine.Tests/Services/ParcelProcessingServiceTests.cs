@@ -351,11 +351,7 @@ public class ParcelProcessingServiceTests
                 It.IsAny<DwsData>(),
                 It.IsAny<ThirdPartyResponse>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(async () =>
-            {
-                await Task.Delay(5); // Simulate some processing time
-                return "CHUTE-H01";
-            });
+            .ReturnsAsync("CHUTE-H01");
 
         // Act
         var response = await _service.ProcessParcelAsync(request);

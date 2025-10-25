@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -19,6 +20,7 @@ public class ParcelOrchestrationServiceTests
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly Mock<IRuleEngineService> _mockRuleEngineService;
     private readonly IMemoryCache _cache;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ParcelOrchestrationService _service;
 
     public ParcelOrchestrationServiceTests()
@@ -28,10 +30,15 @@ public class ParcelOrchestrationServiceTests
         _mockRuleEngineService = new Mock<IRuleEngineService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         
+        // 创建 ServiceProvider 用于测试
+        var services = new ServiceCollection();
+        services.AddScoped(_ => _mockRuleEngineService.Object);
+        _serviceProvider = services.BuildServiceProvider();
+        
         _service = new ParcelOrchestrationService(
             _mockLogger.Object,
             _mockPublisher.Object,
-            _mockRuleEngineService.Object,
+            _serviceProvider,
             _cache);
     }
 
