@@ -92,6 +92,22 @@ public class DataCleanupService : BackgroundService
             return;
         }
 
+        // 检查数据库连接是否可用
+        try
+        {
+            var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
+            if (!canConnect)
+            {
+                _logger.LogWarning("数据库连接不可用，跳过清理");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "检查数据库连接时发生错误，跳过清理");
+            return;
+        }
+
         var cutoffDate = DateTime.UtcNow.AddDays(-_settings.RetentionDays);
         
         try
