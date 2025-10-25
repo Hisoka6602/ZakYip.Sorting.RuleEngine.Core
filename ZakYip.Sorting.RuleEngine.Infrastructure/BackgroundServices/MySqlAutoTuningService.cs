@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -250,7 +251,9 @@ public class IndexUsageInfo
 /// </summary>
 public class ConnectionStatus
 {
+    [Column("Variable_name")]
     public string VariableName { get; set; } = string.Empty;
+    
     public string Value { get; set; } = string.Empty;
 }
 
