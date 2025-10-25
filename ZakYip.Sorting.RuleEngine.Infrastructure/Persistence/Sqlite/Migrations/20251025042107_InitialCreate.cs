@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
 {
     /// <inheritdoc />
-    public partial class AddNewLogTables : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,6 +34,33 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_api_communication_logs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "api_request_logs",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    RequestTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    RequestIp = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    RequestMethod = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
+                    RequestPath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    QueryString = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
+                    RequestHeaders = table.Column<string>(type: "TEXT", nullable: true),
+                    RequestBody = table.Column<string>(type: "TEXT", nullable: true),
+                    ResponseTime = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    ResponseStatusCode = table.Column<int>(type: "INTEGER", nullable: true),
+                    ResponseHeaders = table.Column<string>(type: "TEXT", nullable: true),
+                    ResponseBody = table.Column<string>(type: "TEXT", nullable: true),
+                    DurationMs = table.Column<long>(type: "INTEGER", nullable: false),
+                    UserId = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    IsSuccess = table.Column<bool>(type: "INTEGER", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_api_request_logs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -96,6 +123,22 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "log_entries",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Level = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    Message = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: false),
+                    Details = table.Column<string>(type: "TEXT", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_log_entries", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "matching_logs",
                 columns: table => new
                 {
@@ -150,6 +193,28 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                 descending: new bool[0]);
 
             migrationBuilder.CreateIndex(
+                name: "IX_api_request_logs_Method_Time",
+                table: "api_request_logs",
+                columns: new[] { "RequestMethod", "RequestTime" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_api_request_logs_RequestIp",
+                table: "api_request_logs",
+                column: "RequestIp");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_api_request_logs_RequestPath",
+                table: "api_request_logs",
+                column: "RequestPath");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_api_request_logs_RequestTime_Desc",
+                table: "api_request_logs",
+                column: "RequestTime",
+                descending: new bool[0]);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_chutes_ChuteCode",
                 table: "chutes",
                 column: "ChuteCode");
@@ -188,6 +253,23 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                 descending: new bool[0]);
 
             migrationBuilder.CreateIndex(
+                name: "IX_log_entries_CreatedAt_Desc",
+                table: "log_entries",
+                column: "CreatedAt",
+                descending: new bool[0]);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_log_entries_Level",
+                table: "log_entries",
+                column: "Level");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_log_entries_Level_CreatedAt",
+                table: "log_entries",
+                columns: new[] { "Level", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_matching_logs_ChuteId",
                 table: "matching_logs",
                 column: "ChuteId");
@@ -222,6 +304,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                 name: "api_communication_logs");
 
             migrationBuilder.DropTable(
+                name: "api_request_logs");
+
+            migrationBuilder.DropTable(
                 name: "chutes");
 
             migrationBuilder.DropTable(
@@ -229,6 +314,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
 
             migrationBuilder.DropTable(
                 name: "dws_communication_logs");
+
+            migrationBuilder.DropTable(
+                name: "log_entries");
 
             migrationBuilder.DropTable(
                 name: "matching_logs");
