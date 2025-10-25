@@ -6,11 +6,14 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects;
 /// 数据库表名验证工具类
 /// Database table name validation utility class
 /// </summary>
-internal static class TableNameValidator
+internal static partial class TableNameValidator
 {
     // 预编译正则表达式以提高性能
     // Pre-compiled regex for better performance
-    private static readonly Regex TableNameRegex = new(@"^[a-zA-Z_][a-zA-Z0-9_]*$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^[a-zA-Z_][a-zA-Z0-9_]*$", RegexOptions.Compiled)]
+    private static partial Regex GetTableNameRegex();
+
+    private static readonly Regex TableNameRegex = GetTableNameRegex();
 
     /// <summary>
     /// 验证表名，防止SQL注入
@@ -23,7 +26,7 @@ internal static class TableNameValidator
     {
         if (string.IsNullOrWhiteSpace(tableName))
         {
-            throw new ArgumentException("Table name cannot be null or empty", nameof(tableName));
+            throw new ArgumentException("Table name cannot be null, empty, or whitespace.", nameof(tableName));
         }
 
         // 只允许字母、数字、下划线，且必须以字母或下划线开头
