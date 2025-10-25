@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Benchmarks", "ZakYip.Sorting.RuleEngine.Benchmarks\ZakYip.Sorting.RuleEngine.Benchmarks.csproj", "{6767ED08-3CF1-449F-A9A4-80D9A0B03433}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.LoadTests", "ZakYip.Sorting.RuleEngine.LoadTests\ZakYip.Sorting.RuleEngine.LoadTests.csproj", "{31C94136-691F-49C2-B5F3-6E270156FD69}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +127,18 @@ Global
 		{6767ED08-3CF1-449F-A9A4-80D9A0B03433}.Release|x64.Build.0 = Release|Any CPU
 		{6767ED08-3CF1-449F-A9A4-80D9A0B03433}.Release|x86.ActiveCfg = Release|Any CPU
 		{6767ED08-3CF1-449F-A9A4-80D9A0B03433}.Release|x86.Build.0 = Release|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Debug|x64.Build.0 = Debug|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Debug|x86.Build.0 = Debug|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Release|x64.ActiveCfg = Release|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Release|x64.Build.0 = Release|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Release|x86.ActiveCfg = Release|Any CPU
+		{31C94136-691F-49C2-B5F3-6E270156FD69}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
