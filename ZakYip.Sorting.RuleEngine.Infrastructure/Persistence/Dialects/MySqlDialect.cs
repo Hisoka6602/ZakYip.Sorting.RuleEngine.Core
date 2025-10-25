@@ -10,7 +10,7 @@ public class MySqlDialect : IDatabaseDialect
 
     public string GetTableExistsQuery(string tableName)
     {
-        ValidateTableName(tableName);
+        TableNameValidator.Validate(tableName);
         return $@"
             SELECT COUNT(*) 
             FROM information_schema.tables 
@@ -20,7 +20,7 @@ public class MySqlDialect : IDatabaseDialect
 
     public string GetCreateShardingTableQuery(string tableName)
     {
-        ValidateTableName(tableName);
+        TableNameValidator.Validate(tableName);
         return $@"
             CREATE TABLE IF NOT EXISTS `{tableName}` (
                 `Id` char(36) NOT NULL,
@@ -91,31 +91,5 @@ public class MySqlDialect : IDatabaseDialect
         // MySQL不需要显式的VACUUM命令
         // MySQL doesn't need explicit VACUUM command
         return string.Empty;
-    }
-
-    /// <summary>
-    /// 验证表名，防止SQL注入
-    /// Validate table name to prevent SQL injection
-    /// </summary>
-    private static void ValidateTableName(string tableName)
-    {
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name cannot be null or empty", nameof(tableName));
-        }
-
-        // 只允许字母、数字、下划线，且必须以字母或下划线开头
-        // Only allow letters, numbers, underscores, and must start with letter or underscore
-        if (!System.Text.RegularExpressions.Regex.IsMatch(tableName, @"^[a-zA-Z_][a-zA-Z0-9_]*$"))
-        {
-            throw new ArgumentException($"Invalid table name: {tableName}. Table names must start with a letter or underscore and contain only letters, numbers, and underscores.", nameof(tableName));
-        }
-
-        // 限制长度（MySQL表名最大64字符）
-        // Limit length (MySQL table name max 64 characters)
-        if (tableName.Length > 64)
-        {
-            throw new ArgumentException($"Table name is too long: {tableName}. Maximum length is 64 characters.", nameof(tableName));
-        }
     }
 }
