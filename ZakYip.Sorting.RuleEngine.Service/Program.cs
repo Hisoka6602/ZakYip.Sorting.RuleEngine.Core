@@ -304,7 +304,7 @@ public class Program
                     var canConnect = mysqlContext.Database.CanConnect();
                     if (!canConnect)
                     {
-                        logger.Warn("无法连接到MySQL数据库，降级使用SQLite");
+                        logger.Warn("无法连接到MySQL数据库");
                         throw new InvalidOperationException("无法连接到MySQL数据库");
                     }
                     
