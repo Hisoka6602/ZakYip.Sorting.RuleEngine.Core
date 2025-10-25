@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Threading.Channels;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
@@ -19,7 +20,7 @@ public class ParcelOrchestrationService
 {
     private readonly ILogger<ParcelOrchestrationService> _logger;
     private readonly IPublisher _publisher;
-    private readonly IRuleEngineService _ruleEngineService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IMemoryCache _cache;
     private readonly Channel<ParcelWorkItem> _parcelChannel;
     private readonly ConcurrentDictionary<string, ParcelProcessingContext> _processingContexts;
@@ -30,13 +31,13 @@ public class ParcelOrchestrationService
     public ParcelOrchestrationService(
         ILogger<ParcelOrchestrationService> logger,
         IPublisher publisher,
-        IRuleEngineService ruleEngineService,
+        IServiceProvider serviceProvider,
         IMemoryCache cache,
         IParcelActivityTracker? activityTracker = null)
     {
         _logger = logger;
         _publisher = publisher;
-        _ruleEngineService = ruleEngineService;
+        _serviceProvider = serviceProvider;
         _cache = cache;
         _activityTracker = activityTracker;
         
@@ -162,53 +163,59 @@ public class ParcelOrchestrationService
                 break;
 
             case WorkItemType.ProcessDws:
-                if (context.DwsData == null)
                 {
-                    _logger.LogWarning("DWS数据为空: {ParcelId}", workItem.ParcelId);
-                    return;
-                }
+                    if (context.DwsData == null)
+                    {
+                        _logger.LogWarning("DWS数据为空: {ParcelId}", workItem.ParcelId);
+                        return;
+                    }
 
-                // 发布DWS数据接收事件
-                await _publisher.Publish(new DwsDataReceivedEvent
-                {
-                    ParcelId = context.ParcelId,
-                    DwsData = context.DwsData
-                }, cancellationToken);
-
-                // 等待第三方API响应后，执行规则匹配
-                await Task.Delay(100, cancellationToken); // 简单延迟，实际应该等待事件完成
-                
-                // 执行规则匹配
-                var parcelInfo = new ParcelInfo
-                {
-                    ParcelId = context.ParcelId,
-                    CartNumber = context.CartNumber,
-                    Barcode = context.Barcode ?? context.DwsData.Barcode,
-                    Status = ParcelStatus.Processing
-                };
-
-                var chuteNumber = await _ruleEngineService.EvaluateRulesAsync(
-                    parcelInfo,
-                    context.DwsData,
-                    context.ThirdPartyResponse,
-                    cancellationToken);
-
-                if (chuteNumber != null)
-                {
-                    // 发布规则匹配完成事件
-                    await _publisher.Publish(new RuleMatchCompletedEvent
+                    // 发布DWS数据接收事件
+                    await _publisher.Publish(new DwsDataReceivedEvent
                     {
                         ParcelId = context.ParcelId,
-                        ChuteNumber = chuteNumber,
-                        CartNumber = context.CartNumber,
-                        CartCount = CalculateCartCount(context.DwsData)
+                        DwsData = context.DwsData
                     }, cancellationToken);
 
-                    // 关闭处理空间（从缓存删除）
-                    _processingContexts.TryRemove(context.ParcelId, out _);
-                    _logger.LogInformation("包裹处理完成并已清理: {ParcelId}", context.ParcelId);
+                    // 等待第三方API响应后，执行规则匹配
+                    await Task.Delay(100, cancellationToken); // 简单延迟，实际应该等待事件完成
+                    
+                    // 执行规则匹配
+                    var parcelInfo = new ParcelInfo
+                    {
+                        ParcelId = context.ParcelId,
+                        CartNumber = context.CartNumber,
+                        Barcode = context.Barcode ?? context.DwsData.Barcode,
+                        Status = ParcelStatus.Processing
+                    };
+
+                    // 创建作用域以访问 Scoped 服务
+                    using var scope = _serviceProvider.CreateScope();
+                    var ruleEngineService = scope.ServiceProvider.GetRequiredService<IRuleEngineService>();
+                    
+                    var chuteNumber = await ruleEngineService.EvaluateRulesAsync(
+                        parcelInfo,
+                        context.DwsData,
+                        context.ThirdPartyResponse,
+                        cancellationToken);
+
+                    if (chuteNumber != null)
+                    {
+                        // 发布规则匹配完成事件
+                        await _publisher.Publish(new RuleMatchCompletedEvent
+                        {
+                            ParcelId = context.ParcelId,
+                            ChuteNumber = chuteNumber,
+                            CartNumber = context.CartNumber,
+                            CartCount = CalculateCartCount(context.DwsData)
+                        }, cancellationToken);
+
+                        // 关闭处理空间（从缓存删除）
+                        _processingContexts.TryRemove(context.ParcelId, out _);
+                        _logger.LogInformation("包裹处理完成并已清理: {ParcelId}", context.ParcelId);
+                    }
+                    break;
                 }
-                break;
         }
     }
 
