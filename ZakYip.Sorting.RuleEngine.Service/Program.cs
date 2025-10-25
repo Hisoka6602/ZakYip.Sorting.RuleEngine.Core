@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Web;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -99,10 +100,17 @@ public class Program
             try
             {
                 logger.Info("尝试配置MySQL数据库连接...");
+                
+                // 使用配置的服务器版本或默认版本，避免在服务配置阶段连接数据库
+                // Use configured server version or default version to avoid connecting to database during service configuration
+                var serverVersion = !string.IsNullOrEmpty(appSettings.MySql.ServerVersion)
+                    ? ServerVersion.Parse(appSettings.MySql.ServerVersion)
+                    : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21，作为最低兼容版本。可通过配置使用更高版本（如8.0.33），但默认选择8.0.21以确保与大多数生产环境兼容。
+                
                 builder.Services.AddDbContext<MySqlLogDbContext>(options =>
                     options.UseMySql(
                         appSettings.MySql.ConnectionString,
-                        ServerVersion.AutoDetect(appSettings.MySql.ConnectionString)),
+                        serverVersion),
                     ServiceLifetime.Scoped);
                 
                 logger.Info("MySQL数据库连接配置成功，使用弹性日志仓储");
