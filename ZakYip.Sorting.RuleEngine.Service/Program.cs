@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Web;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
