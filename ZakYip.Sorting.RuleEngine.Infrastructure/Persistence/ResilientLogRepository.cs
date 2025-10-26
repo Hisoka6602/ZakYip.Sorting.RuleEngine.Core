@@ -5,6 +5,7 @@ using Polly;
 using Polly.CircuitBreaker;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
@@ -20,17 +21,20 @@ public class ResilientLogRepository : ILogRepository
     private readonly SqliteLogDbContext _sqliteContext;
     private readonly DatabaseCircuitBreakerSettings _circuitBreakerSettings;
     private readonly ResiliencePipeline<bool> _circuitBreaker;
+    private readonly IDatabaseDialect _sqliteDialect;
 
     public ResilientLogRepository(
         ILogger<ResilientLogRepository> logger,
         IOptions<DatabaseCircuitBreakerSettings> circuitBreakerSettings,
         MySqlLogDbContext? mysqlContext,
-        SqliteLogDbContext sqliteContext)
+        SqliteLogDbContext sqliteContext,
+        SqliteDialect sqliteDialect)
     {
         _logger = logger;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
         _circuitBreakerSettings = circuitBreakerSettings.Value;
+        _sqliteDialect = sqliteDialect;
 
         // 配置数据库熔断器
         // Configure database circuit breaker
@@ -256,11 +260,14 @@ public class ResilientLogRepository : ILogRepository
 
             _logger.LogInformation("已清空SQLite日志数据");
 
-            // 执行SQLite数据库瘦身（VACUUM）
-            // Execute SQLite database vacuum
-            await _sqliteContext.Database.ExecuteSqlRawAsync("VACUUM;");
-
-            _logger.LogInformation("SQLite数据库瘦身完成");
+            // 执行SQLite数据库优化
+            // Execute SQLite database optimization
+            var optimizeCommand = _sqliteDialect.GetOptimizeDatabaseCommand();
+            if (!string.IsNullOrEmpty(optimizeCommand))
+            {
+                await _sqliteContext.Database.ExecuteSqlRawAsync(optimizeCommand);
+                _logger.LogInformation("SQLite数据库优化完成");
+            }
         }
         catch (Exception ex)
         {

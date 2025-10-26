@@ -81,6 +81,24 @@ public class Program
         builder.Services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
             builder.Configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
 
+        // 注册数据库方言
+        // Register database dialects
+        builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.MySqlDialect>();
+        builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.SqliteDialect>();
+        
+        // 根据配置选择主数据库方言
+        // Select primary database dialect based on configuration
+        if (appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString))
+        {
+            builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.IDatabaseDialect>(
+                sp => sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.MySqlDialect>());
+        }
+        else
+        {
+            builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.IDatabaseDialect>(
+                sp => sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.SqliteDialect>());
+        }
+
         // 配置LiteDB（用于配置存储）
         builder.Services.AddSingleton<ILiteDatabase>(sp =>
         {

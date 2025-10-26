@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
@@ -15,16 +16,19 @@ public class ShardingTableManagementService : BackgroundService
     private readonly ILogger<ShardingTableManagementService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly ShardingSettings _settings;
+    private readonly IDatabaseDialect _dialect;
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1);
 
     public ShardingTableManagementService(
         ILogger<ShardingTableManagementService> logger,
         IServiceProvider serviceProvider,
-        IOptions<ShardingSettings> settings)
+        IOptions<ShardingSettings> settings,
+        IDatabaseDialect dialect)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
+        _dialect = dialect;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -152,33 +156,14 @@ public class ShardingTableManagementService : BackgroundService
         try
         {
             // 检查表是否存在
-            var sql = $@"
-                SELECT COUNT(*) 
-                FROM information_schema.tables 
-                WHERE table_schema = DATABASE() 
-                AND table_name = '{tableName}'";
+            var sql = _dialect.GetTableExistsQuery(tableName);
 
             var exists = await context.Database.SqlQueryRaw<int>(sql).FirstOrDefaultAsync(cancellationToken);
 
             if (exists == 0)
             {
                 // 创建表（使用与ParcelLogEntry相同的结构）
-                var createTableSql = $@"
-                    CREATE TABLE IF NOT EXISTS `{tableName}` (
-                        `Id` char(36) NOT NULL,
-                        `ParcelId` varchar(100) NOT NULL,
-                        `CartNumber` varchar(100) DEFAULT NULL,
-                        `ChuteNumber` varchar(100) DEFAULT NULL,
-                        `Status` varchar(50) DEFAULT NULL,
-                        `Weight` decimal(18,2) DEFAULT NULL,
-                        `Volume` decimal(18,2) DEFAULT NULL,
-                        `ProcessingTimeMs` int NOT NULL,
-                        `CreatedAt` datetime(6) NOT NULL,
-                        PRIMARY KEY (`Id`),
-                        KEY `IX_{tableName}_CreatedAt` (`CreatedAt` DESC),
-                        KEY `IX_{tableName}_ParcelId` (`ParcelId`),
-                        KEY `IX_{tableName}_ParcelId_CreatedAt` (`ParcelId`, `CreatedAt`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                var createTableSql = _dialect.GetCreateShardingTableQuery(tableName);
 
                 await context.Database.ExecuteSqlRawAsync(createTableSql, cancellationToken);
                 _logger.LogInformation("已创建分片表: {TableName}", tableName);
