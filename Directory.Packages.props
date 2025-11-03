@@ -35,7 +35,6 @@
     <!-- Performance -->
     <PackageVersion Include="Microsoft.Extensions.ObjectPool" Version="8.0.11" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6" />
     <PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
     <!-- Resilience (Circuit Breaker) -->
     <PackageVersion Include="Polly" Version="8.5.0" />
@@ -50,6 +49,9 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.1" />
     <!-- Swagger -->
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <!-- 降级Swashbuckle.AspNetCore.Annotations以匹配Swashbuckle主版本 -->
+    <!-- Downgrade Swashbuckle.AspNetCore.Annotations to match main Swashbuckle version -->
+    <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="6.9.0" />
     <!-- SignalR -->
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.11" />
     <!-- TouchSocket for TCP -->
