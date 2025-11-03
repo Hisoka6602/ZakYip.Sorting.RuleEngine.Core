@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Reflection;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -8,13 +9,23 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("系统版本信息接口")]
 public class VersionController : ControllerBase
 {
     /// <summary>
     /// 获取系统版本信息
     /// </summary>
     /// <returns>版本信息</returns>
+    /// <response code="200">成功返回版本信息</response>
     [HttpGet]
+    [SwaggerOperation(
+        Summary = "获取系统版本信息",
+        Description = "获取系统的版本号、构建日期等详细版本信息",
+        OperationId = "GetVersion",
+        Tags = new[] { "Version" }
+    )]
+    [SwaggerResponse(200, "成功返回版本信息")]
     public IActionResult GetVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();

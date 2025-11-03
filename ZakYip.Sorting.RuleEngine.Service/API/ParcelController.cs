@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 
@@ -9,6 +10,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("包裹处理接口，提供包裹的单个和批量处理功能")]
 public class ParcelController : ControllerBase
 {
     private readonly IParcelProcessingService _parcelProcessingService;
@@ -28,9 +31,36 @@ public class ParcelController : ControllerBase
     /// <param name="request">包裹处理请求</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>处理结果</returns>
+    /// <response code="200">包裹处理成功</response>
+    /// <response code="400">包裹处理失败</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/parcel/process
+    ///     {
+    ///        "parcelId": "PKG20231101001",
+    ///        "cartNumber": "CART001",
+    ///        "barcode": "1234567890123",
+    ///        "weight": 2500.5,
+    ///        "length": 300,
+    ///        "width": 200,
+    ///        "height": 150,
+    ///        "volume": 9000
+    ///     }
+    /// </remarks>
     [HttpPost("process")]
+    [SwaggerOperation(
+        Summary = "处理单个包裹",
+        Description = "根据包裹信息和分拣规则，为包裹分配目标格口",
+        OperationId = "ProcessParcel",
+        Tags = new[] { "Parcel" }
+    )]
+    [SwaggerResponse(200, "包裹处理成功", typeof(ParcelProcessResponse))]
+    [SwaggerResponse(400, "包裹处理失败", typeof(ParcelProcessResponse))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ParcelProcessResponse))]
     public async Task<ActionResult<ParcelProcessResponse>> ProcessParcel(
-        [FromBody] ParcelProcessRequest request,
+        [FromBody, SwaggerRequestBody("包裹处理请求", Required = true)] ParcelProcessRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -66,9 +96,46 @@ public class ParcelController : ControllerBase
     /// <param name="requests">包裹处理请求列表</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>处理结果列表</returns>
+    /// <response code="200">批量处理完成（包含每个包裹的处理结果）</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/parcel/process/batch
+    ///     [
+    ///       {
+    ///         "parcelId": "PKG20231101001",
+    ///         "cartNumber": "CART001",
+    ///         "barcode": "1234567890123",
+    ///         "weight": 2500.5,
+    ///         "length": 300,
+    ///         "width": 200,
+    ///         "height": 150,
+    ///         "volume": 9000
+    ///       },
+    ///       {
+    ///         "parcelId": "PKG20231101002",
+    ///         "cartNumber": "CART002",
+    ///         "barcode": "1234567890124",
+    ///         "weight": 1800.0,
+    ///         "length": 250,
+    ///         "width": 180,
+    ///         "height": 120,
+    ///         "volume": 5400
+    ///       }
+    ///     ]
+    /// </remarks>
     [HttpPost("process/batch")]
+    [SwaggerOperation(
+        Summary = "批量处理包裹",
+        Description = "批量处理多个包裹，为每个包裹分配目标格口。返回每个包裹的处理结果。",
+        OperationId = "ProcessParcels",
+        Tags = new[] { "Parcel" }
+    )]
+    [SwaggerResponse(200, "批量处理完成", typeof(IEnumerable<ParcelProcessResponse>))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<IEnumerable<ParcelProcessResponse>>> ProcessParcels(
-        [FromBody] IEnumerable<ParcelProcessRequest> requests,
+        [FromBody, SwaggerRequestBody("包裹处理请求列表", Required = true)] IEnumerable<ParcelProcessRequest> requests,
         CancellationToken cancellationToken)
     {
         try

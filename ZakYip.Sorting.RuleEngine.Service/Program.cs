@@ -232,8 +232,19 @@ public class Program
                 {
                     Title = "分拣规则引擎 API",
                     Version = "v1",
-                    Description = "ZakYip 分拣规则引擎核心系统 API"
+                    Description = "ZakYip 分拣规则引擎核心系统 API - 提供包裹分拣、规则管理、格口管理、日志查询等功能"
                 });
+                
+                // 启用XML文档注释
+                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (File.Exists(xmlPath))
+                {
+                    c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+                }
+                
+                // 启用数据注解
+                c.EnableAnnotations();
             });
         }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -9,6 +10,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("甘特图数据查询接口，用于可视化包裹处理时间线")]
 public class GanttChartController : ControllerBase
 {
     private readonly IGanttChartService _ganttChartService;
@@ -30,11 +33,23 @@ public class GanttChartController : ControllerBase
     /// <param name="afterCount">查询目标后面N条数据（默认5条，最大100条）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>甘特图数据查询响应</returns>
+    /// <response code="200">成功返回甘特图数据</response>
+    /// <response code="404">目标包裹未找到</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("{target}")]
+    [SwaggerOperation(
+        Summary = "查询甘特图数据",
+        Description = "查询指定包裹前后N条数据的甘特图数据，用于可视化包裹处理时间线",
+        OperationId = "GetGanttChartData",
+        Tags = new[] { "GanttChart" }
+    )]
+    [SwaggerResponse(200, "成功返回甘特图数据", typeof(GanttChartQueryResponse))]
+    [SwaggerResponse(404, "目标包裹未找到", typeof(GanttChartQueryResponse))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<GanttChartQueryResponse>> GetGanttChartData(
-        string target,
-        [FromQuery] int beforeCount = 5,
-        [FromQuery] int afterCount = 5,
+        [SwaggerParameter("目标包裹ID或条码", Required = true)] string target,
+        [FromQuery, SwaggerParameter("查询目标前面N条数据(默认5,最大100)")] int beforeCount = 5,
+        [FromQuery, SwaggerParameter("查询目标后面N条数据(默认5,最大100)")] int afterCount = 5,
         CancellationToken cancellationToken = default)
     {
         try
@@ -69,9 +84,31 @@ public class GanttChartController : ControllerBase
     /// <param name="request">查询请求</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>甘特图数据查询响应</returns>
+    /// <response code="200">成功返回甘特图数据</response>
+    /// <response code="404">目标包裹未找到</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/ganttchart/query
+    ///     {
+    ///        "target": "PKG20231101001",
+    ///        "beforeCount": 10,
+    ///        "afterCount": 10
+    ///     }
+    /// </remarks>
     [HttpPost("query")]
+    [SwaggerOperation(
+        Summary = "POST方式查询甘特图数据",
+        Description = "使用POST方式查询甘特图数据，支持更复杂的查询参数",
+        OperationId = "QueryGanttChartData",
+        Tags = new[] { "GanttChart" }
+    )]
+    [SwaggerResponse(200, "成功返回甘特图数据", typeof(GanttChartQueryResponse))]
+    [SwaggerResponse(404, "目标包裹未找到", typeof(GanttChartQueryResponse))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<GanttChartQueryResponse>> QueryGanttChartData(
-        [FromBody] GanttChartQueryRequest request,
+        [FromBody, SwaggerRequestBody("查询请求", Required = true)] GanttChartQueryRequest request,
         CancellationToken cancellationToken = default)
     {
         try

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -9,6 +10,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("第三方API配置管理接口")]
 public class ThirdPartyApiConfigController : ControllerBase
 {
     private readonly IThirdPartyApiConfigRepository _repository;
@@ -26,7 +29,17 @@ public class ThirdPartyApiConfigController : ControllerBase
     /// 获取所有API配置
     /// </summary>
     /// <returns>所有API配置列表</returns>
+    /// <response code="200">成功返回API配置列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet]
+    [SwaggerOperation(
+        Summary = "获取所有API配置",
+        Description = "获取系统中所有第三方API配置",
+        OperationId = "GetAllApiConfigs",
+        Tags = new[] { "ThirdPartyApiConfig" }
+    )]
+    [SwaggerResponse(200, "成功返回API配置列表", typeof(IEnumerable<ThirdPartyApiConfig>))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<IEnumerable<ThirdPartyApiConfig>>> GetAll()
     {
         try

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 using System.Text;
@@ -13,6 +14,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("日志查询接口，提供各类日志的查询和导出功能")]
 public class LogController : ControllerBase
 {
     private readonly MySqlLogDbContext? _mysqlContext;
@@ -35,13 +38,30 @@ public class LogController : ControllerBase
     /// <summary>
     /// 获取匹配日志
     /// </summary>
+    /// <param name="startTime">开始时间（可选）</param>
+    /// <param name="endTime">结束时间（可选）</param>
+    /// <param name="parcelId">包裹ID（可选）</param>
+    /// <param name="page">页码（默认1）</param>
+    /// <param name="pageSize">每页数量（默认50）</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>匹配日志列表</returns>
+    /// <response code="200">成功返回匹配日志列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("matching")]
+    [SwaggerOperation(
+        Summary = "获取匹配日志",
+        Description = "查询包裹匹配规则的日志记录，支持时间范围和包裹ID筛选",
+        OperationId = "GetMatchingLogs",
+        Tags = new[] { "Log" }
+    )]
+    [SwaggerResponse(200, "成功返回匹配日志列表")]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<IActionResult> GetMatchingLogs(
-        [FromQuery] DateTime? startTime,
-        [FromQuery] DateTime? endTime,
-        [FromQuery] string? parcelId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+        [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
+        [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
+        [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
+        [FromQuery, SwaggerParameter("页码(默认1)")] int page = 1,
+        [FromQuery, SwaggerParameter("每页数量(默认50)")] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         try

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -9,6 +10,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("格口管理接口，提供格口的增删改查功能")]
 public class ChuteController : ControllerBase
 {
     private readonly IChuteRepository _chuteRepository;
@@ -25,7 +28,19 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 获取所有格口
     /// </summary>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>格口列表</returns>
+    /// <response code="200">成功返回格口列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet]
+    [SwaggerOperation(
+        Summary = "获取所有格口",
+        Description = "获取系统中所有格口信息，包括启用和禁用的格口",
+        OperationId = "GetAllChutes",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(200, "成功返回格口列表", typeof(IEnumerable<Chute>))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         try
@@ -43,8 +58,25 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 根据ID获取格口
     /// </summary>
+    /// <param name="id">格口ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>格口详情</returns>
+    /// <response code="200">成功返回格口详情</response>
+    /// <response code="404">格口不存在</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "根据ID获取格口",
+        Description = "根据格口ID获取特定格口的详细信息",
+        OperationId = "GetChuteById",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(200, "成功返回格口详情", typeof(Chute))]
+    [SwaggerResponse(404, "格口不存在")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<IActionResult> GetById(
+        [SwaggerParameter("格口ID", Required = true)] long id, 
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -65,8 +97,25 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 根据编号获取格口
     /// </summary>
+    /// <param name="code">格口编号</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>格口详情</returns>
+    /// <response code="200">成功返回格口详情</response>
+    /// <response code="404">格口不存在</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("code/{code}")]
-    public async Task<IActionResult> GetByCode(string code, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "根据编号获取格口",
+        Description = "根据格口编号获取特定格口的详细信息",
+        OperationId = "GetChuteByCode",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(200, "成功返回格口详情", typeof(Chute))]
+    [SwaggerResponse(404, "格口不存在")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<IActionResult> GetByCode(
+        [SwaggerParameter("格口编号", Required = true)] string code, 
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -87,7 +136,19 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 获取所有启用的格口
     /// </summary>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>启用的格口列表</returns>
+    /// <response code="200">成功返回启用的格口列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("enabled")]
+    [SwaggerOperation(
+        Summary = "获取所有启用的格口",
+        Description = "获取系统中所有已启用的格口信息",
+        OperationId = "GetEnabledChutes",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(200, "成功返回启用的格口列表", typeof(IEnumerable<Chute>))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<IActionResult> GetEnabled(CancellationToken cancellationToken)
     {
         try
@@ -105,8 +166,38 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 创建格口
     /// </summary>
+    /// <param name="chute">格口信息</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>创建的格口</returns>
+    /// <response code="201">格口创建成功</response>
+    /// <response code="400">请求参数错误</response>
+    /// <response code="409">格口编号已存在</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/chute
+    ///     {
+    ///        "chuteName": "深圳格口1号",
+    ///        "chuteCode": "SZ001",
+    ///        "description": "深圳方向专用格口",
+    ///        "isEnabled": true
+    ///     }
+    /// </remarks>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Chute chute, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "创建格口",
+        Description = "创建新的分拣格口。格口编号不能重复。",
+        OperationId = "CreateChute",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(201, "格口创建成功", typeof(Chute))]
+    [SwaggerResponse(400, "请求参数错误")]
+    [SwaggerResponse(409, "格口编号已存在")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<IActionResult> Create(
+        [FromBody, SwaggerRequestBody("格口信息", Required = true)] Chute chute, 
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -140,8 +231,42 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 更新格口
     /// </summary>
+    /// <param name="id">格口ID</param>
+    /// <param name="chute">更新的格口信息</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>更新后的格口</returns>
+    /// <response code="200">格口更新成功</response>
+    /// <response code="400">请求参数错误</response>
+    /// <response code="404">格口不存在</response>
+    /// <response code="409">格口编号与其他格口冲突</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     PUT /api/chute/1
+    ///     {
+    ///        "chuteName": "深圳格口1号(更新)",
+    ///        "chuteCode": "SZ001",
+    ///        "description": "深圳方向专用格口-已更新",
+    ///        "isEnabled": true
+    ///     }
+    /// </remarks>
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(long id, [FromBody] Chute chute, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "更新格口",
+        Description = "更新现有格口的信息。格口ID必须与路径参数一致。",
+        OperationId = "UpdateChute",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(200, "格口更新成功", typeof(Chute))]
+    [SwaggerResponse(400, "请求参数错误")]
+    [SwaggerResponse(404, "格口不存在")]
+    [SwaggerResponse(409, "格口编号与其他格口冲突")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<IActionResult> Update(
+        [SwaggerParameter("格口ID", Required = true)] long id, 
+        [FromBody, SwaggerRequestBody("更新的格口信息", Required = true)] Chute chute, 
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -183,8 +308,25 @@ public class ChuteController : ControllerBase
     /// <summary>
     /// 删除格口
     /// </summary>
+    /// <param name="id">格口ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>删除结果</returns>
+    /// <response code="204">格口删除成功</response>
+    /// <response code="404">格口不存在</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "删除格口",
+        Description = "根据格口ID删除指定的格口",
+        OperationId = "DeleteChute",
+        Tags = new[] { "Chute" }
+    )]
+    [SwaggerResponse(204, "格口删除成功")]
+    [SwaggerResponse(404, "格口不存在")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<IActionResult> Delete(
+        [SwaggerParameter("格口ID", Required = true)] long id, 
+        CancellationToken cancellationToken)
     {
         try
         {
