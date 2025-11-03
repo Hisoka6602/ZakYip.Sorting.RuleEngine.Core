@@ -20,6 +20,7 @@
     <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
     <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
     <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj" />
+    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Service\ZakYip.Sorting.RuleEngine.Service.csproj" />
   </ItemGroup>
 
   <ItemGroup>
