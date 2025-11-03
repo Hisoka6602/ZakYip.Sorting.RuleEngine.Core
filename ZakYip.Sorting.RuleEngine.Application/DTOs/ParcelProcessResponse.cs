@@ -13,7 +13,7 @@ public class ParcelProcessResponse
     /// Whether processing was successful
     /// Example: true
     /// </summary>
-    [SwaggerSchema("处理是否成功")]
+    [SwaggerSchema(Description = "处理是否成功")]
     public bool Success { get; set; }
 
     /// <summary>
@@ -21,7 +21,7 @@ public class ParcelProcessResponse
     /// Parcel identifier
     /// Example: PKG20231101001
     /// </summary>
-    [SwaggerSchema("包裹唯一标识")]
+    [SwaggerSchema(Description = "包裹唯一标识")]
     public string ParcelId { get; set; } = string.Empty;
 
     /// <summary>
@@ -29,7 +29,7 @@ public class ParcelProcessResponse
     /// Chute number
     /// Example: CHUTE01
     /// </summary>
-    [SwaggerSchema("分配的格口号")]
+    [SwaggerSchema(Description = "分配的格口号")]
     public string? ChuteNumber { get; set; }
 
     /// <summary>
@@ -37,7 +37,7 @@ public class ParcelProcessResponse
     /// Error message if processing failed
     /// Example: null
     /// </summary>
-    [SwaggerSchema("错误消息(处理失败时)")]
+    [SwaggerSchema(Description = "错误消息(处理失败时)")]
     public string? ErrorMessage { get; set; }
 
     /// <summary>
@@ -45,6 +45,6 @@ public class ParcelProcessResponse
     /// Processing time in milliseconds
     /// Example: 15
     /// </summary>
-    [SwaggerSchema("处理耗时(毫秒)")]
+    [SwaggerSchema(Description = "处理耗时(毫秒)")]
     public long ProcessingTimeMs { get; set; }
 }

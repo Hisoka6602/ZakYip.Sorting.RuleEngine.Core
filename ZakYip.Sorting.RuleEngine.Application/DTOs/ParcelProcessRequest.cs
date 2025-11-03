@@ -15,7 +15,7 @@ public class ParcelProcessRequest
     /// Example: PKG20231101001
     /// </summary>
     [Required(ErrorMessage = "包裹ID不能为空")]
-    [SwaggerSchema("包裹唯一标识")]
+    [SwaggerSchema(Description = "包裹唯一标识")]
     public string ParcelId { get; set; } = string.Empty;
 
     /// <summary>
@@ -24,7 +24,7 @@ public class ParcelProcessRequest
     /// Example: CART001
     /// </summary>
     [Required(ErrorMessage = "小车号不能为空")]
-    [SwaggerSchema("小车编号")]
+    [SwaggerSchema(Description = "小车编号")]
     public string CartNumber { get; set; } = string.Empty;
 
     /// <summary>
@@ -32,7 +32,7 @@ public class ParcelProcessRequest
     /// Barcode
     /// Example: 1234567890123
     /// </summary>
-    [SwaggerSchema("包裹条码")]
+    [SwaggerSchema(Description = "包裹条码")]
     public string? Barcode { get; set; }
 
     /// <summary>
@@ -40,8 +40,8 @@ public class ParcelProcessRequest
     /// Weight in grams
     /// Example: 2500.5
     /// </summary>
-    [Range(0, double.MaxValue, ErrorMessage = "重量必须大于0")]
-    [SwaggerSchema("包裹重量(克)")]
+    [Range(0, double.MaxValue, ErrorMessage = "重量必须大于等于0")]
+    [SwaggerSchema(Description = "包裹重量(克)")]
     public decimal? Weight { get; set; }
 
     /// <summary>
@@ -49,8 +49,8 @@ public class ParcelProcessRequest
     /// Length in millimeters
     /// Example: 300
     /// </summary>
-    [Range(0, double.MaxValue, ErrorMessage = "长度必须大于0")]
-    [SwaggerSchema("包裹长度(毫米)")]
+    [Range(0, double.MaxValue, ErrorMessage = "长度必须大于等于0")]
+    [SwaggerSchema(Description = "包裹长度(毫米)")]
     public decimal? Length { get; set; }
 
     /// <summary>
@@ -58,8 +58,8 @@ public class ParcelProcessRequest
     /// Width in millimeters
     /// Example: 200
     /// </summary>
-    [Range(0, double.MaxValue, ErrorMessage = "宽度必须大于0")]
-    [SwaggerSchema("包裹宽度(毫米)")]
+    [Range(0, double.MaxValue, ErrorMessage = "宽度必须大于等于0")]
+    [SwaggerSchema(Description = "包裹宽度(毫米)")]
     public decimal? Width { get; set; }
 
     /// <summary>
@@ -67,8 +67,8 @@ public class ParcelProcessRequest
     /// Height in millimeters
     /// Example: 150
     /// </summary>
-    [Range(0, double.MaxValue, ErrorMessage = "高度必须大于0")]
-    [SwaggerSchema("包裹高度(毫米)")]
+    [Range(0, double.MaxValue, ErrorMessage = "高度必须大于等于0")]
+    [SwaggerSchema(Description = "包裹高度(毫米)")]
     public decimal? Height { get; set; }
 
     /// <summary>
@@ -76,7 +76,7 @@ public class ParcelProcessRequest
     /// Volume in cubic centimeters
     /// Example: 9000
     /// </summary>
-    [Range(0, double.MaxValue, ErrorMessage = "体积必须大于0")]
-    [SwaggerSchema("包裹体积(立方厘米)")]
+    [Range(0, double.MaxValue, ErrorMessage = "体积必须大于等于0")]
+    [SwaggerSchema(Description = "包裹体积(立方厘米)")]
     public decimal? Volume { get; set; }
 }

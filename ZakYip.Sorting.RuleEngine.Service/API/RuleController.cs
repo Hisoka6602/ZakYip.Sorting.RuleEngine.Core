@@ -211,7 +211,7 @@ public class RuleController : ControllerBase
     ///        "description": "所有发往深圳的包裹-更新版",
     ///        "priority": 5,
     ///        "matchingMethod": 0,
-    ///        "conditionExpression": "destination == '深圳' &amp;&amp; weight > 1000",
+    ///        "conditionExpression": "destination == '深圳' AND weight > 1000",
     ///        "targetChute": "CHUTE02",
     ///        "isEnabled": true
     ///     }
