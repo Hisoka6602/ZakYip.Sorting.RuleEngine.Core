@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 using NLog;
 using NLog.Web;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
@@ -228,7 +229,7 @@ public class Program
         {
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new()
+                c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "分拣规则引擎 API",
                     Version = "v1",
