@@ -202,19 +202,16 @@ public class ParcelCreationRequest
 {
     /// <summary>
     /// 包裹ID
-    /// Example: PKG20231101001
     /// </summary>
     public required string ParcelId { get; set; }
     
     /// <summary>
     /// 小车号
-    /// Example: CART001
     /// </summary>
     public required string CartNumber { get; set; }
     
     /// <summary>
     /// 条码
-    /// Example: 1234567890123
     /// </summary>
     public string? Barcode { get; set; }
 }
