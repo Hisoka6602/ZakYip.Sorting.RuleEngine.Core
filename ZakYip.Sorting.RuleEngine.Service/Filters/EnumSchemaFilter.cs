@@ -51,14 +51,9 @@ public class EnumSchemaFilter : ISchemaFilter
             if (enumDescriptions.Any())
             {
                 var originalDescription = schema.Description ?? string.Empty;
-                if (!string.IsNullOrEmpty(originalDescription))
-                {
-                    schema.Description = $"{originalDescription}\n\n可选值:\n" + string.Join("\n", enumDescriptions);
-                }
-                else
-                {
-                    schema.Description = "可选值:\n" + string.Join("\n", enumDescriptions);
-                }
+                schema.Description = !string.IsNullOrEmpty(originalDescription)
+                    ? $"{originalDescription}\n\n可选值:\n" + string.Join("\n", enumDescriptions)
+                    : "可选值:\n" + string.Join("\n", enumDescriptions);
             }
 
             // 设置枚举类型
