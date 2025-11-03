@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -10,6 +11,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("分拣规则管理接口，提供规则的增删改查功能")]
 public class RuleController : ControllerBase
 {
     private readonly IRuleRepository _ruleRepository;
@@ -30,7 +33,19 @@ public class RuleController : ControllerBase
     /// 获取所有规则
     /// Get all rules
     /// </summary>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>规则列表</returns>
+    /// <response code="200">返回规则列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet]
+    [SwaggerOperation(
+        Summary = "获取所有规则",
+        Description = "获取系统中所有分拣规则，包括启用和禁用的规则",
+        OperationId = "GetAllRules",
+        Tags = new[] { "Rule" }
+    )]
+    [SwaggerResponse(200, "成功返回规则列表", typeof(IEnumerable<SortingRule>))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<IEnumerable<SortingRule>>> GetAllRules(CancellationToken cancellationToken)
     {
         try
@@ -49,7 +64,19 @@ public class RuleController : ControllerBase
     /// 获取启用的规则
     /// Get enabled rules
     /// </summary>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>启用的规则列表</returns>
+    /// <response code="200">返回启用的规则列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("enabled")]
+    [SwaggerOperation(
+        Summary = "获取启用的规则",
+        Description = "获取系统中所有已启用的分拣规则，按优先级排序",
+        OperationId = "GetEnabledRules",
+        Tags = new[] { "Rule" }
+    )]
+    [SwaggerResponse(200, "成功返回启用的规则列表", typeof(IEnumerable<SortingRule>))]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<IEnumerable<SortingRule>>> GetEnabledRules(CancellationToken cancellationToken)
     {
         try
@@ -68,8 +95,25 @@ public class RuleController : ControllerBase
     /// 根据ID获取规则
     /// Get rule by ID
     /// </summary>
+    /// <param name="ruleId">规则ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>规则详情</returns>
+    /// <response code="200">成功返回规则详情</response>
+    /// <response code="404">规则未找到</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("{ruleId}")]
-    public async Task<ActionResult<SortingRule>> GetRuleById(string ruleId, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "根据ID获取规则",
+        Description = "根据规则ID获取特定分拣规则的详细信息",
+        OperationId = "GetRuleById",
+        Tags = new[] { "Rule" }
+    )]
+    [SwaggerResponse(200, "成功返回规则详情", typeof(SortingRule))]
+    [SwaggerResponse(404, "规则未找到")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<ActionResult<SortingRule>> GetRuleById(
+        [SwaggerParameter("规则唯一标识", Required = true)] string ruleId, 
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -90,9 +134,39 @@ public class RuleController : ControllerBase
     /// <summary>
     /// 添加规则
     /// </summary>
+    /// <param name="rule">规则信息</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>创建的规则</returns>
+    /// <response code="201">规则创建成功</response>
+    /// <response code="400">请求参数错误或规则验证失败</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/rule
+    ///     {
+    ///        "ruleId": "RULE001",
+    ///        "ruleName": "深圳规则",
+    ///        "description": "所有发往深圳的包裹",
+    ///        "priority": 10,
+    ///        "matchingMethod": 0,
+    ///        "conditionExpression": "destination == '深圳'",
+    ///        "targetChute": "CHUTE01",
+    ///        "isEnabled": true
+    ///     }
+    /// </remarks>
     [HttpPost]
+    [SwaggerOperation(
+        Summary = "添加规则",
+        Description = "创建新的分拣规则。规则会经过安全验证，不合规的规则会被拒绝。",
+        OperationId = "AddRule",
+        Tags = new[] { "Rule" }
+    )]
+    [SwaggerResponse(201, "规则创建成功", typeof(SortingRule))]
+    [SwaggerResponse(400, "请求参数错误或规则验证失败")]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<SortingRule>> AddRule(
-        [FromBody] SortingRule rule,
+        [FromBody, SwaggerRequestBody("规则信息", Required = true)] SortingRule rule,
         CancellationToken cancellationToken)
     {
         try
@@ -120,10 +194,41 @@ public class RuleController : ControllerBase
     /// <summary>
     /// 更新规则
     /// </summary>
+    /// <param name="ruleId">规则ID</param>
+    /// <param name="rule">更新的规则信息</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>更新后的规则</returns>
+    /// <response code="200">规则更新成功</response>
+    /// <response code="400">请求参数错误或规则ID不匹配</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     PUT /api/rule/RULE001
+    ///     {
+    ///        "ruleId": "RULE001",
+    ///        "ruleName": "深圳规则(已更新)",
+    ///        "description": "所有发往深圳的包裹-更新版",
+    ///        "priority": 5,
+    ///        "matchingMethod": 0,
+    ///        "conditionExpression": "destination == '深圳' &amp;&amp; weight > 1000",
+    ///        "targetChute": "CHUTE02",
+    ///        "isEnabled": true
+    ///     }
+    /// </remarks>
     [HttpPut("{ruleId}")]
+    [SwaggerOperation(
+        Summary = "更新规则",
+        Description = "更新现有分拣规则的信息。规则ID必须与路径参数一致。",
+        OperationId = "UpdateRule",
+        Tags = new[] { "Rule" }
+    )]
+    [SwaggerResponse(200, "规则更新成功", typeof(SortingRule))]
+    [SwaggerResponse(400, "请求参数错误或规则ID不匹配")]
+    [SwaggerResponse(500, "服务器内部错误")]
     public async Task<ActionResult<SortingRule>> UpdateRule(
-        string ruleId,
-        [FromBody] SortingRule rule,
+        [SwaggerParameter("规则唯一标识", Required = true)] string ruleId,
+        [FromBody, SwaggerRequestBody("更新的规则信息", Required = true)] SortingRule rule,
         CancellationToken cancellationToken)
     {
         try
@@ -157,8 +262,25 @@ public class RuleController : ControllerBase
     /// 删除规则
     /// Delete a rule
     /// </summary>
+    /// <param name="ruleId">规则ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>删除结果</returns>
+    /// <response code="200">规则删除成功</response>
+    /// <response code="404">规则未找到</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpDelete("{ruleId}")]
-    public async Task<ActionResult> DeleteRule(string ruleId, CancellationToken cancellationToken)
+    [SwaggerOperation(
+        Summary = "删除规则",
+        Description = "根据规则ID删除指定的分拣规则",
+        OperationId = "DeleteRule",
+        Tags = new[] { "Rule" }
+    )]
+    [SwaggerResponse(200, "规则删除成功")]
+    [SwaggerResponse(404, "规则未找到")]
+    [SwaggerResponse(500, "服务器内部错误")]
+    public async Task<ActionResult> DeleteRule(
+        [SwaggerParameter("规则唯一标识", Required = true)] string ruleId, 
+        CancellationToken cancellationToken)
     {
         try
         {
