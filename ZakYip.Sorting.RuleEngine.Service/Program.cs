@@ -53,7 +53,12 @@ public class Program
             builder.Logging.ClearProviders();
             builder.Host.UseNLog();
 
-            // 配置Kestrel服务器
+            // 配置应用设置（需要提前读取以配置URL）
+            // Load application settings early to configure URLs
+            var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
+                ?? new AppSettings();
+
+            // 配置Kestrel服务器和监听URL
             builder.WebHost.UseKestrel(options =>
             {
                 options.AddServerHeader = false; // 不发送Server头以提高安全性
@@ -64,9 +69,15 @@ public class Program
                 options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
             });
 
-            // 配置应用设置
-            var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
-                ?? new AppSettings();
+            // 配置监听URL（仅当未通过命令行参数指定时才使用配置文件中的URL）
+            // Configure listen URLs (only use config file URLs if not specified via command line)
+            var urls = builder.Configuration["urls"];
+            if (string.IsNullOrEmpty(urls) && 
+                appSettings.MiniApi?.Urls != null && 
+                appSettings.MiniApi.Urls.Length > 0)
+            {
+                builder.WebHost.UseUrls(appSettings.MiniApi.Urls);
+            }
 
         // 注册配置
         builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
