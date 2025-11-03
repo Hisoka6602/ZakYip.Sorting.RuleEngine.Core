@@ -247,7 +247,7 @@ public class Program
                     Description = "ZakYip 分拣规则引擎核心系统 API - 提供包裹分拣、规则管理、格口管理、日志查询等功能"
                 });
                 
-                // 启用XML文档注释
+                // 启用XML文档注释 - Service项目
                 var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 if (File.Exists(xmlPath))
@@ -255,8 +255,27 @@ public class Program
                     c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
                 }
                 
+                // 启用XML文档注释 - Domain项目
+                var domainXmlFile = "ZakYip.Sorting.RuleEngine.Domain.xml";
+                var domainXmlPath = Path.Combine(AppContext.BaseDirectory, domainXmlFile);
+                if (File.Exists(domainXmlPath))
+                {
+                    c.IncludeXmlComments(domainXmlPath, includeControllerXmlComments: true);
+                }
+                
+                // 启用XML文档注释 - Application项目
+                var applicationXmlFile = "ZakYip.Sorting.RuleEngine.Application.xml";
+                var applicationXmlPath = Path.Combine(AppContext.BaseDirectory, applicationXmlFile);
+                if (File.Exists(applicationXmlPath))
+                {
+                    c.IncludeXmlComments(applicationXmlPath, includeControllerXmlComments: true);
+                }
+                
                 // 启用数据注解
                 c.EnableAnnotations();
+                
+                // 添加枚举架构过滤器，用于显示枚举值的描述
+                c.SchemaFilter<ZakYip.Sorting.RuleEngine.Service.Filters.EnumSchemaFilter>();
             });
         }
 
