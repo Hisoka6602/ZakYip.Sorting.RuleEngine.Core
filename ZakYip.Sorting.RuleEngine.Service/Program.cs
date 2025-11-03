@@ -54,7 +54,8 @@ public class Program
             builder.Host.UseNLog();
 
             // 配置应用设置（需要提前读取以配置URL）
-            var tempConfig = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
+            // Load application settings early to configure URLs
+            var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
                 ?? new AppSettings();
 
             // 配置Kestrel服务器和监听URL
@@ -71,14 +72,12 @@ public class Program
             // 配置监听URL（仅当未通过命令行参数指定时才使用配置文件中的URL）
             // Configure listen URLs (only use config file URLs if not specified via command line)
             var urls = builder.Configuration["urls"];
-            if (string.IsNullOrEmpty(urls) && tempConfig.MiniApi.Urls != null && tempConfig.MiniApi.Urls.Length > 0)
+            if (string.IsNullOrEmpty(urls) && 
+                appSettings.MiniApi?.Urls != null && 
+                appSettings.MiniApi.Urls.Length > 0)
             {
-                builder.WebHost.UseUrls(tempConfig.MiniApi.Urls);
+                builder.WebHost.UseUrls(appSettings.MiniApi.Urls);
             }
-
-            // 配置应用设置
-            var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>() 
-                ?? new AppSettings();
 
         // 注册配置
         builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
