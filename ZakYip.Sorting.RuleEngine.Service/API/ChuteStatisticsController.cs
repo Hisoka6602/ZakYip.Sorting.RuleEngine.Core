@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -11,6 +12,8 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[SwaggerTag("格口统计接口，提供格口利用率和分拣效率统计")]
 public class ChuteStatisticsController : ControllerBase
 {
     private readonly IChuteStatisticsService _chuteStatisticsService;
@@ -31,12 +34,21 @@ public class ChuteStatisticsController : ControllerBase
     /// <param name="query">查询参数</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>格口统计列表</returns>
+    /// <response code="200">成功返回格口统计列表</response>
+    /// <response code="400">请求参数错误</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet]
+    [SwaggerOperation(
+        Summary = "获取格口利用率统计列表",
+        Description = "获取格口利用率统计数据，支持筛选和排序",
+        OperationId = "GetChuteUtilizationStatistics",
+        Tags = new[] { "ChuteStatistics" }
+    )]
     [ProducesResponseType(typeof(List<ChuteUtilizationStatisticsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<ChuteUtilizationStatisticsDto>>> GetChuteUtilizationStatistics(
-        [FromQuery] ChuteStatisticsQueryDto query,
+        [FromQuery, SwaggerParameter("查询参数")] ChuteStatisticsQueryDto query,
         CancellationToken cancellationToken = default)
     {
         try
