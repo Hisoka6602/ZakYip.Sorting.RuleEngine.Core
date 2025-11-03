@@ -33,10 +33,9 @@ public class EnumSchemaFilter : ISchemaFilter
 
                 var memberInfo = context.Type.GetMember(enumValueName).FirstOrDefault();
                 var descriptionAttribute = memberInfo?.GetCustomAttribute<DescriptionAttribute>();
-                var xmlSummary = GetXmlDocumentation(memberInfo);
                 
-                // 优先使用Description属性，然后使用XML注释
-                var description = descriptionAttribute?.Description ?? xmlSummary ?? enumValueName;
+                // 使用Description属性作为描述，如果没有则使用枚举名称
+                var description = descriptionAttribute?.Description ?? enumValueName;
                 
                 // 获取枚举的数值
                 var enumNumericValue = Convert.ToInt32(enumValue);
@@ -66,19 +65,5 @@ public class EnumSchemaFilter : ISchemaFilter
             schema.Type = "integer";
             schema.Format = "int32";
         }
-    }
-
-    /// <summary>
-    /// 从XML文档注释中获取描述
-    /// </summary>
-    /// <param name="memberInfo">成员信息</param>
-    /// <returns>XML注释中的summary内容</returns>
-    private string? GetXmlDocumentation(MemberInfo? memberInfo)
-    {
-        if (memberInfo == null) return null;
-
-        // 这里简化处理，实际的XML文档读取由Swagger的XML注释功能处理
-        // 如果需要更详细的XML文档读取，可以在这里实现
-        return null;
     }
 }

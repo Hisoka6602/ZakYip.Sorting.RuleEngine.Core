@@ -84,6 +84,6 @@ public class EnumSchemaFilterTests
         Assert.Contains("处理中", schema.Description);
         Assert.Contains("已完成", schema.Description);
         Assert.Contains("失败", schema.Description);
-        Assert.Equal(4, schema.Enum.Count); // ParcelStatus has 4 values
+        Assert.Equal(Enum.GetValues(typeof(ParcelStatus)).Length, schema.Enum.Count);
     }
 }
