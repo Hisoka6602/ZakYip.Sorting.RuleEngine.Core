@@ -127,7 +127,7 @@ public class DataCleanupService : BackgroundService
                 var shardedContext = scope.ServiceProvider.GetService<ShardedLogDbContext>();
                 if (shardedContext != null)
                 {
-                    // 通过依赖注入获取表存在性检查器
+                    // 通过依赖注入获取表存在性检查器（仅在MySQL启用时可用）
                     var tableChecker = scope.ServiceProvider.GetService<ITableExistenceChecker>();
 
                     // 检查ParcelLogEntries表是否存在
@@ -148,6 +148,10 @@ public class DataCleanupService : BackgroundService
                         {
                             _logger.LogDebug("表 'ParcelLogEntries' 不存在，跳过包裹日志清理");
                         }
+                    }
+                    else
+                    {
+                        _logger.LogDebug("表存在性检查器不可用（可能使用SQLite），跳过表检查");
                     }
                 }
             }
