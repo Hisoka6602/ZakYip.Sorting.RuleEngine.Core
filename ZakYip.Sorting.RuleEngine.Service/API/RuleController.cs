@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -44,14 +46,15 @@ public class RuleController : ControllerBase
         OperationId = "GetAllRules",
         Tags = new[] { "Rule" }
     )]
-    [SwaggerResponse(200, "成功返回规则列表", typeof(IEnumerable<SortingRule>))]
+    [SwaggerResponse(200, "成功返回规则列表", typeof(IEnumerable<SortingRuleResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<IEnumerable<SortingRule>>> GetAllRules(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<SortingRuleResponseDto>>> GetAllRules(CancellationToken cancellationToken)
     {
         try
         {
             var rules = await _ruleRepository.GetAllAsync(cancellationToken);
-            return Ok(rules);
+            var responseDtos = rules.ToResponseDtos();
+            return Ok(responseDtos);
         }
         catch (Exception ex)
         {
@@ -75,14 +78,15 @@ public class RuleController : ControllerBase
         OperationId = "GetEnabledRules",
         Tags = new[] { "Rule" }
     )]
-    [SwaggerResponse(200, "成功返回启用的规则列表", typeof(IEnumerable<SortingRule>))]
+    [SwaggerResponse(200, "成功返回启用的规则列表", typeof(IEnumerable<SortingRuleResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<IEnumerable<SortingRule>>> GetEnabledRules(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<SortingRuleResponseDto>>> GetEnabledRules(CancellationToken cancellationToken)
     {
         try
         {
             var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
-            return Ok(rules);
+            var responseDtos = rules.ToResponseDtos();
+            return Ok(responseDtos);
         }
         catch (Exception ex)
         {
@@ -108,10 +112,10 @@ public class RuleController : ControllerBase
         OperationId = "GetRuleById",
         Tags = new[] { "Rule" }
     )]
-    [SwaggerResponse(200, "成功返回规则详情", typeof(SortingRule))]
+    [SwaggerResponse(200, "成功返回规则详情", typeof(SortingRuleResponseDto))]
     [SwaggerResponse(404, "规则未找到")]
     [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<SortingRule>> GetRuleById(
+    public async Task<ActionResult<SortingRuleResponseDto>> GetRuleById(
         [SwaggerParameter("规则唯一标识", Required = true)] string ruleId, 
         CancellationToken cancellationToken)
     {
@@ -122,7 +126,8 @@ public class RuleController : ControllerBase
             {
                 return NotFound(new { message = $"规则未找到: {ruleId}" });
             }
-            return Ok(rule);
+            var responseDto = rule.ToResponseDto();
+            return Ok(responseDto);
         }
         catch (Exception ex)
         {
