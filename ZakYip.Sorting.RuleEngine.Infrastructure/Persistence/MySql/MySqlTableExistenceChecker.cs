@@ -55,12 +55,3 @@ public class MySqlTableExistenceChecker : ITableExistenceChecker
         }
     }
 }
-
-/// <summary>
-/// 表检查结果
-/// Table check result
-/// </summary>
-public class TableCheckResult
-{
-    public int Value { get; set; }
-}

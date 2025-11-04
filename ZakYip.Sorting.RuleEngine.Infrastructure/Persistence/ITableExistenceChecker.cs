@@ -15,3 +15,12 @@ public interface ITableExistenceChecker
     /// <returns>表是否存在 / Whether the table exists</returns>
     Task<bool> TableExistsAsync(string tableName, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// 表检查结果
+/// Table check result
+/// </summary>
+public class TableCheckResult
+{
+    public int Value { get; set; }
+}
