@@ -107,7 +107,7 @@ public static class EntityToDtoMapper
         }
 
         var prefix = data.Substring(0, 3);
-        var suffix = data.Substring(data.Length - 3);
+        var suffix = data[^3..];
         var masked = new string('*', data.Length - 6);
 
         return $"{prefix}{masked}{suffix}";
