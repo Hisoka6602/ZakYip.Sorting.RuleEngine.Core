@@ -110,6 +110,9 @@ public class MemoryCacheHealthCheck : IHealthCheck
         }
         catch (Exception ex)
         {
+            // Avoid catching critical exceptions
+            if (ex is OutOfMemoryException || ex is StackOverflowException || ex is ThreadAbortException)
+                throw;
             return Task.FromResult(HealthCheckResult.Unhealthy($"内存缓存检查失败: {ex.Message}", ex));
         }
     }
