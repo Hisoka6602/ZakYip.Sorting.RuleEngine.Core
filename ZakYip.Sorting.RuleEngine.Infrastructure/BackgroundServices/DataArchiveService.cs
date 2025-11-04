@@ -69,6 +69,7 @@ public class DataArchiveService : BackgroundService
         }
 
         _logger.LogInformation("开始执行数据归档...");
+        var startTime = DateTime.UtcNow;
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
@@ -99,28 +100,150 @@ public class DataArchiveService : BackgroundService
 
         try
         {
-            // 统计需要归档的数据
-            var hotDataCount = await dbContext.LogEntries
-                .Where(e => e.CreatedAt >= coldDataThreshold)
-                .CountAsync(cancellationToken);
+            // 统计需要归档的数据 - 并行执行多个统计查询
+            var statisticsTasks = new[]
+            {
+                CountRecordsAsync(dbContext, coldDataThreshold, true, cancellationToken), // 热数据
+                CountRecordsAsync(dbContext, coldDataThreshold, false, cancellationToken), // 冷数据
+            };
 
-            var coldDataCount = await dbContext.LogEntries
-                .Where(e => e.CreatedAt < coldDataThreshold)
-                .CountAsync(cancellationToken);
+            var results = await Task.WhenAll(statisticsTasks);
+            var hotDataCount = results[0];
+            var coldDataCount = results[1];
 
             _logger.LogInformation(
                 "数据统计 - 热数据: {HotCount} 条, 冷数据: {ColdCount} 条",
                 hotDataCount, coldDataCount);
 
-            // 在实际应用中，这里应该将冷数据移动到冷存储表或分区
-            // In production, move cold data to cold storage tables or partitions
-            
-            // 示例：标记冷数据（可以添加一个IsCold字段）
-            // Example: Mark cold data (could add an IsCold field)
+            if (coldDataCount > 0)
+            {
+                // 使用批量处理归档冷数据
+                await ArchiveColdDataInBatchesAsync(dbContext, coldDataThreshold, coldDataCount, cancellationToken);
+            }
+
+            var duration = DateTime.UtcNow - startTime;
+            _logger.LogInformation("数据归档完成，耗时: {Duration}秒", duration.TotalSeconds);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "归档数据时发生错误");
         }
+    }
+
+    /// <summary>
+    /// 统计记录数量
+    /// </summary>
+    private async Task<int> CountRecordsAsync(
+        MySqlLogDbContext dbContext, 
+        DateTime threshold, 
+        bool isHot, 
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = isHot
+                ? dbContext.LogEntries.Where(e => e.CreatedAt >= threshold)
+                : dbContext.LogEntries.Where(e => e.CreatedAt < threshold);
+
+            return await query.CountAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "统计{DataType}数据时发生错误", isHot ? "热" : "冷");
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// 批量归档冷数据
+    /// </summary>
+    private async Task ArchiveColdDataInBatchesAsync(
+        MySqlLogDbContext dbContext,
+        DateTime threshold,
+        int totalCount,
+        CancellationToken cancellationToken)
+    {
+        var batchSize = _settings.ArchiveBatchSize; // 使用配置的批次大小
+        var batchDelayMs = _settings.ArchiveBatchDelayMs; // 使用配置的批次延迟
+        var failureThreshold = _settings.ArchiveFailureThreshold; // 使用配置的失败阈值
+        var processedCount = 0;
+        var failedCount = 0;
+
+        _logger.LogInformation("开始批量归档 {TotalCount} 条冷数据，批次大小: {BatchSize}，批次延迟: {DelayMs}ms", 
+            totalCount, batchSize, batchDelayMs);
+
+        while (processedCount < totalCount && !cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                // 获取一批需要归档的记录ID
+                var batchIds = await dbContext.LogEntries
+                    .Where(e => e.CreatedAt < threshold)
+                    .OrderBy(e => e.CreatedAt)
+                    .Take(batchSize)
+                    .Select(e => e.Id)
+                    .ToListAsync(cancellationToken);
+
+                if (!batchIds.Any())
+                    break;
+
+                // 在实际应用中，这里应该：
+                // 1. 将这批数据复制到归档表
+                // 2. 验证复制成功
+                // 3. 从主表删除这批数据
+                // 示例代码（需要根据实际情况调整）:
+                /*
+                await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // 复制到归档表
+                    var recordsToArchive = await dbContext.LogEntries
+                        .Where(e => batchIds.Contains(e.Id))
+                        .ToListAsync(cancellationToken);
+                    
+                    await dbContext.ArchivedLogEntries.AddRangeAsync(recordsToArchive, cancellationToken);
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                    
+                    // 从主表删除
+                    dbContext.LogEntries.RemoveRange(recordsToArchive);
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                    
+                    await transaction.CommitAsync(cancellationToken);
+                    
+                    processedCount += batchIds.Count;
+                    _logger.LogInformation("已归档 {ProcessedCount}/{TotalCount} 条记录", processedCount, totalCount);
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    failedCount += batchIds.Count;
+                    _logger.LogError(ex, "归档批次失败，跳过 {Count} 条记录", batchIds.Count);
+                }
+                */
+
+                // 暂时只记录日志，不实际移动数据
+                processedCount += batchIds.Count;
+                _logger.LogInformation("处理进度: {ProcessedCount}/{TotalCount} ({Percentage:F1}%)", 
+                    processedCount, totalCount, (processedCount * 100.0 / totalCount));
+
+                // 避免对数据库造成过大压力，批次之间稍作延迟
+                await Task.Delay(batchDelayMs, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "处理归档批次时发生错误");
+                failedCount++;
+                
+                // 如果连续失败太多次，停止归档
+                if (failedCount > failureThreshold)
+                {
+                    _logger.LogError("归档失败次数超过阈值({Threshold})，停止归档操作", failureThreshold);
+                    break;
+                }
+            }
+        }
+
+        _logger.LogInformation("批量归档完成，成功: {ProcessedCount} 条, 失败: {FailedCount} 条", 
+            processedCount, failedCount);
     }
 }

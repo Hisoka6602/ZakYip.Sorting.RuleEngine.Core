@@ -6,6 +6,7 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 using System.Text;
 using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -54,14 +55,16 @@ public class LogController : ControllerBase
         OperationId = "GetMatchingLogs",
         Tags = new[] { "Log" }
     )]
-    [SwaggerResponse(200, "成功返回匹配日志列表")]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<IActionResult> GetMatchingLogs(
-        [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
-        [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
-        [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
-        [FromQuery, SwaggerParameter("页码(默认1)")] int page = 1,
-        [FromQuery, SwaggerParameter("每页数量(默认50)")] int pageSize = 50,
+    [SwaggerResponse(200, "成功返回匹配日志列表", typeof(PagedResponse<MatchingLogResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<MatchingLogResponseDto>))]
+    [ProducesResponseType(typeof(PagedResponse<MatchingLogResponseDto>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<MatchingLogResponseDto>), 500)]
+    public async Task<ActionResult<PagedResponse<MatchingLogResponseDto>>> GetMatchingLogs(
+        [FromQuery, SwaggerParameter("开始时间，格式：yyyy-MM-dd HH:mm:ss")] DateTime? startTime,
+        [FromQuery, SwaggerParameter("结束时间，格式：yyyy-MM-dd HH:mm:ss")] DateTime? endTime,
+        [FromQuery, SwaggerParameter("包裹ID，精确匹配")] string? parcelId,
+        [FromQuery, SwaggerParameter("页码，从1开始")] int page = 1,
+        [FromQuery, SwaggerParameter("每页数量，最大100")] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         try
@@ -69,7 +72,7 @@ public class LogController : ControllerBase
             DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
             if (context == null)
             {
-                return StatusCode(500, new { error = "数据库未配置" });
+                return StatusCode(500, PagedResponse<MatchingLogResponseDto>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
             }
 
             var logs = _useMySql 
@@ -86,18 +89,33 @@ public class LogController : ControllerBase
                 logs = logs.Where(x => x.ParcelId == parcelId);
 
             var total = await logs.CountAsync(cancellationToken);
-            var data = await logs
+            var entities = await logs
                 .OrderByDescending(x => x.MatchingTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(new { total, page, pageSize, data });
+            var dtos = entities.Select(e => new MatchingLogResponseDto
+            {
+                Id = e.Id,
+                ParcelId = e.ParcelId,
+                DwsContent = e.DwsContent,
+                ApiContent = e.ApiContent,
+                MatchedRuleId = e.MatchedRuleId,
+                MatchingReason = e.MatchingReason,
+                ChuteId = e.ChuteId,
+                CartOccupancy = e.CartOccupancy,
+                MatchingTime = e.MatchingTime,
+                IsSuccess = e.IsSuccess,
+                ErrorMessage = e.ErrorMessage
+            }).ToList();
+
+            return Ok(PagedResponse<MatchingLogResponseDto>.SuccessResult(dtos, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询匹配日志失败");
-            return StatusCode(500, new { error = "查询匹配日志失败", message = ex.Message });
+            return StatusCode(500, PagedResponse<MatchingLogResponseDto>.FailureResult($"查询匹配日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 

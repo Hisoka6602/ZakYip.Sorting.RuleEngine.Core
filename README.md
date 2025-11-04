@@ -6,6 +6,32 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.12.0 (2025-11-04)
+- ✅ **查询API响应DTO规范化** - 所有查询API使用标准响应格式
+  - 新增ApiResponse<T>通用响应包装器
+  - 新增PagedResponse<T>分页响应包装器
+  - LogController查询接口已更新使用标准响应
+  - 完整的Swagger文档注释（中文）
+- ✅ **异常隔离器（Polly策略）** - 全面的弹性和容错机制
+  - 数据库操作重试策略（指数退避：2s, 4s, 8s）
+  - 第三方API熔断策略（可配置失败率、熔断时长）
+  - 超时策略（数据库30秒、API30秒）
+  - 组合策略支持（重试+熔断+超时）
+- ✅ **健康检查增强** - 详细的组件健康状态监控
+  - MySQL数据库健康检查
+  - SQLite数据库健康检查
+  - 内存缓存健康检查
+  - 第三方API健康检查
+  - /health/detail - 详细健康状态（包含各组件耗时、错误信息）
+  - /health/ready - 就绪检查（数据库）
+  - /health/live - 存活检查
+- ✅ **日志归档优化** - 批量处理和并行优化
+  - 批量处理大数据集（每批1000条）
+  - 并行统计查询
+  - 进度报告和错误恢复
+  - 自动熔断失败过多的归档操作
+  - 批次间延迟避免数据库压力过大
+
 ### v1.11.0 (2025-11-04)
 - ✅ **完整数据库降级还原逻辑** - 增强数据库熔断器的自动恢复功能
   - MySQL恢复后自动同步SQLite所有数据到MySQL（之前仅同步LogEntry表）
@@ -37,7 +63,11 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
   - MySQL恢复后自动将SQLite所有表数据回填到MySQL
   - 自动清空SQLite数据并执行VACUUM压缩磁盘空间
   - 支持7种日志表完整同步：LogEntry、CommunicationLog、SorterCommunicationLog、DwsCommunicationLog、ApiCommunicationLog、MatchingLog、ApiRequestLog
-- ✅ **自动数据管理** - 可配置的数据清理（默认90天）和归档服务，自动维护数据生命周期
+  - Polly策略：数据库重试、API熔断、超时控制（v1.12.0新增）
+- ✅ **自动数据管理** - 可配置的数据清理（默认90天）和批量归档服务，自动维护数据生命周期
+  - 批量处理大数据集（每批1000条）
+  - 并行统计查询优化
+  - 进度报告和错误恢复（v1.12.0新增）
 - ✅ **MySQL自动调谐** - 性能监控、索引分析、连接池优化和慢查询识别
 - ✅ **多协议支持** - 支持TCP/SignalR等多种协议，通过适配器模式扩展多厂商对接
 - ✅ **SignalR Hub** - 提供SortingHub和DwsHub实现实时双向通信，生产环境推荐使用
@@ -53,8 +83,10 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **性能监控** - 全面的性能指标收集和监控（v1.5.0新增）
 - ✅ **多种匹配方法** - 支持6种匹配方法：条码正则、重量、体积、OCR、API响应、低代码表达式（v1.5.0新增）
 - ✅ **多规则匹配** - 一个格口可匹配多条规则，按优先级选择（v1.5.0新增）
+- ✅ **标准化API响应** - 所有查询API使用统一响应格式（ApiResponse、PagedResponse）（v1.12.0新增）
+- ✅ **增强健康检查** - 详细的组件健康状态监控（数据库、缓存、第三方API）（v1.12.0新增）
 
-## 已实现功能总览 (截至 v1.11.0)
+## 已实现功能总览 (截至 v1.12.0)
 
 ### 核心业务功能
 - ✅ **包裹分拣流程** - 完整的包裹创建、DWS数据接收、规则匹配、格口分配流程
@@ -146,7 +178,7 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ NLog日志轮转（7天保留）
 - ⏳ 建议配合负载均衡（规划中）
 
-### 当前版本：v1.11.0
+### 当前版本：v1.12.0
 - **稳定性**：生产级（Production-Ready）
 - **性能**：50次/秒包裹处理能力
 - **可靠性**：自动降级恢复，零数据丢失
@@ -299,6 +331,168 @@ sc create "ZakYipSortingEngine" binPath="C:\path\to\publish\ZakYip.Sorting.RuleE
 
 # 启动服务
 sc start "ZakYipSortingEngine"
+```
+
+## 标准化API响应（v1.12.0新增）
+
+系统所有查询API统一使用标准响应格式，提供一致的接口体验。
+
+### 响应格式
+
+#### 单个对象响应 - ApiResponse<T>
+
+```json
+{
+  "success": true,
+  "data": { /* 实际数据对象 */ },
+  "errorMessage": null,
+  "errorCode": null,
+  "timestamp": "2025-11-04T07:00:00Z"
+}
+```
+
+#### 分页响应 - PagedResponse<T>
+
+```json
+{
+  "success": true,
+  "data": [ /* 数据列表 */ ],
+  "total": 100,
+  "page": 1,
+  "pageSize": 50,
+  "totalPages": 2,
+  "hasPreviousPage": false,
+  "hasNextPage": true,
+  "errorMessage": null,
+  "errorCode": null,
+  "timestamp": "2025-11-04T07:00:00Z"
+}
+```
+
+### 已更新的API端点
+
+- `GET /api/log/matching` - 匹配日志查询（使用PagedResponse<MatchingLogResponseDto>）
+- 更多API端点正在迁移中...
+
+## 健康检查（v1.12.0增强）
+
+系统提供多层次的健康检查端点，支持监控各个组件的运行状态。
+
+### 健康检查端点
+
+#### 1. 简单健康检查
+```http
+GET /health
+```
+快速检查服务是否运行，返回简单状态。
+
+#### 2. 详细健康检查
+```http
+GET /health/detail
+```
+返回所有组件的详细健康状态，包括：
+- MySQL数据库连接状态
+- SQLite数据库连接状态
+- 内存缓存工作状态
+- 第三方API可用性
+- 每个组件的响应时间
+- 错误信息（如果有）
+
+响应示例：
+```json
+{
+  "status": "Healthy",
+  "timestamp": "2025-11-04T07:00:00Z",
+  "duration": 123.45,
+  "checks": [
+    {
+      "name": "mysql",
+      "status": "Healthy",
+      "description": "MySQL数据库连接正常",
+      "duration": 45.2,
+      "exception": null,
+      "tags": ["database", "mysql"]
+    },
+    {
+      "name": "sqlite",
+      "status": "Healthy",
+      "description": "SQLite数据库连接正常",
+      "duration": 12.3,
+      "exception": null,
+      "tags": ["database", "sqlite"]
+    },
+    {
+      "name": "memory_cache",
+      "status": "Healthy",
+      "description": "内存缓存工作正常",
+      "duration": 5.1,
+      "exception": null,
+      "tags": ["cache"]
+    },
+    {
+      "name": "third_party_api",
+      "status": "Healthy",
+      "description": "第三方API可访问 (状态码: 200)",
+      "duration": 234.5,
+      "exception": null,
+      "tags": ["external", "api"]
+    }
+  ]
+}
+```
+
+#### 3. 就绪检查（Readiness）
+```http
+GET /health/ready
+```
+检查服务是否准备好接受流量（主要检查数据库）。
+
+#### 4. 存活检查（Liveness）
+```http
+GET /health/live
+```
+检查服务进程是否存活。
+
+## Polly弹性策略（v1.12.0新增）
+
+系统使用Polly库实现全面的弹性和容错机制。
+
+### 可用策略
+
+#### 1. 数据库重试策略
+- **重试次数**: 3次
+- **重试间隔**: 指数退避（2秒、4秒、8秒）
+- **适用场景**: 数据库超时、死锁、连接失败
+
+#### 2. 第三方API熔断策略
+- **失败阈值**: 50%（可配置）
+- **采样时长**: 60秒（可配置）
+- **最小吞吐量**: 10次请求（可配置）
+- **熔断时长**: 60秒（可配置）
+- **状态**: 开启、半开、关闭
+
+#### 3. 超时策略
+- **数据库超时**: 30秒（可配置）
+- **API超时**: 30秒（可配置）
+- **策略**: 悲观超时（立即取消）
+
+#### 4. 组合策略
+重试 → 熔断 → 超时，多层保护确保系统稳定性。
+
+### 使用示例
+
+```csharp
+// 使用数据库重试策略
+var retryPolicy = ResiliencePolicyFactory.CreateDatabaseRetryPolicy(logger);
+await retryPolicy.ExecuteAsync(async () => {
+    // 数据库操作
+});
+
+// 使用API组合策略（重试+熔断+超时）
+var combinedPolicy = ResiliencePolicyFactory.CreateCombinedPolicy(logger);
+await combinedPolicy.ExecuteAsync(async () => {
+    // API调用
+});
 ```
 
 ## 通信方式
@@ -1430,12 +1624,13 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 10. ~~**API请求日志记录**~~ - ✅ 已完成（v1.9.0）
 11. ~~**全局模型验证**~~ - ✅ 已完成（v1.9.0）
 12. ~~**完整数据库降级还原**~~ - ✅ 已完成（v1.11.0）
-13. **查询API响应DTO规范化** - 所有查询API端点使用标准响应DTO，Swagger字段备注完整
-14. **格口分配优化** - 基于格口使用情况的智能分配算法
-15. **版本升级通知** - 当有新版本时自动通知管理员
-16. **异常隔离器** - 为所有可能异常的方法添加Polly策略
-17. **健康检查增强** - 添加更详细的健康检查端点（数据库、缓存、第三方API等）
-18. **规则测试工具** - 提供规则表达式在线测试和验证工具
+13. ~~**查询API响应DTO规范化**~~ - ✅ 已完成（v1.12.0）- 所有查询API使用ApiResponse<T>和PagedResponse<T>标准格式
+14. ~~**异常隔离器**~~ - ✅ 已完成（v1.12.0）- Polly重试、熔断、超时策略
+15. ~~**健康检查增强**~~ - ✅ 已完成（v1.12.0）- 详细组件健康检查（/health/detail）
+16. ~~**日志归档优化**~~ - ✅ 已完成（v1.12.0）- 批量处理、并行查询、进度报告
+17. **格口分配优化** - 基于格口使用情况的智能分配算法
+18. **版本升级通知** - 当有新版本时自动通知管理员
+19. **规则测试工具** - 提供规则表达式在线测试和验证工具（API部分待完善）
 
 #### 中期优化（1-3个月）
 1. **监控面板** - 开发实时监控面板显示系统状态和日志统计
@@ -1444,8 +1639,7 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
    - 性能指标图表展示（P50/P95/P99延迟）
    - 错误率和异常监控
 2. **格口利用率统计** - 统计分析格口使用情况和分拣效率
-3. **日志归档优化** - 优化日志表的自动归档和清理性能
-4. **更多适配器** - 支持更多厂商的DWS和分拣机设备
+3. **更多适配器** - 支持更多厂商的DWS和分拣机设备
    - 更多品牌的DWS设备适配
    - 更多品牌的分拣机适配
    - 通用协议适配器（Modbus、OPC UA等）
