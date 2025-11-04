@@ -373,6 +373,13 @@ public class Program
             
             logger.Info("检查MySQL服务器连接: {Server}:{Port}", builder.Server, builder.Port);
             
+            // 验证数据库名称，防止SQL注入
+            if (!System.Text.RegularExpressions.Regex.IsMatch(databaseName, @"^[a-zA-Z0-9_]+$"))
+            {
+                logger.Error("数据库名称包含非法字符: {Database}", databaseName);
+                return false;
+            }
+            
             // 连接到MySQL服务器（不指定数据库）
             using (var connection = new MySqlConnector.MySqlConnection(serverConnectionString))
             {
@@ -382,13 +389,16 @@ public class Program
                 // 检查数据库是否存在
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{databaseName}'";
+                    command.CommandText = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = @databaseName";
+                    command.Parameters.AddWithValue("@databaseName", databaseName);
                     var result = command.ExecuteScalar();
                     
                     if (result == null)
                     {
                         // 数据库不存在，创建它
                         logger.Info("数据库 '{Database}' 不存在，正在创建...", databaseName);
+                        // 对于CREATE DATABASE语句，数据库名不能参数化，但我们已经验证了名称的合法性
+                        command.Parameters.Clear();
                         command.CommandText = $"CREATE DATABASE `{databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
                         command.ExecuteNonQuery();
                         logger.Info("成功创建数据库 '{Database}'", databaseName);
