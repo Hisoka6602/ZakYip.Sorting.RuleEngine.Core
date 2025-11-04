@@ -238,7 +238,7 @@ public class HighConcurrencyStressTests
         }
 
         // 记录结果到文件
-        var reportPath = Path.Combine("./load-test-reports", "performance_summary.txt");
+        var reportPath = Path.Combine("load-test-reports", "performance_summary.txt");
         Directory.CreateDirectory("./load-test-reports");
         File.AppendAllText(reportPath, $"\n\n=== 测试时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===\n");
         File.AppendAllText(reportPath, $"场景: 1000包裹/秒极限测试\n");
