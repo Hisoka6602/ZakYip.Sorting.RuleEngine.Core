@@ -93,6 +93,9 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：ChuteCode用于按编号查询
             entity.HasIndex(e => e.ChuteCode).HasDatabaseName("IX_chutes_ChuteCode");
+            
+            // 索引：CreatedAt字段按降序排序，用于时间范围查询和排序
+            entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_chutes_CreatedAt_Desc");
         });
 
         modelBuilder.Entity<SorterCommunicationLog>(entity =>

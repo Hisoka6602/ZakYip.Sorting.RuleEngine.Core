@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -15,13 +16,16 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 public class ChuteController : ControllerBase
 {
     private readonly IChuteRepository _chuteRepository;
+    private readonly ConfigurationCacheService _cacheService;
     private readonly ILogger<ChuteController> _logger;
 
     public ChuteController(
         IChuteRepository chuteRepository,
+        ConfigurationCacheService cacheService,
         ILogger<ChuteController> logger)
     {
         _chuteRepository = chuteRepository;
+        _cacheService = cacheService;
         _logger = logger;
     }
 
@@ -35,7 +39,7 @@ public class ChuteController : ControllerBase
     [HttpGet]
     [SwaggerOperation(
         Summary = "获取所有格口",
-        Description = "获取系统中所有格口信息，包括启用和禁用的格口",
+        Description = "获取系统中所有格口信息，包括启用和禁用的格口（从缓存读取）",
         OperationId = "GetAllChutes",
         Tags = new[] { "Chute" }
     )]
@@ -45,7 +49,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var chutes = await _chuteRepository.GetAllAsync(cancellationToken);
+            var chutes = await _cacheService.GetAllChutesAsync(_chuteRepository, cancellationToken);
             return Ok(chutes);
         }
         catch (Exception ex)
@@ -143,7 +147,7 @@ public class ChuteController : ControllerBase
     [HttpGet("enabled")]
     [SwaggerOperation(
         Summary = "获取所有启用的格口",
-        Description = "获取系统中所有已启用的格口信息",
+        Description = "获取系统中所有已启用的格口信息（从缓存读取）",
         OperationId = "GetEnabledChutes",
         Tags = new[] { "Chute" }
     )]
@@ -153,7 +157,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var chutes = await _chuteRepository.GetEnabledChutesAsync(cancellationToken);
+            var chutes = await _cacheService.GetEnabledChutesAsync(_chuteRepository, cancellationToken);
             return Ok(chutes);
         }
         catch (Exception ex)
@@ -218,6 +222,9 @@ public class ChuteController : ControllerBase
 
             var created = await _chuteRepository.AddAsync(chute, cancellationToken);
             _logger.LogInformation("创建格口成功，ID: {ChuteId}，名称: {ChuteName}", created.ChuteId, created.ChuteName);
+            
+            // 重新加载缓存
+            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
             
             return CreatedAtAction(nameof(GetById), new { id = created.ChuteId }, created);
         }
@@ -295,6 +302,9 @@ public class ChuteController : ControllerBase
             chute.CreatedAt = existing.CreatedAt; // 保留创建时间
             await _chuteRepository.UpdateAsync(chute, cancellationToken);
             
+            // 重新加载缓存
+            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            
             _logger.LogInformation("更新格口成功，ID: {ChuteId}", id);
             return Ok(chute);
         }
@@ -338,6 +348,9 @@ public class ChuteController : ControllerBase
 
             await _chuteRepository.DeleteAsync(id, cancellationToken);
             _logger.LogInformation("删除格口成功，ID: {ChuteId}", id);
+            
+            // 重新加载缓存
+            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
             
             return NoContent();
         }
