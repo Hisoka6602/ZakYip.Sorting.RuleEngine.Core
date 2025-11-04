@@ -52,4 +52,22 @@ public class ShardingSettings
     /// Interval to check idle status (seconds)
     /// </summary>
     public int IdleCheckIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// 归档批次大小（每批处理的记录数，默认1000）
+    /// Archive batch size (records per batch, default 1000)
+    /// </summary>
+    public int ArchiveBatchSize { get; set; } = 1000;
+
+    /// <summary>
+    /// 归档批次间延迟（毫秒，默认100）
+    /// Delay between archive batches (milliseconds, default 100)
+    /// </summary>
+    public int ArchiveBatchDelayMs { get; set; } = 100;
+
+    /// <summary>
+    /// 归档失败阈值（连续失败次数，默认10）
+    /// Archive failure threshold (consecutive failures, default 10)
+    /// </summary>
+    public int ArchiveFailureThreshold { get; set; } = 10;
 }

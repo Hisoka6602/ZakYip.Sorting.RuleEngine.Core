@@ -163,11 +163,14 @@ public class DataArchiveService : BackgroundService
         int totalCount,
         CancellationToken cancellationToken)
     {
-        const int batchSize = 1000; // 每批处理1000条记录
+        var batchSize = _settings.ArchiveBatchSize; // 使用配置的批次大小
+        var batchDelayMs = _settings.ArchiveBatchDelayMs; // 使用配置的批次延迟
+        var failureThreshold = _settings.ArchiveFailureThreshold; // 使用配置的失败阈值
         var processedCount = 0;
         var failedCount = 0;
 
-        _logger.LogInformation("开始批量归档 {TotalCount} 条冷数据，批次大小: {BatchSize}", totalCount, batchSize);
+        _logger.LogInformation("开始批量归档 {TotalCount} 条冷数据，批次大小: {BatchSize}，批次延迟: {DelayMs}ms", 
+            totalCount, batchSize, batchDelayMs);
 
         while (processedCount < totalCount && !cancellationToken.IsCancellationRequested)
         {
@@ -224,7 +227,7 @@ public class DataArchiveService : BackgroundService
                     processedCount, totalCount, (processedCount * 100.0 / totalCount));
 
                 // 避免对数据库造成过大压力，批次之间稍作延迟
-                await Task.Delay(100, cancellationToken);
+                await Task.Delay(batchDelayMs, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -232,9 +235,9 @@ public class DataArchiveService : BackgroundService
                 failedCount++;
                 
                 // 如果连续失败太多次，停止归档
-                if (failedCount > 10)
+                if (failedCount > failureThreshold)
                 {
-                    _logger.LogError("归档失败次数过多，停止归档操作");
+                    _logger.LogError("归档失败次数超过阈值({Threshold})，停止归档操作", failureThreshold);
                     break;
                 }
             }

@@ -145,11 +145,14 @@ public class ThirdPartyApiHealthCheck : IHealthCheck
             }
 
             var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            
+            // 使用CancellationToken设置超时，而不是直接设置HttpClient.Timeout
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
 
             // 尝试发送HEAD请求检查可用性
             using var request = new HttpRequestMessage(HttpMethod.Head, apiBaseUrl);
-            using var response = await client.SendAsync(request, cancellationToken);
+            using var response = await client.SendAsync(request, cts.Token);
 
             if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
             {
@@ -158,7 +161,7 @@ public class ThirdPartyApiHealthCheck : IHealthCheck
             
             return HealthCheckResult.Degraded($"第三方API返回非成功状态码: {(int)response.StatusCode}");
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             return HealthCheckResult.Degraded("第三方API请求超时");
         }
