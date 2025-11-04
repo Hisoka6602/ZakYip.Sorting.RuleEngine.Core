@@ -110,7 +110,7 @@ public class ShardingTableManagementService : BackgroundService
     private List<string> GetTableNamesToCheck()
     {
         var tables = new List<string>();
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         switch (_settings.Strategy.ToLower())
         {

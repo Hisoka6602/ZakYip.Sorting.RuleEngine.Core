@@ -18,7 +18,7 @@ public class ParcelActivityTracker : IParcelActivityTracker
     {
         lock (_lock)
         {
-            _lastActivityTime = DateTime.UtcNow;
+            _lastActivityTime = DateTime.Now;
         }
     }
 
@@ -35,7 +35,7 @@ public class ParcelActivityTracker : IParcelActivityTracker
                 return int.MaxValue; // 从未创建过包裹
             }
 
-            return (int)(DateTime.UtcNow - _lastActivityTime.Value).TotalMinutes;
+            return (int)(DateTime.Now - _lastActivityTime.Value).TotalMinutes;
         }
     }
 

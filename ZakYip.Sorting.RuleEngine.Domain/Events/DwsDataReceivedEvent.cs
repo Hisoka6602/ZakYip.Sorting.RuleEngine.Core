@@ -21,5 +21,5 @@ public record class DwsDataReceivedEvent : INotification
     /// <summary>
     /// 接收时间
     /// </summary>
-    public DateTime ReceivedAt { get; init; } = DateTime.UtcNow;
+    public DateTime ReceivedAt { get; init; } = DateTime.Now;
 }

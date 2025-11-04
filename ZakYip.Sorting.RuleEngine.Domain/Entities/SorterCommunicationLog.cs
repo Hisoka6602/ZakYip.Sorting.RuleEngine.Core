@@ -43,7 +43,7 @@ public class SorterCommunicationLog
     /// <summary>
     /// 通信时间
     /// </summary>
-    public DateTime CommunicationTime { get; set; } = DateTime.UtcNow;
+    public DateTime CommunicationTime { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 是否成功

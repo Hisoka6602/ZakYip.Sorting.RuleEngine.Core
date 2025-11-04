@@ -48,5 +48,5 @@ public class OcrData
     /// <summary>
     /// OCR识别时间
     /// </summary>
-    public DateTime RecognizedAt { get; set; } = DateTime.UtcNow;
+    public DateTime RecognizedAt { get; set; } = DateTime.Now;
 }

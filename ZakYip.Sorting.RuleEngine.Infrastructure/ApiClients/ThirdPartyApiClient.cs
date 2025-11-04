@@ -55,7 +55,7 @@ public class ThirdPartyApiClient : IThirdPartyApiClient
                 width = dwsData.Width,
                 height = dwsData.Height,
                 volume = dwsData.Volume,
-                timestamp = DateTime.UtcNow
+                timestamp = DateTime.Now
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);
@@ -127,7 +127,7 @@ public class ThirdPartyApiClient : IThirdPartyApiClient
             var requestData = new
             {
                 barcode,
-                scanTime = DateTime.UtcNow
+                scanTime = DateTime.Now
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);
@@ -199,7 +199,7 @@ public class ThirdPartyApiClient : IThirdPartyApiClient
             var requestData = new
             {
                 barcode,
-                requestTime = DateTime.UtcNow
+                requestTime = DateTime.Now
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);

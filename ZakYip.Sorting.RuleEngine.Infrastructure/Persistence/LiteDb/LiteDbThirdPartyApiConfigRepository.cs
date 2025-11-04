@@ -57,7 +57,7 @@ public class LiteDbThirdPartyApiConfigRepository : IThirdPartyApiConfigRepositor
     public Task<bool> UpdateAsync(ThirdPartyApiConfig config)
     {
         var collection = _database.GetCollection<ThirdPartyApiConfig>(CollectionName);
-        var updatedConfig = config with { UpdatedAt = DateTime.UtcNow };
+        var updatedConfig = config with { UpdatedAt = DateTime.Now };
         var result = collection.Update(updatedConfig);
         return Task.FromResult(result);
     }

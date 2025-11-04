@@ -272,7 +272,7 @@ public class LogController : ControllerBase
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-            return File(bytes, "text/csv", $"matching_logs_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+            return File(bytes, "text/csv", $"matching_logs_{DateTime.Now:yyyyMMddHHmmss}.csv");
         }
         catch (Exception ex)
         {

@@ -53,7 +53,7 @@ public class ApiRequestLoggingMiddleware
 
         var requestLog = new ApiRequestLog
         {
-            RequestTime = DateTime.UtcNow,
+            RequestTime = DateTime.Now,
             RequestIp = GetClientIp(context),
             RequestMethod = context.Request.Method,
             RequestPath = context.Request.Path,
@@ -108,7 +108,7 @@ public class ApiRequestLoggingMiddleware
         {
             stopwatch.Stop();
             requestLog.DurationMs = stopwatch.ElapsedMilliseconds;
-            requestLog.ResponseTime = DateTime.UtcNow;
+            requestLog.ResponseTime = DateTime.Now;
             requestLog.ResponseStatusCode = context.Response.StatusCode;
 
             // 步骤6：记录响应头

@@ -199,7 +199,7 @@ public class ResilientLogRepository : ILogRepository
             Level = level,
             Message = message,
             Details = details,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         await _mysqlContext.LogEntries.AddAsync(logEntry, cancellationToken);
@@ -223,7 +223,7 @@ public class ResilientLogRepository : ILogRepository
                 Level = level,
                 Message = message,
                 Details = details,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             await _sqliteContext.LogEntries.AddAsync(logEntry, cancellationToken);

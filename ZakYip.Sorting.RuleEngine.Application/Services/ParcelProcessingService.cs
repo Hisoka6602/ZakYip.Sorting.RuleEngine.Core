@@ -104,7 +104,7 @@ public class ParcelProcessingService : IParcelProcessingService
             // Update parcel status
             parcelInfo.ChuteNumber = chuteNumber;
             parcelInfo.Status = chuteNumber != null ? ParcelStatus.Completed : ParcelStatus.Failed;
-            parcelInfo.UpdatedAt = DateTime.UtcNow;
+            parcelInfo.UpdatedAt = DateTime.Now;
 
             stopwatch.Stop();
 

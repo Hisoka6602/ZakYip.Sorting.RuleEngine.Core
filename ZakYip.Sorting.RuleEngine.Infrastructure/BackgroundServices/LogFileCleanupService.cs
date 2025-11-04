@@ -72,7 +72,7 @@ public class LogFileCleanupService : BackgroundService
 
         _logger.LogInformation("开始清理日志文件，目录: {Directory}，保留天数: {Days}天", logDirectory, retentionDays);
 
-        var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
+        var cutoffDate = DateTime.Now.AddDays(-retentionDays);
         var logFiles = Directory.GetFiles(logDirectory, "*.log", SearchOption.AllDirectories);
         var deletedCount = 0;
         var totalSize = 0L;

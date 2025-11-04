@@ -527,7 +527,7 @@ public class Program
         app.MapGet("/health", () => Results.Ok(new
         {
             status = "healthy",
-            timestamp = DateTime.UtcNow
+            timestamp = DateTime.Now
         }))
         .WithName("HealthCheck")
         .WithOpenApi();

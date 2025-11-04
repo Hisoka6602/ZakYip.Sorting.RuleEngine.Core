@@ -71,7 +71,7 @@ public class LiteDbRuleRepository : IRuleRepository
         try
         {
             var collection = GetCollection();
-            rule.CreatedAt = DateTime.UtcNow;
+            rule.CreatedAt = DateTime.Now;
             collection.Insert(rule);
             
             _logger.LogInformation("添加规则成功: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
@@ -89,7 +89,7 @@ public class LiteDbRuleRepository : IRuleRepository
         try
         {
             var collection = GetCollection();
-            rule.UpdatedAt = DateTime.UtcNow;
+            rule.UpdatedAt = DateTime.Now;
             collection.Update(rule);
             
             _logger.LogInformation("更新规则成功: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);

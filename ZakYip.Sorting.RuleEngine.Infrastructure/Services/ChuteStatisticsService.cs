@@ -63,8 +63,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
                     chutes = chutes.Where(c => c != null && c.IsEnabled).ToArray();
                 }
 
-                var startTime = query.StartTime ?? DateTime.UtcNow.AddDays(-7);
-                var endTime = query.EndTime ?? DateTime.UtcNow;
+                var startTime = query.StartTime ?? DateTime.Now.AddDays(-7);
+                var endTime = query.EndTime ?? DateTime.Now;
 
                 var statistics = new List<ChuteUtilizationStatisticsDto>();
 
@@ -116,8 +116,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
                     return null;
                 }
 
-                var start = startTime ?? DateTime.UtcNow.AddDays(-7);
-                var end = endTime ?? DateTime.UtcNow;
+                var start = startTime ?? DateTime.Now.AddDays(-7);
+                var end = endTime ?? DateTime.Now;
 
                 return await CalculateChuteStatisticsAsync(chute, start, end, ct);
             }
@@ -138,8 +138,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
         {
             try
             {
-                var start = startTime ?? DateTime.UtcNow.AddDays(-7);
-                var end = endTime ?? DateTime.UtcNow;
+                var start = startTime ?? DateTime.Now.AddDays(-7);
+                var end = endTime ?? DateTime.Now;
 
                 _logger.LogInformation("查询分拣效率概览: {StartTime} - {EndTime}", start, end);
 

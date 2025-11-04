@@ -42,7 +42,7 @@ public class LiteDbChuteRepository : IChuteRepository
 
     public Task<Chute> AddAsync(Chute chute, CancellationToken cancellationToken = default)
     {
-        chute.CreatedAt = DateTime.UtcNow;
+        chute.CreatedAt = DateTime.Now;
         chute.UpdatedAt = null;
         
         var id = _collection.Insert(chute);
@@ -53,7 +53,7 @@ public class LiteDbChuteRepository : IChuteRepository
 
     public Task UpdateAsync(Chute chute, CancellationToken cancellationToken = default)
     {
-        chute.UpdatedAt = DateTime.UtcNow;
+        chute.UpdatedAt = DateTime.Now;
         _collection.Update(chute);
         return Task.CompletedTask;
     }

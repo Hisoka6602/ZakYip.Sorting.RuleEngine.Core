@@ -76,7 +76,7 @@ public class DataCleanupService : BackgroundService
     {
         // 防止频繁清理（每次清理后至少间隔1小时）
         if (_lastCleanupTime.HasValue && 
-            (DateTime.UtcNow - _lastCleanupTime.Value).TotalHours < 1)
+            (DateTime.Now - _lastCleanupTime.Value).TotalHours < 1)
         {
             _logger.LogDebug("距离上次清理不足1小时，跳过本次清理");
             return;
@@ -109,7 +109,7 @@ public class DataCleanupService : BackgroundService
             return;
         }
 
-        var cutoffDate = DateTime.UtcNow.AddDays(-_settings.RetentionDays);
+        var cutoffDate = DateTime.Now.AddDays(-_settings.RetentionDays);
         
         try
         {
@@ -156,7 +156,7 @@ public class DataCleanupService : BackgroundService
                 }
             }
 
-            _lastCleanupTime = DateTime.UtcNow;
+            _lastCleanupTime = DateTime.Now;
             _logger.LogInformation("数据清理完成");
         }
         catch (Exception ex)

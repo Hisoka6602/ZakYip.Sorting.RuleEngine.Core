@@ -32,7 +32,7 @@ public class SqliteLogRepository : ILogRepository
                 Level = level,
                 Message = message,
                 Details = details,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             await _context.LogEntries.AddAsync(logEntry, cancellationToken);
