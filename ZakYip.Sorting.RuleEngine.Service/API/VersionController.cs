@@ -14,6 +14,11 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("系统版本信息接口")]
 public class VersionController : ControllerBase
 {
+    private const string DefaultVersion = "1.13.0";
+    private const string DefaultProductName = "ZakYip 分拣规则引擎";
+    private const string DefaultCompanyName = "ZakYip";
+    private const string DefaultDescription = "ZakYip分拣规则引擎系统 - 高性能包裹分拣规则引擎";
+
     /// <summary>
     /// 获取系统版本信息
     /// </summary>
@@ -36,12 +41,12 @@ public class VersionController : ControllerBase
 
         var versionData = new VersionResponseDto
         {
-            Version = version?.ToString() ?? "1.13.0",
-            ProductVersion = fileVersionInfo.ProductVersion ?? "1.13.0",
-            FileVersion = fileVersionInfo.FileVersion ?? "1.13.0.0",
-            ProductName = fileVersionInfo.ProductName ?? "ZakYip 分拣规则引擎",
-            CompanyName = fileVersionInfo.CompanyName ?? "ZakYip",
-            Description = "ZakYip分拣规则引擎系统 - 高性能包裹分拣规则引擎",
+            Version = version?.ToString() ?? DefaultVersion,
+            ProductVersion = fileVersionInfo.ProductVersion ?? DefaultVersion,
+            FileVersion = fileVersionInfo.FileVersion ?? $"{DefaultVersion}.0",
+            ProductName = fileVersionInfo.ProductName ?? DefaultProductName,
+            CompanyName = fileVersionInfo.CompanyName ?? DefaultCompanyName,
+            Description = DefaultDescription,
             BuildDate = GetBuildDate(assembly).ToString("yyyy-MM-dd HH:mm:ss"),
             Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription
         };

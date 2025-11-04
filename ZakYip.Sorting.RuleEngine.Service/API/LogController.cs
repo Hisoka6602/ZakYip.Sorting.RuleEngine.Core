@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -138,11 +139,11 @@ public class LogController : ControllerBase
         OperationId = "GetDwsCommunicationLogs",
         Tags = new[] { "Log" }
     )]
-    [SwaggerResponse(200, "成功返回DWS通信日志列表", typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>))]
-    [ProducesResponseType(typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>), 200)]
-    [ProducesResponseType(typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>), 500)]
-    public async Task<ActionResult<PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>>> GetDwsCommunicationLogs(
+    [SwaggerResponse(200, "成功返回DWS通信日志列表", typeof(PagedResponse<DwsCommunicationLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<DwsCommunicationLog>))]
+    [ProducesResponseType(typeof(PagedResponse<DwsCommunicationLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<DwsCommunicationLog>), 500)]
+    public async Task<ActionResult<PagedResponse<DwsCommunicationLog>>> GetDwsCommunicationLogs(
         [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
         [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
         [FromQuery, SwaggerParameter("条码")] string? barcode,
@@ -155,7 +156,7 @@ public class LogController : ControllerBase
             DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
             if (context == null)
             {
-                return StatusCode(500, PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+                return StatusCode(500, PagedResponse<DwsCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
             }
 
             var logs = _useMySql 
@@ -179,12 +180,12 @@ public class LogController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>.SuccessResult(data, total, page, pageSize));
+            return Ok(PagedResponse<DwsCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询DWS通信日志失败");
-            return StatusCode(500, PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsCommunicationLog>.FailureResult($"查询DWS通信日志失败: {ex.Message}", "QUERY_FAILED"));
+            return StatusCode(500, PagedResponse<DwsCommunicationLog>.FailureResult($"查询DWS通信日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 
@@ -207,11 +208,11 @@ public class LogController : ControllerBase
         OperationId = "GetApiCommunicationLogs",
         Tags = new[] { "Log" }
     )]
-    [SwaggerResponse(200, "成功返回API通信日志列表", typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>))]
-    [ProducesResponseType(typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>), 200)]
-    [ProducesResponseType(typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>), 500)]
-    public async Task<ActionResult<PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>>> GetApiCommunicationLogs(
+    [SwaggerResponse(200, "成功返回API通信日志列表", typeof(PagedResponse<ApiCommunicationLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ApiCommunicationLog>))]
+    [ProducesResponseType(typeof(PagedResponse<ApiCommunicationLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<ApiCommunicationLog>), 500)]
+    public async Task<ActionResult<PagedResponse<ApiCommunicationLog>>> GetApiCommunicationLogs(
         [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
         [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
         [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
@@ -224,7 +225,7 @@ public class LogController : ControllerBase
             DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
             if (context == null)
             {
-                return StatusCode(500, PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+                return StatusCode(500, PagedResponse<ApiCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
             }
 
             var logs = _useMySql 
@@ -248,12 +249,12 @@ public class LogController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>.SuccessResult(data, total, page, pageSize));
+            return Ok(PagedResponse<ApiCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询API通信日志失败");
-            return StatusCode(500, PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.ApiCommunicationLog>.FailureResult($"查询API通信日志失败: {ex.Message}", "QUERY_FAILED"));
+            return StatusCode(500, PagedResponse<ApiCommunicationLog>.FailureResult($"查询API通信日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 
@@ -276,11 +277,11 @@ public class LogController : ControllerBase
         OperationId = "GetSorterCommunicationLogs",
         Tags = new[] { "Log" }
     )]
-    [SwaggerResponse(200, "成功返回分拣机通信日志列表", typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>))]
-    [ProducesResponseType(typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>), 200)]
-    [ProducesResponseType(typeof(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>), 500)]
-    public async Task<ActionResult<PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>>> GetSorterCommunicationLogs(
+    [SwaggerResponse(200, "成功返回分拣机通信日志列表", typeof(PagedResponse<SorterCommunicationLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<SorterCommunicationLog>))]
+    [ProducesResponseType(typeof(PagedResponse<SorterCommunicationLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<SorterCommunicationLog>), 500)]
+    public async Task<ActionResult<PagedResponse<SorterCommunicationLog>>> GetSorterCommunicationLogs(
         [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
         [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
         [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
@@ -293,7 +294,7 @@ public class LogController : ControllerBase
             DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
             if (context == null)
             {
-                return StatusCode(500, PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+                return StatusCode(500, PagedResponse<SorterCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
             }
 
             var logs = _useMySql 
@@ -317,12 +318,12 @@ public class LogController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>.SuccessResult(data, total, page, pageSize));
+            return Ok(PagedResponse<SorterCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询分拣机通信日志失败");
-            return StatusCode(500, PagedResponse<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog>.FailureResult($"查询分拣机通信日志失败: {ex.Message}", "QUERY_FAILED"));
+            return StatusCode(500, PagedResponse<SorterCommunicationLog>.FailureResult($"查询分拣机通信日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 
