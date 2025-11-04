@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.CircuitBreaker;
+using Polly.Retry;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects;
@@ -22,6 +23,12 @@ public class ResilientLogRepository : ILogRepository
     private readonly DatabaseCircuitBreakerSettings _circuitBreakerSettings;
     private readonly ResiliencePipeline<bool> _circuitBreaker;
     private readonly IDatabaseDialect _sqliteDialect;
+    private readonly ResiliencePipeline _retryPolicy;
+
+    /// <summary>
+    /// 批量同步的批次大小（每批处理的记录数）
+    /// </summary>
+    private const int BatchSize = 1000;
 
     public ResilientLogRepository(
         ILogger<ResilientLogRepository> logger,
@@ -35,6 +42,25 @@ public class ResilientLogRepository : ILogRepository
         _sqliteContext = sqliteContext;
         _circuitBreakerSettings = circuitBreakerSettings.Value;
         _sqliteDialect = sqliteDialect;
+
+        // 配置数据同步重试策略
+        // Configure data synchronization retry policy
+        _retryPolicy = new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 3,
+                Delay = TimeSpan.FromSeconds(2),
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                OnRetry = args =>
+                {
+                    _logger.LogWarning("数据同步失败，正在进行第 {AttemptNumber} 次重试，延迟 {Delay}ms", 
+                        args.AttemptNumber, 
+                        args.RetryDelay.TotalMilliseconds);
+                    return ValueTask.CompletedTask;
+                }
+            })
+            .Build();
 
         // 配置数据库熔断器
         // Configure database circuit breaker
@@ -271,179 +297,289 @@ public class ResilientLogRepository : ILogRepository
     }
 
     /// <summary>
-    /// 同步LogEntry日志
+    /// 同步LogEntry日志（分批处理）
     /// </summary>
     private async Task<int> SyncLogEntriesAsync()
     {
-        var sqliteLogs = await _sqliteContext.LogEntries
-            .OrderBy(e => e.CreatedAt)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "LogEntry",
+            getTotalCountAsync: async () => await _sqliteContext.LogEntries.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.LogEntries
+                    .OrderBy(e => e.CreatedAt)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
-        {
-            return 0;
-        }
+                if (sqliteLogs.Count == 0)
+                {
+                    return 0;
+                }
 
-        var mysqlLogs = sqliteLogs.Select(log => new MySql.LogEntry
-        {
-            Level = log.Level,
-            Message = log.Message,
-            Details = log.Details,
-            CreatedAt = log.CreatedAt
-        }).ToList();
+                var mysqlLogs = sqliteLogs.Select(log => new MySql.LogEntry
+                {
+                    Level = log.Level,
+                    Message = log.Message,
+                    Details = log.Details,
+                    CreatedAt = log.CreatedAt
+                }).ToList();
 
-        await _mysqlContext!.LogEntries.AddRangeAsync(mysqlLogs);
-        await _mysqlContext.SaveChangesAsync();
+                // 使用重试策略同步到MySQL
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.LogEntries.AddRangeAsync(mysqlLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
 
-        _sqliteContext.LogEntries.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
+                // 从SQLite删除已同步的数据
+                _sqliteContext.LogEntries.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
 
-        _logger.LogInformation("已同步 {Count} 条LogEntry记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+                return sqliteLogs.Count;
+            });
     }
 
     /// <summary>
-    /// 同步CommunicationLog通信日志
+    /// 同步CommunicationLog通信日志（分批处理）
     /// </summary>
     private async Task<int> SyncCommunicationLogsAsync()
     {
-        var sqliteLogs = await _sqliteContext.CommunicationLogs
-            .OrderBy(e => e.CreatedAt)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "CommunicationLog",
+            getTotalCountAsync: async () => await _sqliteContext.CommunicationLogs.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.CommunicationLogs
+                    .OrderBy(e => e.CreatedAt)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
-        {
-            return 0;
-        }
+                if (sqliteLogs.Count == 0)
+                {
+                    return 0;
+                }
 
-        // 直接添加到MySQL（实体类型相同）
-        await _mysqlContext!.CommunicationLogs.AddRangeAsync(sqliteLogs);
-        await _mysqlContext.SaveChangesAsync();
+                // 使用重试策略同步到MySQL
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.CommunicationLogs.AddRangeAsync(sqliteLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
 
-        _sqliteContext.CommunicationLogs.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
+                _sqliteContext.CommunicationLogs.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
 
-        _logger.LogInformation("已同步 {Count} 条CommunicationLog记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+                return sqliteLogs.Count;
+            });
     }
 
     /// <summary>
-    /// 同步SorterCommunicationLog分拣机通信日志
+    /// 同步SorterCommunicationLog分拣机通信日志（分批处理）
     /// </summary>
     private async Task<int> SyncSorterCommunicationLogsAsync()
     {
-        var sqliteLogs = await _sqliteContext.SorterCommunicationLogs
-            .OrderBy(e => e.CommunicationTime)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "SorterCommunicationLog",
+            getTotalCountAsync: async () => await _sqliteContext.SorterCommunicationLogs.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.SorterCommunicationLogs
+                    .OrderBy(e => e.CommunicationTime)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
-        {
-            return 0;
-        }
+                if (sqliteLogs.Count == 0) return 0;
 
-        await _mysqlContext!.SorterCommunicationLogs.AddRangeAsync(sqliteLogs);
-        await _mysqlContext.SaveChangesAsync();
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.SorterCommunicationLogs.AddRangeAsync(sqliteLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
 
-        _sqliteContext.SorterCommunicationLogs.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
+                _sqliteContext.SorterCommunicationLogs.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
 
-        _logger.LogInformation("已同步 {Count} 条SorterCommunicationLog记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+                return sqliteLogs.Count;
+            });
     }
 
     /// <summary>
-    /// 同步DwsCommunicationLog DWS通信日志
+    /// 同步DwsCommunicationLog DWS通信日志（分批处理）
     /// </summary>
     private async Task<int> SyncDwsCommunicationLogsAsync()
     {
-        var sqliteLogs = await _sqliteContext.DwsCommunicationLogs
-            .OrderBy(e => e.CommunicationTime)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "DwsCommunicationLog",
+            getTotalCountAsync: async () => await _sqliteContext.DwsCommunicationLogs.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.DwsCommunicationLogs
+                    .OrderBy(e => e.CommunicationTime)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
-        {
-            return 0;
-        }
+                if (sqliteLogs.Count == 0) return 0;
 
-        await _mysqlContext!.DwsCommunicationLogs.AddRangeAsync(sqliteLogs);
-        await _mysqlContext.SaveChangesAsync();
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.DwsCommunicationLogs.AddRangeAsync(sqliteLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
 
-        _sqliteContext.DwsCommunicationLogs.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
+                _sqliteContext.DwsCommunicationLogs.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
 
-        _logger.LogInformation("已同步 {Count} 条DwsCommunicationLog记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+                return sqliteLogs.Count;
+            });
     }
 
     /// <summary>
-    /// 同步ApiCommunicationLog API通信日志
+    /// 同步ApiCommunicationLog API通信日志（分批处理）
     /// </summary>
     private async Task<int> SyncApiCommunicationLogsAsync()
     {
-        var sqliteLogs = await _sqliteContext.ApiCommunicationLogs
-            .OrderBy(e => e.RequestTime)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "ApiCommunicationLog",
+            getTotalCountAsync: async () => await _sqliteContext.ApiCommunicationLogs.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.ApiCommunicationLogs
+                    .OrderBy(e => e.RequestTime)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
-        {
-            return 0;
-        }
+                if (sqliteLogs.Count == 0) return 0;
 
-        await _mysqlContext!.ApiCommunicationLogs.AddRangeAsync(sqliteLogs);
-        await _mysqlContext.SaveChangesAsync();
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.ApiCommunicationLogs.AddRangeAsync(sqliteLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
 
-        _sqliteContext.ApiCommunicationLogs.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
+                _sqliteContext.ApiCommunicationLogs.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
 
-        _logger.LogInformation("已同步 {Count} 条ApiCommunicationLog记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+                return sqliteLogs.Count;
+            });
     }
 
     /// <summary>
-    /// 同步MatchingLog匹配日志
+    /// 同步MatchingLog匹配日志（分批处理）
     /// </summary>
     private async Task<int> SyncMatchingLogsAsync()
     {
-        var sqliteLogs = await _sqliteContext.MatchingLogs
-            .OrderBy(e => e.MatchingTime)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "MatchingLog",
+            getTotalCountAsync: async () => await _sqliteContext.MatchingLogs.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.MatchingLogs
+                    .OrderBy(e => e.MatchingTime)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
-        {
-            return 0;
-        }
+                if (sqliteLogs.Count == 0) return 0;
 
-        await _mysqlContext!.MatchingLogs.AddRangeAsync(sqliteLogs);
-        await _mysqlContext.SaveChangesAsync();
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.MatchingLogs.AddRangeAsync(sqliteLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
 
-        _sqliteContext.MatchingLogs.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
+                _sqliteContext.MatchingLogs.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
 
-        _logger.LogInformation("已同步 {Count} 条MatchingLog记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+                return sqliteLogs.Count;
+            });
     }
 
     /// <summary>
-    /// 同步ApiRequestLog API请求日志
+    /// 同步ApiRequestLog API请求日志（分批处理）
     /// </summary>
     private async Task<int> SyncApiRequestLogsAsync()
     {
-        var sqliteLogs = await _sqliteContext.ApiRequestLogs
-            .OrderBy(e => e.RequestTime)
-            .ToListAsync();
+        return await SyncTableWithBatchesAsync(
+            tableName: "ApiRequestLog",
+            getTotalCountAsync: async () => await _sqliteContext.ApiRequestLogs.CountAsync(),
+            syncBatchAsync: async (skip, take) =>
+            {
+                var sqliteLogs = await _sqliteContext.ApiRequestLogs
+                    .OrderBy(e => e.RequestTime)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
 
-        if (sqliteLogs.Count == 0)
+                if (sqliteLogs.Count == 0) return 0;
+
+                await _retryPolicy.ExecuteAsync(async ct =>
+                {
+                    await _mysqlContext!.ApiRequestLogs.AddRangeAsync(sqliteLogs, ct);
+                    await _mysqlContext.SaveChangesAsync(ct);
+                }, CancellationToken.None);
+
+                _sqliteContext.ApiRequestLogs.RemoveRange(sqliteLogs);
+                await _sqliteContext.SaveChangesAsync();
+
+                return sqliteLogs.Count;
+            });
+    }
+
+    /// <summary>
+    /// 分批同步表数据的通用方法
+    /// </summary>
+    /// <param name="tableName">表名（用于日志记录）</param>
+    /// <param name="getTotalCountAsync">获取总记录数的函数</param>
+    /// <param name="syncBatchAsync">同步单批数据的函数</param>
+    /// <returns>已同步的总记录数</returns>
+    private async Task<int> SyncTableWithBatchesAsync(
+        string tableName,
+        Func<Task<int>> getTotalCountAsync,
+        Func<int, int, Task<int>> syncBatchAsync)
+    {
+        try
         {
-            return 0;
+            var totalCount = await getTotalCountAsync();
+
+            if (totalCount == 0)
+            {
+                return 0;
+            }
+
+            _logger.LogInformation("开始同步 {TableName} 表，共 {TotalCount} 条记录，批次大小 {BatchSize}", 
+                tableName, totalCount, BatchSize);
+
+            var totalSynced = 0;
+            var batchNumber = 0;
+
+            // 分批处理
+            for (var skip = 0; skip < totalCount; skip += BatchSize)
+            {
+                batchNumber++;
+                var take = Math.Min(BatchSize, totalCount - skip);
+
+                _logger.LogInformation("正在同步 {TableName} 第 {BatchNumber} 批（{Skip}-{End}/{TotalCount}）", 
+                    tableName, batchNumber, skip + 1, skip + take, totalCount);
+
+                var syncedInBatch = await syncBatchAsync(skip, take);
+                totalSynced += syncedInBatch;
+
+                _logger.LogInformation("第 {BatchNumber} 批同步完成，本批 {Count} 条，累计 {Total} 条", 
+                    batchNumber, syncedInBatch, totalSynced);
+            }
+
+            _logger.LogInformation("{TableName} 表同步完成，总计 {TotalSynced} 条记录", tableName, totalSynced);
+            return totalSynced;
         }
-
-        await _mysqlContext!.ApiRequestLogs.AddRangeAsync(sqliteLogs);
-        await _mysqlContext.SaveChangesAsync();
-
-        _sqliteContext.ApiRequestLogs.RemoveRange(sqliteLogs);
-        await _sqliteContext.SaveChangesAsync();
-
-        _logger.LogInformation("已同步 {Count} 条ApiRequestLog记录", sqliteLogs.Count);
-        return sqliteLogs.Count;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "同步 {TableName} 表失败", tableName);
+            throw;
+        }
     }
 }
