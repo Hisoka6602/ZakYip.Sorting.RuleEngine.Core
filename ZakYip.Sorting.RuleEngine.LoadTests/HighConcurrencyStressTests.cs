@@ -111,7 +111,7 @@ public class HighConcurrencyStressTests
     [Fact]
     public void ParcelProcessing_500PerSecond_StressTest()
     {
-        var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
+        using var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
 
         var scenario = Scenario.Create("500_parcels_per_second", async context =>
         {
