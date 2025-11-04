@@ -266,7 +266,6 @@ public class HighConcurrencyStressTests
         // 模拟100个并发的数据库同步操作
         for (int i = 0; i < 100; i++)
         {
-            var taskId = i;
             var task = Task.Run(async () =>
             {
                 try
