@@ -67,7 +67,7 @@ public static class ResiliencePolicyFactory
     /// <returns>弹性管道</returns>
     public static ResiliencePipeline CreateApiCircuitBreakerPolicy(
         ILogger logger,
-        double failureThreshold = 0.5,
+        decimal failureThreshold = 0.5m,
         int samplingDuration = 60,
         int minimumThroughput = 10,
         int durationOfBreak = 60)
@@ -75,7 +75,7 @@ public static class ResiliencePolicyFactory
         return new ResiliencePipelineBuilder()
             .AddCircuitBreaker(new CircuitBreakerStrategyOptions
             {
-                FailureRatio = failureThreshold,
+                FailureRatio = (double)failureThreshold,
                 SamplingDuration = TimeSpan.FromSeconds(samplingDuration),
                 MinimumThroughput = minimumThroughput,
                 BreakDuration = TimeSpan.FromSeconds(durationOfBreak),

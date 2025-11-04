@@ -120,7 +120,7 @@ public class CircuitBreakerSettings
     /// 失败率阈值（0.0-1.0），默认0.5（50%）
     /// Failure ratio threshold (0.0-1.0), default 0.5 (50%)
     /// </summary>
-    public double FailureRatio { get; set; } = 0.5;
+    public decimal FailureRatio { get; set; } = 0.5m;
     
     /// <summary>
     /// 最小吞吐量（在采样周期内的最小请求数），默认10

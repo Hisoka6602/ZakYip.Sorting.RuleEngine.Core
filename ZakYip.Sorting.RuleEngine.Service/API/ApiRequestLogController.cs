@@ -270,8 +270,8 @@ public class ApiRequestLogController : ControllerBase
                 TotalRequests = totalCount,
                 SuccessRequests = successCount,
                 FailedRequests = totalCount - successCount,
-                SuccessRate = totalCount > 0 ? (double)successCount / totalCount * 100 : 0,
-                AverageDurationMs = avgDuration
+                SuccessRate = totalCount > 0 ? (decimal)successCount / totalCount * 100 : 0,
+                AverageDurationMs = (decimal)avgDuration
             };
 
             return Ok(statistics);
@@ -338,10 +338,10 @@ public class ApiRequestStatistics
     /// <summary>
     /// 成功率（百分比）
     /// </summary>
-    public double SuccessRate { get; set; }
+    public decimal SuccessRate { get; set; }
 
     /// <summary>
     /// 平均耗时（毫秒）
     /// </summary>
-    public double AverageDurationMs { get; set; }
+    public decimal AverageDurationMs { get; set; }
 }
