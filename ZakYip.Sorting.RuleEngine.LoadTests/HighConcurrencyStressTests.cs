@@ -34,7 +34,16 @@ public class HighConcurrencyStressTests
 
         var scenario = Scenario.Create("100_parcels_per_second", async context =>
         {
-            var instanceNum = int.Parse(context.ScenarioInfo.InstanceId.Split('_').LastOrDefault() ?? "0");
+            int instanceNum = 0;
+            var instanceId = context.ScenarioInfo.InstanceId;
+            if (!string.IsNullOrEmpty(instanceId))
+            {
+                var lastSegment = instanceId.Split('_').LastOrDefault();
+                if (!string.IsNullOrEmpty(lastSegment) && int.TryParse(lastSegment, out var parsedNum))
+                {
+                    instanceNum = parsedNum;
+                }
+            }
             var parcelData = new
             {
                 parcelId = $"PKG{instanceNum:D4}_{context.InvocationNumber:D6}",
