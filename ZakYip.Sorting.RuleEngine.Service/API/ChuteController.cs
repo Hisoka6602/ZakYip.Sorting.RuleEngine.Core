@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -48,19 +50,22 @@ public class ChuteController : ControllerBase
         OperationId = "GetAllChutes",
         Tags = new[] { "Chute" }
     )]
-    [SwaggerResponse(200, "成功返回格口列表", typeof(IEnumerable<Chute>))]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    [SwaggerResponse(200, "成功返回格口列表", typeof(ApiResponse<IEnumerable<ChuteResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<ChuteResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ChuteResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ChuteResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ChuteResponseDto>>>> GetAll(CancellationToken cancellationToken)
     {
         try
         {
             var chutes = await _cacheService.GetAllChutesAsync(_chuteRepository, cancellationToken);
-            return Ok(chutes);
+            var dtos = chutes.ToResponseDtos();
+            return Ok(ApiResponse<IEnumerable<ChuteResponseDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取所有格口失败");
-            return StatusCode(500, new { error = "获取格口列表失败", message = ex.Message });
+            return StatusCode(500, ApiResponse<IEnumerable<ChuteResponseDto>>.FailureResult("获取格口列表失败", "GET_CHUTES_FAILED"));
         }
     }
 
@@ -80,10 +85,13 @@ public class ChuteController : ControllerBase
         OperationId = "GetChuteById",
         Tags = new[] { "Chute" }
     )]
-    [SwaggerResponse(200, "成功返回格口详情", typeof(Chute))]
-    [SwaggerResponse(404, "格口不存在")]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<IActionResult> GetById(
+    [SwaggerResponse(200, "成功返回格口详情", typeof(ApiResponse<ChuteResponseDto>))]
+    [SwaggerResponse(404, "格口不存在", typeof(ApiResponse<ChuteResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<ChuteResponseDto>))]
+    [ProducesResponseType(typeof(ApiResponse<ChuteResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<ChuteResponseDto>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<ChuteResponseDto>), 500)]
+    public async Task<ActionResult<ApiResponse<ChuteResponseDto>>> GetById(
         [SwaggerParameter("格口ID", Required = true)] long id, 
         CancellationToken cancellationToken)
     {
@@ -92,14 +100,15 @@ public class ChuteController : ControllerBase
             var chute = await _chuteRepository.GetByIdAsync(id, cancellationToken);
             if (chute == null)
             {
-                return NotFound(new { error = "格口不存在", chuteId = id });
+                return NotFound(ApiResponse<ChuteResponseDto>.FailureResult("格口不存在", "CHUTE_NOT_FOUND"));
             }
-            return Ok(chute);
+            var dto = chute.ToResponseDto();
+            return Ok(ApiResponse<ChuteResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取格口失败，ID: {ChuteId}", id);
-            return StatusCode(500, new { error = "获取格口失败", message = ex.Message });
+            return StatusCode(500, ApiResponse<ChuteResponseDto>.FailureResult("获取格口失败", "GET_CHUTE_FAILED"));
         }
     }
 
@@ -119,10 +128,13 @@ public class ChuteController : ControllerBase
         OperationId = "GetChuteByCode",
         Tags = new[] { "Chute" }
     )]
-    [SwaggerResponse(200, "成功返回格口详情", typeof(Chute))]
-    [SwaggerResponse(404, "格口不存在")]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<IActionResult> GetByCode(
+    [SwaggerResponse(200, "成功返回格口详情", typeof(ApiResponse<ChuteResponseDto>))]
+    [SwaggerResponse(404, "格口不存在", typeof(ApiResponse<ChuteResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<ChuteResponseDto>))]
+    [ProducesResponseType(typeof(ApiResponse<ChuteResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<ChuteResponseDto>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<ChuteResponseDto>), 500)]
+    public async Task<ActionResult<ApiResponse<ChuteResponseDto>>> GetByCode(
         [SwaggerParameter("格口编号", Required = true)] string code, 
         CancellationToken cancellationToken)
     {
@@ -131,14 +143,15 @@ public class ChuteController : ControllerBase
             var chute = await _chuteRepository.GetByCodeAsync(code, cancellationToken);
             if (chute == null)
             {
-                return NotFound(new { error = "格口不存在", chuteCode = code });
+                return NotFound(ApiResponse<ChuteResponseDto>.FailureResult("格口不存在", "CHUTE_NOT_FOUND"));
             }
-            return Ok(chute);
+            var dto = chute.ToResponseDto();
+            return Ok(ApiResponse<ChuteResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取格口失败，编号: {ChuteCode}", code);
-            return StatusCode(500, new { error = "获取格口失败", message = ex.Message });
+            return StatusCode(500, ApiResponse<ChuteResponseDto>.FailureResult("获取格口失败", "GET_CHUTE_FAILED"));
         }
     }
 
@@ -156,19 +169,22 @@ public class ChuteController : ControllerBase
         OperationId = "GetEnabledChutes",
         Tags = new[] { "Chute" }
     )]
-    [SwaggerResponse(200, "成功返回启用的格口列表", typeof(IEnumerable<Chute>))]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<IActionResult> GetEnabled(CancellationToken cancellationToken)
+    [SwaggerResponse(200, "成功返回启用的格口列表", typeof(ApiResponse<IEnumerable<ChuteResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<ChuteResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ChuteResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ChuteResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ChuteResponseDto>>>> GetEnabled(CancellationToken cancellationToken)
     {
         try
         {
             var chutes = await _cacheService.GetEnabledChutesAsync(_chuteRepository, cancellationToken);
-            return Ok(chutes);
+            var dtos = chutes.ToResponseDtos();
+            return Ok(ApiResponse<IEnumerable<ChuteResponseDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取启用格口失败");
-            return StatusCode(500, new { error = "获取启用格口失败", message = ex.Message });
+            return StatusCode(500, ApiResponse<IEnumerable<ChuteResponseDto>>.FailureResult("获取启用格口失败", "GET_ENABLED_CHUTES_FAILED"));
         }
     }
 

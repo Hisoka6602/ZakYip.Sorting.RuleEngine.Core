@@ -51,20 +51,22 @@ public class RuleController : ControllerBase
         OperationId = "GetAllRules",
         Tags = new[] { "Rule" }
     )]
-    [SwaggerResponse(200, "成功返回规则列表", typeof(IEnumerable<SortingRuleResponseDto>))]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<IEnumerable<SortingRuleResponseDto>>> GetAllRules(CancellationToken cancellationToken)
+    [SwaggerResponse(200, "成功返回规则列表", typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<SortingRuleResponseDto>>>> GetAllRules(CancellationToken cancellationToken)
     {
         try
         {
             var rules = await _ruleRepository.GetAllAsync(cancellationToken);
             var responseDtos = rules.ToResponseDtos();
-            return Ok(responseDtos);
+            return Ok(ApiResponse<IEnumerable<SortingRuleResponseDto>>.SuccessResult(responseDtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取所有规则失败");
-            return StatusCode(500, new { error = ex.Message });
+            return StatusCode(500, ApiResponse<IEnumerable<SortingRuleResponseDto>>.FailureResult("获取规则列表失败", "GET_RULES_FAILED"));
         }
     }
 
@@ -83,20 +85,22 @@ public class RuleController : ControllerBase
         OperationId = "GetEnabledRules",
         Tags = new[] { "Rule" }
     )]
-    [SwaggerResponse(200, "成功返回启用的规则列表", typeof(IEnumerable<SortingRuleResponseDto>))]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<IEnumerable<SortingRuleResponseDto>>> GetEnabledRules(CancellationToken cancellationToken)
+    [SwaggerResponse(200, "成功返回启用的规则列表", typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<SortingRuleResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<SortingRuleResponseDto>>>> GetEnabledRules(CancellationToken cancellationToken)
     {
         try
         {
             var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
             var responseDtos = rules.ToResponseDtos();
-            return Ok(responseDtos);
+            return Ok(ApiResponse<IEnumerable<SortingRuleResponseDto>>.SuccessResult(responseDtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取启用规则失败");
-            return StatusCode(500, new { error = ex.Message });
+            return StatusCode(500, ApiResponse<IEnumerable<SortingRuleResponseDto>>.FailureResult("获取启用规则失败", "GET_ENABLED_RULES_FAILED"));
         }
     }
 
@@ -117,10 +121,13 @@ public class RuleController : ControllerBase
         OperationId = "GetRuleById",
         Tags = new[] { "Rule" }
     )]
-    [SwaggerResponse(200, "成功返回规则详情", typeof(SortingRuleResponseDto))]
-    [SwaggerResponse(404, "规则未找到")]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<SortingRuleResponseDto>> GetRuleById(
+    [SwaggerResponse(200, "成功返回规则详情", typeof(ApiResponse<SortingRuleResponseDto>))]
+    [SwaggerResponse(404, "规则未找到", typeof(ApiResponse<SortingRuleResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<SortingRuleResponseDto>))]
+    [ProducesResponseType(typeof(ApiResponse<SortingRuleResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<SortingRuleResponseDto>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<SortingRuleResponseDto>), 500)]
+    public async Task<ActionResult<ApiResponse<SortingRuleResponseDto>>> GetRuleById(
         [SwaggerParameter("规则唯一标识", Required = true)] string ruleId, 
         CancellationToken cancellationToken)
     {
@@ -129,15 +136,15 @@ public class RuleController : ControllerBase
             var rule = await _ruleRepository.GetByIdAsync(ruleId, cancellationToken);
             if (rule == null)
             {
-                return NotFound(new { message = $"规则未找到: {ruleId}" });
+                return NotFound(ApiResponse<SortingRuleResponseDto>.FailureResult("规则未找到", "RULE_NOT_FOUND"));
             }
             var responseDto = rule.ToResponseDto();
-            return Ok(responseDto);
+            return Ok(ApiResponse<SortingRuleResponseDto>.SuccessResult(responseDto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取规则失败: {RuleId}", ruleId);
-            return StatusCode(500, new { error = ex.Message });
+            return StatusCode(500, ApiResponse<SortingRuleResponseDto>.FailureResult("获取规则失败", "GET_RULE_FAILED"));
         }
     }
 
