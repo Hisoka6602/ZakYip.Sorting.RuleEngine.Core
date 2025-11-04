@@ -67,7 +67,7 @@ public class ResilientLogRepository : ILogRepository
         _circuitBreaker = new ResiliencePipelineBuilder<bool>()
             .AddCircuitBreaker(new CircuitBreakerStrategyOptions<bool>
             {
-                FailureRatio = _circuitBreakerSettings.FailureRatio,
+                FailureRatio = (double)_circuitBreakerSettings.FailureRatio,
                 MinimumThroughput = _circuitBreakerSettings.MinimumThroughput,
                 SamplingDuration = TimeSpan.FromSeconds(_circuitBreakerSettings.SamplingDurationSeconds),
                 BreakDuration = TimeSpan.FromSeconds(_circuitBreakerSettings.BreakDurationSeconds),

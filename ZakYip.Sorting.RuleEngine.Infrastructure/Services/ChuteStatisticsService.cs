@@ -50,8 +50,9 @@ public class ChuteStatisticsService : IChuteStatisticsService
         {
             try
             {
-                _logger.LogInformation("查询格口利用率统计: ChuteId={ChuteId}, StartTime={StartTime}, EndTime={EndTime}",
-                    query.ChuteId, query.StartTime, query.EndTime);
+                // 表统计消息仅在控制台输出，不记录到logs (按需求规范)
+                // Statistics messages only output to console, not to logs (per requirements)
+                Console.WriteLine($"查询格口利用率统计: ChuteId={query.ChuteId}, StartTime={query.StartTime}, EndTime={query.EndTime}");
 
                 // 获取所有格口或指定格口
                 var chutes = query.ChuteId.HasValue
@@ -88,7 +89,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
                     .Take(query.PageSize)
                     .ToList();
 
-                _logger.LogInformation("查询完成，共返回 {Count} 条格口统计", pagedResults.Count);
+                // 表统计消息仅在控制台输出，不记录到logs
+                Console.WriteLine($"查询完成，共返回 {pagedResults.Count} 条格口统计");
                 return pagedResults;
             }
             catch (Exception ex)
@@ -141,7 +143,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
                 var start = startTime ?? DateTime.Now.AddDays(-7);
                 var end = endTime ?? DateTime.Now;
 
-                _logger.LogInformation("查询分拣效率概览: {StartTime} - {EndTime}", start, end);
+                // 表统计消息仅在控制台输出，不记录到logs
+                Console.WriteLine($"查询分拣效率概览: {start} - {end}");
 
                 var allChutes = (await _chuteRepository.GetAllAsync(ct)).ToList();
                 var enabledChutes = allChutes.Where(c => c.IsEnabled).ToList();
@@ -184,8 +187,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
                     EndTime = end
                 };
 
-                _logger.LogInformation("分拣效率概览查询完成: 活跃格口={ActiveChutes}, 总包裹数={TotalParcels}",
-                    overview.ActiveChutes, overview.TotalParcelsProcessed);
+                // 表统计消息仅在控制台输出，不记录到logs
+                Console.WriteLine($"分拣效率概览查询完成: 活跃格口={overview.ActiveChutes}, 总包裹数={overview.TotalParcelsProcessed}");
 
                 return overview;
             }
@@ -207,8 +210,8 @@ public class ChuteStatisticsService : IChuteStatisticsService
         {
             try
             {
-                _logger.LogInformation("查询格口小时级统计: ChuteId={ChuteId}, {StartTime} - {EndTime}",
-                    chuteId, startTime, endTime);
+                // 表统计消息仅在控制台输出，不记录到logs
+                Console.WriteLine($"查询格口小时级统计: ChuteId={chuteId}, {startTime} - {endTime}");
 
                 var chute = await _chuteRepository.GetByIdAsync(chuteId, ct);
                 if (chute == null)
@@ -274,7 +277,7 @@ public class ChuteStatisticsService : IChuteStatisticsService
             var failedSorts = totalParcels - successfulSorts;
             var durations = metrics.Select(m => m.DurationMs).ToList();
 
-            var timeSpanHours = (endTime - startTime).TotalHours;
+            var timeSpanHours = (decimal)(endTime - startTime).TotalHours;
 
             return new ChuteUtilizationStatisticsDto
             {
@@ -291,7 +294,7 @@ public class ChuteStatisticsService : IChuteStatisticsService
                 MaxProcessingTimeMs = durations.Any() ? durations.Max() : 0,
                 MinProcessingTimeMs = durations.Any() ? durations.Min() : 0,
                 UtilizationRate = CalculateUtilizationRate(totalParcels, timeSpanHours),
-                ThroughputPerHour = timeSpanHours > 0 ? (decimal)(totalParcels / timeSpanHours) : 0,
+                ThroughputPerHour = timeSpanHours > 0 ? totalParcels / timeSpanHours : 0,
                 PeakPeriod = FindPeakPeriod(metrics),
                 IsEnabled = chute.IsEnabled
             };
@@ -303,7 +306,7 @@ public class ChuteStatisticsService : IChuteStatisticsService
         }
     }
 
-    private decimal CalculateUtilizationRate(long totalParcels, double timeSpanHours)
+    private decimal CalculateUtilizationRate(long totalParcels, decimal timeSpanHours)
     {
         // 假设每个格口理论最大处理能力为 600 包裹/小时
         const int maxCapacityPerHour = 600;
@@ -312,7 +315,7 @@ public class ChuteStatisticsService : IChuteStatisticsService
 
         var theoreticalMaxCapacity = maxCapacityPerHour * timeSpanHours;
         return theoreticalMaxCapacity > 0
-            ? (decimal)(totalParcels / theoreticalMaxCapacity * 100)
+            ? totalParcels / theoreticalMaxCapacity * 100
             : 0;
     }
 
@@ -320,7 +323,7 @@ public class ChuteStatisticsService : IChuteStatisticsService
     {
         const int maxCapacityPerHour = 600;
         return maxCapacityPerHour > 0
-            ? (decimal)(parcelCount / (double)maxCapacityPerHour * 100)
+            ? parcelCount / (decimal)maxCapacityPerHour * 100
             : 0;
     }
 

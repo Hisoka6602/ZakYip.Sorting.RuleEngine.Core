@@ -13,6 +13,7 @@ public class LogFileCleanupService : BackgroundService
     private readonly ILogger<LogFileCleanupService> _logger;
     private readonly LogFileCleanupSettings _settings;
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1); // 每小时检查一次
+    private const decimal BytesPerMB = 1024.0m * 1024.0m; // 字节到MB的转换常量
 
     public LogFileCleanupService(
         ILogger<LogFileCleanupService> logger,
@@ -51,7 +52,8 @@ public class LogFileCleanupService : BackgroundService
     {
         if (!_settings.Enabled)
         {
-            _logger.LogDebug("日志文件清理功能未启用");
+            // 清理消息仅在控制台输出
+            Console.WriteLine("日志文件清理功能未启用");
             return;
         }
 
@@ -66,11 +68,11 @@ public class LogFileCleanupService : BackgroundService
 
         if (!Directory.Exists(logDirectory))
         {
-            _logger.LogDebug("日志目录不存在: {Directory}", logDirectory);
+            Console.WriteLine($"日志目录不存在: {logDirectory}");
             return;
         }
 
-        _logger.LogInformation("开始清理日志文件，目录: {Directory}，保留天数: {Days}天", logDirectory, retentionDays);
+        Console.WriteLine($"开始清理日志文件，目录: {logDirectory}，保留天数: {retentionDays}天");
 
         var cutoffDate = DateTime.Now.AddDays(-retentionDays);
         var logFiles = Directory.GetFiles(logDirectory, "*.log", SearchOption.AllDirectories);
@@ -87,7 +89,8 @@ public class LogFileCleanupService : BackgroundService
                     totalSize += fileInfo.Length;
                     fileInfo.Delete();
                     deletedCount++;
-                    _logger.LogDebug("已删除过期日志文件: {File}", logFile);
+                    // 清理消息仅在控制台输出，不记录到logs
+                    Console.WriteLine($"已删除过期日志文件: {logFile}");
                 }
             }
             catch (Exception ex)
@@ -101,14 +104,13 @@ public class LogFileCleanupService : BackgroundService
 
         if (deletedCount > 0)
         {
-            var sizeMB = totalSize / (1024.0 * 1024.0);
-            _logger.LogInformation(
-                "日志文件清理完成，共删除 {Count} 个文件，释放空间 {Size:F2} MB",
-                deletedCount, sizeMB);
+            var sizeMB = totalSize / BytesPerMB;
+            // 清理消息仅在控制台输出，不记录到logs
+            Console.WriteLine($"日志文件清理完成，共删除 {deletedCount} 个文件，释放空间 {sizeMB:F2} MB");
         }
         else
         {
-            _logger.LogDebug("没有需要清理的日志文件");
+            Console.WriteLine("没有需要清理的日志文件");
         }
 
         await Task.CompletedTask;

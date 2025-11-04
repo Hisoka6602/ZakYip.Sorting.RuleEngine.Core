@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Optimizations;
 
@@ -8,6 +10,12 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Optimizations;
 /// </summary>
 public static class QueryOptimizationExtensions
 {
+    /// <summary>
+    /// 慢查询阈值（毫秒）- 超过此时间的查询将被记录
+    /// Slow query threshold (milliseconds) - Queries exceeding this time will be logged
+    /// </summary>
+    private const int SlowQueryThresholdMs = 1000;
+
     /// <summary>
     /// 优化分页查询 - 使用AsNoTracking提高只读查询性能
     /// Optimize paged queries - Use AsNoTracking for better read-only performance
@@ -110,5 +118,113 @@ public static class QueryOptimizationExtensions
             (DbContext ctx, DateTime start, DateTime end) =>
                 queryBuilder(ctx, start, end).AsNoTracking()
         );
+    }
+
+    /// <summary>
+    /// 执行查询并检测慢查询 - 自动记录慢查询到日志
+    /// Execute query with slow query detection - Auto log slow queries
+    /// </summary>
+    public static async Task<List<T>> ExecuteWithSlowQueryDetectionAsync<T>(
+        this IQueryable<T> query,
+        ILogger logger,
+        string queryName,
+        CancellationToken cancellationToken = default)
+        where T : class
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var results = await query.ToListAsync(cancellationToken);
+        stopwatch.Stop();
+
+        if (stopwatch.ElapsedMilliseconds > SlowQueryThresholdMs && logger.IsEnabled(LogLevel.Warning))
+        {
+            // 慢查询仅记录到日志文件，不输出到控制台
+            // 仅在警告级别启用时获取查询字符串以避免性能开销
+            var queryString = query.ToQueryString();
+            logger.LogWarning(
+                "慢查询检测: {QueryName} 执行时间 {ElapsedMs}ms (阈值: {ThresholdMs}ms), 返回记录数: {Count}, SQL: {QueryString}",
+                queryName,
+                stopwatch.ElapsedMilliseconds,
+                SlowQueryThresholdMs,
+                results.Count,
+                queryString);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// 监控索引使用情况 - 返回查询计划以分析索引使用
+    /// Monitor index usage - Return query plan for index analysis
+    /// </summary>
+    public static async Task<(List<T> Results, string QueryPlan)> ExecuteWithIndexMonitoringAsync<T>(
+        this IQueryable<T> query,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+        where T : class
+    {
+        var queryString = query.ToQueryString();
+        var stopwatch = Stopwatch.StartNew();
+        var results = await query.ToListAsync(cancellationToken);
+        stopwatch.Stop();
+
+        // 记录查询性能和SQL语句用于索引分析
+        if (stopwatch.ElapsedMilliseconds > SlowQueryThresholdMs)
+        {
+            logger.LogWarning(
+                "索引监控 - 慢查询: 执行时间 {ElapsedMs}ms, 记录数: {Count}, 建议检查索引使用情况",
+                stopwatch.ElapsedMilliseconds,
+                results.Count);
+        }
+
+        return (results, queryString);
+    }
+
+    /// <summary>
+    /// 获取慢查询优化建议
+    /// Get slow query optimization suggestions
+    /// </summary>
+    public static string GetOptimizationSuggestions(long executionTimeMs, int recordCount, string queryString)
+    {
+        var suggestions = new List<string>();
+
+        if (executionTimeMs > 5000)
+        {
+            suggestions.Add("查询执行时间超过5秒，强烈建议优化");
+        }
+        else if (executionTimeMs > SlowQueryThresholdMs)
+        {
+            suggestions.Add($"查询执行时间超过{SlowQueryThresholdMs}ms，建议优化");
+        }
+
+        if (recordCount > 10000)
+        {
+            suggestions.Add("返回记录数超过10000条，建议增加分页或添加过滤条件");
+        }
+
+        if (queryString.Contains("SELECT *"))
+        {
+            suggestions.Add("查询使用了SELECT *，建议只选择需要的列");
+        }
+
+        // 注意：这些检查是基础的启发式方法，可能产生误报
+        // 适用于简单查询的快速分析，复杂查询建议使用专业的SQL分析工具
+        if (!queryString.Contains("WHERE", StringComparison.OrdinalIgnoreCase) &&
+            !queryString.Contains("JOIN", StringComparison.OrdinalIgnoreCase))
+        {
+            suggestions.Add("查询可能缺少WHERE条件，建议检查是否需要添加过滤条件");
+        }
+
+        if (queryString.Contains(" OR ", StringComparison.OrdinalIgnoreCase) &&
+            !queryString.Contains("JOIN", StringComparison.OrdinalIgnoreCase))
+        {
+            suggestions.Add("查询包含OR条件，建议检查是否可以使用IN或UNION优化");
+        }
+
+        if (suggestions.Count == 0)
+        {
+            suggestions.Add("查询性能良好，无需优化");
+        }
+
+        return string.Join("; ", suggestions);
     }
 }
