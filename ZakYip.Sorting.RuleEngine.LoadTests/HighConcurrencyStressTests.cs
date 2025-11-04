@@ -276,9 +276,10 @@ public class HighConcurrencyStressTests
                     
                     Interlocked.Increment(ref successCount);
                 }
-                catch
+                catch (Exception ex)
                 {
                     Interlocked.Increment(ref failureCount);
+                    _output.WriteLine($"Task {taskId} failed: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
                 }
             });
             tasks.Add(task);
