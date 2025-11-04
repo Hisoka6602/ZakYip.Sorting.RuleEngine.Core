@@ -11,7 +11,7 @@ public class MySqlDialect : IDatabaseDialect
     public string GetTableExistsQuery(string tableName)
     {
         TableNameValidator.Validate(tableName);
-        // 使用 EXISTS 和参数化查询来检查表是否存在
+        // 使用 EXISTS 来检查表是否存在
         // Note: EF Core's SqlQueryRaw requires FormattableString or manual parameter handling
         // Since we validate the table name, we can safely embed it
         return $@"
