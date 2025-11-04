@@ -32,7 +32,7 @@ public class HighConcurrencyStressTests
         var failedCount = 0;
         var latencies = new ConcurrentBag<double>();
 
-        var scenario = Scenario.Create("100_parcels_per_second", async context =>
+        var scenario = Scenario.Create("parcels_100_per_second", async context =>
         {
             int instanceNum = 0;
             var instanceId = context.ScenarioInfo.InstanceId;
@@ -113,7 +113,7 @@ public class HighConcurrencyStressTests
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
 
-        var scenario = Scenario.Create("500_parcels_per_second", async context =>
+        var scenario = Scenario.Create("parcels_500_per_second", async context =>
         {
             var instanceNum = int.Parse(context.ScenarioInfo.InstanceId.Split('_').LastOrDefault() ?? "0");
             var parcelData = new
@@ -175,7 +175,7 @@ public class HighConcurrencyStressTests
             Timeout = TimeSpan.FromSeconds(30)
         };
 
-        var scenario = Scenario.Create("1000_parcels_per_second", async context =>
+        var scenario = Scenario.Create("parcels_1000_per_second", async context =>
         {
             var instanceNum = int.Parse(context.ScenarioInfo.InstanceId.Split('_').LastOrDefault() ?? "0");
             var parcelData = new
@@ -266,6 +266,7 @@ public class HighConcurrencyStressTests
         // 模拟100个并发的数据库同步操作
         for (int i = 0; i < 100; i++)
         {
+            var taskId = i; // 捕获循环变量
             var task = Task.Run(async () =>
             {
                 try
@@ -352,4 +353,5 @@ public class HighConcurrencyStressTests
             Assert.True(stats.ScenarioStats[0].Ok.Latency.Percent99 <= 1500, 
                 $"P99延迟应该保持稳定 <= 1500ms，实际: {stats.ScenarioStats[0].Ok.Latency.Percent99}ms");
         }
+    }
 }
