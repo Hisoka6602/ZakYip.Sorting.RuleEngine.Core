@@ -12,7 +12,7 @@ public class SqliteDialect : IDatabaseDialect
     {
         TableNameValidator.Validate(tableName);
         // SQLite doesn't have native EXISTS that returns a value directly in the same way as MySQL
-        // We use EXISTS in a SELECT to return 1 or 0
+        // We use EXISTS in a SELECT to return a boolean value (1 or 0 in SQLite)
         return $@"
             SELECT EXISTS(
                 SELECT 1 
