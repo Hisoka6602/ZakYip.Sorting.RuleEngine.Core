@@ -144,8 +144,9 @@ public class Program
                     ServiceLifetime.Scoped);
                 
                 // 如果启用了分片功能，也注册ShardedLogDbContext
-                var shardingSettings = builder.Configuration.GetSection("AppSettings:Sharding").Get<ShardingSettings>();
-                if (shardingSettings?.Enabled == true)
+                // Register ShardedLogDbContext if sharding is enabled
+                var shardingEnabled = builder.Configuration.GetValue<bool>("AppSettings:Sharding:Enabled");
+                if (shardingEnabled)
                 {
                     builder.Services.AddDbContext<ShardedLogDbContext>(options =>
                         options.UseMySql(
