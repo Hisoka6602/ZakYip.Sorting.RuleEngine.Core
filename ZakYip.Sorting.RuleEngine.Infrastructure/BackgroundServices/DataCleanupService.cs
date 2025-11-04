@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 
@@ -126,12 +127,27 @@ public class DataCleanupService : BackgroundService
                 var shardedContext = scope.ServiceProvider.GetService<ShardedLogDbContext>();
                 if (shardedContext != null)
                 {
-                    var parcelDeletedCount = await shardedContext.ParcelLogEntries
-                        .Where(e => e.CreatedAt < cutoffDate)
-                        .ExecuteDeleteAsync(cancellationToken);
+                    // 创建表存在性检查器
+                    var tableChecker = new ShardedTableExistenceChecker(
+                        shardedContext,
+                        scope.ServiceProvider.GetRequiredService<ILogger<ShardedTableExistenceChecker>>());
 
-                    _logger.LogInformation("已删除 {Count} 条旧包裹日志记录",
-                        parcelDeletedCount);
+                    // 检查ParcelLogEntries表是否存在
+                    var tableExists = await tableChecker.TableExistsAsync("ParcelLogEntries", cancellationToken);
+                    
+                    if (tableExists)
+                    {
+                        var parcelDeletedCount = await shardedContext.ParcelLogEntries
+                            .Where(e => e.CreatedAt < cutoffDate)
+                            .ExecuteDeleteAsync(cancellationToken);
+
+                        _logger.LogInformation("已删除 {Count} 条旧包裹日志记录",
+                            parcelDeletedCount);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("表 'ParcelLogEntries' 不存在，跳过包裹日志清理");
+                    }
                 }
             }
 
