@@ -1,8 +1,10 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 
@@ -123,6 +125,23 @@ public class DataArchiveService : BackgroundService
 
             var duration = DateTime.UtcNow - startTime;
             _logger.LogInformation("数据归档完成，耗时: {Duration}秒", duration.TotalSeconds);
+            
+            // 发布数据归档事件
+            if (coldDataCount > 0)
+            {
+                var publisher = scope.ServiceProvider.GetService<IPublisher>();
+                if (publisher != null)
+                {
+                    await publisher.Publish(new DataArchivedEvent
+                    {
+                        RecordCount = coldDataCount,
+                        StartDate = coldDataThreshold,
+                        EndDate = DateTime.Now.AddDays(-_settings.ColdDataThresholdDays),
+                        ArchivedAt = DateTime.Now,
+                        DurationMs = (long)duration.TotalMilliseconds
+                    }, cancellationToken);
+                }
+            }
         }
         catch (Exception ex)
         {
