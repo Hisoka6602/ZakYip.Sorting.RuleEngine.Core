@@ -554,23 +554,20 @@ public class ResilientLogRepository : ILogRepository
             _logger.LogInformation("开始同步 {TableName} 表，共 {TotalCount} 条记录，批次大小 {BatchSize}", 
                 tableName, totalCount, BatchSize);
 
-            // 先获取所有需要处理的记录的ID
-            var allIds = await getAllIdsAsync();
             var totalSynced = 0;
             var batchNumber = 0;
 
             // 分批处理
-            for (int i = 0; i < allIds.Count; i += BatchSize)
+            for (int i = 0; i < totalCount; i += BatchSize)
             {
                 batchNumber++;
-                var batchIds = allIds.Skip(i).Take(BatchSize).ToList();
                 var batchStart = i + 1;
-                var batchEnd = i + batchIds.Count;
+                var batchEnd = Math.Min(i + BatchSize, totalCount);
 
                 _logger.LogInformation("正在同步 {TableName} 第 {BatchNumber} 批（{BatchStart}-{BatchEnd}/{TotalCount}）", 
                     tableName, batchNumber, batchStart, batchEnd, totalCount);
 
-                var syncedInBatch = await syncBatchAsync(batchIds);
+                var syncedInBatch = await syncBatchAsync(i, BatchSize);
                 totalSynced += syncedInBatch;
 
                 _logger.LogInformation("第 {BatchNumber} 批同步完成，本批 {Count} 条，累计 {Total} 条", 
