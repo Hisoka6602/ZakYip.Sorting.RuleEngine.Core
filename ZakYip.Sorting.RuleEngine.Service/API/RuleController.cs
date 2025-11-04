@@ -1,9 +1,11 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -20,15 +22,18 @@ public class RuleController : ControllerBase
     private readonly IRuleRepository _ruleRepository;
     private readonly ILogger<RuleController> _logger;
     private readonly RuleValidationService _validationService;
+    private readonly IPublisher _publisher;
 
     public RuleController(
         IRuleRepository ruleRepository,
         ILogger<RuleController> logger,
-        RuleValidationService validationService)
+        RuleValidationService validationService,
+        IPublisher publisher)
     {
         _ruleRepository = ruleRepository;
         _logger = logger;
         _validationService = validationService;
+        _publisher = publisher;
     }
 
     /// <summary>
@@ -187,6 +192,18 @@ public class RuleController : ControllerBase
             _logger.LogInformation("添加规则: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
 
             var addedRule = await _ruleRepository.AddAsync(rule, cancellationToken);
+            
+            // 发布规则创建事件
+            await _publisher.Publish(new RuleCreatedEvent
+            {
+                RuleId = addedRule.RuleId,
+                RuleName = addedRule.RuleName,
+                TargetChute = addedRule.TargetChute,
+                Priority = addedRule.Priority,
+                IsEnabled = addedRule.IsEnabled,
+                CreatedAt = DateTime.Now
+            }, cancellationToken);
+            
             return CreatedAtAction(nameof(GetRuleById), new { ruleId = addedRule.RuleId }, addedRule);
         }
         catch (Exception ex)
@@ -254,6 +271,18 @@ public class RuleController : ControllerBase
             _logger.LogInformation("更新规则: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
 
             var updatedRule = await _ruleRepository.UpdateAsync(rule, cancellationToken);
+            
+            // 发布规则更新事件
+            await _publisher.Publish(new RuleUpdatedEvent
+            {
+                RuleId = updatedRule.RuleId,
+                RuleName = updatedRule.RuleName,
+                TargetChute = updatedRule.TargetChute,
+                Priority = updatedRule.Priority,
+                IsEnabled = updatedRule.IsEnabled,
+                UpdatedAt = DateTime.Now
+            }, cancellationToken);
+            
             return Ok(updatedRule);
         }
         catch (Exception ex)
@@ -289,11 +318,25 @@ public class RuleController : ControllerBase
     {
         try
         {
+            // 先获取规则信息用于事件发布
+            var rule = await _ruleRepository.GetByIdAsync(ruleId, cancellationToken);
+            
             _logger.LogInformation("删除规则: {RuleId}", ruleId);
 
             var result = await _ruleRepository.DeleteAsync(ruleId, cancellationToken);
             if (result)
             {
+                // 发布规则删除事件
+                if (rule != null)
+                {
+                    await _publisher.Publish(new RuleDeletedEvent
+                    {
+                        RuleId = rule.RuleId,
+                        RuleName = rule.RuleName,
+                        DeletedAt = DateTime.Now
+                    }, cancellationToken);
+                }
+                
                 return Ok(new { message = "规则删除成功" });
             }
             else

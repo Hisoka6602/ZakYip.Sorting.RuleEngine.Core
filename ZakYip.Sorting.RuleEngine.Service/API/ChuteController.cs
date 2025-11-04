@@ -1,6 +1,8 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
@@ -18,15 +20,18 @@ public class ChuteController : ControllerBase
     private readonly IChuteRepository _chuteRepository;
     private readonly ConfigurationCacheService _cacheService;
     private readonly ILogger<ChuteController> _logger;
+    private readonly IPublisher _publisher;
 
     public ChuteController(
         IChuteRepository chuteRepository,
         ConfigurationCacheService cacheService,
-        ILogger<ChuteController> logger)
+        ILogger<ChuteController> logger,
+        IPublisher publisher)
     {
         _chuteRepository = chuteRepository;
         _cacheService = cacheService;
         _logger = logger;
+        _publisher = publisher;
     }
 
     /// <summary>
@@ -223,8 +228,26 @@ public class ChuteController : ControllerBase
             var created = await _chuteRepository.AddAsync(chute, cancellationToken);
             _logger.LogInformation("创建格口成功，ID: {ChuteId}，名称: {ChuteName}", created.ChuteId, created.ChuteName);
             
+            // 发布格口创建事件
+            await _publisher.Publish(new ChuteCreatedEvent
+            {
+                ChuteId = created.ChuteId,
+                ChuteName = created.ChuteName,
+                ChuteCode = created.ChuteCode,
+                IsEnabled = created.IsEnabled,
+                CreatedAt = DateTime.Now
+            }, cancellationToken);
+            
             // 重新加载缓存
             await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            
+            // 发布缓存失效事件
+            await _publisher.Publish(new ConfigurationCacheInvalidatedEvent
+            {
+                CacheType = "Chute",
+                Reason = "新增格口",
+                InvalidatedAt = DateTime.Now
+            }, cancellationToken);
             
             return CreatedAtAction(nameof(GetById), new { id = created.ChuteId }, created);
         }
@@ -302,8 +325,26 @@ public class ChuteController : ControllerBase
             chute.CreatedAt = existing.CreatedAt; // 保留创建时间
             await _chuteRepository.UpdateAsync(chute, cancellationToken);
             
+            // 发布格口更新事件
+            await _publisher.Publish(new ChuteUpdatedEvent
+            {
+                ChuteId = chute.ChuteId,
+                ChuteName = chute.ChuteName,
+                ChuteCode = chute.ChuteCode,
+                IsEnabled = chute.IsEnabled,
+                UpdatedAt = DateTime.Now
+            }, cancellationToken);
+            
             // 重新加载缓存
             await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            
+            // 发布缓存失效事件
+            await _publisher.Publish(new ConfigurationCacheInvalidatedEvent
+            {
+                CacheType = "Chute",
+                Reason = "更新格口",
+                InvalidatedAt = DateTime.Now
+            }, cancellationToken);
             
             _logger.LogInformation("更新格口成功，ID: {ChuteId}", id);
             return Ok(chute);
@@ -349,8 +390,25 @@ public class ChuteController : ControllerBase
             await _chuteRepository.DeleteAsync(id, cancellationToken);
             _logger.LogInformation("删除格口成功，ID: {ChuteId}", id);
             
+            // 发布格口删除事件
+            await _publisher.Publish(new ChuteDeletedEvent
+            {
+                ChuteId = existing.ChuteId,
+                ChuteName = existing.ChuteName,
+                ChuteCode = existing.ChuteCode,
+                DeletedAt = DateTime.Now
+            }, cancellationToken);
+            
             // 重新加载缓存
             await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            
+            // 发布缓存失效事件
+            await _publisher.Publish(new ConfigurationCacheInvalidatedEvent
+            {
+                CacheType = "Chute",
+                Reason = "删除格口",
+                InvalidatedAt = DateTime.Now
+            }, cancellationToken);
             
             return NoContent();
         }
