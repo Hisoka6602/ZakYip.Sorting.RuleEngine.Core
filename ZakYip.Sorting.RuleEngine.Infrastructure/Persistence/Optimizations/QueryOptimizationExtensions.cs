@@ -135,16 +135,18 @@ public static class QueryOptimizationExtensions
         var results = await query.ToListAsync(cancellationToken);
         stopwatch.Stop();
 
-        if (stopwatch.ElapsedMilliseconds > SlowQueryThresholdMs)
+        if (stopwatch.ElapsedMilliseconds > SlowQueryThresholdMs && logger.IsEnabled(LogLevel.Warning))
         {
             // 慢查询仅记录到日志文件，不输出到控制台
+            // 仅在警告级别启用时获取查询字符串以避免性能开销
+            var queryString = query.ToQueryString();
             logger.LogWarning(
                 "慢查询检测: {QueryName} 执行时间 {ElapsedMs}ms (阈值: {ThresholdMs}ms), 返回记录数: {Count}, SQL: {QueryString}",
                 queryName,
                 stopwatch.ElapsedMilliseconds,
                 SlowQueryThresholdMs,
                 results.Count,
-                query.ToQueryString());
+                queryString);
         }
 
         return results;
@@ -204,14 +206,18 @@ public static class QueryOptimizationExtensions
             suggestions.Add("查询使用了SELECT *，建议只选择需要的列");
         }
 
-        if (!queryString.Contains("WHERE", StringComparison.OrdinalIgnoreCase))
+        // 注意：这些检查是基础的启发式方法，可能产生误报
+        // 适用于简单查询的快速分析，复杂查询建议使用专业的SQL分析工具
+        if (!queryString.Contains("WHERE", StringComparison.OrdinalIgnoreCase) &&
+            !queryString.Contains("JOIN", StringComparison.OrdinalIgnoreCase))
         {
-            suggestions.Add("查询缺少WHERE条件，可能导致全表扫描，建议添加索引列过滤");
+            suggestions.Add("查询可能缺少WHERE条件，建议检查是否需要添加过滤条件");
         }
 
-        if (queryString.Contains("OR", StringComparison.OrdinalIgnoreCase))
+        if (queryString.Contains(" OR ", StringComparison.OrdinalIgnoreCase) &&
+            !queryString.Contains("JOIN", StringComparison.OrdinalIgnoreCase))
         {
-            suggestions.Add("查询包含OR条件，可能无法有效使用索引，建议考虑使用UNION或IN");
+            suggestions.Add("查询包含OR条件，建议检查是否可以使用IN或UNION优化");
         }
 
         if (suggestions.Count == 0)

@@ -13,6 +13,7 @@ public class LogFileCleanupService : BackgroundService
     private readonly ILogger<LogFileCleanupService> _logger;
     private readonly LogFileCleanupSettings _settings;
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1); // 每小时检查一次
+    private const decimal BytesPerMB = 1024.0m * 1024.0m; // 字节到MB的转换常量
 
     public LogFileCleanupService(
         ILogger<LogFileCleanupService> logger,
@@ -103,7 +104,7 @@ public class LogFileCleanupService : BackgroundService
 
         if (deletedCount > 0)
         {
-            var sizeMB = totalSize / (1024.0m * 1024.0m);
+            var sizeMB = totalSize / BytesPerMB;
             // 清理消息仅在控制台输出，不记录到logs
             Console.WriteLine($"日志文件清理完成，共删除 {deletedCount} 个文件，释放空间 {sizeMB:F2} MB");
         }

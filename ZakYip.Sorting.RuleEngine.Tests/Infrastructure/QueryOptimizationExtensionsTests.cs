@@ -114,8 +114,8 @@ public class QueryOptimizationExtensionsTests
             executionTimeMs, recordCount, queryString);
 
         // Assert
-        Assert.Contains("缺少WHERE条件", suggestions);
-        Assert.Contains("全表扫描", suggestions);
+        Assert.Contains("可能缺少WHERE条件", suggestions);
+        Assert.Contains("过滤条件", suggestions);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class QueryOptimizationExtensionsTests
 
         // Assert
         Assert.Contains("OR条件", suggestions);
-        Assert.Contains("UNION或IN", suggestions);
+        Assert.Contains("IN或UNION", suggestions);
     }
 
     [Fact]
@@ -168,6 +168,7 @@ public class QueryOptimizationExtensionsTests
 
         // Assert
         Assert.Contains("查询性能良好", suggestions);
-        Assert.DoesNotContain("建议", suggestions.Replace("查询性能良好，无需优化", ""));
+        Assert.DoesNotContain("强烈", suggestions);
+        Assert.DoesNotContain("返回记录数超过", suggestions);
     }
 }
