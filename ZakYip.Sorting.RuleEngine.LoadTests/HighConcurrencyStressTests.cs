@@ -306,50 +306,50 @@ public class HighConcurrencyStressTests
     [Fact]
     public void LongDuration_StabilityTest()
     {
-        var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
-
-        var scenario = Scenario.Create("long_duration_stability", async context =>
+        using (var httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) })
         {
-            var instanceNum = int.Parse(context.ScenarioInfo.InstanceId.Split('_').LastOrDefault() ?? "0");
-            var parcelData = new
+            var scenario = Scenario.Create("long_duration_stability", async context =>
             {
-                parcelId = $"STABLE_{instanceNum:D4}_{context.InvocationNumber:D6}",
-                cartNumber = $"CART{instanceNum % 10:D2}",
-                barcode = $"BC{DateTime.Now.Ticks}{context.InvocationNumber}",
-                weight = Random.Shared.Next(100, 5000),
-                length = Random.Shared.Next(10, 100),
-                width = Random.Shared.Next(10, 100),
-                height = Random.Shared.Next(10, 100),
-                volume = Random.Shared.Next(1000, 100000)
-            };
+                var instanceNum = int.Parse(context.ScenarioInfo.InstanceId.Split('_').LastOrDefault() ?? "0");
+                var parcelData = new
+                {
+                    parcelId = $"STABLE_{instanceNum:D4}_{context.InvocationNumber:D6}",
+                    cartNumber = $"CART{instanceNum % 10:D2}",
+                    barcode = $"BC{DateTime.Now.Ticks}{context.InvocationNumber}",
+                    weight = Random.Shared.Next(100, 5000),
+                    length = Random.Shared.Next(10, 100),
+                    width = Random.Shared.Next(10, 100),
+                    height = Random.Shared.Next(10, 100),
+                    volume = Random.Shared.Next(1000, 100000)
+                };
 
-            var request = Http.CreateRequest("POST", "/api/parcel/process")
-                .WithJsonBody(parcelData)
-                .WithHeader("Content-Type", "application/json");
+                var request = Http.CreateRequest("POST", "/api/parcel/process")
+                    .WithJsonBody(parcelData)
+                    .WithHeader("Content-Type", "application/json");
 
-            return await Http.Send(httpClient, request);
-        })
-        .WithWarmUpDuration(TimeSpan.FromSeconds(10))
-        .WithLoadSimulations(
-            // 持续10分钟，保持50 RPS的稳定负载
-            Simulation.KeepConstant(copies: 50, during: TimeSpan.FromMinutes(10))
-        );
+                return await Http.Send(httpClient, request);
+            })
+            .WithWarmUpDuration(TimeSpan.FromSeconds(10))
+            .WithLoadSimulations(
+                // 持续10分钟，保持50 RPS的稳定负载
+                Simulation.KeepConstant(copies: 50, during: TimeSpan.FromMinutes(10))
+            );
 
-        var stats = NBomberRunner
-            .RegisterScenarios(scenario)
-            .WithReportFileName("stability_test")
-            .WithReportFolder("./load-test-reports")
-            .Run();
+            var stats = NBomberRunner
+                .RegisterScenarios(scenario)
+                .WithReportFileName("stability_test")
+                .WithReportFolder("./load-test-reports")
+                .Run();
 
-        _output.WriteLine($"长时间稳定性测试完成 - 10分钟");
-        _output.WriteLine($"总请求数: {stats.ScenarioStats[0].Ok.Request.Count + stats.ScenarioStats[0].Fail.Request.Count}");
-        _output.WriteLine($"成功率: {stats.ScenarioStats[0].Ok.Request.Percent}%");
-        _output.WriteLine($"P99延迟稳定性: {stats.ScenarioStats[0].Ok.Latency.Percent99}ms");
+            _output.WriteLine($"长时间稳定性测试完成 - 10分钟");
+            _output.WriteLine($"总请求数: {stats.ScenarioStats[0].Ok.Request.Count + stats.ScenarioStats[0].Fail.Request.Count}");
+            _output.WriteLine($"成功率: {stats.ScenarioStats[0].Ok.Request.Percent}%");
+            _output.WriteLine($"P99延迟稳定性: {stats.ScenarioStats[0].Ok.Latency.Percent99}ms");
 
-        // 验证长时间稳定性
-        Assert.True(stats.ScenarioStats[0].Ok.Request.Percent >= 98, 
-            $"成功率应该 >= 98%，实际: {stats.ScenarioStats[0].Ok.Request.Percent}%");
-        Assert.True(stats.ScenarioStats[0].Ok.Latency.Percent99 <= 1500, 
-            $"P99延迟应该保持稳定 <= 1500ms，实际: {stats.ScenarioStats[0].Ok.Latency.Percent99}ms");
-    }
+            // 验证长时间稳定性
+            Assert.True(stats.ScenarioStats[0].Ok.Request.Percent >= 98, 
+                $"成功率应该 >= 98%，实际: {stats.ScenarioStats[0].Ok.Request.Percent}%");
+            Assert.True(stats.ScenarioStats[0].Ok.Latency.Percent99 <= 1500, 
+                $"P99延迟应该保持稳定 <= 1500ms，实际: {stats.ScenarioStats[0].Ok.Latency.Percent99}ms");
+        }
 }
