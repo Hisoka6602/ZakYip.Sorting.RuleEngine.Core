@@ -158,9 +158,10 @@ public class ShardingTableManagementService : BackgroundService
             // 检查表是否存在
             var sql = _dialect.GetTableExistsQuery(tableName);
 
-            var exists = await context.Database.SqlQueryRaw<int>(sql).FirstOrDefaultAsync(cancellationToken);
+            var result = await context.Database.SqlQueryRaw<TableExistsResult>(sql).FirstOrDefaultAsync(cancellationToken);
+            var exists = result?.Value ?? false;
 
-            if (exists == 0)
+            if (!exists)
             {
                 // 创建表（使用与ParcelLogEntry相同的结构）
                 var createTableSql = _dialect.GetCreateShardingTableQuery(tableName);
@@ -192,4 +193,13 @@ public class ShardingTableManagementService : BackgroundService
             System.Globalization.CalendarWeekRule.FirstFourDayWeek,
             System.DayOfWeek.Monday);
     }
+}
+
+/// <summary>
+/// 表是否存在的查询结果
+/// Table existence query result
+/// </summary>
+public class TableExistsResult
+{
+    public bool Value { get; set; }
 }
