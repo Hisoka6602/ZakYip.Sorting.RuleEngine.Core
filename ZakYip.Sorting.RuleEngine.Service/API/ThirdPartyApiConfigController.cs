@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -34,23 +36,26 @@ public class ThirdPartyApiConfigController : ControllerBase
     [HttpGet]
     [SwaggerOperation(
         Summary = "获取所有API配置",
-        Description = "获取系统中所有第三方API配置",
+        Description = "获取系统中所有第三方API配置（API密钥已脱敏）",
         OperationId = "GetAllApiConfigs",
         Tags = new[] { "ThirdPartyApiConfig" }
     )]
-    [SwaggerResponse(200, "成功返回API配置列表", typeof(IEnumerable<ThirdPartyApiConfig>))]
-    [SwaggerResponse(500, "服务器内部错误")]
-    public async Task<ActionResult<IEnumerable<ThirdPartyApiConfig>>> GetAll()
+    [SwaggerResponse(200, "成功返回API配置列表", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>>> GetAll()
     {
         try
         {
             var configs = await _repository.GetAllAsync();
-            return Ok(configs);
+            var dtos = configs.ToResponseDtos();
+            return Ok(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取所有API配置时发生错误");
-            return StatusCode(500, new { message = "获取API配置失败", error = ex.Message });
+            return StatusCode(500, ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.FailureResult("获取API配置失败", "GET_CONFIGS_FAILED"));
         }
     }
 
@@ -58,18 +63,31 @@ public class ThirdPartyApiConfigController : ControllerBase
     /// 获取所有启用的API配置
     /// </summary>
     /// <returns>启用的API配置列表（按优先级排序）</returns>
+    /// <response code="200">成功返回启用的API配置列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("enabled")]
-    public async Task<ActionResult<IEnumerable<ThirdPartyApiConfig>>> GetEnabled()
+    [SwaggerOperation(
+        Summary = "获取启用的API配置",
+        Description = "获取系统中所有已启用的第三方API配置，按优先级排序（API密钥已脱敏）",
+        OperationId = "GetEnabledApiConfigs",
+        Tags = new[] { "ThirdPartyApiConfig" }
+    )]
+    [SwaggerResponse(200, "成功返回启用的API配置列表", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>>> GetEnabled()
     {
         try
         {
             var configs = await _repository.GetEnabledConfigsAsync();
-            return Ok(configs);
+            var dtos = configs.ToResponseDtos();
+            return Ok(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取启用的API配置时发生错误");
-            return StatusCode(500, new { message = "获取启用的API配置失败", error = ex.Message });
+            return StatusCode(500, ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.FailureResult("获取启用的API配置失败", "GET_ENABLED_CONFIGS_FAILED"));
         }
     }
 
@@ -78,22 +96,39 @@ public class ThirdPartyApiConfigController : ControllerBase
     /// </summary>
     /// <param name="id">配置ID</param>
     /// <returns>API配置</returns>
+    /// <response code="200">成功返回API配置</response>
+    /// <response code="404">API配置未找到</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("{id}")]
-    public async Task<ActionResult<ThirdPartyApiConfig>> GetById(string id)
+    [SwaggerOperation(
+        Summary = "根据ID获取API配置",
+        Description = "根据配置ID获取特定第三方API配置的详细信息（API密钥已脱敏）",
+        OperationId = "GetApiConfigById",
+        Tags = new[] { "ThirdPartyApiConfig" }
+    )]
+    [SwaggerResponse(200, "成功返回API配置", typeof(ApiResponse<ThirdPartyApiConfigResponseDto>))]
+    [SwaggerResponse(404, "API配置未找到", typeof(ApiResponse<ThirdPartyApiConfigResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<ThirdPartyApiConfigResponseDto>))]
+    [ProducesResponseType(typeof(ApiResponse<ThirdPartyApiConfigResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<ThirdPartyApiConfigResponseDto>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<ThirdPartyApiConfigResponseDto>), 500)]
+    public async Task<ActionResult<ApiResponse<ThirdPartyApiConfigResponseDto>>> GetById(
+        [SwaggerParameter("配置ID", Required = true)] string id)
     {
         try
         {
             var config = await _repository.GetByIdAsync(id);
             if (config == null)
             {
-                return NotFound(new { message = $"未找到ID为 {id} 的API配置" });
+                return NotFound(ApiResponse<ThirdPartyApiConfigResponseDto>.FailureResult("API配置未找到", "CONFIG_NOT_FOUND"));
             }
-            return Ok(config);
+            var dto = config.ToResponseDto();
+            return Ok(ApiResponse<ThirdPartyApiConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取API配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, new { message = "获取API配置失败", error = ex.Message });
+            return StatusCode(500, ApiResponse<ThirdPartyApiConfigResponseDto>.FailureResult("获取API配置失败", "GET_CONFIG_FAILED"));
         }
     }
 

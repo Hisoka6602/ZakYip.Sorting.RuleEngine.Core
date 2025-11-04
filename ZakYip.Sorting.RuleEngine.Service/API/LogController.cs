@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -122,17 +123,42 @@ public class LogController : ControllerBase
     /// <summary>
     /// 获取DWS通信日志
     /// </summary>
+    /// <param name="startTime">开始时间（可选）</param>
+    /// <param name="endTime">结束时间（可选）</param>
+    /// <param name="barcode">条码（可选）</param>
+    /// <param name="page">页码（默认1）</param>
+    /// <param name="pageSize">每页数量（默认50）</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>DWS通信日志列表</returns>
+    /// <response code="200">成功返回DWS通信日志列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("dws-communication")]
-    public async Task<IActionResult> GetDwsCommunicationLogs(
-        [FromQuery] DateTime? startTime,
-        [FromQuery] DateTime? endTime,
-        [FromQuery] string? barcode,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+    [SwaggerOperation(
+        Summary = "获取DWS通信日志",
+        Description = "查询DWS设备通信日志，支持时间范围和条码筛选",
+        OperationId = "GetDwsCommunicationLogs",
+        Tags = new[] { "Log" }
+    )]
+    [SwaggerResponse(200, "成功返回DWS通信日志列表", typeof(PagedResponse<DwsCommunicationLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<DwsCommunicationLog>))]
+    [ProducesResponseType(typeof(PagedResponse<DwsCommunicationLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<DwsCommunicationLog>), 500)]
+    public async Task<ActionResult<PagedResponse<DwsCommunicationLog>>> GetDwsCommunicationLogs(
+        [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
+        [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
+        [FromQuery, SwaggerParameter("条码")] string? barcode,
+        [FromQuery, SwaggerParameter("页码")] int page = 1,
+        [FromQuery, SwaggerParameter("每页数量")] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
+            if (context == null)
+            {
+                return StatusCode(500, PagedResponse<DwsCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+            }
+
             var logs = _useMySql 
                 ? _mysqlContext!.DwsCommunicationLogs.AsQueryable()
                 : _sqliteContext!.DwsCommunicationLogs.AsQueryable();
@@ -154,29 +180,54 @@ public class LogController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(new { total, page, pageSize, data });
+            return Ok(PagedResponse<DwsCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询DWS通信日志失败");
-            return StatusCode(500, new { error = "查询DWS通信日志失败", message = ex.Message });
+            return StatusCode(500, PagedResponse<DwsCommunicationLog>.FailureResult($"查询DWS通信日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 
     /// <summary>
     /// 获取API通信日志
     /// </summary>
+    /// <param name="startTime">开始时间（可选）</param>
+    /// <param name="endTime">结束时间（可选）</param>
+    /// <param name="parcelId">包裹ID（可选）</param>
+    /// <param name="page">页码（默认1）</param>
+    /// <param name="pageSize">每页数量（默认50）</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>API通信日志列表</returns>
+    /// <response code="200">成功返回API通信日志列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("api-communication")]
-    public async Task<IActionResult> GetApiCommunicationLogs(
-        [FromQuery] DateTime? startTime,
-        [FromQuery] DateTime? endTime,
-        [FromQuery] string? parcelId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+    [SwaggerOperation(
+        Summary = "获取API通信日志",
+        Description = "查询第三方API通信日志，支持时间范围和包裹ID筛选",
+        OperationId = "GetApiCommunicationLogs",
+        Tags = new[] { "Log" }
+    )]
+    [SwaggerResponse(200, "成功返回API通信日志列表", typeof(PagedResponse<ApiCommunicationLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ApiCommunicationLog>))]
+    [ProducesResponseType(typeof(PagedResponse<ApiCommunicationLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<ApiCommunicationLog>), 500)]
+    public async Task<ActionResult<PagedResponse<ApiCommunicationLog>>> GetApiCommunicationLogs(
+        [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
+        [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
+        [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
+        [FromQuery, SwaggerParameter("页码")] int page = 1,
+        [FromQuery, SwaggerParameter("每页数量")] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
+            if (context == null)
+            {
+                return StatusCode(500, PagedResponse<ApiCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+            }
+
             var logs = _useMySql 
                 ? _mysqlContext!.ApiCommunicationLogs.AsQueryable()
                 : _sqliteContext!.ApiCommunicationLogs.AsQueryable();
@@ -198,29 +249,54 @@ public class LogController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(new { total, page, pageSize, data });
+            return Ok(PagedResponse<ApiCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询API通信日志失败");
-            return StatusCode(500, new { error = "查询API通信日志失败", message = ex.Message });
+            return StatusCode(500, PagedResponse<ApiCommunicationLog>.FailureResult($"查询API通信日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 
     /// <summary>
     /// 获取分拣机通信日志
     /// </summary>
+    /// <param name="startTime">开始时间（可选）</param>
+    /// <param name="endTime">结束时间（可选）</param>
+    /// <param name="parcelId">包裹ID（可选）</param>
+    /// <param name="page">页码（默认1）</param>
+    /// <param name="pageSize">每页数量（默认50）</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分拣机通信日志列表</returns>
+    /// <response code="200">成功返回分拣机通信日志列表</response>
+    /// <response code="500">服务器内部错误</response>
     [HttpGet("sorter-communication")]
-    public async Task<IActionResult> GetSorterCommunicationLogs(
-        [FromQuery] DateTime? startTime,
-        [FromQuery] DateTime? endTime,
-        [FromQuery] string? parcelId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+    [SwaggerOperation(
+        Summary = "获取分拣机通信日志",
+        Description = "查询分拣机通信日志，支持时间范围和包裹ID筛选",
+        OperationId = "GetSorterCommunicationLogs",
+        Tags = new[] { "Log" }
+    )]
+    [SwaggerResponse(200, "成功返回分拣机通信日志列表", typeof(PagedResponse<SorterCommunicationLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<SorterCommunicationLog>))]
+    [ProducesResponseType(typeof(PagedResponse<SorterCommunicationLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<SorterCommunicationLog>), 500)]
+    public async Task<ActionResult<PagedResponse<SorterCommunicationLog>>> GetSorterCommunicationLogs(
+        [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
+        [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
+        [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
+        [FromQuery, SwaggerParameter("页码")] int page = 1,
+        [FromQuery, SwaggerParameter("每页数量")] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
+            if (context == null)
+            {
+                return StatusCode(500, PagedResponse<SorterCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+            }
+
             var logs = _useMySql 
                 ? _mysqlContext!.SorterCommunicationLogs.AsQueryable()
                 : _sqliteContext!.SorterCommunicationLogs.AsQueryable();
@@ -242,12 +318,12 @@ public class LogController : ControllerBase
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            return Ok(new { total, page, pageSize, data });
+            return Ok(PagedResponse<SorterCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "查询分拣机通信日志失败");
-            return StatusCode(500, new { error = "查询分拣机通信日志失败", message = ex.Message });
+            return StatusCode(500, PagedResponse<SorterCommunicationLog>.FailureResult($"查询分拣机通信日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 
