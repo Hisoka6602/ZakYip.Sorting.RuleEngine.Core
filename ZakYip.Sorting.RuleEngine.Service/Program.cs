@@ -351,6 +351,65 @@ public class Program
     }
 
     /// <summary>
+    /// 确保MySQL数据库存在，如果不存在则创建
+    /// </summary>
+    private static bool EnsureMySqlDatabaseExists(string connectionString, NLog.Logger logger)
+    {
+        try
+        {
+            // 解析连接字符串获取数据库名称
+            var builder = new MySqlConnector.MySqlConnectionStringBuilder(connectionString);
+            var databaseName = builder.Database;
+            
+            if (string.IsNullOrEmpty(databaseName))
+            {
+                logger.Error("MySQL连接字符串中未指定数据库名称");
+                return false;
+            }
+            
+            // 创建不包含数据库名称的连接字符串，用于连接到MySQL服务器
+            builder.Database = "";
+            var serverConnectionString = builder.ConnectionString;
+            
+            logger.Info("检查MySQL服务器连接: {Server}:{Port}", builder.Server, builder.Port);
+            
+            // 连接到MySQL服务器（不指定数据库）
+            using (var connection = new MySqlConnector.MySqlConnection(serverConnectionString))
+            {
+                connection.Open();
+                logger.Info("成功连接到MySQL服务器");
+                
+                // 检查数据库是否存在
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{databaseName}'";
+                    var result = command.ExecuteScalar();
+                    
+                    if (result == null)
+                    {
+                        // 数据库不存在，创建它
+                        logger.Info("数据库 '{Database}' 不存在，正在创建...", databaseName);
+                        command.CommandText = $"CREATE DATABASE `{databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
+                        command.ExecuteNonQuery();
+                        logger.Info("成功创建数据库 '{Database}'", databaseName);
+                    }
+                    else
+                    {
+                        logger.Info("数据库 '{Database}' 已存在", databaseName);
+                    }
+                }
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "确保MySQL数据库存在时发生错误: {Message}", ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 初始化数据库并自动应用迁移
     /// </summary>
     private static void InitializeDatabases(IServiceProvider services, AppSettings appSettings)
@@ -368,7 +427,14 @@ public class Program
                 {
                     logger.Info("尝试应用MySQL数据库迁移...");
                     
-                    // 首先检查数据库连接
+                    // 首先确保数据库存在
+                    if (!EnsureMySqlDatabaseExists(appSettings.MySql.ConnectionString, logger))
+                    {
+                        logger.Warn("无法确保MySQL数据库存在");
+                        throw new InvalidOperationException("无法确保MySQL数据库存在");
+                    }
+                    
+                    // 检查数据库连接
                     var canConnect = mysqlContext.Database.CanConnect();
                     if (!canConnect)
                     {
@@ -376,7 +442,7 @@ public class Program
                         throw new InvalidOperationException("无法连接到MySQL数据库");
                     }
                     
-                    // 自动应用数据库迁移
+                    // 自动应用数据库迁移（这会创建表如果不存在）
                     mysqlContext.Database.Migrate();
                     logger.Info("MySQL数据库迁移成功");
                 }
