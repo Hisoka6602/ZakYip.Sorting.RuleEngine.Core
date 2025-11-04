@@ -211,8 +211,8 @@ public class GanttChartService : IGanttChartService
                 DwsCommunicationTime = dwsLog?.CommunicationTime,
                 ApiRequestTime = apiLog?.RequestTime,
                 ApiDurationMs = apiLog?.DurationMs,
-                Weight = dwsLog?.Weight != null ? (double?)dwsLog.Weight : null,
-                Volume = dwsLog?.Volume != null ? (double?)dwsLog.Volume : null,
+                Weight = dwsLog?.Weight,
+                Volume = dwsLog?.Volume,
                 CartOccupancy = log.CartOccupancy,
                 SequenceNumber = sequenceNumber++,
                 IsTarget = log.ParcelId == target
@@ -303,8 +303,8 @@ public class GanttChartService : IGanttChartService
                 DwsCommunicationTime = dwsLog?.CommunicationTime,
                 ApiRequestTime = apiLog?.RequestTime,
                 ApiDurationMs = apiLog?.DurationMs,
-                Weight = dwsLog?.Weight != null ? (double?)dwsLog.Weight : null,
-                Volume = dwsLog?.Volume != null ? (double?)dwsLog.Volume : null,
+                Weight = dwsLog?.Weight,
+                Volume = dwsLog?.Volume,
                 CartOccupancy = log.CartOccupancy,
                 SequenceNumber = sequenceNumber++,
                 IsTarget = log.ParcelId == target

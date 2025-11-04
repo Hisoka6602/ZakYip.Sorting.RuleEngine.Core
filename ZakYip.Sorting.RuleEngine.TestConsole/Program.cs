@@ -170,27 +170,27 @@ class Program
             var barcode = Console.ReadLine() ?? "";
 
             Console.Write("重量（克）: ");
-            if (!double.TryParse(Console.ReadLine(), out double weight))
+            if (!decimal.TryParse(Console.ReadLine(), out decimal weight))
             {
-                weight = 1000;
+                weight = 1000m;
             }
 
             Console.Write("长度（毫米）: ");
-            if (!double.TryParse(Console.ReadLine(), out double length))
+            if (!decimal.TryParse(Console.ReadLine(), out decimal length))
             {
-                length = 300;
+                length = 300m;
             }
 
             Console.Write("宽度（毫米）: ");
-            if (!double.TryParse(Console.ReadLine(), out double width))
+            if (!decimal.TryParse(Console.ReadLine(), out decimal width))
             {
-                width = 200;
+                width = 200m;
             }
 
             Console.Write("高度（毫米）: ");
-            if (!double.TryParse(Console.ReadLine(), out double height))
+            if (!decimal.TryParse(Console.ReadLine(), out decimal height))
             {
-                height = 150;
+                height = 150m;
             }
 
             var volume = length * width * height;

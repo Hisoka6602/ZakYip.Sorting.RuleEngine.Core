@@ -138,10 +138,27 @@ public class Program
                     : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21，作为最低兼容版本。可通过配置使用更高版本（如8.0.33），但默认选择8.0.21以确保与大多数生产环境兼容。
                 
                 builder.Services.AddDbContext<MySqlLogDbContext>(options =>
+                {
                     options.UseMySql(
                         appSettings.MySql.ConnectionString,
-                        serverVersion),
-                    ServiceLifetime.Scoped);
+                        serverVersion);
+                    
+                    // 生产环境安全配置：禁止敏感数据日志和详细错误
+                    // 仅在DEBUG模式下启用详细错误，帮助开发调试
+#if DEBUG
+                    options.EnableDetailedErrors();
+                    options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
+#else
+                    // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
+                    options.EnableSensitiveDataLogging(false);
+#endif
+                    
+                    // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
+                    options.LogTo(
+                        message => System.Diagnostics.Debug.WriteLine(message),
+                        Microsoft.Extensions.Logging.LogLevel.Warning);
+                },
+                ServiceLifetime.Scoped);
                 
                 // 如果启用了分片功能，也注册ShardedLogDbContext
                 // Register ShardedLogDbContext if sharding is enabled
@@ -149,10 +166,26 @@ public class Program
                 if (shardingEnabled)
                 {
                     builder.Services.AddDbContext<ShardedLogDbContext>(options =>
+                    {
                         options.UseMySql(
                             appSettings.MySql.ConnectionString,
-                            serverVersion),
-                        ServiceLifetime.Scoped);
+                            serverVersion);
+                        
+                        // 生产环境安全配置：禁止敏感数据日志和详细错误
+#if DEBUG
+                        options.EnableDetailedErrors();
+                        options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
+#else
+                        // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
+                        options.EnableSensitiveDataLogging(false);
+#endif
+                        
+                        // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
+                        options.LogTo(
+                            message => System.Diagnostics.Debug.WriteLine(message),
+                            Microsoft.Extensions.Logging.LogLevel.Warning);
+                    },
+                    ServiceLifetime.Scoped);
                     logger.Info("分片数据库上下文已注册");
                 }
                 
@@ -265,7 +298,11 @@ public class Program
         // 添加SignalR服务
         builder.Services.AddSignalR(options =>
         {
-            options.EnableDetailedErrors = true;
+#if DEBUG
+            options.EnableDetailedErrors = true; // 仅开发环境启用详细错误，帮助调试
+#else
+            options.EnableDetailedErrors = false; // 生产环境禁用详细错误，防止信息泄露
+#endif
             options.KeepAliveInterval = TimeSpan.FromSeconds(15);
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
         });
@@ -380,7 +417,23 @@ public class Program
         }
 
         services.AddDbContext<SqliteLogDbContext>(options =>
-            options.UseSqlite(appSettings.Sqlite.ConnectionString));
+        {
+            options.UseSqlite(appSettings.Sqlite.ConnectionString);
+            
+            // 生产环境安全配置：禁止敏感数据日志和详细错误
+#if DEBUG
+            options.EnableDetailedErrors();
+            options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
+#else
+            // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
+            options.EnableSensitiveDataLogging(false);
+#endif
+            
+            // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
+            options.LogTo(
+                message => System.Diagnostics.Debug.WriteLine(message),
+                Microsoft.Extensions.Logging.LogLevel.Warning);
+        });
         
         services.AddScoped<ILogRepository, SqliteLogRepository>();
     }
