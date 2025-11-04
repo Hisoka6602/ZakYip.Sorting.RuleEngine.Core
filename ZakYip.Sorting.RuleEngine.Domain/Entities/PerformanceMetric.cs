@@ -43,5 +43,5 @@ public class PerformanceMetric
     /// <summary>
     /// 记录时间
     /// </summary>
-    public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
+    public DateTime RecordedAt { get; set; } = DateTime.Now;
 }

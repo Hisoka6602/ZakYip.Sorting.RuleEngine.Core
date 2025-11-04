@@ -33,5 +33,5 @@ public class ThirdPartyResponse
     /// <summary>
     /// 响应时间
     /// </summary>
-    public DateTime ResponseTime { get; set; } = DateTime.UtcNow;
+    public DateTime ResponseTime { get; set; } = DateTime.Now;
 }

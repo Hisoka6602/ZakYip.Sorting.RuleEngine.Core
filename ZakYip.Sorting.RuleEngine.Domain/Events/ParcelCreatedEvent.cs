@@ -25,7 +25,7 @@ public record class ParcelCreatedEvent : INotification
     /// <summary>
     /// 创建时间
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.Now;
     
     /// <summary>
     /// 包裹序号（用于保证FIFO顺序）

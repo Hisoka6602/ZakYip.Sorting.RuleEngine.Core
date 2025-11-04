@@ -71,7 +71,7 @@ public class ParcelOrchestrationService
             CartNumber = cartNumber,
             Barcode = barcode,
             SequenceNumber = sequence,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
         
         if (!_processingContexts.TryAdd(parcelId, context))
@@ -106,7 +106,7 @@ public class ParcelOrchestrationService
         }
 
         context.DwsData = dwsData;
-        context.DwsReceivedAt = DateTime.UtcNow;
+        context.DwsReceivedAt = DateTime.Now;
         
         // 将DWS处理加入队列
         var workItem = new ParcelWorkItem

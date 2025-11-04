@@ -57,7 +57,7 @@ public class DataArchiveService : BackgroundService
     private async Task PerformArchiveAsync(CancellationToken cancellationToken)
     {
         // 检查是否应该执行归档（基于时间）
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         if (now.Hour != 3) // 只在凌晨3点执行
         {
             return;
@@ -95,7 +95,7 @@ public class DataArchiveService : BackgroundService
             return;
         }
 
-        var coldDataThreshold = DateTime.UtcNow.AddDays(-_settings.ColdDataThresholdDays);
+        var coldDataThreshold = DateTime.Now.AddDays(-_settings.ColdDataThresholdDays);
 
         try
         {

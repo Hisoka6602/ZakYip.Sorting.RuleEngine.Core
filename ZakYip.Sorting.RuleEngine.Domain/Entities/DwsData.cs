@@ -45,5 +45,5 @@ public class DwsData
     /// 扫描时间
     /// Scan timestamp
     /// </summary>
-    public DateTime ScannedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ScannedAt { get; set; } = DateTime.Now;
 }

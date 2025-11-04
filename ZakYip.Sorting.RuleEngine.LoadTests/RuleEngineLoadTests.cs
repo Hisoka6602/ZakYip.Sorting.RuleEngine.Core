@@ -66,7 +66,7 @@ public class RuleEngineLoadTests
         {
             var parcelData = new
             {
-                barcode = $"STRESS{DateTime.UtcNow.Ticks}",
+                barcode = $"STRESS{DateTime.Now.Ticks}",
                 weight = Random.Shared.NextDouble() * 10,
                 volume = Random.Shared.NextDouble() * 1000,
                 destination = $"City{Random.Shared.Next(1, 100)}"

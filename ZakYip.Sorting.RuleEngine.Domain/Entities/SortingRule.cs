@@ -81,7 +81,7 @@ public class SortingRule
     /// Example: 2023-11-01T08:30:00Z
     /// </summary>
     [SwaggerSchema(Description = "创建时间")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 更新时间

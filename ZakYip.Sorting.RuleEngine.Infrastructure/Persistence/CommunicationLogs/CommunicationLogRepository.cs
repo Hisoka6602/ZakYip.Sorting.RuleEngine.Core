@@ -46,7 +46,7 @@ public class CommunicationLogRepository : ICommunicationLogRepository
                 RemoteAddress = remoteAddress,
                 IsSuccess = isSuccess,
                 ErrorMessage = errorMessage,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _dbContext.CommunicationLogs.Add(log);

@@ -215,6 +215,9 @@ public class Program
         // 注册包裹活动追踪器（用于空闲检测）
         builder.Services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
         
+        // 注册配置缓存服务
+        builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Services.ConfigurationCacheService>();
+        
         // 注册事件驱动服务
         builder.Services.AddSingleton<ParcelOrchestrationService>();
         builder.Services.AddMediatR(cfg => 
@@ -229,6 +232,7 @@ public class Program
         builder.Services.AddHostedService<MySqlAutoTuningService>();
         builder.Services.AddHostedService<ShardingTableManagementService>();
         builder.Services.AddHostedService<LogFileCleanupService>();
+        builder.Services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.ConfigurationCachePreloadService>();
 
         // 添加控制器和API服务
         builder.Services.AddControllers(options =>
@@ -523,7 +527,7 @@ public class Program
         app.MapGet("/health", () => Results.Ok(new
         {
             status = "healthy",
-            timestamp = DateTime.UtcNow
+            timestamp = DateTime.Now
         }))
         .WithName("HealthCheck")
         .WithOpenApi();

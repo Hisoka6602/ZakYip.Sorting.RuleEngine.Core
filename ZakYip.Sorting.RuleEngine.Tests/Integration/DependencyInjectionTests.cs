@@ -82,14 +82,14 @@ public class DependencyInjectionTests
             ParcelId = "TEST123",
             DurationMs = 100,
             Success = true,
-            RecordedAt = DateTime.UtcNow
+            RecordedAt = DateTime.Now
         };
         
         // Act
         await repository.RecordMetricAsync(metric);
         
-        var startTime = DateTime.UtcNow.AddHours(-1);
-        var endTime = DateTime.UtcNow.AddHours(1);
+        var startTime = DateTime.Now.AddHours(-1);
+        var endTime = DateTime.Now.AddHours(1);
         var metrics = await repository.GetMetricsAsync(startTime, endTime, "Test_Operation");
         
         // Assert

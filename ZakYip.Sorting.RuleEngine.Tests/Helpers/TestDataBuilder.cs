@@ -31,8 +31,8 @@ public static class TestDataBuilder
             Priority = priority,
             MatchingMethod = matchingMethod,
             IsEnabled = isEnabled,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 
@@ -75,8 +75,8 @@ public static class TestDataBuilder
             CartNumber = cartNumber,
             Barcode = barcode,
             Status = status,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 

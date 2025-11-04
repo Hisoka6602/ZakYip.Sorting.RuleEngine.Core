@@ -14,7 +14,7 @@ public class ApiRequestLog
     /// <summary>
     /// 请求时间
     /// </summary>
-    public DateTime RequestTime { get; set; } = DateTime.UtcNow;
+    public DateTime RequestTime { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 请求IP地址

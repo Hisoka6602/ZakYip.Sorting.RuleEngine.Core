@@ -85,7 +85,8 @@ public class ParcelController : ControllerBase
             {
                 Success = false,
                 ParcelId = request.ParcelId,
-                ErrorMessage = ex.Message
+                ErrorMessage = ex.Message,
+                ProcessingTimeMs = 0
             });
         }
     }

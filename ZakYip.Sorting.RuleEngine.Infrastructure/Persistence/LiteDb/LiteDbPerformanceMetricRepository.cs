@@ -36,7 +36,7 @@ public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
         
         if (metric.RecordedAt == default)
         {
-            metric.RecordedAt = DateTime.UtcNow;
+            metric.RecordedAt = DateTime.Now;
         }
         
         _collection.Insert(metric);

@@ -76,6 +76,8 @@ public class SqliteLogDbContext : DbContext
             
             entity.HasIndex(e => e.ChuteName).HasDatabaseName("IX_chutes_ChuteName");
             entity.HasIndex(e => e.ChuteCode).HasDatabaseName("IX_chutes_ChuteCode");
+            // 索引：CreatedAt字段按降序排序，用于时间范围查询和排序
+            entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_chutes_CreatedAt_Desc");
         });
 
         modelBuilder.Entity<SorterCommunicationLog>(entity =>
@@ -192,5 +194,5 @@ public class LogEntry
     public string Level { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public string? Details { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

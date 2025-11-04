@@ -55,7 +55,7 @@ public class SortingRuleTests
     public void SortingRule_Timestamps_CanBeSet()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var rule = TestDataBuilder.CreateSortingRule();
 
         // Act
