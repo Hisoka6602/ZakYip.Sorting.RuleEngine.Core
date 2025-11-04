@@ -11,11 +11,16 @@ public class MySqlDialect : IDatabaseDialect
     public string GetTableExistsQuery(string tableName)
     {
         TableNameValidator.Validate(tableName);
+        // 使用 EXISTS 来检查表是否存在
+        // Note: EF Core's SqlQueryRaw requires FormattableString or manual parameter handling
+        // Since we validate the table name, we can safely embed it
         return $@"
-            SELECT COUNT(*) 
-            FROM information_schema.tables 
-            WHERE table_schema = DATABASE() 
-            AND table_name = '{tableName}'";
+            SELECT EXISTS(
+                SELECT 1 
+                FROM information_schema.tables 
+                WHERE table_schema = DATABASE() 
+                AND table_name = '{tableName}'
+            ) AS Value";
     }
 
     public string GetCreateShardingTableQuery(string tableName)

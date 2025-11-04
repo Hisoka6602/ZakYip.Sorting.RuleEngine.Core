@@ -11,11 +11,15 @@ public class SqliteDialect : IDatabaseDialect
     public string GetTableExistsQuery(string tableName)
     {
         TableNameValidator.Validate(tableName);
+        // SQLite doesn't have native EXISTS that returns a value directly in the same way as MySQL
+        // We use EXISTS in a SELECT to return a boolean value (1 or 0 in SQLite)
         return $@"
-            SELECT COUNT(*) 
-            FROM sqlite_master 
-            WHERE type = 'table' 
-            AND name = '{tableName}'";
+            SELECT EXISTS(
+                SELECT 1 
+                FROM sqlite_master 
+                WHERE type = 'table' 
+                AND name = '{tableName}'
+            ) AS Value";
     }
 
     public string GetCreateShardingTableQuery(string tableName)
