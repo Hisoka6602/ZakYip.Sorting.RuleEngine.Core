@@ -234,6 +234,13 @@ public class Program
         builder.Services.AddHostedService<LogFileCleanupService>();
         builder.Services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.ConfigurationCachePreloadService>();
 
+        // 添加健康检查
+        builder.Services.AddHealthChecks()
+            .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MySqlHealthCheck>("mysql", tags: new[] { "database", "mysql" })
+            .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.SqliteHealthCheck>("sqlite", tags: new[] { "database", "sqlite" })
+            .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MemoryCacheHealthCheck>("memory_cache", tags: new[] { "cache" })
+            .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.ThirdPartyApiHealthCheck>("third_party_api", tags: new[] { "external", "api" });
+
         // 添加控制器和API服务
         builder.Services.AddControllers(options =>
         {
@@ -523,19 +530,55 @@ public class Program
     /// </summary>
     private static void ConfigureMinimalApi(WebApplication app)
     {
-        // 健康检查端点
+        // 健康检查端点 - 简单版本
         app.MapGet("/health", () => Results.Ok(new
         {
             status = "healthy",
-            timestamp = DateTime.Now
+            timestamp = DateTime.UtcNow
         }))
         .WithName("HealthCheck")
         .WithOpenApi();
 
+        // 详细健康检查端点 - 包含所有组件状态
+        app.MapHealthChecks("/health/detail", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                var result = new
+                {
+                    status = report.Status.ToString(),
+                    timestamp = DateTime.UtcNow,
+                    duration = report.TotalDuration.TotalMilliseconds,
+                    checks = report.Entries.Select(e => new
+                    {
+                        name = e.Key,
+                        status = e.Value.Status.ToString(),
+                        description = e.Value.Description,
+                        duration = e.Value.Duration.TotalMilliseconds,
+                        exception = e.Value.Exception?.Message,
+                        tags = e.Value.Tags
+                    })
+                };
+                await context.Response.WriteAsJsonAsync(result);
+            }
+        });
+
+        // 按标签过滤的健康检查端点
+        app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("database")
+        });
+
+        app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            Predicate = _ => false // 仅检查服务是否运行
+        });
+
         // 版本信息端点
         app.MapGet("/version", () => Results.Ok(new
         {
-            version = "1.0.0",
+            version = "1.12.0",
             name = "ZakYip.Sorting.RuleEngine.Core",
             description = "分拣规则引擎核心系统"
         }))
@@ -543,4 +586,3 @@ public class Program
         .WithOpenApi();
     }
 }
-
