@@ -127,10 +127,9 @@ public class DataCleanupService : BackgroundService
                 var shardedContext = scope.ServiceProvider.GetService<ShardedLogDbContext>();
                 if (shardedContext != null)
                 {
-                    // 创建表存在性检查器
-                    var tableChecker = new ShardedTableExistenceChecker(
-                        shardedContext,
-                        scope.ServiceProvider.GetRequiredService<ILogger<ShardedTableExistenceChecker>>());
+                    // 通过依赖注入获取表存在性检查器
+                    var tableCheckerFactory = scope.ServiceProvider.GetRequiredService<Func<ShardedLogDbContext, ITableExistenceChecker>>();
+                    var tableChecker = tableCheckerFactory(shardedContext);
 
                     // 检查ParcelLogEntries表是否存在
                     var tableExists = await tableChecker.TableExistsAsync("ParcelLogEntries", cancellationToken);
