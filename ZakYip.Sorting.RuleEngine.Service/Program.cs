@@ -159,6 +159,9 @@ public class Program
                 logger.Info("MySQL数据库连接配置成功，使用弹性日志仓储");
                 // 使用带熔断器的弹性日志仓储
                 builder.Services.AddScoped<ILogRepository, ResilientLogRepository>();
+                
+                // 注册MySQL表存在性检查器
+                builder.Services.AddScoped<ITableExistenceChecker, MySqlTableExistenceChecker>();
             }
             catch (Exception ex)
             {

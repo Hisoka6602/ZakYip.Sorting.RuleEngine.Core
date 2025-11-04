@@ -127,25 +127,31 @@ public class DataCleanupService : BackgroundService
                 var shardedContext = scope.ServiceProvider.GetService<ShardedLogDbContext>();
                 if (shardedContext != null)
                 {
-                    // 通过依赖注入获取表存在性检查器
-                    var tableCheckerFactory = scope.ServiceProvider.GetRequiredService<Func<ShardedLogDbContext, ITableExistenceChecker>>();
-                    var tableChecker = tableCheckerFactory(shardedContext);
+                    // 通过依赖注入获取表存在性检查器（仅在MySQL启用时可用）
+                    var tableChecker = scope.ServiceProvider.GetService<ITableExistenceChecker>();
 
                     // 检查ParcelLogEntries表是否存在
-                    var tableExists = await tableChecker.TableExistsAsync("ParcelLogEntries", cancellationToken);
-                    
-                    if (tableExists)
+                    if (tableChecker != null)
                     {
-                        var parcelDeletedCount = await shardedContext.ParcelLogEntries
-                            .Where(e => e.CreatedAt < cutoffDate)
-                            .ExecuteDeleteAsync(cancellationToken);
+                        var tableExists = await tableChecker.TableExistsAsync("ParcelLogEntries", cancellationToken);
+                        
+                        if (tableExists)
+                        {
+                            var parcelDeletedCount = await shardedContext.ParcelLogEntries
+                                .Where(e => e.CreatedAt < cutoffDate)
+                                .ExecuteDeleteAsync(cancellationToken);
 
-                        _logger.LogInformation("已删除 {Count} 条旧包裹日志记录",
-                            parcelDeletedCount);
+                            _logger.LogInformation("已删除 {Count} 条旧包裹日志记录",
+                                parcelDeletedCount);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("表 'ParcelLogEntries' 不存在，跳过包裹日志清理");
+                        }
                     }
                     else
                     {
-                        _logger.LogDebug("表 'ParcelLogEntries' 不存在，跳过包裹日志清理");
+                        _logger.LogDebug("表存在性检查器不可用（可能使用SQLite），跳过表检查");
                     }
                 }
             }

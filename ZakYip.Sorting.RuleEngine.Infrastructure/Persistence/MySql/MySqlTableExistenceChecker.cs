@@ -35,7 +35,7 @@ public class MySqlTableExistenceChecker : ITableExistenceChecker
 
             // 使用EF Core的SqlQuery查询information_schema.tables
             // Use EF Core's SqlQuery to query information_schema.tables
-            var sql = $@"
+            FormattableString sql = $@"
                 SELECT 1 AS Value
                 FROM information_schema.tables 
                 WHERE table_schema = DATABASE() 
