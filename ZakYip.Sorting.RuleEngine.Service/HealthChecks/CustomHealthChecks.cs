@@ -168,7 +168,10 @@ public class ThirdPartyApiHealthCheck : IHealthCheck
         {
             return HealthCheckResult.Degraded("第三方API请求超时");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (
+            !(ex is OutOfMemoryException) &&
+            !(ex is StackOverflowException) &&
+            !(ex is ThreadAbortException))
         {
             return HealthCheckResult.Unhealthy($"第三方API不可访问: {ex.Message}", ex);
         }
