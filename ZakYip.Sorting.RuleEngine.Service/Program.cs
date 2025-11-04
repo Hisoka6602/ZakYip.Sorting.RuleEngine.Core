@@ -143,6 +143,18 @@ public class Program
                         serverVersion),
                     ServiceLifetime.Scoped);
                 
+                // 如果启用了分片功能，也注册ShardedLogDbContext
+                var shardingSettings = builder.Configuration.GetSection("AppSettings:Sharding").Get<ShardingSettings>();
+                if (shardingSettings?.Enabled == true)
+                {
+                    builder.Services.AddDbContext<ShardedLogDbContext>(options =>
+                        options.UseMySql(
+                            appSettings.MySql.ConnectionString,
+                            serverVersion),
+                        ServiceLifetime.Scoped);
+                    logger.Info("分片数据库上下文已注册");
+                }
+                
                 logger.Info("MySQL数据库连接配置成功，使用弹性日志仓储");
                 // 使用带熔断器的弹性日志仓储
                 builder.Services.AddScoped<ILogRepository, ResilientLogRepository>();
