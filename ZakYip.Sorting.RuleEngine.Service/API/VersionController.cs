@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Reflection;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -25,24 +26,27 @@ public class VersionController : ControllerBase
         OperationId = "GetVersion",
         Tags = new[] { "Version" }
     )]
-    [SwaggerResponse(200, "成功返回版本信息")]
-    public IActionResult GetVersion()
+    [SwaggerResponse(200, "成功返回版本信息", typeof(ApiResponse<VersionResponseDto>))]
+    [ProducesResponseType(typeof(ApiResponse<VersionResponseDto>), 200)]
+    public ActionResult<ApiResponse<VersionResponseDto>> GetVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version;
         var fileVersionInfo = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
 
-        return Ok(new
+        var versionData = new VersionResponseDto
         {
-            version = version?.ToString() ?? "1.7.0",
-            productVersion = fileVersionInfo.ProductVersion ?? "1.7.0",
-            fileVersion = fileVersionInfo.FileVersion ?? "1.7.0.0",
-            productName = fileVersionInfo.ProductName ?? "ZakYip 分拣规则引擎",
-            companyName = fileVersionInfo.CompanyName ?? "ZakYip",
-            description = "ZakYip分拣规则引擎系统 - 高性能包裹分拣规则引擎",
-            buildDate = GetBuildDate(assembly).ToString("yyyy-MM-dd HH:mm:ss"),
-            framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription
-        });
+            Version = version?.ToString() ?? "1.13.0",
+            ProductVersion = fileVersionInfo.ProductVersion ?? "1.13.0",
+            FileVersion = fileVersionInfo.FileVersion ?? "1.13.0.0",
+            ProductName = fileVersionInfo.ProductName ?? "ZakYip 分拣规则引擎",
+            CompanyName = fileVersionInfo.CompanyName ?? "ZakYip",
+            Description = "ZakYip分拣规则引擎系统 - 高性能包裹分拣规则引擎",
+            BuildDate = GetBuildDate(assembly).ToString("yyyy-MM-dd HH:mm:ss"),
+            Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription
+        };
+
+        return Ok(ApiResponse<VersionResponseDto>.SuccessResult(versionData));
     }
 
     /// <summary>
