@@ -397,7 +397,8 @@ public class Program
                     {
                         // 数据库不存在，创建它
                         logger.Info("数据库 '{Database}' 不存在，正在创建...", databaseName);
-                        // 对于CREATE DATABASE语句，数据库名不能参数化，但我们已经验证了名称的合法性
+                        // 对于CREATE DATABASE语句，MySQL不支持参数化数据库名
+                        // 但我们已通过正则表达式验证了名称只包含字母、数字和下划线，因此是安全的
                         command.Parameters.Clear();
                         command.CommandText = $"CREATE DATABASE `{databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
                         command.ExecuteNonQuery();
