@@ -1,8 +1,10 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
@@ -110,6 +112,7 @@ public class DataCleanupService : BackgroundService
         }
 
         var cutoffDate = DateTime.Now.AddDays(-_settings.RetentionDays);
+        var startTime = DateTime.UtcNow;
         
         try
         {
@@ -157,7 +160,23 @@ public class DataCleanupService : BackgroundService
             }
 
             _lastCleanupTime = DateTime.Now;
-            _logger.LogInformation("数据清理完成");
+            
+            var duration = DateTime.UtcNow - startTime;
+            _logger.LogInformation("数据清理完成，耗时: {DurationMs}ms", duration.TotalMilliseconds);
+            
+            // 发布数据清理事件
+            var publisher = scope.ServiceProvider.GetService<IPublisher>();
+            if (publisher != null && deletedCount > 0)
+            {
+                await publisher.Publish(new DataCleanedEvent
+                {
+                    RecordCount = deletedCount,
+                    TableName = "LogEntries",
+                    CutoffDate = cutoffDate,
+                    CleanedAt = DateTime.Now,
+                    DurationMs = (long)duration.TotalMilliseconds
+                }, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
