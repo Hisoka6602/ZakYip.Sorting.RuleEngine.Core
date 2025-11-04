@@ -119,14 +119,15 @@ public class LogController : ControllerBase
                 ? _mysqlContext!.DwsCommunicationLogs.AsQueryable()
                 : _sqliteContext!.DwsCommunicationLogs.AsQueryable();
 
+            // 优先使用Barcode索引进行过滤
+            if (!string.IsNullOrWhiteSpace(barcode))
+                logs = logs.Where(x => x.Barcode == barcode);
+            
             if (startTime.HasValue)
                 logs = logs.Where(x => x.CommunicationTime >= startTime.Value);
             
             if (endTime.HasValue)
                 logs = logs.Where(x => x.CommunicationTime <= endTime.Value);
-            
-            if (!string.IsNullOrWhiteSpace(barcode))
-                logs = logs.Where(x => x.Barcode == barcode);
 
             var total = await logs.CountAsync(cancellationToken);
             var data = await logs
@@ -162,14 +163,15 @@ public class LogController : ControllerBase
                 ? _mysqlContext!.ApiCommunicationLogs.AsQueryable()
                 : _sqliteContext!.ApiCommunicationLogs.AsQueryable();
 
+            // 优先使用ParcelId索引进行过滤
+            if (!string.IsNullOrWhiteSpace(parcelId))
+                logs = logs.Where(x => x.ParcelId == parcelId);
+            
             if (startTime.HasValue)
                 logs = logs.Where(x => x.RequestTime >= startTime.Value);
             
             if (endTime.HasValue)
                 logs = logs.Where(x => x.RequestTime <= endTime.Value);
-            
-            if (!string.IsNullOrWhiteSpace(parcelId))
-                logs = logs.Where(x => x.ParcelId == parcelId);
 
             var total = await logs.CountAsync(cancellationToken);
             var data = await logs
@@ -205,14 +207,15 @@ public class LogController : ControllerBase
                 ? _mysqlContext!.SorterCommunicationLogs.AsQueryable()
                 : _sqliteContext!.SorterCommunicationLogs.AsQueryable();
 
+            // 优先使用ExtractedParcelId索引进行过滤
+            if (!string.IsNullOrWhiteSpace(parcelId))
+                logs = logs.Where(x => x.ExtractedParcelId == parcelId);
+            
             if (startTime.HasValue)
                 logs = logs.Where(x => x.CommunicationTime >= startTime.Value);
             
             if (endTime.HasValue)
                 logs = logs.Where(x => x.CommunicationTime <= endTime.Value);
-            
-            if (!string.IsNullOrWhiteSpace(parcelId))
-                logs = logs.Where(x => x.ExtractedParcelId == parcelId);
 
             var total = await logs.CountAsync(cancellationToken);
             var data = await logs

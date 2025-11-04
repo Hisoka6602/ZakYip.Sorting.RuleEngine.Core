@@ -191,6 +191,9 @@ public class Program
         builder.Services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
         builder.Services.AddScoped<IThirdPartyApiConfigRepository, LiteDbThirdPartyApiConfigRepository>();
         builder.Services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
+        
+        // 注册表存在性检查器
+        builder.Services.AddScoped<ITableExistenceChecker, MySqlTableExistenceChecker>();
 
         // 添加内存缓存（带可配置的绝对过期和滑动过期）
         // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值

@@ -145,20 +145,53 @@ public class MySqlAutoTuningService : BackgroundService
     {
         try
         {
+            // 先获取表统计信息以了解行数
+            var tableStatsSql = _dialect.GetTableStatisticsQuery();
+            var tableStats = await dbContext.Database.SqlQueryRaw<TableStatistics>(tableStatsSql).ToListAsync(cancellationToken);
+            var tableRowCounts = tableStats.ToDictionary(t => t.TableName, t => t.RowCount);
+            
             // 查询未使用的索引
             var sql = _dialect.GetIndexUsageQuery();
             var unusedIndexes = await dbContext.Database.SqlQueryRaw<IndexUsageInfo>(sql).ToListAsync(cancellationToken);
 
-            foreach (var index in unusedIndexes)
+            var filteredIndexes = unusedIndexes.Where(index =>
+            {
+                // 获取表的行数
+                var rowCount = tableRowCounts.TryGetValue(index.TableName, out var count) ? count : 0;
+                
+                // 过滤条件：行数小于1000的表，降级为Debug
+                if (rowCount < 1000)
+                    return false;
+                
+                // 过滤条件：索引名包含ParcelId、CreatedAt或_Desc的索引，降级为Debug
+                if (index.IndexName.Contains("ParcelId", StringComparison.OrdinalIgnoreCase) ||
+                    index.IndexName.Contains("CreatedAt", StringComparison.OrdinalIgnoreCase) ||
+                    index.IndexName.Contains("_Desc", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                
+                return true;
+            }).ToList();
+
+            foreach (var index in filteredIndexes)
             {
                 _logger.LogWarning(
                     "发现未使用的索引 - 表: {TableName}, 索引: {IndexName}",
                     index.TableName, index.IndexName);
             }
-
-            if (unusedIndexes.Count == 0)
+            
+            // 记录被过滤掉的索引到Debug级别
+            var debugIndexes = unusedIndexes.Except(filteredIndexes).ToList();
+            foreach (var index in debugIndexes)
             {
-                _logger.LogInformation("所有索引都在使用中");
+                var rowCount = tableRowCounts.TryGetValue(index.TableName, out var count) ? count : 0;
+                _logger.LogDebug(
+                    "未使用的索引（已过滤）- 表: {TableName}, 索引: {IndexName}, 行数: {RowCount}",
+                    index.TableName, index.IndexName, rowCount);
+            }
+
+            if (filteredIndexes.Count == 0)
+            {
+                _logger.LogInformation("所有重要索引都在使用中（已过滤小表和常用索引）");
             }
         }
         catch (Exception ex)

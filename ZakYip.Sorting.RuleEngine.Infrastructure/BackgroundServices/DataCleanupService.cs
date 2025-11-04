@@ -128,24 +128,26 @@ public class DataCleanupService : BackgroundService
                 if (shardedContext != null)
                 {
                     // 通过依赖注入获取表存在性检查器
-                    var tableCheckerFactory = scope.ServiceProvider.GetRequiredService<Func<ShardedLogDbContext, ITableExistenceChecker>>();
-                    var tableChecker = tableCheckerFactory(shardedContext);
+                    var tableChecker = scope.ServiceProvider.GetService<ITableExistenceChecker>();
 
                     // 检查ParcelLogEntries表是否存在
-                    var tableExists = await tableChecker.TableExistsAsync("ParcelLogEntries", cancellationToken);
-                    
-                    if (tableExists)
+                    if (tableChecker != null)
                     {
-                        var parcelDeletedCount = await shardedContext.ParcelLogEntries
-                            .Where(e => e.CreatedAt < cutoffDate)
-                            .ExecuteDeleteAsync(cancellationToken);
+                        var tableExists = await tableChecker.TableExistsAsync("ParcelLogEntries", cancellationToken);
+                        
+                        if (tableExists)
+                        {
+                            var parcelDeletedCount = await shardedContext.ParcelLogEntries
+                                .Where(e => e.CreatedAt < cutoffDate)
+                                .ExecuteDeleteAsync(cancellationToken);
 
-                        _logger.LogInformation("已删除 {Count} 条旧包裹日志记录",
-                            parcelDeletedCount);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("表 'ParcelLogEntries' 不存在，跳过包裹日志清理");
+                            _logger.LogInformation("已删除 {Count} 条旧包裹日志记录",
+                                parcelDeletedCount);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("表 'ParcelLogEntries' 不存在，跳过包裹日志清理");
+                        }
                     }
                 }
             }
