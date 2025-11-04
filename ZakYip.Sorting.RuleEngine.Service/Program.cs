@@ -194,6 +194,7 @@ public class Program
         builder.Services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
         builder.Services.AddScoped<IThirdPartyApiConfigRepository, LiteDbThirdPartyApiConfigRepository>();
         builder.Services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
+        builder.Services.AddScoped<IMonitoringAlertRepository, LiteDbMonitoringAlertRepository>();
 
         // 添加内存缓存（带可配置的绝对过期和滑动过期）
         // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
@@ -211,12 +212,17 @@ public class Program
         builder.Services.AddScoped<RuleValidationService>();
         builder.Services.AddScoped<IGanttChartService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.GanttChartService>();
         builder.Services.AddScoped<IChuteStatisticsService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ChuteStatisticsService>();
+        builder.Services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
+        builder.Services.AddScoped<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
         
         // 注册包裹活动追踪器（用于空闲检测）
         builder.Services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
         
         // 注册配置缓存服务
         builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Services.ConfigurationCacheService>();
+        
+        // 注册监控Hub通知器
+        builder.Services.AddSingleton<ZakYip.Sorting.RuleEngine.Service.Hubs.MonitoringHubNotifier>();
         
         // 注册事件驱动服务
         builder.Services.AddSingleton<ParcelOrchestrationService>();
@@ -233,6 +239,7 @@ public class Program
         builder.Services.AddHostedService<ShardingTableManagementService>();
         builder.Services.AddHostedService<LogFileCleanupService>();
         builder.Services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.ConfigurationCachePreloadService>();
+        builder.Services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.MonitoringAlertService>();
 
         // 添加健康检查
         builder.Services.AddHealthChecks()
@@ -343,6 +350,7 @@ public class Program
         // 映射SignalR Hub端点
         app.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.SortingHub>("/hubs/sorting");
         app.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.DwsHub>("/hubs/dws");
+        app.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.MonitoringHub>("/hubs/monitoring");
 
         // 添加最小API端点
         ConfigureMinimalApi(app);
