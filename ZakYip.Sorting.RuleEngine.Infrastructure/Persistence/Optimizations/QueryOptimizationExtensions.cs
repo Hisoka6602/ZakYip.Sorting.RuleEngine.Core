@@ -83,7 +83,7 @@ public static class QueryOptimizationExtensions
     {
         // 使用参数化查询防止SQL注入
         var sql = $"DELETE FROM {tableName} WHERE CreatedAt < {{0}}";
-        return await context.Database.ExecuteSqlRawAsync(sql, cancellationToken, createdBefore);
+        return await context.Database.ExecuteSqlRawAsync(sql, createdBefore, cancellationToken);
     }
 
     /// <summary>
