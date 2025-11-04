@@ -69,12 +69,12 @@ public class GanttChartDataItem
     /// <summary>
     /// 重量（克）
     /// </summary>
-    public double? Weight { get; set; }
+    public decimal? Weight { get; set; }
 
     /// <summary>
     /// 体积（立方厘米）
     /// </summary>
-    public double? Volume { get; set; }
+    public decimal? Volume { get; set; }
 
     /// <summary>
     /// 小车占位数量
