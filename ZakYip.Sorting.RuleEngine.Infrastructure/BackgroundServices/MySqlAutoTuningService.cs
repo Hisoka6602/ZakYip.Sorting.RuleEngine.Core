@@ -207,7 +207,7 @@ public class MySqlAutoTuningService : BackgroundService
         {
             // 获取慢查询统计
             var sql = _dialect.GetSlowQueryStatisticsQuery();
-            var slowQueries = await dbContext.Database.SqlQueryRaw<SlowQueryInfo>(sql).FirstOrDefaultAsync(cancellationToken);
+            var slowQueries = await dbContext.Database.SqlQueryRaw<SlowQueryInfo>(sql).SingleOrDefaultAsync(cancellationToken);
 
             if (slowQueries != null && slowQueries.Count > 0)
             {
