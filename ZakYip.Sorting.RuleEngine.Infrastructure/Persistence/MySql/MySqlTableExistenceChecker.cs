@@ -39,11 +39,11 @@ public class MySqlTableExistenceChecker : ITableExistenceChecker
                 SELECT 1 AS Value
                 FROM information_schema.tables 
                 WHERE table_schema = DATABASE() 
-                AND table_name = '{tableName}'
+                AND table_name = {tableName}
                 LIMIT 1";
 
             var result = await _dbContext.Database
-                .SqlQuery<TableCheckResult>(FormattableStringFactory.Create(sql))
+                .SqlQuery<TableCheckResult>(sql)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return result != null;
