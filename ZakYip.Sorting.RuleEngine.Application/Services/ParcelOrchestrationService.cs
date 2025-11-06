@@ -8,7 +8,6 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
-using ZakYip.Sorting.RuleEngine.Application.Enums;
 using ZakYip.Sorting.RuleEngine.Application.Models;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;

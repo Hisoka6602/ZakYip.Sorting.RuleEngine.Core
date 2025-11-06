@@ -1,4 +1,4 @@
-using ZakYip.Sorting.RuleEngine.Application.Enums;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Models;
 

@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.DTOs;
 
 /// <summary>
@@ -63,70 +65,6 @@ public class MonitoringAlertDto
 }
 
 /// <summary>
-/// 告警类型
-/// Alert type
-/// </summary>
-public enum AlertType
-{
-    /// <summary>
-    /// 包裹处理量
-    /// </summary>
-    ParcelProcessing = 1,
-
-    /// <summary>
-    /// 格口使用率
-    /// </summary>
-    ChuteUsage = 2,
-
-    /// <summary>
-    /// 性能指标
-    /// </summary>
-    PerformanceMetric = 3,
-
-    /// <summary>
-    /// 错误率
-    /// </summary>
-    ErrorRate = 4,
-
-    /// <summary>
-    /// 数据库熔断
-    /// </summary>
-    DatabaseCircuitBreaker = 5,
-
-    /// <summary>
-    /// 系统异常
-    /// </summary>
-    SystemException = 6
-}
-
-/// <summary>
-/// 告警级别
-/// Alert severity
-/// </summary>
-public enum AlertSeverity
-{
-    /// <summary>
-    /// 信息
-    /// </summary>
-    Info = 1,
-
-    /// <summary>
-    /// 警告
-    /// </summary>
-    Warning = 2,
-
-    /// <summary>
-    /// 错误
-    /// </summary>
-    Error = 3,
-
-    /// <summary>
-    /// 严重
-    /// </summary>
-    Critical = 4
-}
-
-/// <summary>
 /// 实时监控数据
 /// Real-time monitoring data
 /// </summary>
@@ -186,51 +124,4 @@ public class RealtimeMonitoringDto
     /// 数据更新时间
     /// </summary>
     public DateTime UpdateTime { get; set; } = DateTime.Now;
-}
-
-/// <summary>
-/// 数据库状态
-/// </summary>
-public enum DatabaseStatus
-{
-    /// <summary>
-    /// 正常
-    /// </summary>
-    Healthy = 1,
-
-    /// <summary>
-    /// 降级（使用SQLite）
-    /// </summary>
-    Degraded = 2,
-
-    /// <summary>
-    /// 熔断
-    /// </summary>
-    CircuitBroken = 3
-}
-
-/// <summary>
-/// 系统健康状态
-/// </summary>
-public enum SystemHealthStatus
-{
-    /// <summary>
-    /// 健康
-    /// </summary>
-    Healthy = 1,
-
-    /// <summary>
-    /// 警告
-    /// </summary>
-    Warning = 2,
-
-    /// <summary>
-    /// 不健康
-    /// </summary>
-    Unhealthy = 3,
-
-    /// <summary>
-    /// 严重
-    /// </summary>
-    Critical = 4
 }
