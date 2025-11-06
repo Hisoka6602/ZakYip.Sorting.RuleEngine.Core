@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
@@ -11,7 +12,6 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 /// <summary>
 /// 数据分析服务实现
-/// Data analysis service implementation
 /// 包含格口使用热力图、分拣效率分析、甘特图数据查询和格口统计功能
 /// </summary>
 public class DataAnalysisService : IDataAnalysisService
@@ -618,16 +618,9 @@ public class DataAnalysisService : IDataAnalysisService
             .Concat(afterLogs.OrderBy(m => m.MatchingTime))
             .ToList();
 
-        // 步骤5：关联查询格口信息、DWS数据和API通信日志
-        var result = new List<GanttChartDataItem>();
-        int sequenceNumber = 1;
-
-        foreach (var log in allLogs)
-        }
-
-        // Batch load related data
-        var parcelIds = logs.Select(l => l.ParcelId).Distinct().ToList();
-        var chuteIds = logs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
+        // 步骤5：批量加载关联数据
+        var parcelIds = allLogs.Select(l => l.ParcelId).Distinct().ToList();
+        var chuteIds = allLogs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
 
         var dwsLogs = await _mysqlContext.DwsCommunicationLogs
             .Where(d => parcelIds.Contains(d.Barcode))
@@ -650,10 +643,12 @@ public class DataAnalysisService : IDataAnalysisService
             .ToListAsync(cancellationToken);
         var chuteDict = chutes.ToDictionary(c => c.ChuteId, c => c);
 
+        // 步骤6：构建甘特图数据项
+        var result = new List<GanttChartDataItem>();
         int sequenceNumber = 0;
-        foreach (var log in logs)
+        foreach (var log in allLogs)
         {
-            // Use in-memory lookup instead of per-item queries
+            // 使用内存查找而不是逐项查询
             dwsLogDict.TryGetValue(log.ParcelId, out var dwsLog);
             apiLogDict.TryGetValue(log.ParcelId, out var apiLog);
 
@@ -732,15 +727,9 @@ public class DataAnalysisService : IDataAnalysisService
             .Concat(afterLogs.OrderBy(m => m.MatchingTime))
             .ToList();
 
-        var result = new List<GanttChartDataItem>();
-        int sequenceNumber = 1;
-
-        foreach (var log in allLogs)
-        }
-
-        // Batch queries outside the loop
-        var parcelIds = logs.Select(l => l.ParcelId).Distinct().ToList();
-        var chuteIds = logs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
+        // 批量查询相关数据
+        var parcelIds = allLogs.Select(l => l.ParcelId).Distinct().ToList();
+        var chuteIds = allLogs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
 
         var dwsLogs = await _sqliteContext.DwsCommunicationLogs
             .Where(d => parcelIds.Contains(d.Barcode))
@@ -756,7 +745,7 @@ public class DataAnalysisService : IDataAnalysisService
             .Where(c => chuteIds.Contains(c.ChuteId))
             .ToListAsync(cancellationToken);
 
-        // Build lookup dictionaries
+        // 构建查找字典
         var dwsLogDict = dwsLogs
             .GroupBy(d => d.Barcode)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.CommunicationTime).First());
@@ -768,10 +757,12 @@ public class DataAnalysisService : IDataAnalysisService
         var chuteDict = chutes
             .ToDictionary(c => c.ChuteId, c => c);
 
+        // 构建甘特图数据项
+        var result = new List<GanttChartDataItem>();
         int sequenceNumber = 0;
-        foreach (var log in logs)
+        foreach (var log in allLogs)
         {
-            // Find DwsLog: match by Barcode == ParcelId or ParcelId contains Barcode
+            // 查找DWS日志：按条码匹配包裹ID或包裹ID包含条码
             DwsCommunicationLog? dwsLog = null;
             if (dwsLogDict.TryGetValue(log.ParcelId, out var directDwsLog))
             {
@@ -779,7 +770,7 @@ public class DataAnalysisService : IDataAnalysisService
             }
             else
             {
-                // Try to find a DwsLog where Barcode is not null and ParcelId contains Barcode
+                // 尝试查找条码不为空且包裹ID包含该条码的DWS日志
                 dwsLog = dwsLogs
                     .Where(d => d.Barcode != null && log.ParcelId.Contains(d.Barcode))
                     .OrderByDescending(d => d.CommunicationTime)
