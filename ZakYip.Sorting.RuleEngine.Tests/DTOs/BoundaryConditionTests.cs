@@ -10,6 +10,19 @@ namespace ZakYip.Sorting.RuleEngine.Tests.DTOs;
 /// </summary>
 public class BoundaryConditionTests
 {
+    // 常量定义 - 与ParcelProcessRequest和SortingRule的验证属性保持一致
+    private const decimal MaxWeightValue = 999999999;
+    private const decimal MaxWeightValueExceeded = 1000000000;
+    private const int MaxRuleIdLength = 100;
+    private const int MaxRuleIdLengthExceeded = 101;
+    private const int MaxRuleNameLength = 200;
+    private const int MaxConditionExpressionLength = 2000;
+    private const int MinPriority = 0;
+    private const int MaxPriority = 9999;
+    private const int MaxPriorityExceeded = 10000;
+    private const int MaxChuteNameLength = 200;
+    private const int MaxChuteNameLengthExceeded = 201;
+
     #region ParcelProcessRequest Boundary Tests
 
     /// <summary>
@@ -44,7 +57,7 @@ public class BoundaryConditionTests
         {
             ParcelId = "PKG001",
             CartNumber = "CART001",
-            Weight = 999999999 // 最大值
+            Weight = MaxWeightValue // 最大值
         };
 
         // Act
@@ -65,7 +78,7 @@ public class BoundaryConditionTests
         {
             ParcelId = "PKG001",
             CartNumber = "CART001",
-            Weight = 1000000000 // 超过最大值
+            Weight = MaxWeightValueExceeded // 超过最大值
         };
 
         // Act
@@ -154,10 +167,10 @@ public class BoundaryConditionTests
         {
             ParcelId = "PKG001",
             CartNumber = "CART001",
-            Length = 999999999,
-            Width = 999999999,
-            Height = 999999999,
-            Volume = 999999999
+            Length = MaxWeightValue,
+            Width = MaxWeightValue,
+            Height = MaxWeightValue,
+            Volume = MaxWeightValue
         };
 
         // Act
@@ -180,7 +193,7 @@ public class BoundaryConditionTests
         // Arrange
         var rule = new SortingRule
         {
-            RuleId = new string('A', 100), // 最大长度100
+            RuleId = new string('A', MaxRuleIdLength), // 最大长度
             RuleName = "Test Rule",
             ConditionExpression = "Weight > 100",
             TargetChute = "CHUTE-01"
@@ -202,7 +215,7 @@ public class BoundaryConditionTests
         // Arrange
         var rule = new SortingRule
         {
-            RuleId = new string('A', 101), // 超过最大长度
+            RuleId = new string('A', MaxRuleIdLengthExceeded), // 超过最大长度
             RuleName = "Test Rule",
             ConditionExpression = "Weight > 100",
             TargetChute = "CHUTE-01"
@@ -228,7 +241,7 @@ public class BoundaryConditionTests
             RuleName = "Test Rule",
             ConditionExpression = "Weight > 100",
             TargetChute = "CHUTE-01",
-            Priority = 0 // 最小优先级
+            Priority = MinPriority // 最小优先级
         };
 
         // Act
@@ -251,7 +264,7 @@ public class BoundaryConditionTests
             RuleName = "Test Rule",
             ConditionExpression = "Weight > 100",
             TargetChute = "CHUTE-01",
-            Priority = 9999 // 最大优先级
+            Priority = MaxPriority // 最大优先级
         };
 
         // Act
@@ -274,7 +287,7 @@ public class BoundaryConditionTests
             RuleName = "Test Rule",
             ConditionExpression = "Weight > 100",
             TargetChute = "CHUTE-01",
-            Priority = 10000 // 超出范围
+            Priority = MaxPriorityExceeded // 超出范围
         };
 
         // Act
@@ -318,7 +331,7 @@ public class BoundaryConditionTests
         {
             RuleId = "RULE-001",
             RuleName = "Test Rule",
-            ConditionExpression = new string('A', 2000), // 最大长度2000
+            ConditionExpression = new string('A', MaxConditionExpressionLength), // 最大长度
             TargetChute = "CHUTE-01"
         };
 
@@ -365,7 +378,7 @@ public class BoundaryConditionTests
         // Arrange
         var chute = new Chute
         {
-            ChuteName = new string('A', 200) // 最大长度200
+            ChuteName = new string('A', MaxChuteNameLength) // 最大长度
         };
 
         // Act
@@ -384,7 +397,7 @@ public class BoundaryConditionTests
         // Arrange
         var chute = new Chute
         {
-            ChuteName = new string('A', 201) // 超过最大长度
+            ChuteName = new string('A', MaxChuteNameLengthExceeded) // 超过最大长度
         };
 
         // Act

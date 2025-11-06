@@ -14,6 +14,9 @@ namespace ZakYip.Sorting.RuleEngine.Tests.Services;
 /// </summary>
 public class ConcurrencyTests
 {
+    // 缓存键常量 - 与RuleEngineService中的实现保持一致
+    private const string RulesCacheKey = "SortingRules";
+    
     private readonly Mock<IRuleRepository> _mockRuleRepository;
     private readonly Mock<ILogger<RuleEngineService>> _mockLogger;
     private readonly IMemoryCache _memoryCache;
@@ -303,7 +306,7 @@ public class ConcurrencyTests
                 try
                 {
                     // 清除缓存以强制重新加载
-                    memCache.Remove("SortingRules");
+                    memCache.Remove(RulesCacheKey);
                     return await service.EvaluateRulesAsync(parcelInfo, dwsData, null);
                 }
                 catch (Exception)
