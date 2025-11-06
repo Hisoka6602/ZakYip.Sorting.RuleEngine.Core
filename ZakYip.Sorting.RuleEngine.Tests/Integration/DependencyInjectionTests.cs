@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
@@ -52,8 +53,18 @@ public class DependencyInjectionTests
         services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
         services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         
+        // Register optional DbContext as null (for testing without database)
+        // These are optional dependencies in DataAnalysisService constructor
+        
         // Register service (merged service that includes ChuteStatistics, GanttChart functionality)
-        services.AddScoped<IDataAnalysisService, DataAnalysisService>();
+        services.AddScoped<IDataAnalysisService>(sp => 
+            new DataAnalysisService(
+                sp.GetRequiredService<IChuteRepository>(),
+                sp.GetRequiredService<IPerformanceMetricRepository>(),
+                null, // MySqlLogDbContext (optional)
+                null, // SqliteLogDbContext (optional)
+                sp.GetRequiredService<ILogger<DataAnalysisService>>()
+            ));
         
         var serviceProvider = services.BuildServiceProvider();
         
