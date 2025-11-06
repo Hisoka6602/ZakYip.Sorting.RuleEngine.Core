@@ -243,8 +243,6 @@ public class Program
         builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
         builder.Services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
         builder.Services.AddScoped<RuleValidationService>();
-        builder.Services.AddScoped<IGanttChartService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.GanttChartService>();
-        builder.Services.AddScoped<IChuteStatisticsService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ChuteStatisticsService>();
         builder.Services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
         builder.Services.AddScoped<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
         

@@ -14,14 +14,14 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("甘特图数据查询接口，用于可视化包裹处理时间线")]
 public class GanttChartController : ControllerBase
 {
-    private readonly IGanttChartService _ganttChartService;
+    private readonly IDataAnalysisService _dataAnalysisService;
     private readonly ILogger<GanttChartController> _logger;
 
     public GanttChartController(
-        IGanttChartService ganttChartService,
+        IDataAnalysisService dataAnalysisService,
         ILogger<GanttChartController> logger)
     {
-        _ganttChartService = ganttChartService;
+        _dataAnalysisService = dataAnalysisService;
         _logger = logger;
     }
 
@@ -58,7 +58,7 @@ public class GanttChartController : ControllerBase
                 "查询甘特图数据: Target={Target}, BeforeCount={BeforeCount}, AfterCount={AfterCount}",
                 target, beforeCount, afterCount);
 
-            var response = await _ganttChartService.QueryGanttChartDataAsync(
+            var response = await _dataAnalysisService.QueryGanttChartDataAsync(
                 target,
                 beforeCount,
                 afterCount,
@@ -117,7 +117,7 @@ public class GanttChartController : ControllerBase
                 "查询甘特图数据(POST): Target={Target}, BeforeCount={BeforeCount}, AfterCount={AfterCount}",
                 request.Target, request.BeforeCount, request.AfterCount);
 
-            var response = await _ganttChartService.QueryGanttChartDataAsync(
+            var response = await _dataAnalysisService.QueryGanttChartDataAsync(
                 request.Target,
                 request.BeforeCount,
                 request.AfterCount,

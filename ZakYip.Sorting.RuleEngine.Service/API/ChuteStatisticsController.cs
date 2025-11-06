@@ -16,14 +16,14 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("格口统计接口，提供格口利用率和分拣效率统计")]
 public class ChuteStatisticsController : ControllerBase
 {
-    private readonly IChuteStatisticsService _chuteStatisticsService;
+    private readonly IDataAnalysisService _dataAnalysisService;
     private readonly ILogger<ChuteStatisticsController> _logger;
 
     public ChuteStatisticsController(
-        IChuteStatisticsService chuteStatisticsService,
+        IDataAnalysisService dataAnalysisService,
         ILogger<ChuteStatisticsController> logger)
     {
-        _chuteStatisticsService = chuteStatisticsService;
+        _dataAnalysisService = dataAnalysisService;
         _logger = logger;
     }
 
@@ -54,7 +54,7 @@ public class ChuteStatisticsController : ControllerBase
         try
         {
             _logger.LogInformation("查询格口利用率统计");
-            var statistics = await _chuteStatisticsService.GetChuteUtilizationStatisticsAsync(
+            var statistics = await _dataAnalysisService.GetChuteUtilizationStatisticsAsync(
                 query,
                 cancellationToken);
             return Ok(statistics);
@@ -88,7 +88,7 @@ public class ChuteStatisticsController : ControllerBase
         try
         {
             _logger.LogInformation("查询格口统计: ChuteId={ChuteId}", chuteId);
-            var statistics = await _chuteStatisticsService.GetChuteStatisticsByIdAsync(
+            var statistics = await _dataAnalysisService.GetChuteStatisticsByIdAsync(
                 chuteId,
                 startTime,
                 endTime,
@@ -127,7 +127,7 @@ public class ChuteStatisticsController : ControllerBase
         try
         {
             _logger.LogInformation("查询分拣效率概览");
-            var overview = await _chuteStatisticsService.GetSortingEfficiencyOverviewAsync(
+            var overview = await _dataAnalysisService.GetSortingEfficiencyOverviewAsync(
                 startTime,
                 endTime,
                 cancellationToken);
@@ -169,7 +169,7 @@ public class ChuteStatisticsController : ControllerBase
             _logger.LogInformation("查询格口小时级统计: ChuteId={ChuteId}, {StartTime} - {EndTime}",
                 chuteId, startTime, endTime);
 
-            var statistics = await _chuteStatisticsService.GetChuteHourlyStatisticsAsync(
+            var statistics = await _dataAnalysisService.GetChuteHourlyStatisticsAsync(
                 chuteId,
                 startTime,
                 endTime,
