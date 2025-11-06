@@ -11,32 +11,28 @@ public record class ParcelProcessRequest
 {
     /// <summary>
     /// 包裹ID
-    /// Parcel identifier
-    /// Example: PKG20231101001
+    /// 示例: PKG20231101001
     /// </summary>
     [SwaggerSchema(Description = "包裹唯一标识")]
     public required string ParcelId { get; init; }
 
     /// <summary>
     /// 小车号
-    /// Cart number
-    /// Example: CART001
+    /// 示例: CART001
     /// </summary>
     [SwaggerSchema(Description = "小车编号")]
     public required string CartNumber { get; init; }
 
     /// <summary>
     /// 条码
-    /// Barcode
-    /// Example: 1234567890123
+    /// 示例: 1234567890123
     /// </summary>
     [SwaggerSchema(Description = "包裹条码")]
     public string? Barcode { get; init; }
 
     /// <summary>
     /// 重量（克）
-    /// Weight in grams
-    /// Example: 2500.5
+    /// 示例: 2500.5
     /// </summary>
     [Range(0, 999999999, ErrorMessage = "重量必须大于等于0")]
     [SwaggerSchema(Description = "包裹重量(克)")]
@@ -44,8 +40,7 @@ public record class ParcelProcessRequest
 
     /// <summary>
     /// 长度（毫米）
-    /// Length in millimeters
-    /// Example: 300
+    /// 示例: 300
     /// </summary>
     [Range(0, 999999999, ErrorMessage = "长度必须大于等于0")]
     [SwaggerSchema(Description = "包裹长度(毫米)")]
@@ -53,8 +48,7 @@ public record class ParcelProcessRequest
 
     /// <summary>
     /// 宽度（毫米）
-    /// Width in millimeters
-    /// Example: 200
+    /// 示例: 200
     /// </summary>
     [Range(0, 999999999, ErrorMessage = "宽度必须大于等于0")]
     [SwaggerSchema(Description = "包裹宽度(毫米)")]
@@ -62,8 +56,7 @@ public record class ParcelProcessRequest
 
     /// <summary>
     /// 高度（毫米）
-    /// Height in millimeters
-    /// Example: 150
+    /// 示例: 150
     /// </summary>
     [Range(0, 999999999, ErrorMessage = "高度必须大于等于0")]
     [SwaggerSchema(Description = "包裹高度(毫米)")]
@@ -71,8 +64,7 @@ public record class ParcelProcessRequest
 
     /// <summary>
     /// 体积（立方厘米）
-    /// Volume in cubic centimeters
-    /// Example: 9000
+    /// 示例: 9000
     /// </summary>
     [Range(0, 999999999, ErrorMessage = "体积必须大于等于0")]
     [SwaggerSchema(Description = "包裹体积(立方厘米)")]
