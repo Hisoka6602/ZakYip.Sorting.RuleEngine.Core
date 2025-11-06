@@ -35,8 +35,8 @@ jobs:
             echo "要删除的分支 (Branches to delete):"
             echo "$branches"
             
-            # Count branches
-            count=$(echo "$branches" | wc -l)
+            # Count branches - use grep -c to count non-empty lines
+            count=$(echo "$branches" | grep -c '^')
             echo "总共 $count 个分支将被删除 (Total $count branches will be deleted)"
             
             # Save branches to output
@@ -53,7 +53,9 @@ jobs:
         run: |
           echo "::group::删除远程分支 (Deleting remote branches)"
           
-          failed_branches=""
+          # Use a file to store failed branches for better performance
+          failed_branches_file="/tmp/failed_branches.txt"
+          > "$failed_branches_file"
           success_count=0
           fail_count=0
           
@@ -66,7 +68,7 @@ jobs:
                 success_count=$((success_count + 1))
               else
                 echo "✗ 删除失败 (Failed to delete): $branch"
-                failed_branches="$failed_branches$branch\n"
+                echo "$branch" >> "$failed_branches_file"
                 fail_count=$((fail_count + 1))
               fi
             fi
@@ -80,7 +82,7 @@ jobs:
           
           if [ $fail_count -gt 0 ]; then
             echo "::warning::删除失败的分支 (Failed branches):"
-            echo -e "$failed_branches"
+            cat "$failed_branches_file"
           fi
           
           echo "::endgroup::"
