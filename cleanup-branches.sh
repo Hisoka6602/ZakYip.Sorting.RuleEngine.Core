@@ -82,15 +82,17 @@ fi
 
 # Delete remote branches
 echo -e "${YELLOW}Deleting remote branches / 正在删除远程分支...${NC}"
-for BRANCH in $BRANCHES_TO_DELETE; do
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}[DRY-RUN]${NC} Would delete: origin/$BRANCH"
-    else
-        echo -e "Deleting / 删除: ${RED}$BRANCH${NC}"
-        if git push origin --delete "$BRANCH" 2>/dev/null; then
-            echo -e "${GREEN}✓ Deleted successfully / 删除成功${NC}"
+echo "$BRANCHES_TO_DELETE" | while read -r BRANCH; do
+    if [ -n "$BRANCH" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${YELLOW}[DRY-RUN]${NC} Would delete: origin/$BRANCH"
         else
-            echo -e "${RED}✗ Failed to delete / 删除失败${NC}"
+            echo -e "Deleting / 删除: ${RED}$BRANCH${NC}"
+            if git push origin --delete "$BRANCH" 2>/dev/null; then
+                echo -e "${GREEN}✓ Deleted successfully / 删除成功${NC}"
+            else
+                echo -e "${RED}✗ Failed to delete / 删除失败${NC}"
+            fi
         fi
     fi
 done

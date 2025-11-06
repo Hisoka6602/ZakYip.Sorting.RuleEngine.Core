@@ -57,7 +57,7 @@ $branchesToDelete = $remoteBranches | ForEach-Object {
     $_.Trim() -replace '^origin/', ''
 }
 
-if ($branchesToDelete.Count -eq 0) {
+if (-not $branchesToDelete -or $branchesToDelete.Count -eq 0) {
     Write-Host "No branches to delete / 没有需要删除的分支" -ForegroundColor Green
     exit 0
 }
