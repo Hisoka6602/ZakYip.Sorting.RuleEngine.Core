@@ -874,9 +874,19 @@ public class DataAnalysisService : IDataAnalysisService
                 IsEnabled = chute.IsEnabled
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "计算格口统计时发生错误: {ChuteName}", chute.ChuteName);
+            _logger.LogError(ex, "数据库更新异常，计算格口统计时发生错误: {ChuteName}", chute.ChuteName);
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "无效操作异常，计算格口统计时发生错误: {ChuteName}", chute.ChuteName);
+            return null;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "操作被取消，计算格口统计时发生错误: {ChuteName}", chute.ChuteName);
             return null;
         }
     }
