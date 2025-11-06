@@ -36,7 +36,7 @@ public class DependencyInjectionTests
     }
     
     [Fact]
-    public void ServiceProvider_CanResolve_IChuteStatisticsService()
+    public void ServiceProvider_CanResolve_IDataAnalysisService()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -52,13 +52,13 @@ public class DependencyInjectionTests
         services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
         services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         
-        // Register service
-        services.AddScoped<IChuteStatisticsService, ChuteStatisticsService>();
+        // Register service (merged service that includes ChuteStatistics, GanttChart functionality)
+        services.AddScoped<IDataAnalysisService, DataAnalysisService>();
         
         var serviceProvider = services.BuildServiceProvider();
         
         // Act
-        var service = serviceProvider.GetService<IChuteStatisticsService>();
+        var service = serviceProvider.GetService<IDataAnalysisService>();
         
         // Assert
         Assert.NotNull(service);
