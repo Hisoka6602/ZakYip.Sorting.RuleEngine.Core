@@ -310,13 +310,31 @@ public class DataAnalysisService : IDataAnalysisService
                 Success = true
             };
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "查询甘特图数据失败: Target={Target}", target);
+            _logger.LogError(ex, "参数错误，查询甘特图数据失败: Target={Target}", target);
             return new GanttChartQueryResponse
             {
                 Success = false,
-                ErrorMessage = $"查询失败: {ex.Message}"
+                ErrorMessage = $"参数错误: {ex.Message}"
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "操作无效，查询甘特图数据失败: Target={Target}", target);
+            return new GanttChartQueryResponse
+            {
+                Success = false,
+                ErrorMessage = $"操作无效: {ex.Message}"
+            };
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "数据库更新错误，查询甘特图数据失败: Target={Target}", target);
+            return new GanttChartQueryResponse
+            {
+                Success = false,
+                ErrorMessage = $"数据库错误: {ex.Message}"
             };
         }
     }
