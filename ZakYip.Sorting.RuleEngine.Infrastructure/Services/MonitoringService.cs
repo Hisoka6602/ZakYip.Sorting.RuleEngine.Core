@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;

@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace ZakYip.Sorting.RuleEngine.Application.Enums;
+namespace ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 /// <summary>
 /// 工作项类型

@@ -1,4 +1,5 @@
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -34,7 +35,7 @@ public interface IMonitoringAlertRepository
     /// <summary>
     /// 获取告警统计
     /// </summary>
-    Task<Dictionary<DTOs.AlertType, int>> GetAlertStatisticsAsync(
+    Task<Dictionary<AlertType, int>> GetAlertStatisticsAsync(
         DateTime startTime,
         DateTime endTime,
         CancellationToken cancellationToken = default);
