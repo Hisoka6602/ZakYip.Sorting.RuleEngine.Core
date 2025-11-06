@@ -62,11 +62,7 @@ echo "$BRANCHES_TO_DELETE"
 echo ""
 
 # Count branches
-if [ -z "$BRANCHES_TO_DELETE" ]; then
-    BRANCH_COUNT=0
-else
-    BRANCH_COUNT=$(echo "$BRANCHES_TO_DELETE" | wc -l)
-fi
+BRANCH_COUNT=$(echo "$BRANCHES_TO_DELETE" | wc -l)
 echo -e "${YELLOW}Total branches to delete / 总共要删除的分支数: $BRANCH_COUNT${NC}"
 echo ""
 

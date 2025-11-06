@@ -69,7 +69,7 @@ git push origin --delete <branch-name>
 
 ```bash
 # 列出要删除的分支
-git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/origin\///' | xargs -I {} echo {}
+git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/^origin\///' | xargs -I {} echo {}
 
 # 删除所有非master分支
 git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/^origin\///' | xargs -I {} git push origin --delete {}
