@@ -218,26 +218,25 @@ public class ParcelCreationRequest
 
 /// <summary>
 /// 包裹创建响应
-/// Parcel creation response
 /// </summary>
 [SwaggerSchema(Description = "包裹创建响应")]
 public class ParcelCreationResponse
 {
     /// <summary>
     /// 是否成功
-    /// Example: true
+    /// 示例: true
     /// </summary>
     public bool Success { get; set; }
     
     /// <summary>
     /// 包裹ID
-    /// Example: PKG20231101001
+    /// 示例: PKG20231101001
     /// </summary>
     public required string ParcelId { get; set; }
     
     /// <summary>
     /// 消息
-    /// Example: 包裹处理空间已创建，等待DWS数据
+    /// 示例: 包裹处理空间已创建，等待DWS数据
     /// </summary>
     public required string Message { get; set; }
 }
@@ -250,43 +249,43 @@ public class DwsDataRequest
 {
     /// <summary>
     /// 包裹ID
-    /// Example: PKG20231101001
+    /// 示例: PKG20231101001
     /// </summary>
     public required string ParcelId { get; set; }
     
     /// <summary>
     /// 条码
-    /// Example: 1234567890123
+    /// 示例: 1234567890123
     /// </summary>
     public string? Barcode { get; set; }
     
     /// <summary>
     /// 重量（克）
-    /// Example: 2500.5
+    /// 示例: 2500.5
     /// </summary>
     public decimal Weight { get; set; }
     
     /// <summary>
     /// 长度（毫米）
-    /// Example: 300
+    /// 示例: 300
     /// </summary>
     public decimal Length { get; set; }
     
     /// <summary>
     /// 宽度（毫米）
-    /// Example: 200
+    /// 示例: 200
     /// </summary>
     public decimal Width { get; set; }
     
     /// <summary>
     /// 高度（毫米）
-    /// Example: 150
+    /// 示例: 150
     /// </summary>
     public decimal Height { get; set; }
     
     /// <summary>
     /// 体积（立方厘米）
-    /// Example: 9000
+    /// 示例: 9000
     /// </summary>
     public decimal Volume { get; set; }
 }
@@ -299,19 +298,19 @@ public class DwsDataResponse
 {
     /// <summary>
     /// 是否成功
-    /// Example: true
+    /// 示例: true
     /// </summary>
     public bool Success { get; set; }
     
     /// <summary>
     /// 包裹ID
-    /// Example: PKG20231101001
+    /// 示例: PKG20231101001
     /// </summary>
     public required string ParcelId { get; set; }
     
     /// <summary>
     /// 消息
-    /// Example: DWS数据已接收，开始处理
+    /// 示例: DWS数据已接收，开始处理
     /// </summary>
     public required string Message { get; set; }
 }

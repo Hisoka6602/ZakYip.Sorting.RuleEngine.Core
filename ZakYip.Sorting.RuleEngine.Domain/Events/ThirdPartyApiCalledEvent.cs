@@ -13,7 +13,7 @@ public record struct ThirdPartyApiCalledEvent : INotification
     public required string ParcelId { get; init; }
     
     /// <summary>
-    /// API URL
+    /// API地址
     /// </summary>
     public required string ApiUrl { get; init; }
     
