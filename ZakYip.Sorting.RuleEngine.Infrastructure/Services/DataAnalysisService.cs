@@ -879,9 +879,7 @@ public class DataAnalysisService : IDataAnalysisService
     private decimal CalculateHourlyUtilizationRate(int parcelCount)
     {
         const int maxCapacityPerHour = 600;
-        return maxCapacityPerHour > 0
-            ? parcelCount / (decimal)maxCapacityPerHour * 100
-            : 0;
+        return parcelCount / (decimal)maxCapacityPerHour * 100;
     }
 
     private string? FindPeakPeriod(IEnumerable<Domain.Entities.PerformanceMetric> metrics)
