@@ -7,6 +7,8 @@ jobs:
   cleanup-branches:
     name: 清理分支 (Cleanup Branches)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: 检出代码 (Checkout code)
