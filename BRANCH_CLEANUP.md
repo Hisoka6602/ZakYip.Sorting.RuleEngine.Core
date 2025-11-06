@@ -72,17 +72,17 @@ git push origin --delete <branch-name>
 git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/origin\///' | xargs -I {} echo {}
 
 # 删除所有非master分支
-git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/origin\///' | xargs -I {} git push origin --delete {}
+git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/^origin\///' | xargs -I {} git push origin --delete {}
 ```
 
 **Windows PowerShell:**
 
 ```powershell
 # 列出要删除的分支
-git branch -r | Where-Object { $_ -notmatch 'HEAD' -and $_ -notmatch 'master' } | ForEach-Object { $_.Trim() -replace 'origin/', '' }
+git branch -r | Where-Object { $_ -notmatch 'HEAD' -and $_ -notmatch 'master' } | ForEach-Object { $_.Trim() -replace '^origin/', '' }
 
 # 删除所有非master分支
-git branch -r | Where-Object { $_ -notmatch 'HEAD' -and $_ -notmatch 'master' } | ForEach-Object { $branch = $_.Trim() -replace 'origin/', ''; git push origin --delete $branch }
+git branch -r | Where-Object { $_ -notmatch 'HEAD' -and $_ -notmatch 'master' } | ForEach-Object { $branch = $_.Trim() -replace '^origin/', ''; git push origin --delete $branch }
 ```
 
 ## 方法三：使用GitHub Web界面 / Method 3: Use GitHub Web Interface

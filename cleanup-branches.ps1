@@ -54,7 +54,7 @@ $remoteBranches = git branch -r | Where-Object {
 }
 
 $branchesToDelete = $remoteBranches | ForEach-Object {
-    $_.Trim() -replace 'origin/', ''
+    $_.Trim() -replace '^origin/', ''
 }
 
 if ($branchesToDelete.Count -eq 0) {
