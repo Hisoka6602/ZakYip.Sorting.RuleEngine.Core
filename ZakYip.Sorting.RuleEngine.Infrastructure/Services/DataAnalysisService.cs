@@ -605,28 +605,46 @@ public class DataAnalysisService : IDataAnalysisService
         int sequenceNumber = 1;
 
         foreach (var log in allLogs)
+        }
+
+        // Batch load related data
+        var parcelIds = logs.Select(l => l.ParcelId).Distinct().ToList();
+        var chuteIds = logs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
+
+        var dwsLogs = await _mysqlContext.DwsCommunicationLogs
+            .Where(d => parcelIds.Contains(d.Barcode))
+            .OrderByDescending(d => d.CommunicationTime)
+            .ToListAsync(cancellationToken);
+        var dwsLogDict = dwsLogs
+            .GroupBy(d => d.Barcode)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var apiLogs = await _mysqlContext.ApiCommunicationLogs
+            .Where(a => parcelIds.Contains(a.ParcelId))
+            .OrderByDescending(a => a.RequestTime)
+            .ToListAsync(cancellationToken);
+        var apiLogDict = apiLogs
+            .GroupBy(a => a.ParcelId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var chutes = await _mysqlContext.Chutes
+            .Where(c => chuteIds.Contains(c.ChuteId))
+            .ToListAsync(cancellationToken);
+        var chuteDict = chutes.ToDictionary(c => c.ChuteId, c => c);
+
+        int sequenceNumber = 0;
+        foreach (var log in logs)
         {
-            // 查询DWS通信日志
-            var dwsLog = await _mysqlContext.DwsCommunicationLogs
-                .Where(d => d.Barcode == log.ParcelId || d.Barcode != null && log.ParcelId.Contains(d.Barcode))
-                .OrderByDescending(d => d.CommunicationTime)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Use in-memory lookup instead of per-item queries
+            dwsLogDict.TryGetValue(log.ParcelId, out var dwsLog);
+            apiLogDict.TryGetValue(log.ParcelId, out var apiLog);
 
-            // 查询API通信日志
-            var apiLog = await _mysqlContext.ApiCommunicationLogs
-                .Where(a => a.ParcelId == log.ParcelId)
-                .OrderByDescending(a => a.RequestTime)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            // 查询格口信息
             string? chuteCode = null;
             string? chuteName = null;
-            if (log.ChuteId.HasValue)
+            if (log.ChuteId.HasValue && chuteDict.TryGetValue(log.ChuteId.Value, out var chute))
             {
-                var chute = await _mysqlContext.Chutes
-                    .FirstOrDefaultAsync(c => c.ChuteId == log.ChuteId.Value, cancellationToken);
-                chuteCode = chute?.ChuteCode;
-                chuteName = chute?.ChuteName;
+                chuteCode = chute.ChuteCode;
+                chuteName = chute.ChuteName;
             }
 
             var item = new GanttChartDataItem
