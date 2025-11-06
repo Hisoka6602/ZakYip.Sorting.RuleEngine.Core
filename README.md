@@ -2158,6 +2158,30 @@ dotnet run
 - **运维团队**：1名DevOps工程师
 - **基础设施**：云服务器、数据库、缓存、消息队列等
 
+## 仓库维护
+
+### 分支管理
+
+仓库提供了分支清理脚本，用于删除除master以外的所有分支。详细说明请参见 [BRANCH_CLEANUP.md](./BRANCH_CLEANUP.md)。
+
+**Linux/macOS:**
+```bash
+# 预览要删除的分支
+./cleanup-branches.sh --dry-run
+
+# 执行删除
+./cleanup-branches.sh
+```
+
+**Windows PowerShell:**
+```powershell
+# 预览要删除的分支
+.\cleanup-branches.ps1 -DryRun
+
+# 执行删除
+.\cleanup-branches.ps1
+```
+
 ## 贡献
 
 欢迎提交Issue和Pull Request！
