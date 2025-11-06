@@ -18,7 +18,47 @@ The repository contains multiple merged or no longer needed branches:
 - `copilot/update-data-cleanup-logic`
 - `copilot/update-precision-and-analysis`
 
-## 方法一：使用提供的脚本 / Method 1: Use Provided Scripts
+## 方法一：使用GitHub Actions工作流 / Method 1: Use GitHub Actions Workflow
+
+### 概述 / Overview
+
+此方法使用GitHub Actions自动化工作流来删除所有非master分支。这是最简单和最安全的方法。
+
+This method uses a GitHub Actions automated workflow to delete all non-master branches. This is the simplest and safest method.
+
+### 使用步骤 / Usage Steps
+
+1. **转到GitHub上的存储库 / Go to the repository on GitHub**
+   
+   访问 / Visit: https://github.com/Hisoka6602/ZakYip.Sorting.RuleEngine.Core
+
+2. **单击"Actions"选项卡 / Click the "Actions" tab**
+
+3. **从左侧边栏中选择"删除除主分支之外的所有分支"工作流程 / Select "Delete All Branches Except Master" workflow from the left sidebar**
+
+4. **单击"Run workflow"按钮 / Click the "Run workflow" button**
+
+5. **单击绿色的"Run workflow"按钮进行确认 / Click the green "Run workflow" button to confirm**
+
+### 工作流功能 / Workflow Features
+
+该工作流程将 / The workflow will:
+
+- ✅ 获取所有远程分支 / Fetch all remote branches
+- ✅ 识别除master以外的所有分支 / Identify all branches except master
+- ✅ 从远程存储库中删除每个分支 / Delete each branch from the remote repository
+- ✅ 报告删除期间的任何失败 / Report any failures during deletion
+- ✅ 提供详细的执行日志 / Provide detailed execution logs
+- ✅ 验证清理结果 / Verify cleanup results
+
+### 优点 / Advantages
+
+- 🔒 **安全** / **Safe**: 在GitHub环境中运行，有完整的审计日志
+- 🚀 **简单** / **Simple**: 无需本地环境或权限配置
+- 📊 **透明** / **Transparent**: 可以在Actions日志中查看所有操作
+- ⏱️ **异步** / **Asynchronous**: 不会阻塞本地工作
+
+## 方法二：使用提供的脚本 / Method 2: Use Provided Scripts
 
 ### Linux/macOS
 
@@ -49,7 +89,7 @@ chmod +x cleanup-branches.sh
 .\cleanup-branches.ps1 -Force
 ```
 
-## 方法二：使用Git命令 / Method 2: Use Git Commands
+## 方法三：使用Git命令 / Method 3: Use Git Commands
 
 ### 查看所有远程分支 / List all remote branches
 
@@ -85,7 +125,7 @@ git branch -r | Where-Object { $_ -notmatch 'HEAD' -and $_ -notmatch 'origin/mas
 git branch -r | Where-Object { $_ -notmatch 'HEAD' -and $_ -notmatch 'origin/master$' } | ForEach-Object { $branch = $_.Trim() -replace '^origin/', ''; git push origin --delete $branch }
 ```
 
-## 方法三：使用GitHub Web界面 / Method 3: Use GitHub Web Interface
+## 方法四：使用GitHub Web界面 / Method 4: Use GitHub Web Interface
 
 1. 访问仓库页面 / Visit repository page:
    https://github.com/Hisoka6602/ZakYip.Sorting.RuleEngine.Core
