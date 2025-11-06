@@ -718,25 +718,68 @@ public class DataAnalysisService : IDataAnalysisService
         int sequenceNumber = 1;
 
         foreach (var log in allLogs)
-        {
-            var dwsLog = await _sqliteContext.DwsCommunicationLogs
-                .Where(d => d.Barcode == log.ParcelId || d.Barcode != null && log.ParcelId.Contains(d.Barcode))
-                .OrderByDescending(d => d.CommunicationTime)
-                .FirstOrDefaultAsync(cancellationToken);
+        }
 
-            var apiLog = await _sqliteContext.ApiCommunicationLogs
-                .Where(a => a.ParcelId == log.ParcelId)
-                .OrderByDescending(a => a.RequestTime)
-                .FirstOrDefaultAsync(cancellationToken);
+        // Batch queries outside the loop
+        var parcelIds = logs.Select(l => l.ParcelId).Distinct().ToList();
+        var chuteIds = logs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
+
+        var dwsLogs = await _sqliteContext.DwsCommunicationLogs
+            .Where(d => parcelIds.Contains(d.Barcode))
+            .OrderByDescending(d => d.CommunicationTime)
+            .ToListAsync(cancellationToken);
+
+        var apiLogs = await _sqliteContext.ApiCommunicationLogs
+            .Where(a => parcelIds.Contains(a.ParcelId))
+            .OrderByDescending(a => a.RequestTime)
+            .ToListAsync(cancellationToken);
+
+        var chutes = await _sqliteContext.Chutes
+            .Where(c => chuteIds.Contains(c.ChuteId))
+            .ToListAsync(cancellationToken);
+
+        // Build lookup dictionaries
+        var dwsLogDict = dwsLogs
+            .GroupBy(d => d.Barcode)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.CommunicationTime).First());
+
+        var apiLogDict = apiLogs
+            .GroupBy(a => a.ParcelId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.RequestTime).First());
+
+        var chuteDict = chutes
+            .ToDictionary(c => c.ChuteId, c => c);
+
+        int sequenceNumber = 0;
+        foreach (var log in logs)
+        {
+            // Find DwsLog: match by Barcode == ParcelId or ParcelId contains Barcode
+            DwsCommunicationLog? dwsLog = null;
+            if (dwsLogDict.TryGetValue(log.ParcelId, out var directDwsLog))
+            {
+                dwsLog = directDwsLog;
+            }
+            else
+            {
+                // Try to find a DwsLog where Barcode is not null and ParcelId contains Barcode
+                dwsLog = dwsLogs
+                    .Where(d => d.Barcode != null && log.ParcelId.Contains(d.Barcode))
+                    .OrderByDescending(d => d.CommunicationTime)
+                    .FirstOrDefault();
+            }
+
+            ApiCommunicationLog? apiLog = null;
+            if (apiLogDict.TryGetValue(log.ParcelId, out var foundApiLog))
+            {
+                apiLog = foundApiLog;
+            }
 
             string? chuteCode = null;
             string? chuteName = null;
-            if (log.ChuteId.HasValue)
+            if (log.ChuteId.HasValue && chuteDict.TryGetValue(log.ChuteId.Value, out var chute))
             {
-                var chute = await _sqliteContext.Chutes
-                    .FirstOrDefaultAsync(c => c.ChuteId == log.ChuteId.Value, cancellationToken);
-                chuteCode = chute?.ChuteCode;
-                chuteName = chute?.ChuteName;
+                chuteCode = chute.ChuteCode;
+                chuteName = chute.ChuteName;
             }
 
             var item = new GanttChartDataItem
