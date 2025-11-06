@@ -50,7 +50,7 @@ Write-Host ""
 # Get list of remote branches except master
 Write-Host "Remote branches to delete / 要删除的远程分支:" -ForegroundColor Yellow
 $remoteBranches = git branch -r | Where-Object { 
-    $_ -notmatch 'HEAD' -and $_ -notmatch 'master' 
+    $_ -notmatch 'HEAD' -and $_ -notmatch 'origin/master$' 
 }
 
 $branchesToDelete = $remoteBranches | ForEach-Object {

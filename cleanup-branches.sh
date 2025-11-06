@@ -51,7 +51,7 @@ echo ""
 
 # Get list of remote branches except master
 echo -e "${YELLOW}Remote branches to delete / 要删除的远程分支:${NC}"
-BRANCHES_TO_DELETE=$(git branch -r | grep -v 'HEAD' | grep -v 'master' | sed 's/^origin\///')
+BRANCHES_TO_DELETE=$(git branch -r | grep -v 'HEAD' | grep -v -E 'origin/master$' | tr -d ' ' | sed 's/^origin\///')
 
 if [ -z "$BRANCHES_TO_DELETE" ]; then
     echo -e "${GREEN}No branches to delete / 没有需要删除的分支${NC}"
