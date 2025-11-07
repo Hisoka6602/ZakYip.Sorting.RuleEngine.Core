@@ -76,6 +76,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             _logger.LogDebug("开始扫描包裹到邮政分揽投机构，条码: {Barcode}", barcode);
 
             // 构造SOAP请求 - getYJSM方法
+            // Format: #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{scanTime}::{scanType}::{operationType}::{startCode}::{endCode}::{fields...}||#END
             var soapRequest = $@"
 <soapenv:Envelope xmlns:web=""http://serverNs.webservice.pcs.jdpt.chinapost.cn/"" xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"">
     <soapenv:Header />
@@ -176,6 +177,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造SOAP请求 - getLTGKCX方法（查询格口）
+            // Format: #HEAD::{sequenceId}::{DeviceId}::{barcode}::{flag}::{reserved fields}::{scanTime}::{EmployeeNumber}::{OrganizationNumber}::{CompanyName}::{DeviceBarcode}::{reserved}||#END
             var soapRequest = $@"
 <soapenv:Envelope xmlns:web=""http://serverNs.webservice.pcs.jdpt.chinapost.cn/"" xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"">
     <soapenv:Header />
@@ -269,6 +271,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
     /// <summary>
     /// 从SOAP响应中提取格口信息
     /// Extract chute information from SOAP response
+    /// Response format: #HEAD::{field0}::{field1}::{...}::{field7(chute)}::{...}::||#END
     /// </summary>
     private string? ExtractChuteFromResponse(string responseContent)
     {
@@ -277,6 +280,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             return null;
         }
 
+        // Extract data between #HEAD:: and ::||#END
         var pattern = @"#HEAD::(.*?)::\|\|#END";
         var match = Regex.Match(responseContent, pattern);
         if (match.Success)
@@ -284,9 +288,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var content = match.Groups[1].Value;
             var parts = content.Split(new string[] { "::" }, StringSplitOptions.None);
 
+            // Chute is in field 7 (index 7), take first 4 characters
             if (parts.Length > 7 && parts[7].Length >= 4)
             {
-                // 格口在第8个字段（索引7），取前4位
                 return parts[7][..4];
             }
         }
