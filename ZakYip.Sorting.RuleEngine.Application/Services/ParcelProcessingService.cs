@@ -15,14 +15,14 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 public class ParcelProcessingService : IParcelProcessingService
 {
     private readonly IRuleEngineService _ruleEngineService;
-    private readonly IThirdPartyApiAdapterFactory _apiAdapterFactory;
+    private readonly IWcsApiAdapterFactory _apiAdapterFactory;
     private readonly ILogRepository _logRepository;
     private readonly ILogger<ParcelProcessingService> _logger;
     private readonly ObjectPool<Stopwatch> _stopwatchPool;
 
     public ParcelProcessingService(
         IRuleEngineService ruleEngineService,
-        IThirdPartyApiAdapterFactory apiAdapterFactory,
+        IWcsApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
         ILogger<ParcelProcessingService> logger)
     {
@@ -76,9 +76,9 @@ public class ParcelProcessingService : IParcelProcessingService
                 };
             }
 
-            // 调用第三方API获取响应
-            // Call third-party API if DWS data is available
-            ThirdPartyResponse? thirdPartyResponse = null;
+            // 调用WCS API获取响应
+            // Call wcs API if DWS data is available
+            WcsApiResponse? thirdPartyResponse = null;
             if (dwsData != null)
             {
                 try
@@ -88,9 +88,9 @@ public class ParcelProcessingService : IParcelProcessingService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "第三方API调用失败，继续使用规则引擎: {ParcelId}", request.ParcelId);
+                    _logger.LogWarning(ex, "WCS API调用失败，继续使用规则引擎: {ParcelId}", request.ParcelId);
                     await _logRepository.LogWarningAsync(
-                        $"第三方API调用失败: {request.ParcelId}",
+                        $"WCS API调用失败: {request.ParcelId}",
                         ex.ToString());
                 }
             }

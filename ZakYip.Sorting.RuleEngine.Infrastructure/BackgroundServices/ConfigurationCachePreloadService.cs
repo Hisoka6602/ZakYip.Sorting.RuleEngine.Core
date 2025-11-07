@@ -32,7 +32,7 @@ public class ConfigurationCachePreloadService : IHostedService
             var cacheService = scope.ServiceProvider.GetRequiredService<Services.ConfigurationCacheService>();
             var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
             var ruleRepository = scope.ServiceProvider.GetRequiredService<IRuleRepository>();
-            var apiConfigRepository = scope.ServiceProvider.GetRequiredService<IThirdPartyApiConfigRepository>();
+            var apiConfigRepository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
 
             // 预加载格口缓存
             await cacheService.ReloadChuteCacheAsync(chuteRepository, cancellationToken);
@@ -40,7 +40,7 @@ public class ConfigurationCachePreloadService : IHostedService
             // 预加载分拣规则缓存
             await cacheService.ReloadSortingRuleCacheAsync(ruleRepository, cancellationToken);
 
-            // 预加载第三方API配置缓存
+            // 预加载WCS API配置缓存
             await cacheService.ReloadThirdPartyApiConfigCacheAsync(apiConfigRepository);
 
             _logger.LogInformation("配置缓存预加载完成");

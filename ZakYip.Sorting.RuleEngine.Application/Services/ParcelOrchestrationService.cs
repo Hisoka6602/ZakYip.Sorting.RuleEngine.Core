@@ -176,7 +176,7 @@ public class ParcelOrchestrationService
                         DwsData = context.DwsData
                     }, cancellationToken);
 
-                    // 等待第三方API响应后，执行规则匹配
+                    // 等待WCS API响应后，执行规则匹配
                     await Task.Delay(100, cancellationToken); // 简单延迟，实际应该等待事件完成
                     
                     // 执行规则匹配
@@ -195,7 +195,7 @@ public class ParcelOrchestrationService
                     var chuteNumber = await ruleEngineService.EvaluateRulesAsync(
                         parcelInfo,
                         context.DwsData,
-                        context.ThirdPartyResponse,
+                        context.WcsApiResponse,
                         cancellationToken);
 
                     if (chuteNumber != null)

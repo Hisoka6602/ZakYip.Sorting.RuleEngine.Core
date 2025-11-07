@@ -119,14 +119,14 @@ public class MemoryCacheHealthCheck : IHealthCheck
 }
 
 /// <summary>
-/// 第三方API健康检查
+/// WCS API健康检查
 /// </summary>
-public class ThirdPartyApiHealthCheck : IHealthCheck
+public class WcsApiHealthCheck : IHealthCheck
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
 
-    public ThirdPartyApiHealthCheck(
+    public WcsApiHealthCheck(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration)
     {
@@ -140,11 +140,11 @@ public class ThirdPartyApiHealthCheck : IHealthCheck
     {
         try
         {
-            var apiBaseUrl = _configuration["AppSettings:ThirdPartyApi:BaseUrl"];
+            var apiBaseUrl = _configuration["AppSettings:WcsApi:BaseUrl"];
             
             if (string.IsNullOrEmpty(apiBaseUrl))
             {
-                return HealthCheckResult.Degraded("第三方API未配置");
+                return HealthCheckResult.Degraded("WCS API未配置");
             }
 
             var client = _httpClientFactory.CreateClient();
@@ -159,21 +159,21 @@ public class ThirdPartyApiHealthCheck : IHealthCheck
 
             if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
             {
-                return HealthCheckResult.Healthy($"第三方API可访问 (状态码: {(int)response.StatusCode})");
+                return HealthCheckResult.Healthy($"WCS API可访问 (状态码: {(int)response.StatusCode})");
             }
             
-            return HealthCheckResult.Degraded($"第三方API返回非成功状态码: {(int)response.StatusCode}");
+            return HealthCheckResult.Degraded($"WCS API返回非成功状态码: {(int)response.StatusCode}");
         }
         catch (OperationCanceledException)
         {
-            return HealthCheckResult.Degraded("第三方API请求超时");
+            return HealthCheckResult.Degraded("WCS API请求超时");
         }
         catch (Exception ex) when (
             !(ex is OutOfMemoryException) &&
             !(ex is StackOverflowException) &&
             !(ex is ThreadAbortException))
         {
-            return HealthCheckResult.Unhealthy($"第三方API不可访问: {ex.Message}", ex);
+            return HealthCheckResult.Unhealthy($"WCS API不可访问: {ex.Message}", ex);
         }
     }
 }

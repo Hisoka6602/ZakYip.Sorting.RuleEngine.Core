@@ -11,7 +11,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// 旺店通WMS API适配器实现
 /// WDT (Wang Dian Tong) WMS API adapter implementation
 /// </summary>
-public class WdtWmsApiClient : IThirdPartyApiAdapter
+public class WdtWmsApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<WdtWmsApiClient> _logger;
@@ -38,10 +38,10 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
     }
 
     /// <summary>
-    /// 上传包裹和DWS数据到第三方API（旺店通WMS数据上传）
-    /// Upload parcel and DWS data to third-party API (WDT WMS data upload)
+    /// 上传包裹和DWS数据到WCS API（旺店通WMS数据上传）
+    /// Upload parcel and DWS data to wcs API (WDT WMS data upload)
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadDataAsync(
+    public async Task<WcsApiResponse> UploadDataAsync(
         ParcelInfo parcelInfo,
         DwsData dwsData,
         CancellationToken cancellationToken = default)
@@ -94,7 +94,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 上传数据成功，包裹ID: {ParcelId}",
                     parcelInfo.ParcelId);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -108,7 +108,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 上传数据失败，包裹ID: {ParcelId}, 状态码: {StatusCode}",
                     parcelInfo.ParcelId, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -121,7 +121,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "WDT WMS - 上传数据异常，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -133,9 +133,9 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
 
     /// <summary>
     /// 扫描包裹
-    /// Scan parcel to register it in the third-party system
+    /// Scan parcel to register it in the wcs system
     /// </summary>
-    public async Task<ThirdPartyResponse> ScanParcelAsync(
+    public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
@@ -172,7 +172,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 扫描包裹成功，条码: {Barcode}",
                     barcode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -186,7 +186,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -199,7 +199,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "WDT WMS - 扫描包裹异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -213,7 +213,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
     /// 请求格口
     /// Request a chute/gate number for the parcel
     /// </summary>
-    public async Task<ThirdPartyResponse> RequestChuteAsync(
+    public async Task<WcsApiResponse> RequestChuteAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
@@ -250,7 +250,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 查询包裹成功，条码: {Barcode}",
                     barcode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -264,7 +264,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 查询包裹失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -277,7 +277,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "WDT WMS - 查询包裹异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -289,9 +289,9 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
 
     /// <summary>
     /// 上传图片
-    /// Upload image to third-party API
+    /// Upload image to wcs API
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadImageAsync(
+    public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
         string contentType = "image/jpeg",
@@ -322,7 +322,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 上传图片成功，条码: {Barcode}",
                     barcode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -336,7 +336,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
                     "WDT WMS - 上传图片失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -349,7 +349,7 @@ public class WdtWmsApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "WDT WMS - 上传图片异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",

@@ -445,7 +445,7 @@ public class RuleEngineServiceTests
         var parcelInfo = new ParcelInfo { ParcelId = "PKG001", CartNumber = "CART001" };
         var dwsData = new DwsData { Weight = 1000 };
 
-        // Act - 传入null ThirdPartyResponse
+        // Act - 传入null WcsApiResponse
         var result = await _service.EvaluateRulesAsync(parcelInfo, dwsData, null);
 
         // Assert

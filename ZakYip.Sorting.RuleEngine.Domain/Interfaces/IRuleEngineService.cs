@@ -13,12 +13,12 @@ public interface IRuleEngineService
     /// </summary>
     /// <param name="parcelInfo">包裹信息</param>
     /// <param name="dwsData">DWS数据</param>
-    /// <param name="thirdPartyResponse">第三方API响应</param>
+    /// <param name="thirdPartyResponse">WCS API响应</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>格口号</returns>
     Task<string?> EvaluateRulesAsync(
         ParcelInfo parcelInfo,
         DwsData? dwsData,
-        ThirdPartyResponse? thirdPartyResponse,
+        WcsApiResponse? thirdPartyResponse,
         CancellationToken cancellationToken = default);
 }

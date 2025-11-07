@@ -3,29 +3,29 @@ using System.ComponentModel;
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
 /// <summary>
-/// 第三方API配置响应数据传输对象
+/// WCS API配置响应数据传输对象
 /// </summary>
-public record class ThirdPartyApiConfigResponseDto
+public record class WcsApiConfigResponseDto
 {
     /// <summary>
     /// 配置ID
     /// </summary>
     /// <example>API001</example>
-    [Description("第三方API配置ID")]
+    [Description("WCS API配置ID")]
     public required string ConfigId { get; init; }
 
     /// <summary>
     /// 配置名称
     /// </summary>
     /// <example>主API服务器</example>
-    [Description("第三方API配置名称")]
+    [Description("WCS API配置名称")]
     public required string Name { get; init; }
 
     /// <summary>
     /// API基础地址
     /// </summary>
     /// <example>https://api.example.com</example>
-    [Description("第三方API基础地址")]
+    [Description("WCS API基础地址")]
     public required string BaseUrl { get; init; }
 
     /// <summary>

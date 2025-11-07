@@ -3,9 +3,9 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
-/// 第三方API适配器接口，支持多厂商协议
+/// WCS API适配器接口，支持多厂商协议
 /// </summary>
-public interface IThirdPartyAdapter
+public interface IWcsAdapter
 {
     /// <summary>
     /// 适配器名称（厂商标识）
@@ -20,12 +20,12 @@ public interface IThirdPartyAdapter
     string ProtocolType { get; }
 
     /// <summary>
-    /// 调用第三方API
-    /// Call third-party API
+    /// 调用WCS API
+    /// Call wcs API
     /// </summary>
     /// <param name="parcelInfo">包裹信息 / Parcel information</param>
     /// <param name="dwsData">DWS数据 / DWS data</param>
     /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
-    /// <returns>第三方响应 / Third-party response</returns>
-    Task<ThirdPartyResponse> CallApiAsync(ParcelInfo parcelInfo, DwsData dwsData, CancellationToken cancellationToken = default);
+    /// <returns>第三方响应 / WCS response</returns>
+    Task<WcsApiResponse> CallApiAsync(ParcelInfo parcelInfo, DwsData dwsData, CancellationToken cancellationToken = default);
 }

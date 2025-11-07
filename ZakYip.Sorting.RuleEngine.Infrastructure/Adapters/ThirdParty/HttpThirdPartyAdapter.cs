@@ -10,9 +10,9 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.ThirdParty;
 
 /// <summary>
-/// HTTP协议第三方API适配器（通用实现）
+/// HTTP协议WCS API适配器（通用实现）
 /// </summary>
-public class HttpThirdPartyAdapter : IThirdPartyAdapter
+public class HttpThirdPartyAdapter : IWcsAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<HttpThirdPartyAdapter> _logger;
@@ -53,10 +53,10 @@ public class HttpThirdPartyAdapter : IThirdPartyAdapter
     }
 
     /// <summary>
-    /// 调用HTTP第三方API
-    /// Call HTTP third-party API
+    /// 调用HTTPWCS API
+    /// Call HTTP wcs API
     /// </summary>
-    public async Task<ThirdPartyResponse> CallApiAsync(
+    public async Task<WcsApiResponse> CallApiAsync(
         ParcelInfo parcelInfo,
         DwsData dwsData,
         CancellationToken cancellationToken = default)
@@ -83,7 +83,7 @@ public class HttpThirdPartyAdapter : IThirdPartyAdapter
                 var response = await _httpClient.PostAsync(_endpoint, content, ct);
                 var responseContent = await response.Content.ReadAsStringAsync(ct);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = response.IsSuccessStatusCode,
                     Code = ((int)response.StatusCode).ToString(),
@@ -94,8 +94,8 @@ public class HttpThirdPartyAdapter : IThirdPartyAdapter
         }
         catch (BrokenCircuitException)
         {
-            _logger.LogError("熔断器已打开，第三方API调用被阻止");
-            return new ThirdPartyResponse
+            _logger.LogError("熔断器已打开，WCS API调用被阻止");
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "CIRCUIT_BREAKER_OPEN",
@@ -105,8 +105,8 @@ public class HttpThirdPartyAdapter : IThirdPartyAdapter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "第三方API调用失败");
-            return new ThirdPartyResponse
+            _logger.LogError(ex, "WCS API调用失败");
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",

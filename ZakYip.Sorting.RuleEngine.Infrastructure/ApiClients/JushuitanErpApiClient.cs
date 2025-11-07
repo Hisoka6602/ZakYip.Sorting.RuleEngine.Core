@@ -11,7 +11,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// 聚水潭ERP API适配器实现
 /// Jushuituan ERP API adapter implementation
 /// </summary>
-public class JushuitanErpApiClient : IThirdPartyApiAdapter
+public class JushuitanErpApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<JushuitanErpApiClient> _logger;
@@ -41,10 +41,10 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
     }
 
     /// <summary>
-    /// 上传包裹和DWS数据到第三方API（聚水潭ERP称重回传）
-    /// Upload parcel and DWS data to third-party API (Jushuituan ERP weight callback)
+    /// 上传包裹和DWS数据到WCS API（聚水潭ERP称重回传）
+    /// Upload parcel and DWS data to wcs API (Jushuituan ERP weight callback)
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadDataAsync(
+    public async Task<WcsApiResponse> UploadDataAsync(
         ParcelInfo parcelInfo,
         DwsData dwsData,
         CancellationToken cancellationToken = default)
@@ -95,7 +95,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
                     "聚水潭ERP - 上传数据成功，包裹ID: {ParcelId}",
                     parcelInfo.ParcelId);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -109,7 +109,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
                     "聚水潭ERP - 上传数据失败，包裹ID: {ParcelId}, 状态码: {StatusCode}, 响应: {Response}",
                     parcelInfo.ParcelId, response.StatusCode, responseContent);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -122,7 +122,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "聚水潭ERP - 上传数据异常，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -134,9 +134,9 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
 
     /// <summary>
     /// 扫描包裹
-    /// Scan parcel to register it in the third-party system
+    /// Scan parcel to register it in the wcs system
     /// </summary>
-    public async Task<ThirdPartyResponse> ScanParcelAsync(
+    public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
@@ -179,7 +179,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
                     "聚水潭ERP - 扫描包裹/查询订单成功，条码: {Barcode}",
                     barcode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -193,7 +193,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
                     "聚水潭ERP - 扫描包裹/查询订单失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -206,7 +206,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "聚水潭ERP - 扫描包裹/查询订单异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -220,7 +220,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
     /// 请求格口
     /// Request a chute/gate number for the parcel
     /// </summary>
-    public async Task<ThirdPartyResponse> RequestChuteAsync(
+    public async Task<WcsApiResponse> RequestChuteAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
@@ -266,7 +266,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
                     "聚水潭ERP - 请求格口/更新物流成功，条码: {Barcode}",
                     barcode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = "200",
@@ -280,7 +280,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
                     "聚水潭ERP - 请求格口/更新物流失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -293,7 +293,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "聚水潭ERP - 请求格口/更新物流异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -305,9 +305,9 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
 
     /// <summary>
     /// 上传图片（聚水潭ERP暂不支持，返回成功响应）
-    /// Upload image to third-party API
+    /// Upload image to wcs API
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadImageAsync(
+    public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
         string contentType = "image/jpeg",
@@ -323,7 +323,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
             // 返回成功响应以保持接口一致性
             await Task.CompletedTask;
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = true,
                 Code = "200",
@@ -335,7 +335,7 @@ public class JushuitanErpApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "聚水潭ERP - 上传图片异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",

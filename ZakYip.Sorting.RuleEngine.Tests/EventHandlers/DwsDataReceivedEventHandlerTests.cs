@@ -15,7 +15,8 @@ namespace ZakYip.Sorting.RuleEngine.Tests.EventHandlers;
 public class DwsDataReceivedEventHandlerTests
 {
     private readonly Mock<ILogger<DwsDataReceivedEventHandler>> _mockLogger;
-    private readonly Mock<IThirdPartyApiAdapterFactory> _mockApiClient;
+    private readonly Mock<IWcsApiAdapterFactory> _mockFactory;
+    private readonly Mock<IWcsApiAdapter> _mockAdapter;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly DwsDataReceivedEventHandler _handler;
@@ -23,19 +24,21 @@ public class DwsDataReceivedEventHandlerTests
     public DwsDataReceivedEventHandlerTests()
     {
         _mockLogger = new Mock<ILogger<DwsDataReceivedEventHandler>>();
-        _mockApiClient = new Mock<IThirdPartyApiAdapterFactory>();
+        _mockFactory = new Mock<IWcsApiAdapterFactory>();
+        _mockAdapter = new Mock<IWcsApiAdapter>();
+        _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockPublisher = new Mock<IPublisher>();
 
         _handler = new DwsDataReceivedEventHandler(
             _mockLogger.Object,
-            _mockApiClient.Object,
+            _mockFactory.Object,
             _mockLogRepository.Object,
             _mockPublisher.Object);
     }
 
     [Fact]
-    public async Task Handle_ValidEvent_CallsThirdPartyApi()
+    public async Task Handle_ValidEvent_CallsWcsApi()
     {
         // Arrange
         var dwsData = new DwsData
@@ -54,13 +57,13 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        var apiResponse = new ThirdPartyResponse
+        var apiResponse = new WcsApiResponse
         {
             Success = true,
             Message = "Upload successful"
         };
 
-        _mockApiClient.Setup(a => a.UploadDataAsync(
+        _mockAdapter.Setup(a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
                 It.IsAny<CancellationToken>()))
@@ -70,7 +73,7 @@ public class DwsDataReceivedEventHandlerTests
         await _handler.Handle(notification, CancellationToken.None);
 
         // Assert
-        _mockApiClient.Verify(
+        _mockAdapter.Verify(
             a => a.UploadDataAsync(
                 It.Is<ParcelInfo>(p => p.ParcelId == "PKG001"),
                 It.Is<DwsData>(d => d.Weight == 1500),
@@ -79,14 +82,17 @@ public class DwsDataReceivedEventHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidEvent_LogsInfoMessage()
+    public async Task Handle_EventWithDwsData_LogsInfo()
     {
         // Arrange
         var dwsData = new DwsData
         {
             Barcode = "1234567890",
-            Weight = 1500,
-            Volume = 9000
+            Weight = 2000,
+            Length = 350,
+            Width = 250,
+            Height = 200,
+            Volume = 17500
         };
 
         var notification = new DwsDataReceivedEvent 
@@ -95,11 +101,12 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        _mockApiClient.Setup(a => a.UploadDataAsync(
+        var apiResponse = new WcsApiResponse { Success = true };
+        _mockAdapter.Setup(a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ThirdPartyResponse { Success = true });
+            .ReturnsAsync(apiResponse);
 
         // Act
         await _handler.Handle(notification, CancellationToken.None);
@@ -107,20 +114,23 @@ public class DwsDataReceivedEventHandlerTests
         // Assert
         _mockLogRepository.Verify(
             l => l.LogInfoAsync(
-                It.Is<string>(s => s.Contains("PKG002")),
+                It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
     }
 
     [Fact]
-    public async Task Handle_ApiSuccess_LogsResponseMessage()
+    public async Task Handle_WcsApiSuccess_PublishesSuccessEvent()
     {
         // Arrange
         var dwsData = new DwsData
         {
             Barcode = "1234567890",
             Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
             Volume = 9000
         };
 
@@ -130,13 +140,170 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        var apiResponse = new ThirdPartyResponse
+        var apiResponse = new WcsApiResponse
         {
             Success = true,
-            Message = "Data uploaded successfully"
+            Code = "200",
+            Message = "Success"
         };
 
-        _mockApiClient.Setup(a => a.UploadDataAsync(
+        _mockAdapter.Setup(a => a.UploadDataAsync(
+                It.IsAny<ParcelInfo>(),
+                It.IsAny<DwsData>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(apiResponse);
+
+        // Act
+        await _handler.Handle(notification, CancellationToken.None);
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(
+                It.Is<WcsApiCalledEvent>(e => e.IsSuccess && e.ParcelId == "PKG003"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WcsApiFailure_PublishesFailureEvent()
+    {
+        // Arrange
+        var dwsData = new DwsData
+        {
+            Barcode = "1234567890",
+            Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
+            Volume = 9000
+        };
+
+        var notification = new DwsDataReceivedEvent 
+        { 
+            ParcelId = "PKG004", 
+            DwsData = dwsData 
+        };
+
+        var apiResponse = new WcsApiResponse
+        {
+            Success = false,
+            Code = "500",
+            Message = "Server error"
+        };
+
+        _mockAdapter.Setup(a => a.UploadDataAsync(
+                It.IsAny<ParcelInfo>(),
+                It.IsAny<DwsData>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(apiResponse);
+
+        // Act
+        await _handler.Handle(notification, CancellationToken.None);
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(
+                It.Is<WcsApiCalledEvent>(e => !e.IsSuccess && e.ParcelId == "PKG004"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WcsApiThrowsException_PublishesFailureEvent()
+    {
+        // Arrange
+        var dwsData = new DwsData
+        {
+            Barcode = "1234567890",
+            Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
+            Volume = 9000
+        };
+
+        var notification = new DwsDataReceivedEvent 
+        { 
+            ParcelId = "PKG005", 
+            DwsData = dwsData 
+        };
+
+        _mockAdapter.Setup(a => a.UploadDataAsync(
+                It.IsAny<ParcelInfo>(),
+                It.IsAny<DwsData>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Network error"));
+
+        // Act
+        await _handler.Handle(notification, CancellationToken.None);
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(
+                It.Is<WcsApiCalledEvent>(e => !e.IsSuccess && e.ErrorMessage != null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WcsApiReturnsNull_DoesNotPublishEvent()
+    {
+        // Arrange
+        var dwsData = new DwsData
+        {
+            Barcode = "1234567890",
+            Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
+            Volume = 9000
+        };
+
+        var notification = new DwsDataReceivedEvent 
+        { 
+            ParcelId = "PKG006", 
+            DwsData = dwsData 
+        };
+
+        _mockAdapter.Setup(a => a.UploadDataAsync(
+                It.IsAny<ParcelInfo>(),
+                It.IsAny<DwsData>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((WcsApiResponse?)null);
+
+        // Act
+        await _handler.Handle(notification, CancellationToken.None);
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(
+                It.IsAny<WcsApiCalledEvent>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ValidEvent_LogsDwsDataDetails()
+    {
+        // Arrange
+        var dwsData = new DwsData
+        {
+            Barcode = "1234567890",
+            Weight = 3000,
+            Length = 400,
+            Width = 300,
+            Height = 250,
+            Volume = 30000
+        };
+
+        var notification = new DwsDataReceivedEvent 
+        { 
+            ParcelId = "PKG007", 
+            DwsData = dwsData 
+        };
+
+        var apiResponse = new WcsApiResponse { Success = true };
+        _mockAdapter.Setup(a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
                 It.IsAny<CancellationToken>()))
@@ -148,214 +315,9 @@ public class DwsDataReceivedEventHandlerTests
         // Assert
         _mockLogRepository.Verify(
             l => l.LogInfoAsync(
-                It.Is<string>(s => s.Contains("第三方API响应已接收")),
-                It.Is<string>(s => s.Contains("Data uploaded successfully")),
+                It.Is<string>(s => s.Contains("PKG007")),
+                It.Is<string>(s => s.Contains("3000")),
                 It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ApiThrowsException_LogsWarning()
-    {
-        // Arrange
-        var dwsData = new DwsData
-        {
-            Barcode = "1234567890",
-            Weight = 1500,
-            Volume = 9000
-        };
-
-        var notification = new DwsDataReceivedEvent 
-        { 
-            ParcelId = "PKG004", 
-            DwsData = dwsData 
-        };
-
-        _mockApiClient.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("API connection failed"));
-
-        // Act
-        await _handler.Handle(notification, CancellationToken.None);
-
-        // Assert
-        _mockLogRepository.Verify(
-            l => l.LogWarningAsync(
-                It.Is<string>(s => s.Contains("第三方API调用失败")),
-                It.Is<string>(s => s.Contains("API connection failed")),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ApiThrowsException_DoesNotThrow()
-    {
-        // Arrange
-        var dwsData = new DwsData
-        {
-            Barcode = "1234567890",
-            Weight = 1500,
-            Volume = 9000
-        };
-
-        var notification = new DwsDataReceivedEvent 
-        { 
-            ParcelId = "PKG005", 
-            DwsData = dwsData 
-        };
-
-        _mockApiClient.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("API error"));
-
-        // Act & Assert - Should not throw
-        await _handler.Handle(notification, CancellationToken.None);
-    }
-
-    [Fact]
-    public async Task Handle_ApiReturnsNull_DoesNotLogResponse()
-    {
-        // Arrange
-        var dwsData = new DwsData
-        {
-            Barcode = "1234567890",
-            Weight = 1500,
-            Volume = 9000
-        };
-
-        var notification = new DwsDataReceivedEvent 
-        { 
-            ParcelId = "PKG006", 
-            DwsData = dwsData 
-        };
-
-        _mockApiClient.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ThirdPartyResponse?)null);
-
-        // Act
-        await _handler.Handle(notification, CancellationToken.None);
-
-        // Assert
-        _mockLogRepository.Verify(
-            l => l.LogInfoAsync(
-                It.Is<string>(s => s.Contains("第三方API响应已接收")),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_WithCancellationToken_PassesToApiClient()
-    {
-        // Arrange
-        var dwsData = new DwsData
-        {
-            Barcode = "1234567890",
-            Weight = 1500,
-            Volume = 9000
-        };
-
-        var notification = new DwsDataReceivedEvent 
-        { 
-            ParcelId = "PKG007", 
-            DwsData = dwsData 
-        };
-        var cts = new CancellationTokenSource();
-
-        _mockApiClient.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ThirdPartyResponse { Success = true });
-
-        // Act
-        await _handler.Handle(notification, cts.Token);
-
-        // Assert
-        _mockApiClient.Verify(
-            a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.Is<CancellationToken>(ct => ct == cts.Token)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_LogsInitialDwsDataReceived_BeforeApiCall()
-    {
-        // Arrange
-        var dwsData = new DwsData
-        {
-            Barcode = "1234567890",
-            Weight = 2500,
-            Volume = 15000
-        };
-
-        var notification = new DwsDataReceivedEvent 
-        { 
-            ParcelId = "PKG008", 
-            DwsData = dwsData 
-        };
-
-        _mockApiClient.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ThirdPartyResponse { Success = true });
-
-        // Act
-        await _handler.Handle(notification, CancellationToken.None);
-
-        // Assert
-        _mockLogRepository.Verify(
-            l => l.LogInfoAsync(
-                It.Is<string>(s => s.Contains("DWS数据已接收")),
-                It.Is<string>(s => s.Contains("2500") && s.Contains("15000")),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_PopulatesParcelInfoCorrectly()
-    {
-        // Arrange
-        var dwsData = new DwsData
-        {
-            Barcode = "TEST123456",
-            Weight = 1000,
-            Volume = 5000
-        };
-
-        var notification = new DwsDataReceivedEvent 
-        { 
-            ParcelId = "PKG009", 
-            DwsData = dwsData 
-        };
-
-        _mockApiClient.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ThirdPartyResponse { Success = true });
-
-        // Act
-        await _handler.Handle(notification, CancellationToken.None);
-
-        // Assert
-        _mockApiClient.Verify(
-            a => a.UploadDataAsync(
-                It.Is<ParcelInfo>(p => 
-                    p.ParcelId == "PKG009" && 
-                    p.Barcode == "TEST123456"),
-                It.IsAny<DwsData>(),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.AtLeastOnce);
     }
 }

@@ -12,13 +12,13 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedEvent>
 {
     private readonly ILogger<DwsDataReceivedEventHandler> _logger;
-    private readonly IThirdPartyApiAdapterFactory _apiAdapterFactory;
+    private readonly IWcsApiAdapterFactory _apiAdapterFactory;
     private readonly ILogRepository _logRepository;
     private readonly IPublisher _publisher;
 
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
-        IThirdPartyApiAdapterFactory apiAdapterFactory,
+        IWcsApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
         IPublisher publisher)
     {
@@ -38,7 +38,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             $"DWS数据已接收: {notification.ParcelId}",
             $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³");
 
-        // 主动上传DWS数据到第三方API（主动调用，不发布事件）
+        // 主动上传DWS数据到WCS API（主动调用，不发布事件）
         var apiStartTime = DateTime.UtcNow;
         try
         {
@@ -56,15 +56,15 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 
             var apiDuration = DateTime.UtcNow - apiStartTime;
 
-            // 记录第三方API响应（主动调用的响应，直接记录，不通过事件）
+            // 记录WCS API响应（主动调用的响应，直接记录，不通过事件）
             if (response != null)
             {
                 await _logRepository.LogInfoAsync(
-                    $"第三方API响应已接收: {notification.ParcelId}",
+                    $"WCS API响应已接收: {notification.ParcelId}",
                     $"成功: {response.Success}, 消息: {response.Message}");
                 
-                // 发布第三方API调用事件
-                await _publisher.Publish(new ThirdPartyApiCalledEvent
+                // 发布WCS API调用事件
+                await _publisher.Publish(new WcsApiCalledEvent
                 {
                     ParcelId = notification.ParcelId,
                     ApiUrl = "/api/sorting/upload",
@@ -80,13 +80,13 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         {
             var apiDuration = DateTime.UtcNow - apiStartTime;
             
-            _logger.LogWarning(ex, "第三方API调用失败，将继续使用规则引擎: ParcelId={ParcelId}", notification.ParcelId);
+            _logger.LogWarning(ex, "WCS API调用失败，将继续使用规则引擎: ParcelId={ParcelId}", notification.ParcelId);
             await _logRepository.LogWarningAsync(
-                $"第三方API调用失败: {notification.ParcelId}",
+                $"WCS API调用失败: {notification.ParcelId}",
                 ex.Message);
             
-            // 发布第三方API调用失败事件
-            await _publisher.Publish(new ThirdPartyApiCalledEvent
+            // 发布WCS API调用失败事件
+            await _publisher.Publish(new WcsApiCalledEvent
             {
                 ParcelId = notification.ParcelId,
                 ApiUrl = "/api/sorting/upload",

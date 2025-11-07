@@ -3,9 +3,9 @@ using MediatR;
 namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
-/// 第三方API调用事件
+/// WCS API调用事件
 /// </summary>
-public record struct ThirdPartyApiCalledEvent : INotification
+public record struct WcsApiCalledEvent : INotification
 {
     /// <summary>
     /// 包裹ID

@@ -7,7 +7,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 /// <summary>
 /// 配置缓存服务
-/// 用于缓存常用配置数据（如格口、规则、第三方API配置）
+/// 用于缓存常用配置数据（如格口、规则、WCS API配置）
 /// </summary>
 public class ConfigurationCacheService
 {
@@ -143,42 +143,42 @@ public class ConfigurationCacheService
     #region ThirdPartyApiConfig缓存
 
     /// <summary>
-    /// 获取所有第三方API配置（从缓存）
+    /// 获取所有WCS API配置（从缓存）
     /// </summary>
-    public async Task<IEnumerable<ThirdPartyApiConfig>> GetAllThirdPartyApiConfigsAsync(
-        IThirdPartyApiConfigRepository repository)
+    public async Task<IEnumerable<WcsApiConfig>> GetAllThirdPartyApiConfigsAsync(
+        IWcsApiConfigRepository repository)
     {
         return await _cache.GetOrCreateAsync(ThirdPartyApiConfigsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = _cacheExpiration;
             entry.Size = 1;
             var configs = await repository.GetAllAsync();
-            _logger.LogInformation("第三方API配置数据已缓存，共 {Count} 条", configs.Count());
+            _logger.LogInformation("WCS API配置数据已缓存，共 {Count} 条", configs.Count());
             return configs;
-        }) ?? Enumerable.Empty<ThirdPartyApiConfig>();
+        }) ?? Enumerable.Empty<WcsApiConfig>();
     }
 
     /// <summary>
-    /// 获取启用的第三方API配置（从缓存）
+    /// 获取启用的WCS API配置（从缓存）
     /// </summary>
-    public async Task<IEnumerable<ThirdPartyApiConfig>> GetEnabledThirdPartyApiConfigsAsync(
-        IThirdPartyApiConfigRepository repository)
+    public async Task<IEnumerable<WcsApiConfig>> GetEnabledThirdPartyApiConfigsAsync(
+        IWcsApiConfigRepository repository)
     {
         return await _cache.GetOrCreateAsync(EnabledThirdPartyApiConfigsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = _cacheExpiration;
             entry.Size = 1;
             var configs = await repository.GetEnabledConfigsAsync();
-            _logger.LogInformation("启用第三方API配置数据已缓存，共 {Count} 条", configs.Count());
+            _logger.LogInformation("启用WCS API配置数据已缓存，共 {Count} 条", configs.Count());
             return configs;
-        }) ?? Enumerable.Empty<ThirdPartyApiConfig>();
+        }) ?? Enumerable.Empty<WcsApiConfig>();
     }
 
     /// <summary>
-    /// 重新加载第三方API配置缓存
+    /// 重新加载WCS API配置缓存
     /// </summary>
     public async Task ReloadThirdPartyApiConfigCacheAsync(
-        IThirdPartyApiConfigRepository repository)
+        IWcsApiConfigRepository repository)
     {
         _cache.Remove(ThirdPartyApiConfigsCacheKey);
         _cache.Remove(EnabledThirdPartyApiConfigsCacheKey);
@@ -186,7 +186,7 @@ public class ConfigurationCacheService
         await GetAllThirdPartyApiConfigsAsync(repository);
         await GetEnabledThirdPartyApiConfigsAsync(repository);
         
-        _logger.LogInformation("第三方API配置缓存已重新加载");
+        _logger.LogInformation("WCS API配置缓存已重新加载");
     }
 
     #endregion

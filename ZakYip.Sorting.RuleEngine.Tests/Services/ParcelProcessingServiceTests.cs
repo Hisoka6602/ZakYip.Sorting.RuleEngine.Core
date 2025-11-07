@@ -15,8 +15,8 @@ namespace ZakYip.Sorting.RuleEngine.Tests.Services;
 public class ParcelProcessingServiceTests
 {
     private readonly Mock<IRuleEngineService> _mockRuleEngineService;
-    private readonly Mock<IThirdPartyApiAdapter> _mockApiAdapter;
-    private readonly Mock<IThirdPartyApiAdapterFactory> _mockFactory;
+    private readonly Mock<IWcsApiAdapter> _mockApiAdapter;
+    private readonly Mock<IWcsApiAdapterFactory> _mockFactory;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<ILogger<ParcelProcessingService>> _mockLogger;
     private readonly ParcelProcessingService _service;
@@ -24,8 +24,8 @@ public class ParcelProcessingServiceTests
     public ParcelProcessingServiceTests()
     {
         _mockRuleEngineService = new Mock<IRuleEngineService>();
-        _mockApiAdapter = new Mock<IThirdPartyApiAdapter>();
-        _mockFactory = new Mock<IThirdPartyApiAdapterFactory>();
+        _mockApiAdapter = new Mock<IWcsApiAdapter>();
+        _mockFactory = new Mock<IWcsApiAdapterFactory>();
         _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockApiAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockLogger = new Mock<ILogger<ParcelProcessingService>>();
@@ -54,7 +54,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedChute);
 
@@ -83,7 +83,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
@@ -97,7 +97,7 @@ public class ParcelProcessingServiceTests
     }
 
     [Fact]
-    public async Task ProcessParcelAsync_WithDwsData_CallsThirdPartyApi()
+    public async Task ProcessParcelAsync_WithDwsData_CallsWcsApi()
     {
         // Arrange
         var request = new ParcelProcessRequest
@@ -111,7 +111,7 @@ public class ParcelProcessingServiceTests
             Volume = 9000
         };
 
-        var apiResponse = new ThirdPartyResponse
+        var apiResponse = new WcsApiResponse
         {
             Code = "200",
             Message = "Success",
@@ -127,7 +127,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-B01");
 
@@ -135,7 +135,7 @@ public class ParcelProcessingServiceTests
         var response = await _service.ProcessParcelAsync(request);
 
         // Assert
-        _mockThirdPartyApiClient.Verify(
+        _mockApiAdapter.Verify(
             a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
@@ -165,7 +165,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-C01");
 
@@ -194,7 +194,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception(exceptionMessage));
 
@@ -211,7 +211,7 @@ public class ParcelProcessingServiceTests
     }
 
     [Fact]
-    public async Task ProcessParcelAsync_WithoutDwsData_SkipsThirdPartyApi()
+    public async Task ProcessParcelAsync_WithoutDwsData_SkipsWcsApi()
     {
         // Arrange
         var request = new ParcelProcessRequest
@@ -224,7 +224,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-D01");
 
@@ -232,7 +232,7 @@ public class ParcelProcessingServiceTests
         var response = await _service.ProcessParcelAsync(request);
 
         // Assert
-        _mockThirdPartyApiClient.Verify(
+        _mockApiAdapter.Verify(
             a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
@@ -254,7 +254,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-E01");
 
@@ -284,7 +284,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-F01");
 
@@ -312,7 +312,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.SetupSequence(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-G01")
             .ThrowsAsync(new Exception("Processing error"));
@@ -352,7 +352,7 @@ public class ParcelProcessingServiceTests
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
-                It.IsAny<ThirdPartyResponse>(),
+                It.IsAny<WcsApiResponse>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("CHUTE-H01");
 

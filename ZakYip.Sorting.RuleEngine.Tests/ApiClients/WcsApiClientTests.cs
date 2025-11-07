@@ -9,25 +9,25 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 
 /// <summary>
-/// 第三方API客户端测试
-/// Third-party API client tests
+/// WCS API客户端测试
+/// WCS API client tests
 /// </summary>
-public class ThirdPartyApiClientTests
+public class WcsApiClientTests
 {
-    private readonly Mock<ILogger<ThirdPartyApiClient>> _loggerMock;
+    private readonly Mock<ILogger<WcsApiClient>> _loggerMock;
 
-    public ThirdPartyApiClientTests()
+    public WcsApiClientTests()
     {
-        _loggerMock = new Mock<ILogger<ThirdPartyApiClient>>();
+        _loggerMock = new Mock<ILogger<WcsApiClient>>();
     }
 
-    private ThirdPartyApiClient CreateClient(HttpMessageHandler handler)
+    private WcsApiClient CreateClient(HttpMessageHandler handler)
     {
         var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.example.com")
         };
-        return new ThirdPartyApiClient(httpClient, _loggerMock.Object);
+        return new WcsApiClient(httpClient, _loggerMock.Object);
     }
 
     [Fact]

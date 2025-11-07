@@ -14,5 +14,5 @@ public class ParcelProcessingContext
     public DateTime CreatedAt { get; init; }
     public DateTime? DwsReceivedAt { get; set; }
     public DwsData? DwsData { get; set; }
-    public ThirdPartyResponse? ThirdPartyResponse { get; set; }
+    public WcsApiResponse? WcsApiResponse { get; set; }
 }

@@ -244,7 +244,7 @@ public class OcrDataTests
 
 /// <summary>
 /// 第三方响应实体单元测试
-/// Unit tests for ThirdPartyResponse entity
+/// Unit tests for WcsApiResponse entity
 /// </summary>
 public class ThirdPartyResponseTests
 {

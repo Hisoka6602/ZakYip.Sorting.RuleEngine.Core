@@ -25,17 +25,17 @@ public class AppSettings
     public SqliteSettings Sqlite { get; set; } = new();
 
     /// <summary>
-    /// 第三方API配置
-    /// Third-party API configuration
+    /// WCS API配置
+    /// WCS API configuration
     /// </summary>
-    public ThirdPartyApiSettings ThirdPartyApi { get; set; } = new();
+    public ThirdPartyApiSettings WcsApi { get; set; } = new();
 
     /// <summary>
-    /// 激活的第三方API适配器类型
-    /// Active third-party API adapter type
-    /// 可选值: ThirdPartyApiClient, WdtWmsApiClient, JushuitanErpApiClient
+    /// 激活的WCS API适配器类型
+    /// Active wcs API adapter type
+    /// 可选值: WcsApiClient, WdtWmsApiClient, JushuitanErpApiClient
     /// </summary>
-    public string ActiveApiAdapter { get; set; } = "ThirdPartyApiClient";
+    public string ActiveApiAdapter { get; set; } = "WcsApiClient";
 
     /// <summary>
     /// 旺店通WMS API配置
@@ -109,8 +109,8 @@ public class SqliteSettings
 }
 
 /// <summary>
-/// 第三方API配置
-/// Third-party API settings
+/// WCS API配置
+/// WCS API settings
 /// </summary>
 public class ThirdPartyApiSettings
 {
