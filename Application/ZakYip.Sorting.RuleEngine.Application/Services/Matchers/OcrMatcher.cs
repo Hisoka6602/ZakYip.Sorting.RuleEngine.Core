@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
@@ -13,6 +14,7 @@ public class OcrMatcher
     /// <summary>
     /// 评估OCR匹配表达式
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(string expression, OcrData? ocrData)
     {
         if (string.IsNullOrWhiteSpace(expression) || ocrData == null)

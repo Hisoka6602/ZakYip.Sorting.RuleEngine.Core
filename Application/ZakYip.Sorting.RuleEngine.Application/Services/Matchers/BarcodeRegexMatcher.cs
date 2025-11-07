@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -13,6 +14,7 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估条码正则匹配（使用枚举）
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(BarcodeMatchPreset preset, string parameter, string barcode)
     {
         if (string.IsNullOrWhiteSpace(barcode))
@@ -95,6 +97,7 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估长度范围
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateLengthRange(string lengthSpec, string barcode)
     {
         var parts = lengthSpec.Split('-');
@@ -110,6 +113,7 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估正则表达式
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateRegex(string pattern, string barcode)
     {
         try

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -155,6 +156,7 @@ public class RuleEngineService : IRuleEngineService
     /// <summary>
     /// 评估单个规则
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateRule(
         SortingRule rule,
         ParcelInfo parcelInfo,
