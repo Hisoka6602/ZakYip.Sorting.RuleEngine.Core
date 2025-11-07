@@ -6,6 +6,18 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.14.3 (2025-11-07)
+- ✅ **API客户端重构** - 统一命名规范和方法映射
+  - 重命名JushuitanErpApiAdapter → JushuitanErpApiClient
+  - 重命名WdtWmsApiAdapter → WdtWmsApiClient
+  - 重命名PostCollectionApiAdapter → PostCollectionApiClient
+  - 重命名PostProcessingCenterApiAdapter → PostProcessingCenterApiClient
+  - 所有API客户端统一使用ApiClient后缀
+  - RequestChuteAsync方法对应参考代码中的UploadData方法
+  - ScanParcelAsync方法对应参考代码中的SubmitScanInfo方法
+  - JushuitanErpApiClient和WdtWmsApiClient的ScanParcelAsync返回不支持消息
+  - 更新所有相关引用和测试文件
+
 ### v1.14.2 (2025-11-07)
 - ✅ **邮政API适配器重构** - 修正PostProcessingCenterApiAdapter和PostCollectionApiAdapter实现
   - 两个适配器现在正确实现IWcsApiAdapter接口
@@ -1103,47 +1115,87 @@ DEFAULT                # 默认规则（匹配所有）
 
 **重要说明**：生产环境中，分拣程序和DWS设备应使用TCP或SignalR通信，不应使用HTTP API。HTTP API仅用于测试和调试。
 
-### 邮政API适配器（IWcsApiAdapter）
+### 邮政/WCS API客户端（IWcsApiAdapter）
 
-系统提供了两种独立的邮政API适配器实现，每个都根据其对应的参考代码独立实现：
+系统提供了四种独立的API客户端实现（v1.14.3统一重命名），每个都根据其对应的参考代码实现：
 
-#### 1. 邮政处理中心API适配器（PostProcessingCenterApiAdapter）
+#### 1. 邮政处理中心API客户端（PostProcessingCenterApiClient）
 - **实现接口**：IWcsApiAdapter
 - **基础URL**：`/api/post/processing`
-- **参考实现**：[PostApi.cs](https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostApi.cs)
+- **参考实现**：[PostApi.cs](https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e)
 - **特点**：独立实现，按照PostApi.cs的具体逻辑和数据结构
+- **方法映射**：
+  - `ScanParcelAsync` - 对应参考代码的SubmitScanInfo方法
+  - `RequestChuteAsync` - 对应参考代码的UploadData方法
+  - `UploadImageAsync` - 上传图片功能
 
-#### 2. 邮政分揽投机构API适配器（PostCollectionApiAdapter）
+#### 2. 邮政分揽投机构API客户端（PostCollectionApiClient）
 - **实现接口**：IWcsApiAdapter
 - **基础URL**：`/api/post/collection`
-- **参考实现**：[PostInApi.cs](https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostInApi.cs)
+- **参考实现**：[PostInApi.cs](https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e)
 - **特点**：独立实现，按照PostInApi.cs的具体逻辑和数据结构
+- **方法映射**：
+  - `ScanParcelAsync` - 对应参考代码的SubmitScanInfo方法
+  - `RequestChuteAsync` - 对应参考代码的UploadData方法
+  - `UploadImageAsync` - 上传图片功能
+
+#### 3. 聚水潭ERP API客户端（JushuitanErpApiClient）
+- **实现接口**：IWcsApiAdapter
+- **参考实现**：[参考代码](https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e)
+- **特点**：ERP系统集成，主要用于订单和重量数据上传
+- **方法映射**：
+  - `RequestChuteAsync` - 对应参考代码的UploadData方法（上传称重数据）
+  - `ScanParcelAsync` - 不支持（返回不支持消息）
+  - `UploadImageAsync` - 留空实现
+
+#### 4. 旺店通WMS API客户端（WdtWmsApiClient）
+- **实现接口**：IWcsApiAdapter
+- **参考实现**：[参考代码](https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e)
+- **特点**：WMS系统集成，用于仓储管理系统对接
+- **方法映射**：
+  - `RequestChuteAsync` - 对应参考代码的UploadData方法（上传称重数据）
+  - `ScanParcelAsync` - 不支持（返回不支持消息）
+  - `UploadImageAsync` - 实现图片上传功能
 
 #### 标准接口方法
-所有WCS API适配器都实现相同的IWcsApiAdapter接口方法：
+所有WCS API客户端都实现相同的IWcsApiAdapter接口方法：
 - `ScanParcelAsync(string barcode)` - 扫描包裹
 - `RequestChuteAsync(string barcode)` - 请求格口号
 - `UploadImageAsync(string barcode, byte[] imageData, string contentType)` - 上传图片
 
-**注**：虽然接口相同，但每个适配器的具体实现都是独立的，根据各自的参考代码实现，可能在请求格式、数据结构、处理流程等方面有所不同。
+**注**：虽然接口相同，但每个客户端的具体实现都是独立的，根据各自的参考代码实现，可能在请求格式、数据结构、处理流程等方面有所不同。
 
 #### 使用示例
 ```csharp
-// 邮政处理中心适配器注册
-services.AddHttpClient<IWcsApiAdapter, PostProcessingCenterApiAdapter>(client =>
+// 邮政处理中心客户端注册
+services.AddHttpClient<IWcsApiAdapter, PostProcessingCenterApiClient>(client =>
 {
     client.BaseAddress = new Uri("https://api.post-processing.example.com");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
-// 邮政分揽投机构适配器注册
-services.AddHttpClient<IWcsApiAdapter, PostCollectionApiAdapter>(client =>
+// 邮政分揽投机构客户端注册
+services.AddHttpClient<IWcsApiAdapter, PostCollectionApiClient>(client =>
 {
     client.BaseAddress = new Uri("https://api.post-collection.example.com");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
-// 使用适配器
+// 聚水潭ERP客户端注册
+services.AddHttpClient<IWcsApiAdapter, JushuitanErpApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.jushuitan.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// 旺店通WMS客户端注册
+services.AddHttpClient<IWcsApiAdapter, WdtWmsApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.wdt.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// 使用客户端
 var adapter = serviceProvider.GetService<IWcsApiAdapter>();
 var scanResult = await adapter.ScanParcelAsync("POST123456");
 var chuteResult = await adapter.RequestChuteAsync("POST123456");
@@ -1788,12 +1840,20 @@ public async Task<IActionResult> UpdateRule([FromBody] SortingRule rule)
 20. ~~**日志安全性增强**~~ - ✅ 已完成（v1.14.0）- 生产环境禁止SQL日志，防止敏感信息泄露
 21. ~~**数据精度提升**~~ - ✅ 已完成（v1.14.0）- double替换为decimal，提高物理测量精度
 22. ~~**布尔字段命名规范**~~ - ✅ 已验证（v1.14.0）- 所有字段符合Is/Has前缀规范
-23. **格口分配优化** - 基于格口使用情况的智能分配算法
-24. **版本升级通知** - 当有新版本时自动通知管理员
-25. **规则测试工具** - 提供规则表达式在线测试和验证工具（Web界面）
-26. **性能监控仪表板** - 实时显示系统性能指标和瓶颈分析
-27. **代码覆盖率提升** - 从当前约70%提升至85%以上（v1.14.0部分完成）
-28. **静态代码分析** - 集成SonarQube进行代码质量分析（待实现）
+23. ~~**API客户端统一命名**~~ - ✅ 已完成（v1.14.3）- 所有API适配器重命名为ApiClient后缀，统一方法映射
+24. **API客户端增强** - API客户端功能完善（v1.14.3新增优化方向）
+   - 添加Polly弹性策略（重试、熔断、超时）
+   - 实现强类型响应模型解析
+   - 支持批量操作（批量扫描、批量请求格口）
+   - 添加请求/响应日志记录
+   - 支持配置文件管理（端点、超时、认证参数）
+   - 实现响应缓存机制
+25. **格口分配优化** - 基于格口使用情况的智能分配算法
+26. **版本升级通知** - 当有新版本时自动通知管理员
+27. **规则测试工具** - 提供规则表达式在线测试和验证工具（Web界面）
+28. **性能监控仪表板** - 实时显示系统性能指标和瓶颈分析
+29. **代码覆盖率提升** - 从当前约70%提升至85%以上（v1.14.0部分完成）
+30. **静态代码分析** - 集成SonarQube进行代码质量分析（待实现）
 
 #### 中期优化（1-3个月）
 1. **Web管理界面** - 开发完整的Web管理控制台（高优先级）
@@ -2211,14 +2271,34 @@ dotnet run
 - **适配器热加载和动态配置**
 
 #### 2. 第三方系统集成
-- **WMS系统集成**
-- **TMS系统集成**
-- **ERP系统集成**
-- **标准API接口提供**
+- **WMS系统集成** - WdtWmsApiClient（旺店通WMS）
+- **ERP系统集成** - JushuitanErpApiClient（聚水潭ERP）
+- **邮政系统集成** - PostProcessingCenterApiClient和PostCollectionApiClient
+- **标准API接口提供** - 统一的IWcsApiAdapter接口
+- **方法映射规范** - 参考代码方法一致性映射
 
-#### 3. 邮政系统深度集成（v1.14.2新增）
-- ✅ 邮政处理中心API适配器（已实现IWcsApiAdapter）
-- ✅ 邮政分揽投机构API适配器（已实现IWcsApiAdapter）
+#### 3. 邮政系统深度集成（v1.14.3更新）
+- ✅ 邮政处理中心API客户端（已重命名为PostProcessingCenterApiClient）
+  - 实现IWcsApiAdapter接口
+  - ScanParcelAsync - 扫描包裹到系统（对应SubmitScanInfo）
+  - RequestChuteAsync - 请求格口号（对应UploadData）
+  - UploadImageAsync - 上传图片
+- ✅ 邮政分揽投机构API客户端（已重命名为PostCollectionApiClient）
+  - 实现IWcsApiAdapter接口
+  - ScanParcelAsync - 扫描包裹到系统（对应SubmitScanInfo）
+  - RequestChuteAsync - 请求格口号（对应UploadData）
+  - UploadImageAsync - 上传图片
+- ✅ 聚水潭ERP API客户端（已重命名为JushuitanErpApiClient）
+  - 实现IWcsApiAdapter接口
+  - RequestChuteAsync - 上传称重数据（对应UploadData）
+  - ScanParcelAsync - 不支持（返回不支持消息）
+  - UploadImageAsync - 留空实现
+- ✅ 旺店通WMS API客户端（已重命名为WdtWmsApiClient）
+  - 实现IWcsApiAdapter接口
+  - RequestChuteAsync - 上传称重数据（对应UploadData）
+  - ScanParcelAsync - 不支持（返回不支持消息）
+  - UploadImageAsync - 实现图片上传
+- ✅ 统一命名规范（所有API适配器统一使用ApiClient后缀）
 - ⏳ 邮政API弹性策略（Polly重试和熔断）（待实现）
 - ⏳ 邮政API配置化（配置文件管理端点和参数）（待实现）
 - ⏳ 邮政API强类型响应模型（待实现）
