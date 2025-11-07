@@ -33,20 +33,11 @@ public class WdtWmsApiAdapterTests
     }
 
     [Fact]
-    public async Task UploadDataAsync_Success_ReturnsSuccessResponse()
+    public async Task RequestChuteAsync_WithDwsData_ReturnsSuccessResponse()
     {
         // Arrange
-        var parcelInfo = new ParcelInfo { ParcelId = "P123", CartNumber = "C001" };
-        var dwsData = new DwsData
-        {
-            Barcode = "TEST123456",
-            Weight = 1.5m,
-            Length = 30m,
-            Width = 20m,
-            Height = 10m,
-            Volume = 0.006m
-        };
-        var responseContent = "{\"code\":0,\"message\":\"success\",\"data\":{\"result\":true}}";
+        var barcode = "TEST123456";
+        var responseContent = "{\"code\":0,\"message\":\"success\",\"data\":{\"chute\":\"A-101\"}}";
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock
@@ -55,7 +46,7 @@ public class WdtWmsApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/data/upload")),
+                    req.RequestUri!.ToString().Contains("/openapi/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -66,12 +57,12 @@ public class WdtWmsApiAdapterTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.UploadDataAsync(parcelInfo, dwsData);
+        var result = await client.RequestChuteAsync(barcode);
 
         // Assert
         Assert.True(result.Success);
         Assert.Equal("200", result.Code);
-        Assert.Equal("上传数据成功", result.Message);
+        Assert.Equal("查询包裹成功", result.Message);
         Assert.Contains("success", result.Data);
     }
 
@@ -89,7 +80,7 @@ public class WdtWmsApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/parcel/scan")),
+                    req.RequestUri!.ToString().Contains("/openapi/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -123,7 +114,7 @@ public class WdtWmsApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/parcel/query")),
+                    req.RequestUri!.ToString().Contains("/openapi/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -158,7 +149,7 @@ public class WdtWmsApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/parcel/image")),
+                    req.RequestUri!.ToString().Contains("/openapi/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -179,11 +170,10 @@ public class WdtWmsApiAdapterTests
     }
 
     [Fact]
-    public async Task UploadDataAsync_Exception_ReturnsErrorResponse()
+    public async Task RequestChuteAsync_Exception_ReturnsErrorResponse()
     {
         // Arrange
-        var parcelInfo = new ParcelInfo { ParcelId = "P123", CartNumber = "C001" };
-        var dwsData = new DwsData { Barcode = "TEST123456", Weight = 1.5m };
+        var barcode = "TEST123456";
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock
@@ -197,7 +187,7 @@ public class WdtWmsApiAdapterTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.UploadDataAsync(parcelInfo, dwsData);
+        var result = await client.RequestChuteAsync(barcode);
 
         // Assert
         Assert.False(result.Success);

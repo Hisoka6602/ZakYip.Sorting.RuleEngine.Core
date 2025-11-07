@@ -63,9 +63,8 @@ public class DwsDataReceivedEventHandlerTests
             Message = "Upload successful"
         };
 
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -74,9 +73,8 @@ public class DwsDataReceivedEventHandlerTests
 
         // Assert
         _mockAdapter.Verify(
-            a => a.UploadDataAsync(
-                It.Is<ParcelInfo>(p => p.ParcelId == "PKG001"),
-                It.Is<DwsData>(d => d.Weight == 1500),
+            a => a.RequestChuteAsync(
+                It.Is<string>(b => b == "1234567890"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -102,9 +100,8 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         var apiResponse = new WcsApiResponse { Success = true };
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -147,9 +144,8 @@ public class DwsDataReceivedEventHandlerTests
             Message = "Success"
         };
 
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -191,9 +187,8 @@ public class DwsDataReceivedEventHandlerTests
             Message = "Server error"
         };
 
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -228,9 +223,8 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Network error"));
 
@@ -265,9 +259,8 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((WcsApiResponse)null!);  // 测试null场景
 
@@ -303,9 +296,8 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         var apiResponse = new WcsApiResponse { Success = true };
-        _mockAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 

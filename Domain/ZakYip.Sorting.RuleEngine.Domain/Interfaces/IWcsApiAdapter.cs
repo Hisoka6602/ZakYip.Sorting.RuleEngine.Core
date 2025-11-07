@@ -10,19 +10,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 public interface IWcsApiAdapter
 {
     /// <summary>
-    /// 上传包裹和DWS数据到WCS API
-    /// Upload parcel and DWS data to wcs API
-    /// </summary>
-    /// <param name="parcelInfo">包裹信息</param>
-    /// <param name="dwsData">DWS数据</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>WCS API响应</returns>
-    Task<WcsApiResponse> UploadDataAsync(
-        ParcelInfo parcelInfo,
-        DwsData dwsData,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// 扫描包裹
     /// Scan parcel to register it in the wcs system
     /// </summary>
