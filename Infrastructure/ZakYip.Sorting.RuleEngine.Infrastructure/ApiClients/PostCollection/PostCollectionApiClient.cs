@@ -17,6 +17,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<PostCollectionApiClient> _logger;
+    private readonly SoapRequestBuilder _soapRequestBuilder;
     private static long _sequenceNumber = 1;
     private readonly object _sequenceLock = new();
 
@@ -34,6 +35,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
     {
         _httpClient = httpClient;
         _logger = logger;
+        _soapRequestBuilder = new SoapRequestBuilder();
     }
 
     private long GetNextSequenceNumber()
@@ -76,16 +78,15 @@ public class PostCollectionApiClient : IWcsApiAdapter
             _logger.LogDebug("开始扫描包裹到邮政分揽投机构，条码: {Barcode}", barcode);
 
             // 构造SOAP请求 - getYJSM方法
-            // Format: #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{scanTime}::{scanType}::{operationType}::{startCode}::{endCode}::{fields...}||#END
-            var soapRequest = $@"
-<soapenv:Envelope xmlns:web=""http://serverNs.webservice.pcs.jdpt.chinapost.cn/"" xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"">
-    <soapenv:Header />
-    <soapenv:Body>
-        <web:getYJSM>
-            <arg0>#HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{DateTime.Now:yyyyMMddHHmmss}::2::001::0000::0000::0::0::0::0::0::0::0||#END</arg0>
-        </web:getYJSM>
-    </soapenv:Body>
-</soapenv:Envelope>";
+            var scanParameters = new ScanRequestParameters
+            {
+                DeviceId = DeviceId,
+                Barcode = barcode,
+                EmployeeNumber = EmployeeNumber,
+                ScanTime = DateTime.Now
+            };
+
+            var soapRequest = _soapRequestBuilder.BuildScanRequest(scanParameters);
 
             var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
@@ -177,16 +178,19 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造SOAP请求 - getLTGKCX方法（查询格口）
-            // Format: #HEAD::{sequenceId}::{DeviceId}::{barcode}::{flag}::{reserved fields}::{scanTime}::{EmployeeNumber}::{OrganizationNumber}::{CompanyName}::{DeviceBarcode}::{reserved}||#END
-            var soapRequest = $@"
-<soapenv:Envelope xmlns:web=""http://serverNs.webservice.pcs.jdpt.chinapost.cn/"" xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"">
-    <soapenv:Header />
-    <soapenv:Body>
-        <web:getLTGKCX>
-            <arg0>#HEAD::{sequenceId}::{DeviceId}::{dwsData.Barcode}::0:: :: :: ::{DateTime.Now:yyyy-MM-dd HH:mm:ss}::{EmployeeNumber}::{OrganizationNumber}::{CompanyName}::{DeviceBarcode}::||#END</arg0>
-        </web:getLTGKCX>
-    </soapenv:Body>
-</soapenv:Envelope>";
+            var chuteQueryParameters = new ChuteQueryRequestParameters
+            {
+                SequenceId = sequenceId,
+                DeviceId = DeviceId,
+                Barcode = dwsData.Barcode,
+                ScanTime = DateTime.Now,
+                EmployeeNumber = EmployeeNumber,
+                OrganizationNumber = OrganizationNumber,
+                CompanyName = CompanyName,
+                DeviceBarcode = DeviceBarcode
+            };
+
+            var soapRequest = _soapRequestBuilder.BuildChuteQueryRequest(chuteQueryParameters);
 
             var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
