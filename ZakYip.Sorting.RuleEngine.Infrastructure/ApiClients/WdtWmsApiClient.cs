@@ -50,13 +50,11 @@ public class WdtWmsApiClient : IWcsApiAdapter
         {
             _logger.LogDebug("WDT WMS - 开始上传数据，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
-            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
             
-            // 构造请求数据
-            var requestData = new
+            // 构造业务参数 (body)
+            var bodyData = new
             {
-                appkey = _appKey,
-                timestamp,
                 barcode = dwsData.Barcode,
                 weight = dwsData.Weight.ToString("F3"),
                 length = dwsData.Length.ToString("F2"),
@@ -65,27 +63,27 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 volume = dwsData.Volume.ToString("F6")
             };
 
-            // 生成签名
-            var sign = GenerateSign(requestData);
-            
-            var requestWithSign = new
+            var bodyJson = JsonSerializer.Serialize(bodyData, _jsonOptions);
+
+            // 构造完整请求参数
+            var requestData = new Dictionary<string, string>
             {
-                requestData.appkey,
-                requestData.timestamp,
-                requestData.barcode,
-                requestData.weight,
-                requestData.length,
-                requestData.width,
-                requestData.height,
-                requestData.volume,
-                sign
+                { "method", "wms.weigh.upload" },
+                { "app_key", _appKey },
+                { "timestamp", timestamp },
+                { "format", "json" },
+                { "v", "1.0" },
+                { "body", bodyJson }
             };
 
-            var json = JsonSerializer.Serialize(requestWithSign, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            // 生成签名
+            var sign = GenerateSign(requestData);
+            requestData.Add("sign", sign);
+
+            var content = new FormUrlEncodedContent(requestData);
 
             // 发送POST请求
-            var response = await _httpClient.PostAsync("/openapi/data/upload", content, cancellationToken);
+            var response = await _httpClient.PostAsync("/openapi/router", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -143,27 +141,31 @@ public class WdtWmsApiClient : IWcsApiAdapter
         {
             _logger.LogDebug("WDT WMS - 开始扫描包裹，条码: {Barcode}", barcode);
 
-            var requestData = new
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            
+            var bodyData = new
             {
-                appkey = _appKey,
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                 barcode
             };
 
-            var sign = GenerateSign(requestData);
-            
-            var requestWithSign = new
+            var bodyJson = JsonSerializer.Serialize(bodyData, _jsonOptions);
+
+            var requestData = new Dictionary<string, string>
             {
-                requestData.appkey,
-                requestData.timestamp,
-                requestData.barcode,
-                sign
+                { "method", "wms.parcel.scan" },
+                { "app_key", _appKey },
+                { "timestamp", timestamp },
+                { "format", "json" },
+                { "v", "1.0" },
+                { "body", bodyJson }
             };
 
-            var json = JsonSerializer.Serialize(requestWithSign, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var sign = GenerateSign(requestData);
+            requestData.Add("sign", sign);
 
-            var response = await _httpClient.PostAsync("/openapi/parcel/scan", content, cancellationToken);
+            var content = new FormUrlEncodedContent(requestData);
+
+            var response = await _httpClient.PostAsync("/openapi/router", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -221,27 +223,31 @@ public class WdtWmsApiClient : IWcsApiAdapter
         {
             _logger.LogDebug("WDT WMS - 开始查询包裹/请求格口，条码: {Barcode}", barcode);
 
-            var requestData = new
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            
+            var bodyData = new
             {
-                appkey = _appKey,
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                 barcode
             };
 
-            var sign = GenerateSign(requestData);
-            
-            var requestWithSign = new
+            var bodyJson = JsonSerializer.Serialize(bodyData, _jsonOptions);
+
+            var requestData = new Dictionary<string, string>
             {
-                requestData.appkey,
-                requestData.timestamp,
-                requestData.barcode,
-                sign
+                { "method", "wms.parcel.query" },
+                { "app_key", _appKey },
+                { "timestamp", timestamp },
+                { "format", "json" },
+                { "v", "1.0" },
+                { "body", bodyJson }
             };
 
-            var json = JsonSerializer.Serialize(requestWithSign, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var sign = GenerateSign(requestData);
+            requestData.Add("sign", sign);
 
-            var response = await _httpClient.PostAsync("/openapi/parcel/query", content, cancellationToken);
+            var content = new FormUrlEncodedContent(requestData);
+
+            var response = await _httpClient.PostAsync("/openapi/router", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -303,17 +309,37 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 "WDT WMS - 开始上传图片，条码: {Barcode}, 大小: {Size} bytes",
                 barcode, imageData.Length);
 
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+
+            // 对于文件上传，WDT通常使用multipart/form-data
             using var formContent = new MultipartFormDataContent();
             
-            formContent.Add(new StringContent(_appKey), "appkey");
-            formContent.Add(new StringContent(DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()), "timestamp");
+            formContent.Add(new StringContent("wms.parcel.image.upload"), "method");
+            formContent.Add(new StringContent(_appKey), "app_key");
+            formContent.Add(new StringContent(timestamp), "timestamp");
+            formContent.Add(new StringContent("json"), "format");
+            formContent.Add(new StringContent("1.0"), "v");
             formContent.Add(new StringContent(barcode), "barcode");
+            
+            // 生成签名（不包含文件内容）
+            var signParams = new Dictionary<string, string>
+            {
+                { "method", "wms.parcel.image.upload" },
+                { "app_key", _appKey },
+                { "timestamp", timestamp },
+                { "format", "json" },
+                { "v", "1.0" },
+                { "barcode", barcode }
+            };
+            
+            var sign = GenerateSign(signParams);
+            formContent.Add(new StringContent(sign), "sign");
             
             var imageContent = new ByteArrayContent(imageData);
             imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
             formContent.Add(imageContent, "image", $"{barcode}.jpg");
 
-            var response = await _httpClient.PostAsync("/openapi/parcel/image", formContent, cancellationToken);
+            var response = await _httpClient.PostAsync("/openapi/router", formContent, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -362,19 +388,25 @@ public class WdtWmsApiClient : IWcsApiAdapter
     /// <summary>
     /// 生成签名
     /// Generate signature for API authentication
+    /// WDT signature: md5(appsecret + key1value1key2value2... + appsecret)
     /// </summary>
-    private string GenerateSign(object requestData)
+    private string GenerateSign(Dictionary<string, string> parameters)
     {
         if (string.IsNullOrEmpty(_appSecret))
         {
             return string.Empty;
         }
 
-        // 将对象转换为JSON字符串
-        var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-        
+        // 按字典序排序参数（排除sign字段）
+        var sortedParams = parameters
+            .Where(p => p.Key != "sign")
+            .OrderBy(p => p.Key)
+            .Select(p => $"{p.Key}{p.Value}");
+
+        // 拼接字符串: appsecret + key1value1key2value2... + appsecret
+        var signString = $"{_appSecret}{string.Join("", sortedParams)}{_appSecret}";
+
         // 使用MD5生成签名
-        var signString = $"{json}{_appSecret}";
         using var md5 = MD5.Create();
         var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
         return Convert.ToHexString(hashBytes).ToLowerInvariant();

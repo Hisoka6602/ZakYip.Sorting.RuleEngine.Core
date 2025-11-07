@@ -85,8 +85,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            // 发送POST请求
-            var response = await _httpClient.PostAsync("/open/api/weigh/upload", content, cancellationToken);
+            // 发送POST请求到统一路由
+            var response = await _httpClient.PostAsync("/open/api/open/router", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -170,7 +170,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync("/open/api/orders/query", content, cancellationToken);
+            var response = await _httpClient.PostAsync("/open/api/open/router", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -257,7 +257,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync("/open/api/logistic/update", content, cancellationToken);
+            var response = await _httpClient.PostAsync("/open/api/open/router", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
