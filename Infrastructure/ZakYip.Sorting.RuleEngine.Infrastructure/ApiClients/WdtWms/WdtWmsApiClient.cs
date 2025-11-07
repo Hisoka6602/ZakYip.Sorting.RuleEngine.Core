@@ -138,11 +138,19 @@ public class WdtWmsApiClient : IWcsApiAdapter
             if (!string.IsNullOrWhiteSpace(responseContent))
             {
                 var jObject = JObject.Parse(responseContent);
+                // 检查多种可能的成功响应格式
+                // 格式1: { "flag": "success" }
                 if (jObject["flag"]?.ToString()?.ToLower()?.Equals("success") == true)
                 {
                     isSuccess = true;
                 }
-                else
+                // 格式2: { "code": 0, "message": "success" }
+                else if (jObject["code"]?.Value<int>() == 0)
+                {
+                    isSuccess = true;
+                }
+                
+                if (!isSuccess)
                 {
                     exceptionMsg = jObject["message"]?.ToString();
                 }
@@ -153,14 +161,14 @@ public class WdtWmsApiClient : IWcsApiAdapter
             if (response.IsSuccessStatusCode && isSuccess)
             {
                 _logger.LogInformation(
-                    "WDT WMS - 请求格口成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
+                    "WDT WMS - 查询包裹成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
                     parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ApiConstants.HttpStatusCodes.Success,
-                    Message = "请求格口成功",
+                    Message = "查询包裹成功",
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,

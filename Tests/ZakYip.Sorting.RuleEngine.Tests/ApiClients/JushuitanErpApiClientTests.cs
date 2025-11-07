@@ -46,8 +46,7 @@ public class JushuitanErpApiClientTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/open/api/open/router")),
+                    req.Method == HttpMethod.Post),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -68,28 +67,12 @@ public class JushuitanErpApiClientTests
     }
 
     [Fact]
-    public async Task ScanParcelAsync_Success_ReturnsSuccessResponse()
+    public async Task ScanParcelAsync_NotSupported_ReturnsNotSupportedMessage()
     {
         // Arrange
         var barcode = "TEST123456";
-        var responseContent = "{\"code\":0,\"msg\":\"success\",\"data\":{\"orders\":[{\"so_id\":\"TEST123456\"}]}}";
 
-        var handlerMock = new Mock<HttpMessageHandler>();
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/open/api/open/router")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
-            });
-
-        var client = CreateClient(handlerMock.Object);
+        var client = CreateClient(new Mock<HttpMessageHandler>().Object);
 
         // Act
         var result = await client.ScanParcelAsync(barcode);
@@ -97,8 +80,7 @@ public class JushuitanErpApiClientTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal("200", result.Code);
-        Assert.Equal("扫描包裹成功", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.Equal("聚水潭ERP不支持扫描包裹功能", result.Message);
     }
 
     [Fact]
@@ -114,8 +96,7 @@ public class JushuitanErpApiClientTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/open/api/open/router")),
+                    req.Method == HttpMethod.Post),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {

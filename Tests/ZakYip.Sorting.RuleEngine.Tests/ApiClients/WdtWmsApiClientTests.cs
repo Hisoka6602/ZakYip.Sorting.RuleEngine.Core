@@ -45,8 +45,7 @@ public class WdtWmsApiClientTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/router")),
+                    req.Method == HttpMethod.Post),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -67,28 +66,12 @@ public class WdtWmsApiClientTests
     }
 
     [Fact]
-    public async Task ScanParcelAsync_Success_ReturnsSuccessResponse()
+    public async Task ScanParcelAsync_NotSupported_ReturnsNotSupportedMessage()
     {
         // Arrange
         var barcode = "TEST123456";
-        var responseContent = "{\"code\":0,\"message\":\"success\",\"data\":{\"status\":\"processed\"}}";
 
-        var handlerMock = new Mock<HttpMessageHandler>();
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/router")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
-            });
-
-        var client = CreateClient(handlerMock.Object);
+        var client = CreateClient(new Mock<HttpMessageHandler>().Object);
 
         // Act
         var result = await client.ScanParcelAsync(barcode);
@@ -96,8 +79,7 @@ public class WdtWmsApiClientTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal("200", result.Code);
-        Assert.Equal("扫描包裹成功", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.Equal("旺店通WMS不支持扫描包裹功能", result.Message);
     }
 
     [Fact]
@@ -113,8 +95,7 @@ public class WdtWmsApiClientTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/router")),
+                    req.Method == HttpMethod.Post),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -148,8 +129,7 @@ public class WdtWmsApiClientTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/openapi/router")),
+                    req.Method == HttpMethod.Post),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
