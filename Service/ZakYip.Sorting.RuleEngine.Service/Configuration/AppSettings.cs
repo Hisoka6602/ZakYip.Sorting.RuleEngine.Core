@@ -33,7 +33,7 @@ public class AppSettings
     /// <summary>
     /// 激活的WCS API适配器类型
     /// Active wcs API adapter type
-    /// 可选值: WcsApiClient, WdtWmsApiClient, JushuitanErpApiClient
+    /// 可选值: WcsApiClient, WdtWmsApiAdapter, JushuitanErpApiAdapter, PostCollectionApiAdapter, PostProcessingCenterApiAdapter
     /// </summary>
     public string ActiveApiAdapter { get; set; } = "WcsApiClient";
 
