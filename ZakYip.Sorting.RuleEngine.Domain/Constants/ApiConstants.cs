@@ -100,7 +100,16 @@ public static class ApiConstants
         /// </summary>
         public static class CommonParams
         {
+            /// <summary>
+            /// 字符集UTF-8
+            /// Character set UTF-8
+            /// </summary>
             public const string CharsetUtf8 = "utf-8";
+            
+            /// <summary>
+            /// 自动分配格口
+            /// Auto-assign chute
+            /// </summary>
             public const string AutoAssign = "AUTO";
         }
     }
