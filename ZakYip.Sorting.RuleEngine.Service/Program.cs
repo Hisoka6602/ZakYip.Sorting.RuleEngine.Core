@@ -222,6 +222,45 @@ public class Program
             }
         });
 
+        // 配置旺店通WMS API客户端
+        if (appSettings.WdtWmsApi.Enabled)
+        {
+            builder.Services.AddHttpClient<IWdtWmsApiClient, WdtWmsApiClient>((sp, client) =>
+            {
+                client.BaseAddress = new Uri(appSettings.WdtWmsApi.BaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(appSettings.WdtWmsApi.TimeoutSeconds);
+            })
+            .AddTypedClient<IWdtWmsApiClient>((client, sp) =>
+            {
+                var logger = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
+                return new WdtWmsApiClient(
+                    client,
+                    logger,
+                    appSettings.WdtWmsApi.AppKey,
+                    appSettings.WdtWmsApi.AppSecret);
+            });
+        }
+
+        // 配置聚水潭ERP API客户端
+        if (appSettings.JushuitanErpApi.Enabled)
+        {
+            builder.Services.AddHttpClient<IJushuitanErpApiClient, JushuitanErpApiClient>((sp, client) =>
+            {
+                client.BaseAddress = new Uri(appSettings.JushuitanErpApi.BaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(appSettings.JushuitanErpApi.TimeoutSeconds);
+            })
+            .AddTypedClient<IJushuitanErpApiClient>((client, sp) =>
+            {
+                var logger = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
+                return new JushuitanErpApiClient(
+                    client,
+                    logger,
+                    appSettings.JushuitanErpApi.PartnerKey,
+                    appSettings.JushuitanErpApi.PartnerSecret,
+                    appSettings.JushuitanErpApi.Token);
+            });
+        }
+
         // 注册仓储
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
         builder.Services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
