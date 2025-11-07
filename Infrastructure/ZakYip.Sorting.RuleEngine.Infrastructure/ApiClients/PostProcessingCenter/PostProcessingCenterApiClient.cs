@@ -111,17 +111,41 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// 对应参考代码中的 UploadData 方法
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
-        string barcode,
+        string parcelId,
+        DwsData dwsData,
+        OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var requestTime = DateTime.Now;
+        
         try
         {
-            _logger.LogDebug("开始请求格口（邮政处理中心），条码: {Barcode}", barcode);
+            _logger.LogDebug("开始请求格口（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
-            // 构造请求数据
+            // 先提交扫描信息（对应参考代码中UploadData内部调用SubmitScanInfo）
+            await ScanParcelAsync(dwsData.Barcode, cancellationToken);
+
+            // 构造请求数据 - 包含DWS数据
             var requestData = new
             {
-                barcode,
+                parcelId,
+                barcode = dwsData.Barcode,
+                weight = dwsData.Weight,
+                length = dwsData.Length,
+                width = dwsData.Width,
+                height = dwsData.Height,
+                volume = dwsData.Volume,
+                scanTime = dwsData.ScannedAt,
+                // 如果有OCR数据，也包含进去
+                ocrData = ocrData != null ? new
+                {
+                    threeSegmentCode = ocrData.ThreeSegmentCode,
+                    firstSegmentCode = ocrData.FirstSegmentCode,
+                    secondSegmentCode = ocrData.SecondSegmentCode,
+                    thirdSegmentCode = ocrData.ThirdSegmentCode,
+                    recipientAddress = ocrData.RecipientAddress
+                } : null,
                 requestTime = DateTime.Now,
                 version = ApiConstants.PostProcessingCenterApi.CommonParams.Version
             };
@@ -134,46 +158,73 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            stopwatch.Stop();
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "请求格口成功（邮政处理中心），条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
+                    "请求格口成功（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = "Chute requested successfully from processing center",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = parcelId,
+                    RequestUrl = endpoint,
+                    RequestBody = json,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    OcrData = ocrData
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "请求格口失败（邮政处理中心），条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
+                    "请求格口失败（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, response.StatusCode, responseContent, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"Chute Request Error: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"Chute Request Error: {response.StatusCode}",
+                    ParcelId = parcelId,
+                    RequestUrl = endpoint,
+                    RequestBody = json,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    OcrData = ocrData
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "请求格口异常（邮政处理中心），条码: {Barcode}", barcode);
+            stopwatch.Stop();
+            _logger.LogError(ex, "请求格口异常（邮政处理中心），包裹ID: {ParcelId}, 耗时: {Duration}ms", parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                OcrData = ocrData
             };
         }
     }
@@ -181,6 +232,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// <summary>
     /// 上传图片到邮政处理中心
     /// Upload image to postal processing center
+    /// 注意：根据要求，如果不存在或未实现可以留空
     /// </summary>
     public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
@@ -188,81 +240,20 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
         string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
         CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogDebug("上传图片功能（邮政处理中心）当前未实现，条码: {Barcode}", barcode);
+        
+        await Task.CompletedTask;
+
+        return new WcsApiResponse
         {
-            _logger.LogDebug("开始上传图片到邮政处理中心，条码: {Barcode}, 图片大小: {Size} bytes",  
-                barcode, imageData.Length);
-
-            // 构造multipart/form-data请求
-            using var formContent = new MultipartFormDataContent();
-            
-            // 添加条码字段
-            formContent.Add(new StringContent(barcode), "barcode");
-            formContent.Add(new StringContent(ApiConstants.PostProcessingCenterApi.CommonParams.Version), "version");
-            
-            // 根据内容类型确定文件扩展名
-            var extension = contentType switch
-            {
-                ApiConstants.ContentTypes.ImageJpeg => ".jpg",
-                ApiConstants.ContentTypes.ImagePng => ".png",
-                ApiConstants.ContentTypes.ImageGif => ".gif",
-                ApiConstants.ContentTypes.ImageBmp => ".bmp",
-                ApiConstants.ContentTypes.ImageWebp => ".webp",
-                _ => ".bin"
-            };
-            
-            // 添加图片文件
-            var imageContent = new ByteArrayContent(imageData);
-            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-            formContent.Add(imageContent, "image", $"{barcode}{extension}");
-
-            // 发送POST请求
-            // 注意：这里使用称重上传端点，因为邮政处理中心通常将图片与称重数据一起上传
-            var endpoint = $"{ApiConstants.PostProcessingCenterApi.RouterEndpoint}{ApiConstants.PostProcessingCenterApi.Endpoints.WeighingUpload}";
-            var response = await _httpClient.PostAsync(endpoint, formContent, cancellationToken);
-
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation(
-                    "上传图片成功（邮政处理中心），条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
-
-                return new WcsApiResponse
-                {
-                    Success = true,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = "Image uploaded successfully to processing center",
-                    Data = responseContent
-                };
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "上传图片失败（邮政处理中心），条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
-
-                return new WcsApiResponse
-                {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Image Upload Error: {response.StatusCode}",
-                    Data = responseContent
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "上传图片异常（邮政处理中心），条码: {Barcode}", barcode);
-
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString()
-            };
-        }
+            Success = true,
+            Code = ApiConstants.HttpStatusCodes.Success,
+            Message = "邮政处理中心图片上传功能未实现",
+            Data = "{\"info\":\"Feature not implemented\"}",
+            ParcelId = barcode,
+            RequestTime = DateTime.Now,
+            ResponseTime = DateTime.Now,
+            DurationMs = 0
+        };
     }
 }

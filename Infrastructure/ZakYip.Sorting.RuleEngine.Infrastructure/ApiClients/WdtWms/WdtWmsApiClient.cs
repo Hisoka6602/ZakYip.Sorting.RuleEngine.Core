@@ -67,7 +67,9 @@ public class WdtWmsApiClient : IWcsApiAdapter
     /// 对应参考代码中的 UploadData 方法
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
-        string barcode,
+        string parcelId,
+        DwsData dwsData,
+        OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
@@ -75,14 +77,14 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
         try
         {
-            _logger.LogDebug("WDT WMS - 开始请求格口/上传数据，条码: {Barcode}", barcode);
+            _logger.LogDebug("WDT WMS - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             
             var data = new
             {
-                logistics_no = barcode,
-                weight = Parameters.DefaultWeight, // 使用配置的默认重量
+                logistics_no = dwsData.Barcode,
+                weight = (double)dwsData.Weight, // 使用DWS数据中的重量
                 is_weight = "Y",
                 package_barcode = string.Empty
             };
@@ -108,14 +110,17 @@ public class WdtWmsApiClient : IWcsApiAdapter
             if (Parameters.MustIncludeBoxBarcode && string.IsNullOrEmpty(data.package_barcode))
             {
                 stopwatch.Stop();
-                _logger.LogWarning("WDT WMS - 包装码不能为空，条码: {Barcode}", barcode);
+                _logger.LogWarning("WDT WMS - 包装码不能为空，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ApiConstants.HttpStatusCodes.Error,
                     Message = "包装码不能为空",
-                    Data = string.Empty
+                    Data = string.Empty,
+                    ErrorMessage = "包装码不能为空",
+                    ParcelId = parcelId,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
 
@@ -148,72 +153,94 @@ public class WdtWmsApiClient : IWcsApiAdapter
             if (response.IsSuccessStatusCode && isSuccess)
             {
                 _logger.LogInformation(
-                    "WDT WMS - 请求格口成功，条码: {Barcode}, 耗时: {Duration}ms",
-                    barcode, stopwatch.ElapsedMilliseconds);
+                    "WDT WMS - 请求格口成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "请求格口成功",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = parcelId,
+                    RequestUrl = $"{Parameters.Url}?{param}",
+                    RequestBody = JsonConvert.SerializeObject(data),
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "WDT WMS - 请求格口失败，条码: {Barcode}, 状态码: {StatusCode}, 错误: {Error}, 耗时: {Duration}ms",
-                    barcode, response.StatusCode, exceptionMsg, stopwatch.ElapsedMilliseconds);
+                    "WDT WMS - 请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 错误: {Error}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, response.StatusCode, exceptionMsg, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
+                    ParcelId = parcelId,
+                    RequestUrl = $"{Parameters.Url}?{param}",
+                    RequestBody = JsonConvert.SerializeObject(data),
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
         }
         catch (HttpRequestException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "WDT WMS - HTTP请求异常，条码: {Barcode}, 耗时: {Duration}ms", 
-                barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "WDT WMS - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+                parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                DurationMs = stopwatch.ElapsedMilliseconds
             };
         }
         catch (TaskCanceledException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "WDT WMS - 请求超时，条码: {Barcode}, 耗时: {Duration}ms", 
-                barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "WDT WMS - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+                parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = "接口访问返回超时",
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = "接口访问返回超时",
+                ParcelId = parcelId,
+                DurationMs = stopwatch.ElapsedMilliseconds
             };
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "WDT WMS - 请求格口异常，条码: {Barcode}, 耗时: {Duration}ms", 
-                barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "WDT WMS - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+                parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                DurationMs = stopwatch.ElapsedMilliseconds
             };
         }
     }

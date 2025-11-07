@@ -64,7 +64,7 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -74,7 +74,7 @@ public class DwsDataReceivedEventHandlerTests
         // Assert
         _mockAdapter.Verify(
             a => a.RequestChuteAsync(
-                It.Is<string>(b => b == "1234567890"),
+                It.Is<string>(b => b == notification.ParcelId), It.Is<DwsData>(d => d.Barcode == notification.DwsData.Barcode), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -101,14 +101,13 @@ public class DwsDataReceivedEventHandlerTests
 
         var apiResponse = new WcsApiResponse { Success = true };
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
         // Act
         await _handler.Handle(notification, CancellationToken.None);
 
-        // Assert
         _mockLogRepository.Verify(
             l => l.LogInfoAsync(
                 It.IsAny<string>(),
@@ -145,7 +144,7 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -188,7 +187,7 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -224,7 +223,7 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Network error"));
 
@@ -260,7 +259,7 @@ public class DwsDataReceivedEventHandlerTests
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((WcsApiResponse)null!);  // 测试null场景
 
@@ -297,7 +296,7 @@ public class DwsDataReceivedEventHandlerTests
 
         var apiResponse = new WcsApiResponse { Success = true };
         _mockAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 

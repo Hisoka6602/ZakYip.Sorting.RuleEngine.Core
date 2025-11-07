@@ -99,7 +99,17 @@ public class WcsApiClientTests
     public async Task RequestChuteAsync_Success_ReturnsSuccessResponse()
     {
         // Arrange
+        var parcelId = "PKG001";
         var barcode = "TEST123456";
+        var dwsData = new DwsData
+        {
+            Barcode = barcode,
+            Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
+            Volume = 9000
+        };
         var responseContent = "{\"success\":true,\"chuteNumber\":\"A-101\"}";
 
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -120,7 +130,7 @@ public class WcsApiClientTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.RequestChuteAsync(barcode);
+        var result = await client.RequestChuteAsync(parcelId, dwsData);
 
         // Assert
         Assert.True(result.Success);
@@ -133,7 +143,17 @@ public class WcsApiClientTests
     public async Task RequestChuteAsync_Error_ReturnsFailureResponse()
     {
         // Arrange
+        var parcelId = "PKG002";
         var barcode = "NOTFOUND";
+        var dwsData = new DwsData
+        {
+            Barcode = barcode,
+            Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
+            Volume = 9000
+        };
         var responseContent = "{\"error\":\"Parcel not found\"}";
 
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -152,7 +172,7 @@ public class WcsApiClientTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.RequestChuteAsync(barcode);
+        var result = await client.RequestChuteAsync(parcelId, dwsData);
 
         // Assert
         Assert.False(result.Success);
@@ -292,7 +312,17 @@ public class WcsApiClientTests
     public async Task RequestChuteAsync_Exception_ReturnsErrorResponse()
     {
         // Arrange
+        var parcelId = "PKG003";
         var barcode = "TEST123456";
+        var dwsData = new DwsData
+        {
+            Barcode = barcode,
+            Weight = 1500,
+            Length = 300,
+            Width = 200,
+            Height = 150,
+            Volume = 9000
+        };
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock
@@ -306,7 +336,7 @@ public class WcsApiClientTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.RequestChuteAsync(barcode);
+        var result = await client.RequestChuteAsync(parcelId, dwsData);
 
         // Assert
         Assert.False(result.Success);
