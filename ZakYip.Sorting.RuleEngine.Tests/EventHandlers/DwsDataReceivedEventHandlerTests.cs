@@ -15,7 +15,7 @@ namespace ZakYip.Sorting.RuleEngine.Tests.EventHandlers;
 public class DwsDataReceivedEventHandlerTests
 {
     private readonly Mock<ILogger<DwsDataReceivedEventHandler>> _mockLogger;
-    private readonly Mock<IThirdPartyApiClient> _mockApiClient;
+    private readonly Mock<IThirdPartyApiAdapterFactory> _mockApiClient;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly DwsDataReceivedEventHandler _handler;
@@ -23,7 +23,7 @@ public class DwsDataReceivedEventHandlerTests
     public DwsDataReceivedEventHandlerTests()
     {
         _mockLogger = new Mock<ILogger<DwsDataReceivedEventHandler>>();
-        _mockApiClient = new Mock<IThirdPartyApiClient>();
+        _mockApiClient = new Mock<IThirdPartyApiAdapterFactory>();
         _mockLogRepository = new Mock<ILogRepository>();
         _mockPublisher = new Mock<IPublisher>();
 

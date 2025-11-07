@@ -15,19 +15,19 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 public class ParcelProcessingService : IParcelProcessingService
 {
     private readonly IRuleEngineService _ruleEngineService;
-    private readonly IThirdPartyApiClient _thirdPartyApiClient;
+    private readonly IThirdPartyApiAdapterFactory _apiAdapterFactory;
     private readonly ILogRepository _logRepository;
     private readonly ILogger<ParcelProcessingService> _logger;
     private readonly ObjectPool<Stopwatch> _stopwatchPool;
 
     public ParcelProcessingService(
         IRuleEngineService ruleEngineService,
-        IThirdPartyApiClient thirdPartyApiClient,
+        IThirdPartyApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
         ILogger<ParcelProcessingService> logger)
     {
         _ruleEngineService = ruleEngineService;
-        _thirdPartyApiClient = thirdPartyApiClient;
+        _apiAdapterFactory = apiAdapterFactory;
         _logRepository = logRepository;
         _logger = logger;
         
@@ -83,7 +83,7 @@ public class ParcelProcessingService : IParcelProcessingService
             {
                 try
                 {
-                    thirdPartyResponse = await _thirdPartyApiClient.UploadDataAsync(
+                    thirdPartyResponse = await _apiAdapterFactory.GetActiveAdapter().UploadDataAsync(
                         parcelInfo, dwsData, cancellationToken);
                 }
                 catch (Exception ex)

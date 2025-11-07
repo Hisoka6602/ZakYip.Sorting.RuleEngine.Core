@@ -12,18 +12,18 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedEvent>
 {
     private readonly ILogger<DwsDataReceivedEventHandler> _logger;
-    private readonly IThirdPartyApiClient _thirdPartyApiClient;
+    private readonly IThirdPartyApiAdapterFactory _apiAdapterFactory;
     private readonly ILogRepository _logRepository;
     private readonly IPublisher _publisher;
 
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
-        IThirdPartyApiClient thirdPartyApiClient,
+        IThirdPartyApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
         IPublisher publisher)
     {
         _logger = logger;
-        _thirdPartyApiClient = thirdPartyApiClient;
+        _apiAdapterFactory = apiAdapterFactory;
         _logRepository = logRepository;
         _publisher = publisher;
     }
@@ -49,7 +49,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 Status = ParcelStatus.Processing
             };
 
-            var response = await _thirdPartyApiClient.UploadDataAsync(
+            var response = await _apiAdapterFactory.GetActiveAdapter().UploadDataAsync(
                 parcelInfo,
                 notification.DwsData,
                 cancellationToken);

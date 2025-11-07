@@ -31,6 +31,25 @@ public class AppSettings
     public ThirdPartyApiSettings ThirdPartyApi { get; set; } = new();
 
     /// <summary>
+    /// 激活的第三方API适配器类型
+    /// Active third-party API adapter type
+    /// 可选值: ThirdPartyApiClient, WdtWmsApiClient, JushuitanErpApiClient
+    /// </summary>
+    public string ActiveApiAdapter { get; set; } = "ThirdPartyApiClient";
+
+    /// <summary>
+    /// 旺店通WMS API配置
+    /// WDT WMS API configuration
+    /// </summary>
+    public WdtWmsApiSettings WdtWmsApi { get; set; } = new();
+
+    /// <summary>
+    /// 聚水潭ERP API配置
+    /// Jushuituan ERP API configuration
+    /// </summary>
+    public JushuitanErpApiSettings JushuitanErpApi { get; set; } = new();
+
+    /// <summary>
     /// MiniAPI配置
     /// MiniAPI configuration
     /// </summary>
@@ -183,4 +202,84 @@ public class LogFileCleanupSettings
     /// Log file directory, default "./logs"
     /// </summary>
     public string LogDirectory { get; set; } = "./logs";
+}
+
+/// <summary>
+/// 旺店通WMS API配置
+/// WDT WMS API settings
+/// </summary>
+public class WdtWmsApiSettings
+{
+    /// <summary>
+    /// API基础URL
+    /// API base URL
+    /// </summary>
+    public string BaseUrl { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// API应用密钥
+    /// API app key
+    /// </summary>
+    public string AppKey { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// API应用密钥
+    /// API app secret
+    /// </summary>
+    public string AppSecret { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// API请求超时时间（秒），默认30秒
+    /// API timeout in seconds, default 30
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 30;
+    
+    /// <summary>
+    /// 是否启用
+    /// Enable or disable the API
+    /// </summary>
+    public bool Enabled { get; set; } = false;
+}
+
+/// <summary>
+/// 聚水潭ERP API配置
+/// Jushuituan ERP API settings
+/// </summary>
+public class JushuitanErpApiSettings
+{
+    /// <summary>
+    /// API基础URL
+    /// API base URL
+    /// </summary>
+    public string BaseUrl { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 合作伙伴密钥
+    /// Partner key
+    /// </summary>
+    public string PartnerKey { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 合作伙伴密钥
+    /// Partner secret
+    /// </summary>
+    public string PartnerSecret { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 访问令牌
+    /// Access token
+    /// </summary>
+    public string Token { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// API请求超时时间（秒），默认30秒
+    /// API timeout in seconds, default 30
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 30;
+    
+    /// <summary>
+    /// 是否启用
+    /// Enable or disable the API
+    /// </summary>
+    public bool Enabled { get; set; } = false;
 }

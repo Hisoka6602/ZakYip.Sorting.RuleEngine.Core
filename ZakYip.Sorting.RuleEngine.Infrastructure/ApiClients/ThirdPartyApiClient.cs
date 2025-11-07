@@ -10,7 +10,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// 第三方API客户端实现
 /// Third-party API client implementation
 /// </summary>
-public class ThirdPartyApiClient : IThirdPartyApiClient
+public class ThirdPartyApiClient : IThirdPartyApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<ThirdPartyApiClient> _logger;
