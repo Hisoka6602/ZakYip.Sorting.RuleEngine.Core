@@ -220,5 +220,122 @@ await context.BulkDeleteAsync<T>(tableName, createdBefore, cancellationToken)
 
 ---
 
-**最后更新**: 2025-11-04
-**版本**: 1.0.0
+**最后更新**: 2025-11-07
+**版本**: 1.1.0
+
+## 8. 最新优化项 (2025-11-07) / Latest Optimizations
+
+### 8.1 代码质量改进 / Code Quality Improvements
+
+#### 8.1.1 消除UTC时间使用 / Eliminate UTC Time Usage
+**问题**: 项目中存在多处使用 `DateTime.UtcNow` 和 `DateTimeOffset.UtcNow`，与业务需求不符
+**解决方案**: 
+- 将所有 `DateTime.UtcNow` 替换为 `DateTime.Now` (共17处)
+- 将 `DateTimeOffset.UtcNow` 替换为 `DateTimeOffset.Now` (共1处)
+**影响范围**:
+- `DataArchiveService.cs` - 数据归档服务
+- `DataCleanupService.cs` - 数据清理服务
+- `DwsDataReceivedEventHandler.cs` - DWS数据接收事件处理
+- `ApiResponse.cs` - API响应DTO
+- `PagedResponse.cs` - 分页响应DTO
+- `MemoryCacheHealthCheck.cs` - 缓存健康检查
+- `JushuitanErpApiClient.cs` - 聚水潭ERP API客户端
+- `Program.cs` - 主程序健康检查端点
+
+#### 8.1.2 消除魔法数字 / Eliminate Magic Numbers
+**问题**: 代码中存在硬编码的魔法数字，降低可维护性
+**解决方案**: 创建 `PerformanceConstants` 常量类统一管理
+
+```csharp
+namespace ZakYip.Sorting.RuleEngine.Domain.Constants;
+
+public static class PerformanceConstants
+{
+    public const int MaxChuteCapacityPerHour = 600;        // 格口每小时最大处理能力
+    public const int MaxRetryAttempts = 3;                  // 最大重试次数
+    public const int RetryInitialDelayMs = 100;             // 重试初始延迟
+    public const int MaxQuerySurroundingRecords = 100;      // 最大查询前后记录数
+    public const int MaxPercentage = 100;                   // 百分比计算常量
+    public const int CacheAbsoluteExpirationSeconds = 3600; // 缓存绝对过期时间
+    public const int CacheSlidingExpirationSeconds = 600;   // 缓存滑动过期时间
+}
+```
+
+**替换位置**:
+- `DataAnalysisService.cs` - 使用率计算、查询验证
+- `MonitoringService.cs` - 格口使用率监控
+- `CacheSettings.cs` - 缓存配置
+
+#### 8.1.3 工具类性能优化 / Utility Class Performance Optimization
+**优化内容**: 为工具类方法添加 `[MethodImpl(MethodImplOptions.AggressiveInlining)]` 特性
+**影响范围**:
+- `ApiRequestHelper.cs` 中的所有公共方法
+  - `GenerateFormattedCurl()`
+  - `FormatHeaders()`
+  - `GetFormattedHeadersFromRequest()`
+  - `GetFormattedHeadersFromResponse()`
+
+**效果**: 
+- 提高频繁调用方法的执行效率
+- 减少方法调用开销
+- 编译器会尝试内联这些方法以提升性能
+
+### 8.2 架构验证 / Architecture Verification
+
+#### 8.2.1 厂商工具类组织 / Vendor-Specific Utilities Organization
+**验证结果**: ✅ 所有厂商专属工具类已正确组织
+- `JushuitanErp/` - 聚水潭ERP相关类
+- `WdtWms/` - 旺店通WMS相关类  
+- `PostCollection/` - 邮政分揽投相关类
+- `PostProcessingCenter/` - 邮政处理中心相关类
+- `Shared/` - 共享工具类（ApiRequestHelper, PostalSoapRequestBuilder）
+
+#### 8.2.2 数据库索引配置 / Database Index Configuration
+**验证结果**: ✅ 数据库索引已完善配置
+
+主要索引:
+- `LogEntries` - Level, CreatedAt（降序）, Level+CreatedAt（复合）
+- `CommunicationLogs` - ParcelId, CreatedAt（降序）, Type+CreatedAt（复合）
+- `Chutes` - ChuteName, ChuteCode, CreatedAt（降序）
+- `SorterCommunicationLogs` - ParcelId, CommunicationTime（降序）
+- `DwsCommunicationLogs` - Barcode, CommunicationTime（降序）
+- `ApiCommunicationLogs` - ParcelId, RequestTime（降序）
+- `MatchingLogs` - ParcelId, ChuteId, MatchingTime（降序）
+- `ApiRequestLogs` - RequestTime（降序）, RequestPath, RequestIp, Method+Time（复合）
+
+所有时间字段都使用降序索引，优化时间范围查询性能
+
+#### 8.2.3 异步操作验证 / Async Operations Verification
+**验证结果**: ✅ 数据库操作不阻塞主流程
+
+关键点:
+- 所有数据库操作使用异步方法（`async/await`）
+- 后台同步使用 `Task.Run()` 启动独立任务
+- 熔断器切换使用 fire-and-forget 模式
+- TCP客户端重连使用独立任务循环
+- 没有发现 `.Wait()` 或 `.Result` 阻塞调用（TouchSocketDwsAdapter.Dispose除外）
+
+### 8.3 性能提升总结 / Performance Improvement Summary
+
+1. **代码可维护性提升**: 通过常量类统一管理魔法数字，提高代码可读性和维护性
+2. **时间处理统一**: 全面使用本地时间，符合业务场景需求
+3. **工具类性能优化**: 通过内联优化减少方法调用开销
+4. **数据库查询优化**: 完善的索引配置确保查询性能
+5. **异步非阻塞**: 所有IO操作使用异步模式，确保系统响应性
+
+### 8.4 后续优化建议 / Future Optimization Recommendations
+
+1. **考虑添加更多性能特性**: 
+   - 为关键业务方法添加 `[MethodImpl]` 特性
+   - 考虑使用 `ArrayPool<T>` 减少大数组分配
+
+2. **监控和度量**:
+   - 定期审查慢查询日志
+   - 监控缓存命中率
+   - 跟踪API响应时间
+
+3. **编译优化**:
+   - 生产环境使用 Release 配置
+   - 考虑启用 ReadyToRun (R2R) 编译
+   - 使用 Ahead-of-Time (AOT) 编译（.NET 8+）
+

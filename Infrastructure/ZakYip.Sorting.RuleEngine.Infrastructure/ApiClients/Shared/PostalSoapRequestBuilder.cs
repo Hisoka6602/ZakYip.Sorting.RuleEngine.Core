@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
 
@@ -17,6 +18,7 @@ public class PostalSoapRequestBuilder
     /// 构建扫描包裹的SOAP请求 (getYJSM)
     /// Build SOAP request for scanning parcel
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string BuildScanRequest(PostalScanRequestParameters parameters)
     {
         var arg0 = new StringBuilder()
@@ -40,6 +42,7 @@ public class PostalSoapRequestBuilder
     /// 构建查询格口的SOAP请求 (getLTGKCX)
     /// Build SOAP request for querying chute
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string BuildChuteQueryRequest(PostalChuteQueryRequestParameters parameters)
     {
         var arg0 = new StringBuilder()

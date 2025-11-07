@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
@@ -18,6 +19,7 @@ public static class ApiRequestHelper
     /// <param name="headers">请求头字典</param>
     /// <param name="body">请求体</param>
     /// <returns>格式化的Curl命令字符串</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GenerateFormattedCurl(
         string method,
         string url,
@@ -87,6 +89,7 @@ public static class ApiRequestHelper
     /// 格式化请求头为JSON字符串
     /// Format request headers as JSON string
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string FormatHeaders(Dictionary<string, string> headers)
     {
         return JsonSerializer.Serialize(headers, new JsonSerializerOptions 
@@ -99,6 +102,7 @@ public static class ApiRequestHelper
     /// 从HttpRequestMessage获取格式化的请求头
     /// Get formatted request headers from HttpRequestMessage
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetFormattedHeadersFromRequest(HttpRequestMessage request)
     {
         var headers = new Dictionary<string, string>();
@@ -123,6 +127,7 @@ public static class ApiRequestHelper
     /// 从HttpResponseMessage获取格式化的响应头
     /// Get formatted response headers from HttpResponseMessage
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetFormattedHeadersFromResponse(HttpResponseMessage response)
     {
         var headers = new Dictionary<string, string>();

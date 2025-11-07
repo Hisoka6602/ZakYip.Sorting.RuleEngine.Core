@@ -33,7 +33,7 @@ public class ApiResponse<T>
     /// 时间戳
     /// </summary>
     [Required]
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 创建成功响应
@@ -44,7 +44,7 @@ public class ApiResponse<T>
         {
             Success = true,
             Data = data,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -58,7 +58,7 @@ public class ApiResponse<T>
             Success = false,
             ErrorMessage = errorMessage,
             ErrorCode = errorCode,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 }

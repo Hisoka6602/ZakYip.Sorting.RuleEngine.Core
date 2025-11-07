@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
+
 namespace ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 /// <summary>
@@ -10,11 +12,11 @@ public class CacheSettings
     /// 绝对过期时间（秒），默认3600秒（1小时）
     /// Absolute expiration time in seconds, default 3600 (1 hour)
     /// </summary>
-    public int AbsoluteExpirationSeconds { get; set; } = 3600;
+    public int AbsoluteExpirationSeconds { get; set; } = PerformanceConstants.CacheAbsoluteExpirationSeconds;
     
     /// <summary>
     /// 滑动过期时间（秒），默认600秒（10分钟）
     /// Sliding expiration time in seconds, default 600 (10 minutes)
     /// </summary>
-    public int SlidingExpirationSeconds { get; set; } = 600;
+    public int SlidingExpirationSeconds { get; set; } = PerformanceConstants.CacheSlidingExpirationSeconds;
 }

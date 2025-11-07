@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -40,8 +41,8 @@ public class DataAnalysisService : IDataAnalysisService
         _retryPipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
-                MaxRetryAttempts = 3,
-                Delay = TimeSpan.FromMilliseconds(100),
+                MaxRetryAttempts = PerformanceConstants.MaxRetryAttempts,
+                Delay = TimeSpan.FromMilliseconds(PerformanceConstants.RetryInitialDelayMs),
                 BackoffType = DelayBackoffType.Exponential,
                 OnRetry = args =>
                 {
@@ -99,9 +100,8 @@ public class DataAnalysisService : IDataAnalysisService
                         var failureCount = totalCount - successCount;
 
                         // 计算使用率（基于理论最大容量）
-                        const int maxCapacityPerHour = 600;
-                        var usageRate = maxCapacityPerHour > 0
-                            ? (decimal)totalCount / maxCapacityPerHour * 100
+                        var usageRate = PerformanceConstants.MaxChuteCapacityPerHour > 0
+                            ? (decimal)totalCount / PerformanceConstants.MaxChuteCapacityPerHour * PerformanceConstants.MaxPercentage
                             : 0;
 
                         hourlyData.Add(new HourlyUsageData
@@ -193,10 +193,9 @@ public class DataAnalysisService : IDataAnalysisService
 
                 // 计算利用率
                 var timeSpanHours = (decimal)(end - start).TotalHours;
-                const int maxCapacityPerHour = 600;
-                var theoreticalMaxCapacity = maxCapacityPerHour * timeSpanHours;
+                var theoreticalMaxCapacity = PerformanceConstants.MaxChuteCapacityPerHour * timeSpanHours;
                 var utilizationRate = theoreticalMaxCapacity > 0
-                    ? parcelCount / theoreticalMaxCapacity * 100
+                    ? parcelCount / theoreticalMaxCapacity * PerformanceConstants.MaxPercentage
                     : 0;
 
                 totalUtilizationRate += utilizationRate;
@@ -267,21 +266,21 @@ public class DataAnalysisService : IDataAnalysisService
                 };
             }
 
-            if (beforeCount < 0 || beforeCount > 100)
+            if (beforeCount < 0 || beforeCount > PerformanceConstants.MaxQuerySurroundingRecords)
             {
                 return new GanttChartQueryResponse
                 {
                     Success = false,
-                    ErrorMessage = "查询前面数据条数必须在0到100之间"
+                    ErrorMessage = $"查询前面数据条数必须在0到{PerformanceConstants.MaxQuerySurroundingRecords}之间"
                 };
             }
 
-            if (afterCount < 0 || afterCount > 100)
+            if (afterCount < 0 || afterCount > PerformanceConstants.MaxQuerySurroundingRecords)
             {
                 return new GanttChartQueryResponse
                 {
                     Success = false,
-                    ErrorMessage = "查询后面数据条数必须在0到100之间"
+                    ErrorMessage = $"查询后面数据条数必须在0到{PerformanceConstants.MaxQuerySurroundingRecords}之间"
                 };
             }
 
@@ -887,20 +886,17 @@ public class DataAnalysisService : IDataAnalysisService
     private decimal CalculateUtilizationRate(long totalParcels, decimal timeSpanHours)
     {
         // 假设每个格口理论最大处理能力为 600 包裹/小时
-        const int maxCapacityPerHour = 600;
-
         if (timeSpanHours <= 0) return 0;
 
-        var theoreticalMaxCapacity = maxCapacityPerHour * timeSpanHours;
+        var theoreticalMaxCapacity = PerformanceConstants.MaxChuteCapacityPerHour * timeSpanHours;
         return theoreticalMaxCapacity > 0
-            ? totalParcels / theoreticalMaxCapacity * 100
+            ? totalParcels / theoreticalMaxCapacity * PerformanceConstants.MaxPercentage
             : 0;
     }
 
     private decimal CalculateHourlyUtilizationRate(int parcelCount)
     {
-        const int maxCapacityPerHour = 600;
-        return parcelCount / (decimal)maxCapacityPerHour * 100;
+        return parcelCount / (decimal)PerformanceConstants.MaxChuteCapacityPerHour * PerformanceConstants.MaxPercentage;
     }
 
     private string? FindPeakPeriod(IEnumerable<Domain.Entities.PerformanceMetric> metrics)
