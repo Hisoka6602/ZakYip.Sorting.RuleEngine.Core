@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
+    <ProjectReference Include="..\..\Domain\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

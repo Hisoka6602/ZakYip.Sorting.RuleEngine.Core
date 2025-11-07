@@ -17,29 +17,29 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3H9F8J0I
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Console", "Console", "{4I0G9K1J-3H5I-4K4G-5K9J-8G1H2I7J4K0L}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine", "ZakYip.Sorting.RuleEngine\ZakYip.Sorting.RuleEngine.csproj", "{9C4B8CBC-F53F-48DD-A896-7526FE097717}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine", "Core\ZakYip.Sorting.RuleEngine\ZakYip.Sorting.RuleEngine.csproj", "{9C4B8CBC-F53F-48DD-A896-7526FE097717}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Domain", "ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj", "{FA1A5522-AB38-41D4-98B7-CEB251FAF18F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Domain", "Domain\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj", "{FA1A5522-AB38-41D4-98B7-CEB251FAF18F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Application", "ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj", "{1F074B7E-9B96-4A86-A994-22C6867D55F4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Application", "Application\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj", "{1F074B7E-9B96-4A86-A994-22C6867D55F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Infrastructure", "ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj", "{93C4B515-6995-4678-BB0A-3362D67B3D02}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Infrastructure", "Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj", "{93C4B515-6995-4678-BB0A-3362D67B3D02}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Service", "ZakYip.Sorting.RuleEngine.Service\ZakYip.Sorting.RuleEngine.Service.csproj", "{72ADF77E-708C-45D7-9DA1-2F4F5F9A3104}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Service", "Service\ZakYip.Sorting.RuleEngine.Service\ZakYip.Sorting.RuleEngine.Service.csproj", "{72ADF77E-708C-45D7-9DA1-2F4F5F9A3104}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Tests", "ZakYip.Sorting.RuleEngine.Tests\ZakYip.Sorting.RuleEngine.Tests.csproj", "{81BB4E19-350E-450C-A1EB-1AC272440211}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Tests", "Tests\ZakYip.Sorting.RuleEngine.Tests\ZakYip.Sorting.RuleEngine.Tests.csproj", "{81BB4E19-350E-450C-A1EB-1AC272440211}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.TestConsole", "ZakYip.Sorting.RuleEngine.TestConsole\ZakYip.Sorting.RuleEngine.TestConsole.csproj", "{0E166932-E042-4E3A-A243-AB6ED668A4CB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.TestConsole", "Console\ZakYip.Sorting.RuleEngine.TestConsole\ZakYip.Sorting.RuleEngine.TestConsole.csproj", "{0E166932-E042-4E3A-A243-AB6ED668A4CB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Benchmarks", "ZakYip.Sorting.RuleEngine.Benchmarks\ZakYip.Sorting.RuleEngine.Benchmarks.csproj", "{6767ED08-3CF1-449F-A9A4-80D9A0B03433}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.Benchmarks", "Tests\ZakYip.Sorting.RuleEngine.Benchmarks\ZakYip.Sorting.RuleEngine.Benchmarks.csproj", "{6767ED08-3CF1-449F-A9A4-80D9A0B03433}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.LoadTests", "ZakYip.Sorting.RuleEngine.LoadTests\ZakYip.Sorting.RuleEngine.LoadTests.csproj", "{31C94136-691F-49C2-B5F3-6E270156FD69}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.LoadTests", "Tests\ZakYip.Sorting.RuleEngine.LoadTests\ZakYip.Sorting.RuleEngine.LoadTests.csproj", "{31C94136-691F-49C2-B5F3-6E270156FD69}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest", "ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest\ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest.csproj", "{5EE83432-E11F-42D2-B30C-F4AA767AC080}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest", "Console\ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest\ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest.csproj", "{5EE83432-E11F-42D2-B30C-F4AA767AC080}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest", "ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest\ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest.csproj", "{BD494596-A59D-4FBD-8FBC-8BBDA9CB8559}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest", "Console\ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest\ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest.csproj", "{BD494596-A59D-4FBD-8FBC-8BBDA9CB8559}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest", "ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest\ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest.csproj", "{A14CB086-0125-4116-BD93-A1DC6421C7D9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest", "Console\ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest\ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest.csproj", "{A14CB086-0125-4116-BD93-A1DC6421C7D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

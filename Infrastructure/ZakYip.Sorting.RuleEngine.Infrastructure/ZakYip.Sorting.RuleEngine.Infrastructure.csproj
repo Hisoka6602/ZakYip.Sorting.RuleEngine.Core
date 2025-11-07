@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
+    <ProjectReference Include="..\..\Domain\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
+    <ProjectReference Include="..\..\Application\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
