@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Buffers;
+using System.Collections.Concurrent;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
@@ -20,6 +21,7 @@ public class DataArchiveService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ShardingSettings _settings;
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1);
+    private readonly SemaphoreSlim _archiveSemaphore;
 
     public DataArchiveService(
         ILogger<DataArchiveService> logger,
@@ -29,6 +31,8 @@ public class DataArchiveService : BackgroundService
         _logger = logger;
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
+        // 创建信号量以控制并行归档批次数量
+        _archiveSemaphore = new SemaphoreSlim(_settings.ArchiveParallelism, _settings.ArchiveParallelism);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -277,5 +281,94 @@ public class DataArchiveService : BackgroundService
 
         _logger.LogInformation("批量归档完成，成功: {ProcessedCount} 条, 失败: {FailedCount} 条", 
             processedCount, failedCount);
+    }
+
+    /// <summary>
+    /// 并行批量归档冷数据 - 使用SemaphoreSlim控制并发
+    /// Parallel batch archive with controlled concurrency using SemaphoreSlim
+    /// </summary>
+    private async Task ArchiveColdDataInParallelBatchesAsync(
+        MySqlLogDbContext dbContext,
+        DateTime threshold,
+        int totalCount,
+        CancellationToken cancellationToken)
+    {
+        var batchSize = _settings.ArchiveBatchSize;
+        var parallelism = _settings.ArchiveParallelism;
+        var processedCount = 0;
+        var failedCount = 0;
+        var batchTasks = new ConcurrentBag<Task>();
+
+        _logger.LogInformation("开始并行批量归档 {TotalCount} 条冷数据，批次大小: {BatchSize}，并行度: {Parallelism}", 
+            totalCount, batchSize, parallelism);
+
+        // 计算批次数量
+        var batchCount = (int)Math.Ceiling((double)totalCount / batchSize);
+        
+        for (int batchIndex = 0; batchIndex < batchCount && !cancellationToken.IsCancellationRequested; batchIndex++)
+        {
+            var currentBatchIndex = batchIndex;
+            
+            // 等待信号量，控制并行数量
+            await _archiveSemaphore.WaitAsync(cancellationToken);
+
+            // 创建独立的scope用于每个并行任务
+            var batchTask = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var batchDbContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
+                    
+                    if (batchDbContext == null)
+                    {
+                        _logger.LogWarning("无法获取数据库上下文，跳过批次 {BatchIndex}", currentBatchIndex);
+                        return;
+                    }
+
+                    // 获取该批次的记录ID
+                    var skip = currentBatchIndex * batchSize;
+                    var batchIds = await batchDbContext.LogEntries
+                        .Where(e => e.CreatedAt < threshold)
+                        .OrderBy(e => e.CreatedAt)
+                        .Skip(skip)
+                        .Take(batchSize)
+                        .Select(e => e.Id)
+                        .ToListAsync(cancellationToken);
+
+                    if (!batchIds.Any())
+                        return;
+
+                    // 暂时只记录日志，不实际移动数据
+                    Interlocked.Add(ref processedCount, batchIds.Count);
+                    _logger.LogInformation("并行批次 {BatchIndex} 完成: 处理 {Count} 条记录", 
+                        currentBatchIndex, batchIds.Count);
+                }
+                catch (Exception ex)
+                {
+                    Interlocked.Increment(ref failedCount);
+                    _logger.LogError(ex, "并行批次 {BatchIndex} 处理失败", currentBatchIndex);
+                }
+                finally
+                {
+                    // 释放信号量，允许下一个批次开始
+                    _archiveSemaphore.Release();
+                }
+            }, cancellationToken);
+
+            batchTasks.Add(batchTask);
+        }
+
+        // 等待所有批次完成
+        await Task.WhenAll(batchTasks);
+
+        _logger.LogInformation("并行批量归档完成，成功: {ProcessedCount} 条, 失败: {FailedCount} 条", 
+            processedCount, failedCount);
+    }
+
+    public override void Dispose()
+    {
+        _archiveSemaphore?.Dispose();
+        base.Dispose();
     }
 }

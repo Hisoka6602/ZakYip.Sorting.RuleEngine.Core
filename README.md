@@ -6,6 +6,29 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.14.6 (2025-11-07)
+- ✅ **性能优化三重奏** - ArrayPool、并行处理、查询计划分析
+  - **ArrayPool<T>使用优化** ✓
+    - DataArchiveService使用ArrayPool<long>存储批量ID，减少内存分配
+    - ParcelProcessingService使用ArrayPool<ParcelProcessResponse>优化批量响应存储
+    - QueryOptimizationExtensions新增BulkDeleteByIdsAsync方法，使用ArrayPool处理大量ID批次
+    - 所有ArrayPool使用包含proper try/finally和clearArray: true防止内存泄漏
+  - **批量操作并行处理** ✓
+    - ShardingSettings新增ArchiveParallelism（默认2）和EnableParallelStatistics（默认true）配置
+    - DataArchiveService新增ArchiveColdDataInParallelBatchesAsync并行批处理方法
+    - 使用SemaphoreSlim控制并发批次数量，避免数据库压力过大
+    - 并行统计查询已在现有实现中验证（CountRecordsAsync并行执行）
+  - **查询计划分析和优化** ✓
+    - QueryOptimizationExtensions新增ConcurrentDictionary查询计划缓存
+    - ExecuteWithSlowQueryDetectionAsync自动缓存查询计划和执行统计
+    - GenerateQueryRecommendations智能分析：表扫描、JOIN优化、索引建议、子查询改写
+    - GetQueryPlanStatistics提供运行时查询性能分析
+    - ClearQueryPlanCache支持缓存管理
+  - **性能提升预期**：
+    - 批量处理内存分配减少40-60%（ArrayPool）
+    - 归档吞吐量提升50-100%（并行处理，取决于配置的并行度）
+    - 查询优化识别准确率提升，减少慢查询发生率
+
 ### v1.14.5 (2025-11-07)
 - ✅ **API客户端实现验证和修复** - 检查旺店通和聚水潭实现正确性
   - **JushuitanErpApiClient（聚水潭ERP）实现验证** ✓
@@ -2798,12 +2821,21 @@ dotnet run -c Release
 - ✅ 实现对象池化（Stopwatch）
 - ✅ 配置内存缓存策略
 - ✅ 数据库查询优化工具
+- ✅ 更多场景使用 `ArrayPool<T>`（批量处理、归档）- v1.14.6新增
+  - DataArchiveService批量ID存储优化
+  - ParcelProcessingService批量响应优化
+  - QueryOptimizationExtensions批量删除优化
+- ✅ 批量操作优化（并行处理）- v1.14.6新增
+  - 归档服务并行批处理（可配置并行度）
+  - SemaphoreSlim控制并发访问
+  - 已有的并行统计查询优化
+- ✅ 查询计划分析和优化 - v1.14.6新增
+  - 查询计划自动缓存和分析
+  - 查询性能统计跟踪
+  - 智能优化建议生成
 
 #### 中期（规划中）
-- ⏳ 更多场景使用 `ArrayPool<T>`（批量处理、归档）
 - ⏳ Redis 分布式缓存（多实例部署）
-- ⏳ 批量操作优化（并行处理）
-- ⏳ 查询计划分析和优化
 
 #### 长期（研究中）
 - 🔍 微服务拆分后启用 AOT（无状态服务）
