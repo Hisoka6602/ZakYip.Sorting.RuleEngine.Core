@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -59,11 +60,11 @@ public class WcsApiClient : IWcsApiAdapter
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
 
             // 发送POST请求
             // Send POST request
-            var response = await _httpClient.PostAsync("/api/sorting/upload", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.SortingUpload, content, cancellationToken);
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -103,7 +104,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -131,11 +132,11 @@ public class WcsApiClient : IWcsApiAdapter
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
 
             // 发送POST请求
             // Send POST request
-            var response = await _httpClient.PostAsync("/api/parcel/scan", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ParcelScan, content, cancellationToken);
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -175,7 +176,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -203,11 +204,11 @@ public class WcsApiClient : IWcsApiAdapter
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
 
             // 发送POST请求
             // Send POST request
-            var response = await _httpClient.PostAsync("/api/chute/request", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ChuteRequest, content, cancellationToken);
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -247,7 +248,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -261,7 +262,7 @@ public class WcsApiClient : IWcsApiAdapter
     public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
-        string contentType = "image/jpeg",
+        string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
         CancellationToken cancellationToken = default)
     {
         try
@@ -280,11 +281,11 @@ public class WcsApiClient : IWcsApiAdapter
             // Determine file extension based on content type
             var extension = contentType switch
             {
-                "image/jpeg" => ".jpg",
-                "image/png" => ".png",
-                "image/gif" => ".gif",
-                "image/bmp" => ".bmp",
-                "image/webp" => ".webp",
+                ApiConstants.ContentTypes.ImageJpeg => ".jpg",
+                ApiConstants.ContentTypes.ImagePng => ".png",
+                ApiConstants.ContentTypes.ImageGif => ".gif",
+                ApiConstants.ContentTypes.ImageBmp => ".bmp",
+                ApiConstants.ContentTypes.ImageWebp => ".webp",
                 _ => ".bin"
             };
             
@@ -295,7 +296,7 @@ public class WcsApiClient : IWcsApiAdapter
 
             // 发送POST请求
             // Send POST request
-            var response = await _httpClient.PostAsync("/api/image/upload", formContent, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ImageUpload, formContent, cancellationToken);
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -335,7 +336,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };

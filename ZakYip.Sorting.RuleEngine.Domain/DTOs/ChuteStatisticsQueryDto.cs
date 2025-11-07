@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.DTOs;
 
 /// <summary>
@@ -44,5 +46,5 @@ public class ChuteStatisticsQueryDto
     /// <summary>
     /// 每页数量
     /// </summary>
-    public int PageSize { get; set; } = 20;
+    public int PageSize { get; set; } = ConfigurationDefaults.Pagination.DefaultPageSize;
 }

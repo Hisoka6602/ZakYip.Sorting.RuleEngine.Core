@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -74,7 +75,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 { "partnerkey", _partnerKey },
                 { "token", _token },
                 { "ts", timestamp },
-                { "method", "weighing.upload" },
+                { "method", ApiConstants.JushuitanErpApi.Methods.WeighingUpload },
                 { "charset", "utf-8" },
                 { "biz_content", bizContentJson }
             };
@@ -86,7 +87,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             var content = new FormUrlEncodedContent(requestData);
 
             // 发送POST请求到统一路由
-            var response = await _httpClient.PostAsync("/open/api/open/router", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.JushuitanErpApi.RouterEndpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -98,7 +99,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "上传数据成功",
                     Data = responseContent
                 };
@@ -125,7 +126,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -160,7 +161,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 { "partnerkey", _partnerKey },
                 { "token", _token },
                 { "ts", timestamp },
-                { "method", "orders.single.query" },
+                { "method", ApiConstants.JushuitanErpApi.Methods.OrdersSingleQuery },
                 { "charset", "utf-8" },
                 { "biz_content", bizContentJson }
             };
@@ -170,7 +171,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync("/open/api/open/router", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.JushuitanErpApi.RouterEndpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -182,7 +183,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "扫描包裹成功",
                     Data = responseContent
                 };
@@ -209,7 +210,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -235,7 +236,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             var bizContent = new
             {
                 so_id = barcode,
-                lc_id = "AUTO",  // 自动分配
+                lc_id = ApiConstants.JushuitanErpApi.CommonParams.AutoAssign,  // 自动分配
                 l_id = barcode,
                 modified = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             };
@@ -247,7 +248,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 { "partnerkey", _partnerKey },
                 { "token", _token },
                 { "ts", timestamp },
-                { "method", "logistic.upload" },
+                { "method", ApiConstants.JushuitanErpApi.Methods.LogisticUpload },
                 { "charset", "utf-8" },
                 { "biz_content", bizContentJson }
             };
@@ -257,7 +258,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync("/open/api/open/router", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.JushuitanErpApi.RouterEndpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -269,7 +270,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "请求格口成功",
                     Data = responseContent
                 };
@@ -296,7 +297,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -326,7 +327,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = true,
-                Code = "200",
+                Code = ApiConstants.HttpStatusCodes.Success,
                 Message = "聚水潭ERP暂不支持图片上传功能",
                 Data = "{\"info\":\"Feature not supported\"}"
             };
@@ -338,7 +339,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
