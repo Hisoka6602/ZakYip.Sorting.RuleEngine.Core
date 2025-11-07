@@ -152,7 +152,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
                     type = _parameters.Type,
                     is_un_lid = _parameters.IsUnLid,
                     channel = _parameters.Channel,
-                    weight = _parameters.IsUploadWeight ? -1 : -1
+                    weight = _parameters.IsUploadWeight ? _parameters.DefaultWeight : -1
                 }
             };
 
