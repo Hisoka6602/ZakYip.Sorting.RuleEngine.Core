@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 
 namespace ZakYip.Sorting.RuleEngine.PostalApi.ConsoleTest;
 
