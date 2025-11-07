@@ -120,7 +120,7 @@ public class ParcelProcessingServiceTests
         };
 
         _mockApiAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -137,7 +137,7 @@ public class ParcelProcessingServiceTests
         // Assert
         _mockApiAdapter.Verify(
             a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.True(response.Success);
@@ -157,7 +157,7 @@ public class ParcelProcessingServiceTests
         };
 
         _mockApiAdapter.Setup(a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("API connection failed"));
 
@@ -233,7 +233,7 @@ public class ParcelProcessingServiceTests
         // Assert
         _mockApiAdapter.Verify(
             a => a.RequestChuteAsync(
-                It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
         Assert.True(response.Success);

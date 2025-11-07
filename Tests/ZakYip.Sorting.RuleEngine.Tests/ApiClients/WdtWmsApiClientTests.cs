@@ -57,7 +57,7 @@ public class WdtWmsApiClientTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.RequestChuteAsync(barcode);
+        var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1500, Volume = 9000 });
 
         // Assert
         Assert.True(result.Success);
@@ -125,7 +125,7 @@ public class WdtWmsApiClientTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.RequestChuteAsync(barcode);
+        var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1500, Volume = 9000 });
 
         // Assert
         Assert.True(result.Success);
@@ -187,7 +187,7 @@ public class WdtWmsApiClientTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.RequestChuteAsync(barcode);
+        var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1500, Volume = 9000 });
 
         // Assert
         Assert.False(result.Success);

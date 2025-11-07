@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 
@@ -54,14 +55,23 @@ class Program
         
         Console.WriteLine($"URL: {PROCESSING_CENTER_URL}\n");
         
-        // 测试1: 扫描包裹 / Test 1: Scan Parcel
+        // 测试1: 扫描包裹 / Test 1: Scan Parcode
         Console.WriteLine("测试1: 扫描包裹 / Test 1: Scan Parcel");
         var scanResult = await adapter.ScanParcelAsync("POST-CENTER-001");
         Console.WriteLine($"结果 / Result: {scanResult.Success} - {scanResult.Message}\n");
         
         // 测试2: 请求格口（查询路由） / Test 2: Request Chute (Query Routing)
         Console.WriteLine("测试2: 请求格口（查询路由） / Test 2: Request Chute (Query Routing)");
-        var chuteResult = await adapter.RequestChuteAsync("POST-CENTER-001");
+        var dwsData = new DwsData 
+        { 
+            Barcode = "POST-CENTER-001", 
+            Weight = 1500, 
+            Length = 300, 
+            Width = 200, 
+            Height = 150, 
+            Volume = 9000 
+        };
+        var chuteResult = await adapter.RequestChuteAsync("POST-CENTER-001", dwsData);
         Console.WriteLine($"结果 / Result: {chuteResult.Success} - {chuteResult.Message}\n");
         
         // 测试3: 上传图片 / Test 3: Upload Image
@@ -98,7 +108,16 @@ class Program
         
         // 测试2: 请求格口（查询包裹） / Test 2: Request Chute (Query Parcel)
         Console.WriteLine("测试2: 请求格口（查询包裹） / Test 2: Request Chute (Query Parcel)");
-        var chuteResult = await adapter.RequestChuteAsync("POST-COLLECT-001");
+        var dwsData = new DwsData 
+        { 
+            Barcode = "POST-COLLECT-001", 
+            Weight = 2000, 
+            Length = 350, 
+            Width = 250, 
+            Height = 200, 
+            Volume = 17500 
+        };
+        var chuteResult = await adapter.RequestChuteAsync("POST-COLLECT-001", dwsData);
         Console.WriteLine($"结果 / Result: {chuteResult.Success} - {chuteResult.Message}\n");
         
         // 测试3: 上传图片 / Test 3: Upload Image
