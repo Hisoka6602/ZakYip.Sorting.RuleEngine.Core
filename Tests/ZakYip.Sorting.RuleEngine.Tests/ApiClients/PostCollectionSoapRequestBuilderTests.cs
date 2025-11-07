@@ -1,23 +1,23 @@
 using System.Xml.Linq;
 using Xunit;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 
 public class PostCollectionSoapRequestBuilderTests
 {
-    private readonly SoapRequestBuilder _soapRequestBuilder;
+    private readonly PostalSoapRequestBuilder _soapRequestBuilder;
 
     public PostCollectionSoapRequestBuilderTests()
     {
-        _soapRequestBuilder = new SoapRequestBuilder();
+        _soapRequestBuilder = new PostalSoapRequestBuilder();
     }
 
     [Fact]
     public void BuildScanRequest_ShouldGenerateValidSoapEnvelope()
     {
         // Arrange
-        var parameters = new ScanRequestParameters
+        var parameters = new PostalScanRequestParameters
         {
             DeviceId = "20140010",
             Barcode = "TEST123456",
@@ -42,7 +42,7 @@ public class PostCollectionSoapRequestBuilderTests
     public void BuildScanRequest_ShouldContainCorrectArgument()
     {
         // Arrange
-        var parameters = new ScanRequestParameters
+        var parameters = new PostalScanRequestParameters
         {
             DeviceId = "20140010",
             Barcode = "TEST123456",
@@ -66,7 +66,7 @@ public class PostCollectionSoapRequestBuilderTests
     public void BuildScanRequest_ShouldUseDefaultValues()
     {
         // Arrange
-        var parameters = new ScanRequestParameters
+        var parameters = new PostalScanRequestParameters
         {
             DeviceId = "20140010",
             Barcode = "TEST123456",
@@ -89,7 +89,7 @@ public class PostCollectionSoapRequestBuilderTests
     public void BuildChuteQueryRequest_ShouldGenerateValidSoapEnvelope()
     {
         // Arrange
-        var parameters = new ChuteQueryRequestParameters
+        var parameters = new PostalChuteQueryRequestParameters
         {
             SequenceId = "202401WS20140010FJ000000001",
             DeviceId = "20140010",
@@ -118,7 +118,7 @@ public class PostCollectionSoapRequestBuilderTests
     public void BuildChuteQueryRequest_ShouldContainCorrectArgument()
     {
         // Arrange
-        var parameters = new ChuteQueryRequestParameters
+        var parameters = new PostalChuteQueryRequestParameters
         {
             SequenceId = "202401WS20140010FJ000000001",
             DeviceId = "20140010",
@@ -150,7 +150,7 @@ public class PostCollectionSoapRequestBuilderTests
     public void BuildChuteQueryRequest_ShouldUseDefaultValues()
     {
         // Arrange
-        var parameters = new ChuteQueryRequestParameters
+        var parameters = new PostalChuteQueryRequestParameters
         {
             SequenceId = "202401WS20140010FJ000000001",
             DeviceId = "20140010",
@@ -175,7 +175,7 @@ public class PostCollectionSoapRequestBuilderTests
     public void BuildScanRequest_WithCustomValues_ShouldUseProvidedValues()
     {
         // Arrange
-        var parameters = new ScanRequestParameters
+        var parameters = new PostalScanRequestParameters
         {
             DeviceId = "20140010",
             Barcode = "TEST123456",

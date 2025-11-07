@@ -1,13 +1,14 @@
 using System.Text;
 using System.Xml;
 
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 /// <summary>
-/// SOAP请求构建器，用于优雅地构建SOAP XML请求
-/// SOAP request builder for elegant construction of SOAP XML requests
+/// 通用SOAP请求构建器，用于优雅地构建SOAP XML请求
+/// Shared SOAP request builder for elegant construction of SOAP XML requests
+/// 用于邮政分揽投机构和邮政处理中心
 /// </summary>
-public class SoapRequestBuilder
+public class PostalSoapRequestBuilder
 {
     private const string SoapEnvelopeNamespace = "http://schemas.xmlsoap.org/soap/envelope/";
     private const string WebServiceNamespace = "http://serverNs.webservice.pcs.jdpt.chinapost.cn/";
@@ -16,7 +17,7 @@ public class SoapRequestBuilder
     /// 构建扫描包裹的SOAP请求 (getYJSM)
     /// Build SOAP request for scanning parcel
     /// </summary>
-    public string BuildScanRequest(ScanRequestParameters parameters)
+    public string BuildScanRequest(PostalScanRequestParameters parameters)
     {
         var arg0 = new StringBuilder()
             .Append("#HEAD::")
@@ -39,7 +40,7 @@ public class SoapRequestBuilder
     /// 构建查询格口的SOAP请求 (getLTGKCX)
     /// Build SOAP request for querying chute
     /// </summary>
-    public string BuildChuteQueryRequest(ChuteQueryRequestParameters parameters)
+    public string BuildChuteQueryRequest(PostalChuteQueryRequestParameters parameters)
     {
         var arg0 = new StringBuilder()
             .Append("#HEAD::")
@@ -116,7 +117,7 @@ public class SoapRequestBuilder
 /// 扫描请求参数
 /// Scan request parameters
 /// </summary>
-public class ScanRequestParameters
+public class PostalScanRequestParameters
 {
     public required string DeviceId { get; init; }
     public required string Barcode { get; init; }
@@ -133,7 +134,7 @@ public class ScanRequestParameters
 /// 格口查询请求参数
 /// Chute query request parameters
 /// </summary>
-public class ChuteQueryRequestParameters
+public class PostalChuteQueryRequestParameters
 {
     public required string SequenceId { get; init; }
     public required string DeviceId { get; init; }

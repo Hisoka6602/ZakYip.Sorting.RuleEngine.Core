@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 
@@ -17,7 +18,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<PostCollectionApiClient> _logger;
-    private readonly SoapRequestBuilder _soapRequestBuilder;
+    private readonly PostalSoapRequestBuilder _soapRequestBuilder;
     private static long _sequenceNumber = 1;
     private readonly object _sequenceLock = new();
 
@@ -35,7 +36,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
     {
         _httpClient = httpClient;
         _logger = logger;
-        _soapRequestBuilder = new SoapRequestBuilder();
+        _soapRequestBuilder = new PostalSoapRequestBuilder();
     }
 
     private long GetNextSequenceNumber()
@@ -78,7 +79,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             _logger.LogDebug("开始扫描包裹到邮政分揽投机构，条码: {Barcode}", barcode);
 
             // 构造SOAP请求 - getYJSM方法
-            var scanParameters = new ScanRequestParameters
+            var scanParameters = new PostalScanRequestParameters
             {
                 DeviceId = DeviceId,
                 Barcode = barcode,
@@ -178,7 +179,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造SOAP请求 - getLTGKCX方法（查询格口）
-            var chuteQueryParameters = new ChuteQueryRequestParameters
+            var chuteQueryParameters = new PostalChuteQueryRequestParameters
             {
                 SequenceId = sequenceId,
                 DeviceId = DeviceId,
