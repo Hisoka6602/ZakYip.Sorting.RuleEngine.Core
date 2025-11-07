@@ -70,7 +70,7 @@ public class PagedResponse<T>
     /// 时间戳
     /// </summary>
     [Required]
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
     /// 创建成功的分页响应
@@ -84,7 +84,7 @@ public class PagedResponse<T>
             Total = total,
             Page = page,
             PageSize = pageSize,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 
@@ -102,7 +102,7 @@ public class PagedResponse<T>
             PageSize = 0,
             ErrorMessage = errorMessage,
             ErrorCode = errorCode,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.Now
         };
     }
 }

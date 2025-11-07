@@ -71,7 +71,7 @@ public class DataArchiveService : BackgroundService
         }
 
         _logger.LogInformation("开始执行数据归档...");
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
@@ -123,7 +123,7 @@ public class DataArchiveService : BackgroundService
                 await ArchiveColdDataInBatchesAsync(dbContext, coldDataThreshold, coldDataCount, cancellationToken);
             }
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("数据归档完成，耗时: {Duration}秒", duration.TotalSeconds);
             
             // 发布数据归档事件

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -76,9 +77,8 @@ public class MonitoringService : IMonitoringService
             decimal averageUsageRate = 0;
             if (enabledChutes.Any() && lastHourMetrics.Any())
             {
-                const int maxCapacityPerHour = 600;
                 var avgParcelsPerChute = (decimal)lastHourMetrics.Count() / enabledChutes.Count;
-                averageUsageRate = Math.Min(avgParcelsPerChute / maxCapacityPerHour * 100, 100);
+                averageUsageRate = Math.Min(avgParcelsPerChute / PerformanceConstants.MaxChuteCapacityPerHour * PerformanceConstants.MaxPercentage, PerformanceConstants.MaxPercentage);
             }
 
             // 获取数据库状态 (默认为Healthy，可以通过健康检查获取更准确的状态)
@@ -225,8 +225,7 @@ public class MonitoringService : IMonitoringService
 
             if (!metrics.Any()) continue;
 
-            const int maxCapacityPerHour = 600;
-            var usageRate = (decimal)metrics.Count() / maxCapacityPerHour * 100;
+            var usageRate = (decimal)metrics.Count() / PerformanceConstants.MaxChuteCapacityPerHour * PerformanceConstants.MaxPercentage;
 
             if (usageRate >= ChuteUsageRateCriticalThreshold)
             {

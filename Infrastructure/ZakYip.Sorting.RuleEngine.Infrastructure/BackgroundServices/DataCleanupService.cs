@@ -112,7 +112,7 @@ public class DataCleanupService : BackgroundService
         }
 
         var cutoffDate = DateTime.Now.AddDays(-_settings.RetentionDays);
-        var startTime = DateTime.UtcNow;
+        var startTime = DateTime.Now;
         
         try
         {
@@ -161,7 +161,7 @@ public class DataCleanupService : BackgroundService
 
             _lastCleanupTime = DateTime.Now;
             
-            var duration = DateTime.UtcNow - startTime;
+            var duration = DateTime.Now - startTime;
             _logger.LogInformation("数据清理完成，耗时: {DurationMs}ms", duration.TotalMilliseconds);
             
             // 发布数据清理事件

@@ -101,7 +101,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 "聚水潭ERP - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}",
                 parcelId, dwsData.Barcode);
 
-            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            var timestamp = DateTimeOffset.Now.ToUnixTimeSeconds().ToString();
 
             // 构造业务参数 (参考代码中的UploadData方法)
             // 使用DWS数据中的重量

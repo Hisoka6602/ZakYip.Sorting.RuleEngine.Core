@@ -39,7 +39,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³");
 
         // 主动请求格口（主动调用，不发布事件）
-        var apiStartTime = DateTime.UtcNow;
+        var apiStartTime = DateTime.Now;
         try
         {
             var response = await _apiAdapterFactory.GetActiveAdapter().RequestChuteAsync(
@@ -48,7 +48,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 null, // OcrData not available in this event
                 cancellationToken);
 
-            var apiDuration = DateTime.UtcNow - apiStartTime;
+            var apiDuration = DateTime.Now - apiStartTime;
 
             // 记录WCS API响应（主动调用的响应，直接记录，不通过事件）
             if (response != null)
@@ -73,7 +73,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         }
         catch (Exception ex)
         {
-            var apiDuration = DateTime.UtcNow - apiStartTime;
+            var apiDuration = DateTime.Now - apiStartTime;
             
             _logger.LogWarning(ex, "WCS API调用失败，将继续使用规则引擎: ParcelId={ParcelId}", notification.ParcelId);
             await _logRepository.LogWarningAsync(

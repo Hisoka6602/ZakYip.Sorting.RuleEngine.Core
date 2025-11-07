@@ -23,7 +23,7 @@ public class MemoryCacheHealthCheck : IHealthCheck
         {
             // 测试缓存读写
             var testKey = "_health_check_test_";
-            var testValue = DateTime.UtcNow.Ticks;
+            var testValue = DateTime.Now.Ticks;
             
             _cache.Set(testKey, testValue, TimeSpan.FromSeconds(1));
             var retrievedValue = _cache.Get<long>(testKey);
