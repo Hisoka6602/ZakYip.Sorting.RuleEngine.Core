@@ -229,7 +229,7 @@ public class ApiClientRequiredFieldsTests
         // Arrange
         var logger = Mock.Of<ILogger<JushuitanErpApiClient>>();
         var httpClient = new HttpClient();
-        var client = new JushuitanErpApiClient(httpClient, logger);
+        var client = new JushuitanErpApiClient(httpClient, logger, "testKey", "testSecret", "testToken");
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");
@@ -298,7 +298,7 @@ public class ApiClientRequiredFieldsTests
         // Arrange
         var logger = Mock.Of<ILogger<WdtWmsApiClient>>();
         var httpClient = new HttpClient();
-        var client = new WdtWmsApiClient(httpClient, logger);
+        var client = new WdtWmsApiClient(httpClient, logger, "testKey", "testSecret", "testSid");
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");

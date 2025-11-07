@@ -360,9 +360,11 @@ public class WcsApiClient : IWcsApiAdapter
             };
             
             // 注意：对于multipart/form-data，我们简化FormattedCurl（因为包含二进制数据）
+            var boundaryParam = formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary");
+            var boundary = boundaryParam?.Value ?? "----WebKitFormBoundary";
             var headers = new Dictionary<string, string>
             {
-                ["Content-Type"] = $"multipart/form-data; boundary={formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary")?.Value}"
+                ["Content-Type"] = $"multipart/form-data; boundary={boundary}"
             };
             formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
                 "POST", 

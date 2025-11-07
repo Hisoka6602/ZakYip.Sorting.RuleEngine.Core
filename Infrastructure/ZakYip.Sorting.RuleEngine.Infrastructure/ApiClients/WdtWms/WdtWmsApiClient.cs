@@ -395,9 +395,11 @@ public class WdtWmsApiClient : IWcsApiAdapter
             formContent.Add(imageContent, "image", $"{barcode}.jpg");
 
             // 生成请求信息
+            var boundaryParam = formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary");
+            var boundary = boundaryParam?.Value ?? "----WebKitFormBoundary";
             var headers = new Dictionary<string, string>
             {
-                ["Content-Type"] = $"multipart/form-data; boundary={formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary")?.Value}"
+                ["Content-Type"] = $"multipart/form-data; boundary={boundary}"
             };
             formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
