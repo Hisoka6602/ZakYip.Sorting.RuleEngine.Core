@@ -41,7 +41,7 @@ public class DwsHub : Hub
 
             var dwsData = new DwsData
             {
-                Barcode = barcode,
+                Barcode = barcode ?? string.Empty,
                 Weight = weight,
                 Length = length,
                 Width = width,

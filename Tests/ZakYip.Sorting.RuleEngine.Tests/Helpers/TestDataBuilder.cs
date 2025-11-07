@@ -94,10 +94,10 @@ public static class TestDataBuilder
     {
         return new OcrData
         {
-            ThreeSegmentCode = threeSegmentCode ?? $"{firstSegmentCode}{secondSegmentCode}{thirdSegmentCode}",
-            FirstSegmentCode = firstSegmentCode,
-            SecondSegmentCode = secondSegmentCode,
-            ThirdSegmentCode = thirdSegmentCode,
+            ThreeSegmentCode = threeSegmentCode ?? $"{firstSegmentCode ?? "64"}{secondSegmentCode ?? "12"}{thirdSegmentCode ?? "34"}",
+            FirstSegmentCode = firstSegmentCode ?? "64",
+            SecondSegmentCode = secondSegmentCode ?? "12",
+            ThirdSegmentCode = thirdSegmentCode ?? "34",
             RecipientAddress = recipientAddress ?? "Test Recipient Address",
             SenderAddress = senderAddress ?? "Test Sender Address",
             RecipientPhoneSuffix = "1234",

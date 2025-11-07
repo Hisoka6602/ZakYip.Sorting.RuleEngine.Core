@@ -269,7 +269,7 @@ public class DwsDataReceivedEventHandlerTests
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((WcsApiResponse?)null);
+            .ReturnsAsync((WcsApiResponse)null!);  // 测试null场景
 
         // Act
         await _handler.Handle(notification, CancellationToken.None);
