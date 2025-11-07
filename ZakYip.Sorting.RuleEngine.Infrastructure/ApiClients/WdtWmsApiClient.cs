@@ -318,8 +318,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
             formContent.Add(new StringContent(ApiConstants.WdtWmsApi.Methods.ImageUpload), "method");
             formContent.Add(new StringContent(_appKey), "app_key");
             formContent.Add(new StringContent(timestamp), "timestamp");
-            formContent.Add(new StringContent("json"), "format");
-            formContent.Add(new StringContent("1.0"), "v");
+            formContent.Add(new StringContent(ApiConstants.WdtWmsApi.CommonParams.FormatJson), "format");
+            formContent.Add(new StringContent(ApiConstants.WdtWmsApi.CommonParams.Version), "v");
             formContent.Add(new StringContent(barcode), "barcode");
             
             // 生成签名（签名不包含文件内容，只包含非文件参数）
