@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -68,11 +69,11 @@ public class WdtWmsApiClient : IWcsApiAdapter
             // 构造完整请求参数
             var requestData = new Dictionary<string, string>
             {
-                { "method", "wms.weigh.upload" },
+                { "method", ApiConstants.WdtWmsApi.Methods.WeighUpload },
                 { "app_key", _appKey },
                 { "timestamp", timestamp },
-                { "format", "json" },
-                { "v", "1.0" },
+                { "format", ApiConstants.WdtWmsApi.CommonParams.FormatJson },
+                { "v", ApiConstants.WdtWmsApi.CommonParams.Version },
                 { "body", bodyJson }
             };
 
@@ -83,7 +84,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             var content = new FormUrlEncodedContent(requestData);
 
             // 发送POST请求
-            var response = await _httpClient.PostAsync("/openapi/router", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WdtWmsApi.RouterEndpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -95,7 +96,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "上传数据成功",
                     Data = responseContent
                 };
@@ -122,7 +123,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -152,11 +153,11 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
             var requestData = new Dictionary<string, string>
             {
-                { "method", "wms.parcel.scan" },
+                { "method", ApiConstants.WdtWmsApi.Methods.ParcelScan },
                 { "app_key", _appKey },
                 { "timestamp", timestamp },
-                { "format", "json" },
-                { "v", "1.0" },
+                { "format", ApiConstants.WdtWmsApi.CommonParams.FormatJson },
+                { "v", ApiConstants.WdtWmsApi.CommonParams.Version },
                 { "body", bodyJson }
             };
 
@@ -165,7 +166,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync("/openapi/router", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WdtWmsApi.RouterEndpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -177,7 +178,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "扫描包裹成功",
                     Data = responseContent
                 };
@@ -204,7 +205,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -234,11 +235,11 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
             var requestData = new Dictionary<string, string>
             {
-                { "method", "wms.parcel.query" },
+                { "method", ApiConstants.WdtWmsApi.Methods.ParcelQuery },
                 { "app_key", _appKey },
                 { "timestamp", timestamp },
-                { "format", "json" },
-                { "v", "1.0" },
+                { "format", ApiConstants.WdtWmsApi.CommonParams.FormatJson },
+                { "v", ApiConstants.WdtWmsApi.CommonParams.Version },
                 { "body", bodyJson }
             };
 
@@ -247,7 +248,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync("/openapi/router", content, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WdtWmsApi.RouterEndpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -259,7 +260,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "查询包裹成功",
                     Data = responseContent
                 };
@@ -286,7 +287,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };
@@ -314,22 +315,22 @@ public class WdtWmsApiClient : IWcsApiAdapter
             // 对于文件上传，WDT通常使用multipart/form-data
             using var formContent = new MultipartFormDataContent();
             
-            formContent.Add(new StringContent("wms.parcel.image.upload"), "method");
+            formContent.Add(new StringContent(ApiConstants.WdtWmsApi.Methods.ImageUpload), "method");
             formContent.Add(new StringContent(_appKey), "app_key");
             formContent.Add(new StringContent(timestamp), "timestamp");
-            formContent.Add(new StringContent("json"), "format");
-            formContent.Add(new StringContent("1.0"), "v");
+            formContent.Add(new StringContent(ApiConstants.WdtWmsApi.CommonParams.FormatJson), "format");
+            formContent.Add(new StringContent(ApiConstants.WdtWmsApi.CommonParams.Version), "v");
             formContent.Add(new StringContent(barcode), "barcode");
             
             // 生成签名（签名不包含文件内容，只包含非文件参数）
             // Generate signature (signature excludes file content, only includes non-file parameters)
             var signParams = new Dictionary<string, string>
             {
-                { "method", "wms.parcel.image.upload" },
+                { "method", ApiConstants.WdtWmsApi.Methods.ImageUpload },
                 { "app_key", _appKey },
                 { "timestamp", timestamp },
-                { "format", "json" },
-                { "v", "1.0" },
+                { "format", ApiConstants.WdtWmsApi.CommonParams.FormatJson },
+                { "v", ApiConstants.WdtWmsApi.CommonParams.Version },
                 { "barcode", barcode }
             };
             
@@ -340,7 +341,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
             formContent.Add(imageContent, "image", $"{barcode}.jpg");
 
-            var response = await _httpClient.PostAsync("/openapi/router", formContent, cancellationToken);
+            var response = await _httpClient.PostAsync(ApiConstants.WdtWmsApi.RouterEndpoint, formContent, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -352,7 +353,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = "200",
+                    Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "上传图片成功",
                     Data = responseContent
                 };
@@ -379,7 +380,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = "ERROR",
+                Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString()
             };

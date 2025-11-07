@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
@@ -28,5 +29,5 @@ public interface ICommunicationLogRepository
         DateTime? endTime = null,
         CommunicationType? type = null,
         string? parcelId = null,
-        int maxRecords = 1000);
+        int maxRecords = ConfigurationDefaults.Pagination.MaxRecords);
 }

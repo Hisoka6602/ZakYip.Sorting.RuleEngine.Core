@@ -476,10 +476,10 @@ finally
     LogManager.Shutdown();
 }
 
-/// <summary>
-/// 配置MySQL数据库上下文
-/// Configure MySQL database context
-/// </summary>
+// <summary>
+// 配置MySQL数据库上下文
+// Configure MySQL database context
+// </summary>
 static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string connectionString, ServerVersion serverVersion)
 {
     options.UseMySql(connectionString, serverVersion);
@@ -500,9 +500,9 @@ static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string conn
         Microsoft.Extensions.Logging.LogLevel.Warning);
 }
 
-/// <summary>
-/// 配置SQLite日志
-/// </summary>
+// <summary>
+// 配置SQLite日志
+// </summary>
 static void ConfigureSqliteLogging(IServiceCollection services, AppSettings appSettings)
 {
     var dbPath = Path.GetDirectoryName(appSettings.Sqlite.ConnectionString.Replace("Data Source=", "").Split(';')[0]);
@@ -533,9 +533,9 @@ static void ConfigureSqliteLogging(IServiceCollection services, AppSettings appS
     services.AddScoped<ILogRepository, SqliteLogRepository>();
 }
 
-/// <summary>
-/// 确保MySQL数据库存在，如果不存在则创建
-/// </summary>
+// <summary>
+// 确保MySQL数据库存在，如果不存在则创建
+// </summary>
 static bool EnsureMySqlDatabaseExists(string connectionString, NLog.Logger logger)
 {
     try
@@ -603,9 +603,9 @@ static bool EnsureMySqlDatabaseExists(string connectionString, NLog.Logger logge
     }
 }
 
-/// <summary>
-/// 初始化数据库并自动应用迁移
-/// </summary>
+// <summary>
+// 初始化数据库并自动应用迁移
+// </summary>
 static void InitializeDatabases(IServiceProvider services, AppSettings appSettings)
 {
     var logger = LogManager.GetCurrentClassLogger();

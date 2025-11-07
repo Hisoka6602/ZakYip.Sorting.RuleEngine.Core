@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using ZakYip.Sorting.RuleEngine.Application.DTOs;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -34,7 +35,7 @@ public class ParcelProcessingService : IParcelProcessingService
         // 创建Stopwatch对象池以提高性能
         // Create Stopwatch object pool for performance
         var policy = new DefaultPooledObjectPolicy<Stopwatch>();
-        _stopwatchPool = new DefaultObjectPool<Stopwatch>(policy, 100);
+        _stopwatchPool = new DefaultObjectPool<Stopwatch>(policy, ConfigurationDefaults.ObjectPool.StopwatchPoolSize);
     }
 
     /// <summary>

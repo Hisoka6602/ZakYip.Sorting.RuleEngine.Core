@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -55,6 +56,6 @@ public interface IWcsApiAdapter
     Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
-        string contentType = "image/jpeg",
+        string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
         CancellationToken cancellationToken = default);
 }
