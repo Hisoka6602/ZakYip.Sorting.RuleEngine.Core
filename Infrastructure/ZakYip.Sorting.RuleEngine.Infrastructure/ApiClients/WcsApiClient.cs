@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 
@@ -39,66 +41,120 @@ public class WcsApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var requestTime = DateTime.Now;
+        var requestUrl = ApiConstants.WcsEndpoints.ParcelScan;
+        
+        // 构造请求数据
+        var requestData = new
+        {
+            barcode,
+            scanTime = DateTime.Now
+        };
+        var json = JsonSerializer.Serialize(requestData, _jsonOptions);
+        
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
+        
         try
         {
             _logger.LogDebug("开始扫描包裹，条码: {Barcode}", barcode);
 
-            // 构造请求数据
-            // Build request data
-            var requestData = new
-            {
-                barcode,
-                scanTime = DateTime.Now
-            };
-
-            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
 
-            // 发送POST请求
-            // Send POST request
-            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ParcelScan, content, cancellationToken);
+            // 生成请求信息
+            using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
+            {
+                Content = content
+            };
+            
+            formattedCurl = await ApiRequestHelper.GenerateFormattedCurlFromRequestAsync(request);
+            requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            // 发送POST请求
+            response = await _httpClient.SendAsync(request, cancellationToken);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
+
+            stopwatch.Stop();
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "扫描包裹成功，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
+                    "扫描包裹成功，条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = "Parcel scanned successfully",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = barcode,
+                    RequestUrl = requestUrl,
+                    RequestBody = json,
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
+                    "扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}, 耗时: {Duration}ms",
+                    barcode, response.StatusCode, responseContent, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"Scan Error: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"Scan Error: {response.StatusCode}",
+                    ParcelId = barcode,
+                    RequestUrl = requestUrl,
+                    RequestBody = json,
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "扫描包裹异常，条码: {Barcode}", barcode);
+            stopwatch.Stop();
+            _logger.LogError(ex, "扫描包裹异常，条码: {Barcode}, 耗时: {Duration}ms", barcode, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = barcode,
+                RequestUrl = requestUrl,
+                RequestBody = json,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
     }
@@ -113,44 +169,60 @@ public class WcsApiClient : IWcsApiAdapter
         OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
         var requestTime = DateTime.Now;
+        var requestUrl = ApiConstants.WcsEndpoints.ChuteRequest;
+        
+        // 构造请求数据 - 包含DWS数据
+        var requestData = new
+        {
+            parcelId,
+            barcode = dwsData.Barcode,
+            weight = dwsData.Weight,
+            length = dwsData.Length,
+            width = dwsData.Width,
+            height = dwsData.Height,
+            volume = dwsData.Volume,
+            scanTime = dwsData.ScannedAt,
+            ocrData = ocrData != null ? new
+            {
+                threeSegmentCode = ocrData.ThreeSegmentCode,
+                firstSegmentCode = ocrData.FirstSegmentCode,
+                secondSegmentCode = ocrData.SecondSegmentCode,
+                thirdSegmentCode = ocrData.ThirdSegmentCode,
+                recipientAddress = ocrData.RecipientAddress
+            } : null,
+            requestTime = DateTime.Now
+        };
+        
+        var json = JsonSerializer.Serialize(requestData, _jsonOptions);
+        
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
         
         try
         {
             _logger.LogDebug("开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
-            // 构造请求数据 - 包含DWS数据
-            // Build request data - including DWS data
-            var requestData = new
-            {
-                parcelId,
-                barcode = dwsData.Barcode,
-                weight = dwsData.Weight,
-                length = dwsData.Length,
-                width = dwsData.Width,
-                height = dwsData.Height,
-                volume = dwsData.Volume,
-                scanTime = dwsData.ScannedAt,
-                ocrData = ocrData != null ? new
-                {
-                    threeSegmentCode = ocrData.ThreeSegmentCode,
-                    firstSegmentCode = ocrData.FirstSegmentCode,
-                    secondSegmentCode = ocrData.SecondSegmentCode,
-                    thirdSegmentCode = ocrData.ThirdSegmentCode,
-                    recipientAddress = ocrData.RecipientAddress
-                } : null,
-                requestTime = DateTime.Now
-            };
-
-            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
 
-            // 发送POST请求
-            // Send POST request
-            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ChuteRequest, content, cancellationToken);
+            // 生成请求信息
+            using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
+            {
+                Content = content
+            };
+            
+            formattedCurl = await ApiRequestHelper.GenerateFormattedCurlFromRequestAsync(request);
+            requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            // 发送POST请求
+            response = await _httpClient.SendAsync(request, cancellationToken);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
+            
             stopwatch.Stop();
 
             if (response.IsSuccessStatusCode)
@@ -167,12 +239,15 @@ public class WcsApiClient : IWcsApiAdapter
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
-                    RequestUrl = ApiConstants.WcsEndpoints.ChuteRequest,
+                    RequestUrl = requestUrl,
                     RequestBody = json,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl,
                     OcrData = ocrData
                 };
             }
@@ -191,12 +266,15 @@ public class WcsApiClient : IWcsApiAdapter
                     ResponseBody = responseContent,
                     ErrorMessage = $"Chute Request Error: {response.StatusCode}",
                     ParcelId = parcelId,
-                    RequestUrl = ApiConstants.WcsEndpoints.ChuteRequest,
+                    RequestUrl = requestUrl,
                     RequestBody = json,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl,
                     OcrData = ocrData
                 };
             }
@@ -214,9 +292,15 @@ public class WcsApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
+                RequestUrl = requestUrl,
+                RequestBody = json,
+                RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
                 ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
                 DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl,
                 OcrData = ocrData
             };
         }
@@ -232,20 +316,28 @@ public class WcsApiClient : IWcsApiAdapter
         string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var requestTime = DateTime.Now;
+        var requestUrl = ApiConstants.WcsEndpoints.ImageUpload;
+        
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
+        
         try
         {
             _logger.LogDebug("开始上传图片，条码: {Barcode}, 图片大小: {Size} bytes, 类型: {ContentType}", 
                 barcode, imageData.Length, contentType);
 
             // 构造multipart/form-data请求
-            // Build multipart/form-data request
             using var formContent = new MultipartFormDataContent();
             
             // 添加条码字段
             formContent.Add(new StringContent(barcode), "barcode");
             
             // 根据内容类型确定文件扩展名
-            // Determine file extension based on content type
             var extension = contentType switch
             {
                 ApiConstants.ContentTypes.ImageJpeg => ".jpg",
@@ -261,51 +353,107 @@ public class WcsApiClient : IWcsApiAdapter
             imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
             formContent.Add(imageContent, "image", $"{barcode}{extension}");
 
-            // 发送POST请求
-            // Send POST request
-            var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ImageUpload, formContent, cancellationToken);
+            // 生成请求信息
+            using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
+            {
+                Content = formContent
+            };
+            
+            // 注意：对于multipart/form-data，我们简化FormattedCurl（因为包含二进制数据）
+            var boundaryParam = formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary");
+            var boundary = boundaryParam?.Value ?? "----WebKitFormBoundary";
+            var headers = new Dictionary<string, string>
+            {
+                ["Content-Type"] = $"multipart/form-data; boundary={boundary}"
+            };
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
+                "POST", 
+                requestUrl, 
+                headers, 
+                $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]");
+            requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            // 发送POST请求
+            response = await _httpClient.SendAsync(request, cancellationToken);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
+
+            stopwatch.Stop();
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "上传图片成功，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
+                    "上传图片成功，条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = "Image uploaded successfully",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = barcode,
+                    RequestUrl = requestUrl,
+                    RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "上传图片失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
+                    "上传图片失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}, 耗时: {Duration}ms",
+                    barcode, response.StatusCode, responseContent, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"Image Upload Error: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"Image Upload Error: {response.StatusCode}",
+                    ParcelId = barcode,
+                    RequestUrl = requestUrl,
+                    RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "上传图片异常，条码: {Barcode}", barcode);
+            stopwatch.Stop();
+            _logger.LogError(ex, "上传图片异常，条码: {Barcode}, 耗时: {Duration}ms", barcode, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = barcode,
+                RequestUrl = requestUrl,
+                RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
     }

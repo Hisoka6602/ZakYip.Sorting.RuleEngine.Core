@@ -1,4 +1,5 @@
 using MediatR;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
@@ -41,4 +42,9 @@ public record struct WcsApiCalledEvent : INotification
     /// 错误消息（如果失败）
     /// </summary>
     public string? ErrorMessage { get; init; }
+    
+    /// <summary>
+    /// 完整的API响应数据（包含所有请求和响应详情）
+    /// </summary>
+    public WcsApiResponse? ApiResponse { get; init; }
 }
