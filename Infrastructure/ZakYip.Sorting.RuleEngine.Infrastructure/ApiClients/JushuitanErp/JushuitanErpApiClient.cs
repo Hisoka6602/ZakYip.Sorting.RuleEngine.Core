@@ -121,10 +121,16 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             if (!string.IsNullOrWhiteSpace(responseContent))
             {
                 var jObject = JObject.Parse(responseContent);
-                // 确保 data 存在，并且 data.datas 是一个非空数组
+                // 检查多种可能的成功响应格式
+                // 格式1: { "data": { "datas": [{"is_success": true}] } }
                 if (jObject["data"]?["datas"] is JArray { Count: > 0 } jArray)
                 {
                     isSuccess = jArray[0]["is_success"]?.Value<bool>() == true;
+                }
+                // 格式2: { "code": 0, "data": { "result": true } }
+                else if (jObject["code"]?.Value<int>() == 0 || jObject["data"]?["result"]?.Value<bool>() == true)
+                {
+                    isSuccess = true;
                 }
             }
 
