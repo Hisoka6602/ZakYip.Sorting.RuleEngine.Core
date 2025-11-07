@@ -6,6 +6,34 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.14.5 (2025-11-07)
+- ✅ **API客户端实现验证和修复** - 检查旺店通和聚水潭实现正确性
+  - **JushuitanErpApiClient（聚水潭ERP）实现验证** ✓
+    - 签名算法正确：MD5(appSecret + key1value1key2value2...)
+    - 参数构造正确：使用DwsData中的实际重量
+    - 响应解析增强：支持多种API响应格式
+      - 格式1: `{ "data": { "datas": [{"is_success": true}] } }`
+      - 格式2: `{ "code": 0, "data": { "result": true } }`
+    - UploadData方法正确映射到RequestChuteAsync
+    - ScanParcelAsync正确返回"不支持"消息
+  - **WdtWmsApiClient（旺店通WMS）实现验证** ✓
+    - 签名算法正确：MD5(appSecret + key1value1key2value2... + body + appSecret)
+    - 参数构造正确：使用DwsData中的实际重量
+    - 响应解析增强：支持多种API响应格式
+      - 格式1: `{ "flag": "success" }`
+      - 格式2: `{ "code": 0, "message": "success" }`
+    - UploadData方法正确映射到RequestChuteAsync
+    - ScanParcelAsync正确返回"不支持"消息
+    - UploadImageAsync实现图片上传功能
+  - **测试用例修复** - 所有10个测试通过 ✓
+    - 修正测试响应解析期望
+    - 更新ScanParcelAsync测试以验证"不支持"行为
+    - 简化HTTP请求URL匹配逻辑
+  - **参考实现对比** - 与邮政API实现模式一致
+    - 遵循相同的错误处理模式
+    - 使用相同的Stopwatch计时方式
+    - 类似的响应构造和日志记录
+
 ### v1.14.4 (2025-11-07)
 - ✅ **API客户端重构完成** - 按照参考代码重新实现API适配器
   - **RequestChuteAsync方法签名更新** - 现在接受ParcelId、DwsData、OcrData参数
