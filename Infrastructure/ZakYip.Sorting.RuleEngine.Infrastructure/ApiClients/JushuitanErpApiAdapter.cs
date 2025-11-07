@@ -12,18 +12,18 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// 聚水潭ERP API适配器实现
 /// Jushuituan ERP API adapter implementation
 /// </summary>
-public class JushuitanErpApiClient : IWcsApiAdapter
+public class JushuitanErpApiAdapter : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<JushuitanErpApiClient> _logger;
+    private readonly ILogger<JushuitanErpApiAdapter> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _partnerKey;
     private readonly string _partnerSecret;
     private readonly string _token;
 
-    public JushuitanErpApiClient(
+    public JushuitanErpApiAdapter(
         HttpClient httpClient,
-        ILogger<JushuitanErpApiClient> logger,
+        ILogger<JushuitanErpApiAdapter> logger,
         string partnerKey = "",
         string partnerSecret = "",
         string token = "")

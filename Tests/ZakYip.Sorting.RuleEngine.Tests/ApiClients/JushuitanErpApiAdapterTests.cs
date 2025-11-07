@@ -14,23 +14,23 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 /// </summary>
 public class JushuitanErpApiAdapterTests
 {
-    private readonly Mock<ILogger<JushuitanErpApiClient>> _loggerMock;
+    private readonly Mock<ILogger<JushuitanErpApiAdapter>> _loggerMock;
     private const string PartnerKey = "test_partner_key";
     private const string PartnerSecret = "test_partner_secret";
     private const string Token = "test_token";
 
     public JushuitanErpApiAdapterTests()
     {
-        _loggerMock = new Mock<ILogger<JushuitanErpApiClient>>();
+        _loggerMock = new Mock<ILogger<JushuitanErpApiAdapter>>();
     }
 
-    private JushuitanErpApiClient CreateClient(HttpMessageHandler handler)
+    private JushuitanErpApiAdapter CreateClient(HttpMessageHandler handler)
     {
         var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.jushuitan.com")
         };
-        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, PartnerKey, PartnerSecret, Token);
+        return new JushuitanErpApiAdapter(httpClient, _loggerMock.Object, PartnerKey, PartnerSecret, Token);
     }
 
     [Fact]

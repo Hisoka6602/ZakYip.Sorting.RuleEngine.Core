@@ -14,22 +14,22 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 /// </summary>
 public class WdtWmsApiAdapterTests
 {
-    private readonly Mock<ILogger<WdtWmsApiClient>> _loggerMock;
+    private readonly Mock<ILogger<WdtWmsApiAdapter>> _loggerMock;
     private const string AppKey = "test_app_key";
     private const string AppSecret = "test_app_secret";
 
     public WdtWmsApiAdapterTests()
     {
-        _loggerMock = new Mock<ILogger<WdtWmsApiClient>>();
+        _loggerMock = new Mock<ILogger<WdtWmsApiAdapter>>();
     }
 
-    private WdtWmsApiClient CreateClient(HttpMessageHandler handler)
+    private WdtWmsApiAdapter CreateClient(HttpMessageHandler handler)
     {
         var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.wdt.com")
         };
-        return new WdtWmsApiClient(httpClient, _loggerMock.Object, AppKey, AppSecret);
+        return new WdtWmsApiAdapter(httpClient, _loggerMock.Object, AppKey, AppSecret);
     }
 
     [Fact]

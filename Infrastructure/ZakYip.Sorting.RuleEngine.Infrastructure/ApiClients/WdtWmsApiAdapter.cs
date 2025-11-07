@@ -12,17 +12,17 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// 旺店通WMS API适配器实现
 /// WDT (Wang Dian Tong) WMS API adapter implementation
 /// </summary>
-public class WdtWmsApiClient : IWcsApiAdapter
+public class WdtWmsApiAdapter : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<WdtWmsApiClient> _logger;
+    private readonly ILogger<WdtWmsApiAdapter> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _appKey;
     private readonly string _appSecret;
 
-    public WdtWmsApiClient(
+    public WdtWmsApiAdapter(
         HttpClient httpClient,
-        ILogger<WdtWmsApiClient> logger,
+        ILogger<WdtWmsApiAdapter> logger,
         string appKey = "",
         string appSecret = "")
     {
