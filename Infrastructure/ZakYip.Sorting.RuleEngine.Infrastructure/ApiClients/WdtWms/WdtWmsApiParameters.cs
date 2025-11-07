@@ -1,4 +1,4 @@
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
 /// <summary>
 /// 旺店通WMS API参数配置类

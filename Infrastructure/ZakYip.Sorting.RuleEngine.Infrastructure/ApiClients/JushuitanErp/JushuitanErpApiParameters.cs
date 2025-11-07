@@ -1,4 +1,4 @@
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 
 /// <summary>
 /// 聚水潭ERP API参数配置类

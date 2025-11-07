@@ -9,7 +9,7 @@ using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
 /// <summary>
 /// 旺店通WMS API适配器实现

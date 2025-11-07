@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
 namespace ZakYip.Sorting.RuleEngine.WdtWmsApiClient.ConsoleTest;
 
@@ -21,10 +22,10 @@ class Program
             builder.SetMinimumLevel(LogLevel.Debug);
         });
         
-        var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.WdtWmsApiAdapter>();
+        var logger = loggerFactory.CreateLogger<WdtWmsApiAdapter>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.WdtWmsApiAdapter(httpClient, logger, APP_KEY, APP_SECRET);
+        var client = new WdtWmsApiAdapter(httpClient, logger, APP_KEY, APP_SECRET);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

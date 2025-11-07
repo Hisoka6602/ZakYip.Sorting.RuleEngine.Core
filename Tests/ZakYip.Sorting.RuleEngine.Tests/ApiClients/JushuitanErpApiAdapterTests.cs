@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 

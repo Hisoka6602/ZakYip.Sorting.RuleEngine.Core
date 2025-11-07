@@ -8,7 +8,7 @@ using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 
 /// <summary>
 /// 聚水潭ERP API适配器实现
