@@ -12,24 +12,24 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 /// 旺店通WMS API适配器测试
 /// WDT WMS API adapter tests
 /// </summary>
-public class WdtWmsApiAdapterTests
+public class WdtWmsApiClientTests
 {
-    private readonly Mock<ILogger<WdtWmsApiAdapter>> _loggerMock;
+    private readonly Mock<ILogger<WdtWmsApiClient>> _loggerMock;
     private const string AppKey = "test_app_key";
     private const string AppSecret = "test_app_secret";
 
-    public WdtWmsApiAdapterTests()
+    public WdtWmsApiClientTests()
     {
-        _loggerMock = new Mock<ILogger<WdtWmsApiAdapter>>();
+        _loggerMock = new Mock<ILogger<WdtWmsApiClient>>();
     }
 
-    private WdtWmsApiAdapter CreateClient(HttpMessageHandler handler)
+    private WdtWmsApiClient CreateClient(HttpMessageHandler handler)
     {
         var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.wdt.com")
         };
-        return new WdtWmsApiAdapter(httpClient, _loggerMock.Object, AppKey, AppSecret);
+        return new WdtWmsApiClient(httpClient, _loggerMock.Object, AppKey, AppSecret);
     }
 
     [Fact]

@@ -38,7 +38,7 @@ class Program
     {
         Console.WriteLine("### 测试邮政处理中心API / Testing Postal Processing Center API ###\n");
         
-        var logger = loggerFactory.CreateLogger<PostProcessingCenterApiAdapter>();
+        var logger = loggerFactory.CreateLogger<PostProcessingCenterApiClient>();
         var httpClient = new HttpClient 
         { 
             BaseAddress = new Uri(PROCESSING_CENTER_URL), 
@@ -50,7 +50,7 @@ class Program
             httpClient.DefaultRequestHeaders.Add("X-API-Key", API_KEY);
         }
         
-        var adapter = new PostProcessingCenterApiAdapter(httpClient, logger);
+        var adapter = new PostProcessingCenterApiClient(httpClient, logger);
         
         Console.WriteLine($"URL: {PROCESSING_CENTER_URL}\n");
         
@@ -75,7 +75,7 @@ class Program
     {
         Console.WriteLine("### 测试邮政分揽投机构API / Testing Postal Collection Institution API ###\n");
         
-        var logger = loggerFactory.CreateLogger<PostCollectionApiAdapter>();
+        var logger = loggerFactory.CreateLogger<PostCollectionApiClient>();
         var httpClient = new HttpClient 
         { 
             BaseAddress = new Uri(COLLECTION_INSTITUTION_URL), 
@@ -87,7 +87,7 @@ class Program
             httpClient.DefaultRequestHeaders.Add("X-API-Key", API_KEY);
         }
         
-        var adapter = new PostCollectionApiAdapter(httpClient, logger);
+        var adapter = new PostCollectionApiClient(httpClient, logger);
         
         Console.WriteLine($"URL: {COLLECTION_INSTITUTION_URL}\n");
         

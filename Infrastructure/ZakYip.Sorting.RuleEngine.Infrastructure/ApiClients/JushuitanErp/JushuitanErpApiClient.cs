@@ -11,26 +11,26 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 
 /// <summary>
-/// 聚水潭ERP API适配器实现
-/// Jushuituan ERP API adapter implementation
-/// 参考: JushuitanErpApi from reference code
+/// 聚水潭ERP API客户端实现
+/// Jushuituan ERP API client implementation
+/// 参考: https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e
 /// </summary>
-public class JushuitanErpApiAdapter : IWcsApiAdapter
+public class JushuitanErpApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<JushuitanErpApiAdapter> _logger;
-    private readonly JushuitanErpApiParameters _parameters;
+    private readonly ILogger<JushuitanErpApiClient> _logger;
+    public JushuitanErpApiParameters Parameters { get; set; }
 
-    public JushuitanErpApiAdapter(
+    public JushuitanErpApiClient(
         HttpClient httpClient,
-        ILogger<JushuitanErpApiAdapter> logger,
+        ILogger<JushuitanErpApiClient> logger,
         string appKey = "",
         string appSecret = "",
         string accessToken = "")
     {
         _httpClient = httpClient;
         _logger = logger;
-        _parameters = new JushuitanErpApiParameters
+        Parameters = new JushuitanErpApiParameters
         {
             AppKey = appKey,
             AppSecret = appSecret,
@@ -39,88 +39,25 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
     }
 
     /// <summary>
-    /// 扫描包裹（提交扫描信息）
-    /// Scan parcel to register it in the system
-    /// 对应参考代码中的 SubmitScanInfo 方法
+    /// 扫描包裹（聚水潭ERP不支持此功能）
+    /// Scan parcel - Not supported in Jushuituan ERP
+    /// 注意：根据要求，JushuitanErpApiClient不应该实现ScanParcelAsync
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogWarning("聚水潭ERP不支持扫描包裹功能，条码: {Barcode}", barcode);
+        
+        await Task.CompletedTask;
+        
+        return new WcsApiResponse
         {
-            _logger.LogDebug("聚水潭ERP - 开始扫描包裹，条码: {Barcode}", barcode);
-
-            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-
-            var bizContent = new
-            {
-                so_id = barcode,
-                page_index = 1,
-                page_size = 1
-            };
-
-            var bizContentJson = JsonConvert.SerializeObject(bizContent);
-
-            var requestData = new Dictionary<string, string>
-            {
-                { "app_key", _parameters.AppKey },
-                { "access_token", _parameters.AccessToken },
-                { "timestamp", timestamp },
-                { "charset", "utf-8" },
-                { "version", _parameters.Version.ToString() },
-                { "biz", bizContentJson }
-            };
-
-            var sign = GenerateSign(requestData, _parameters.AppSecret);
-            requestData.Add("sign", sign);
-
-            var content = new FormUrlEncodedContent(requestData);
-
-            var response = await _httpClient.PostAsync(_parameters.Url, content, cancellationToken);
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation(
-                    "聚水潭ERP - 扫描包裹成功，条码: {Barcode}",
-                    barcode);
-
-                return new WcsApiResponse
-                {
-                    Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
-                    Message = "扫描包裹成功",
-                    Data = responseContent
-                };
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "聚水潭ERP - 扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
-
-                return new WcsApiResponse
-                {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"扫描包裹失败: {response.StatusCode}",
-                    Data = responseContent
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "聚水潭ERP - 扫描包裹异常，条码: {Barcode}", barcode);
-
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString()
-            };
-        }
+            Success = true,
+            Code = ApiConstants.HttpStatusCodes.Success,
+            Message = "聚水潭ERP不支持扫描包裹功能",
+            Data = "{\"info\":\"Feature not supported\"}"
+        };
     }
 
     /// <summary>
@@ -143,16 +80,16 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
 
-            // 构造业务参数
+            // 构造业务参数 (参考代码中的UploadData方法)
             var biz = new[]
             {
                 new
                 {
                     l_id = barcode,
-                    type = _parameters.Type,
-                    is_un_lid = _parameters.IsUnLid,
-                    channel = _parameters.Channel,
-                    weight = _parameters.IsUploadWeight ? _parameters.DefaultWeight : -1
+                    type = Parameters.Type,
+                    is_un_lid = Parameters.IsUnLid,
+                    channel = Parameters.Channel,
+                    weight = Parameters.IsUploadWeight ? Parameters.DefaultWeight : -1
                 }
             };
 
@@ -160,21 +97,21 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
 
             var requestData = new Dictionary<string, string>
             {
-                { "app_key", _parameters.AppKey },
-                { "access_token", _parameters.AccessToken },
+                { "app_key", Parameters.AppKey },
+                { "access_token", Parameters.AccessToken },
                 { "biz", bizJson },
                 { "timestamp", timestamp },
                 { "charset", "utf-8" },
-                { "version", _parameters.Version.ToString() }
+                { "version", Parameters.Version.ToString() }
             };
 
-            var sign = GenerateSign(requestData, _parameters.AppSecret);
+            var sign = GenerateSign(requestData, Parameters.AppSecret);
             requestData.Add("sign", sign);
 
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(_parameters.TimeOut);
+            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync(_parameters.Url, content, cancellationToken);
+            var response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             bool isSuccess = false;
