@@ -374,10 +374,62 @@ try
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.SortingHub>("/hubs/sorting");
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.DwsHub>("/hubs/dws");
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.MonitoringHub>("/hubs/monitoring");
-                });
+                    
+                    // 健康检查端点 - 简单版本
+                    endpoints.MapGet("/health", () => Results.Ok(new
+                    {
+                        status = "healthy",
+                        timestamp = DateTime.UtcNow
+                    }))
+                    .WithName("HealthCheck")
+                    .WithDisplayName("Health Check");
 
-                // 添加最小API端点
-                ConfigureMinimalApi(app);
+                    // 版本信息端点
+                    endpoints.MapGet("/version", () => Results.Ok(new
+                    {
+                        version = "1.12.0",
+                        name = "ZakYip.Sorting.RuleEngine.Core",
+                        description = "分拣规则引擎核心系统"
+                    }))
+                    .WithName("Version")
+                    .WithDisplayName("Version Info");
+                    
+                    // 详细健康检查端点 - 包含所有组件状态
+                    endpoints.MapHealthChecks("/health/detail", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                    {
+                        ResponseWriter = async (context, report) =>
+                        {
+                            context.Response.ContentType = "application/json";
+                            var result = new
+                            {
+                                status = report.Status.ToString(),
+                                timestamp = DateTime.UtcNow,
+                                duration = report.TotalDuration.TotalMilliseconds,
+                                checks = report.Entries.Select(e => new
+                                {
+                                    name = e.Key,
+                                    status = e.Value.Status.ToString(),
+                                    description = e.Value.Description,
+                                    duration = e.Value.Duration.TotalMilliseconds,
+                                    exception = e.Value.Exception?.Message,
+                                    tags = e.Value.Tags
+                                })
+                            };
+                            await context.Response.WriteAsJsonAsync(result);
+                        }
+                    });
+
+                    // 按标签过滤的健康检查端点
+                    endpoints.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                    {
+                        Predicate = check => check.Tags.Contains("database")
+                    });
+
+                    endpoints.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                    {
+                        Predicate = _ => false // 仅检查服务是否运行
+                    });
+                });
             });
 
             webBuilder.UseKestrel(options =>
@@ -629,67 +681,4 @@ static void InitializeDatabases(IServiceProvider services, AppSettings appSettin
             logger.Error(ex, "SQLite数据库迁移失败: {Message}", ex.Message);
         }
     }
-}
-
-/// <summary>
-/// 配置最小API端点
-/// </summary>
-static void ConfigureMinimalApi(IApplicationBuilder app)
-{
-    var appBuilder = (WebApplication)app;
-    
-    // 健康检查端点 - 简单版本
-    appBuilder.MapGet("/health", () => Results.Ok(new
-    {
-        status = "healthy",
-        timestamp = DateTime.UtcNow
-    }))
-    .WithName("HealthCheck")
-    .WithOpenApi();
-
-    // 详细健康检查端点 - 包含所有组件状态
-    appBuilder.MapHealthChecks("/health/detail", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-    {
-        ResponseWriter = async (context, report) =>
-        {
-            context.Response.ContentType = "application/json";
-            var result = new
-            {
-                status = report.Status.ToString(),
-                timestamp = DateTime.UtcNow,
-                duration = report.TotalDuration.TotalMilliseconds,
-                checks = report.Entries.Select(e => new
-                {
-                    name = e.Key,
-                    status = e.Value.Status.ToString(),
-                    description = e.Value.Description,
-                    duration = e.Value.Duration.TotalMilliseconds,
-                    exception = e.Value.Exception?.Message,
-                    tags = e.Value.Tags
-                })
-            };
-            await context.Response.WriteAsJsonAsync(result);
-        }
-    });
-
-    // 按标签过滤的健康检查端点
-    appBuilder.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-    {
-        Predicate = check => check.Tags.Contains("database")
-    });
-
-    appBuilder.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-    {
-        Predicate = _ => false // 仅检查服务是否运行
-    });
-
-    // 版本信息端点
-    appBuilder.MapGet("/version", () => Results.Ok(new
-    {
-        version = "1.12.0",
-        name = "ZakYip.Sorting.RuleEngine.Core",
-        description = "分拣规则引擎核心系统"
-    }))
-    .WithName("Version")
-    .WithOpenApi();
 }
