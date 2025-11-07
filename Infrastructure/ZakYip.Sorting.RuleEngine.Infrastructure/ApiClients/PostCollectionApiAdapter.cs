@@ -5,13 +5,14 @@ using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
-namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Post;
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 
 /// <summary>
 /// 邮政分揽投机构API适配器实现
 /// Postal Collection/Delivery Institution API adapter implementation
+/// 参考: https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostInApi.cs
 /// </summary>
-public class PostCollectionApiAdapter : IPostCollectionApiAdapter
+public class PostCollectionApiAdapter : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<PostCollectionApiAdapter> _logger;
@@ -32,181 +33,29 @@ public class PostCollectionApiAdapter : IPostCollectionApiAdapter
     }
 
     /// <summary>
-    /// 上传称重数据到邮政分揽投机构
-    /// Upload weighing data to postal collection institution
+    /// 扫描包裹到邮政分揽投机构系统
+    /// Scan parcel to register it in the postal collection institution system
     /// </summary>
-    public async Task<PostalApiResponse> UploadWeighingDataAsync(
-        PostalParcelData parcelData,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogDebug("上传称重数据到邮政分揽投机构，条码: {Barcode}", parcelData.Barcode);
-
-            // 构造请求数据
-            var requestData = new
-            {
-                barcode = parcelData.Barcode,
-                weight = parcelData.Weight,
-                length = parcelData.Length,
-                width = parcelData.Width,
-                height = parcelData.Height,
-                volume = parcelData.Volume,
-                senderAddress = parcelData.SenderAddress,
-                recipientAddress = parcelData.RecipientAddress,
-                destinationCode = parcelData.DestinationCode,
-                scannedAt = parcelData.ScannedAt,
-                version = ApiConstants.PostCollectionApi.CommonParams.Version
-            };
-
-            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
-
-            // 发送POST请求
-            var endpoint = $"{ApiConstants.PostCollectionApi.RouterEndpoint}{ApiConstants.PostCollectionApi.Endpoints.WeighingUpload}";
-            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
-
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation(
-                    "上传称重数据到邮政分揽投机构成功，条码: {Barcode}, 状态码: {StatusCode}",
-                    parcelData.Barcode, response.StatusCode);
-
-                return new PostalApiResponse
-                {
-                    Success = true,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = "Weighing data uploaded successfully",
-                    Data = responseContent
-                };
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "上传称重数据到邮政分揽投机构失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    parcelData.Barcode, response.StatusCode, responseContent);
-
-                return new PostalApiResponse
-                {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Upload Error: {response.StatusCode}",
-                    Data = responseContent
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "上传称重数据到邮政分揽投机构异常，条码: {Barcode}", parcelData.Barcode);
-
-            return new PostalApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = null
-            };
-        }
-    }
-
-    /// <summary>
-    /// 查询包裹信息
-    /// Query parcel information
-    /// </summary>
-    public async Task<PostalApiResponse> QueryParcelAsync(
+    public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("查询邮政分揽投机构包裹信息，条码: {Barcode}", barcode);
+            _logger.LogDebug("开始扫描包裹到邮政分揽投机构，条码: {Barcode}", barcode);
 
             // 构造请求数据
             var requestData = new
             {
                 barcode,
+                scanTime = DateTime.Now,
                 version = ApiConstants.PostCollectionApi.CommonParams.Version
             };
 
             var json = JsonSerializer.Serialize(requestData, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
 
-            // 发送POST请求
-            var endpoint = $"{ApiConstants.PostCollectionApi.RouterEndpoint}{ApiConstants.PostCollectionApi.Endpoints.ParcelQuery}";
-            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
-
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation(
-                    "查询邮政分揽投机构包裹信息成功，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
-
-                return new PostalApiResponse
-                {
-                    Success = true,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = "Parcel query successful",
-                    Data = responseContent
-                };
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "查询邮政分揽投机构包裹信息失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
-
-                return new PostalApiResponse
-                {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Query Error: {response.StatusCode}",
-                    Data = responseContent
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "查询邮政分揽投机构包裹信息异常，条码: {Barcode}", barcode);
-
-            return new PostalApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = null
-            };
-        }
-    }
-
-    /// <summary>
-    /// 上传包裹扫描数据
-    /// Upload parcel scan data
-    /// </summary>
-    public async Task<PostalApiResponse> UploadScanDataAsync(
-        string barcode,
-        DateTime scanTime,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogDebug("上传包裹扫描数据到邮政分揽投机构，条码: {Barcode}", barcode);
-
-            // 构造请求数据
-            var requestData = new
-            {
-                barcode,
-                scanTime,
-                version = ApiConstants.PostCollectionApi.CommonParams.Version
-            };
-
-            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
-
-            // 发送POST请求
+            // 发送POST请求到邮政分揽投机构扫描端点
             var endpoint = $"{ApiConstants.PostCollectionApi.RouterEndpoint}{ApiConstants.PostCollectionApi.Endpoints.ScanUpload}";
             var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
 
@@ -215,42 +64,202 @@ public class PostCollectionApiAdapter : IPostCollectionApiAdapter
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "上传包裹扫描数据到邮政分揽投机构成功，条码: {Barcode}, 状态码: {StatusCode}",
+                    "扫描包裹成功（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new PostalApiResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = "Scan data uploaded successfully",
+                    Message = "Parcel scanned successfully at collection institution",
                     Data = responseContent
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "上传包裹扫描数据到邮政分揽投机构失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
+                    "扫描包裹失败（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
                     barcode, response.StatusCode, responseContent);
 
-                return new PostalApiResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Upload Error: {response.StatusCode}",
+                    Message = $"Scan Error: {response.StatusCode}",
                     Data = responseContent
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "上传包裹扫描数据到邮政分揽投机构异常，条码: {Barcode}", barcode);
+            _logger.LogError(ex, "扫描包裹异常（邮政分揽投机构），条码: {Barcode}", barcode);
 
-            return new PostalApiResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = null
+                Data = ex.ToString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 请求格口号（查询包裹信息并返回格口）
+    /// Request a chute/gate number for the parcel (query parcel info and return chute)
+    /// </summary>
+    public async Task<WcsApiResponse> RequestChuteAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("开始请求格口（邮政分揽投机构），条码: {Barcode}", barcode);
+
+            // 构造请求数据
+            var requestData = new
+            {
+                barcode,
+                requestTime = DateTime.Now,
+                version = ApiConstants.PostCollectionApi.CommonParams.Version
+            };
+
+            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
+
+            // 发送POST请求查询包裹
+            var endpoint = $"{ApiConstants.PostCollectionApi.RouterEndpoint}{ApiConstants.PostCollectionApi.Endpoints.ParcelQuery}";
+            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "请求格口成功（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}",
+                    barcode, response.StatusCode);
+
+                return new WcsApiResponse
+                {
+                    Success = true,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = "Chute requested successfully from collection institution",
+                    Data = responseContent
+                };
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "请求格口失败（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
+                    barcode, response.StatusCode, responseContent);
+
+                return new WcsApiResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Chute Request Error: {response.StatusCode}",
+                    Data = responseContent
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "请求格口异常（邮政分揽投机构），条码: {Barcode}", barcode);
+
+            return new WcsApiResponse
+            {
+                Success = false,
+                Code = ApiConstants.HttpStatusCodes.Error,
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 上传图片到邮政分揽投机构
+    /// Upload image to postal collection institution
+    /// </summary>
+    public async Task<WcsApiResponse> UploadImageAsync(
+        string barcode,
+        byte[] imageData,
+        string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("开始上传图片到邮政分揽投机构，条码: {Barcode}, 图片大小: {Size} bytes",  
+                barcode, imageData.Length);
+
+            // 构造multipart/form-data请求
+            using var formContent = new MultipartFormDataContent();
+            
+            // 添加条码字段
+            formContent.Add(new StringContent(barcode), "barcode");
+            formContent.Add(new StringContent(ApiConstants.PostCollectionApi.CommonParams.Version), "version");
+            
+            // 根据内容类型确定文件扩展名
+            var extension = contentType switch
+            {
+                ApiConstants.ContentTypes.ImageJpeg => ".jpg",
+                ApiConstants.ContentTypes.ImagePng => ".png",
+                ApiConstants.ContentTypes.ImageGif => ".gif",
+                ApiConstants.ContentTypes.ImageBmp => ".bmp",
+                ApiConstants.ContentTypes.ImageWebp => ".webp",
+                _ => ".bin"
+            };
+            
+            // 添加图片文件
+            var imageContent = new ByteArrayContent(imageData);
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            formContent.Add(imageContent, "image", $"{barcode}{extension}");
+
+            // 发送POST请求
+            // 注意：这里使用称重上传端点，因为邮政分揽投机构通常将图片与称重数据一起上传
+            var endpoint = $"{ApiConstants.PostCollectionApi.RouterEndpoint}{ApiConstants.PostCollectionApi.Endpoints.WeighingUpload}";
+            var response = await _httpClient.PostAsync(endpoint, formContent, cancellationToken);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "上传图片成功（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}",
+                    barcode, response.StatusCode);
+
+                return new WcsApiResponse
+                {
+                    Success = true,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = "Image uploaded successfully to collection institution",
+                    Data = responseContent
+                };
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "上传图片失败（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
+                    barcode, response.StatusCode, responseContent);
+
+                return new WcsApiResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Image Upload Error: {response.StatusCode}",
+                    Data = responseContent
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "上传图片异常（邮政分揽投机构），条码: {Barcode}", barcode);
+
+            return new WcsApiResponse
+            {
+                Success = false,
+                Code = ApiConstants.HttpStatusCodes.Error,
+                Message = ex.Message,
+                Data = ex.ToString()
             };
         }
     }

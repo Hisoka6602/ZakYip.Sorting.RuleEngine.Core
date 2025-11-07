@@ -6,6 +6,17 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.14.2 (2025-11-07)
+- ✅ **邮政API适配器重构** - 修正PostProcessingCenterApiAdapter和PostCollectionApiAdapter实现
+  - 两个适配器现在正确实现IWcsApiAdapter接口
+  - 实现标准WCS API方法：ScanParcelAsync、RequestChuteAsync、UploadImageAsync
+  - 参考JayTom.Dws项目的PostApi.cs和PostInApi.cs模式
+  - 两个适配器仅在命名和API端点上有区别
+- ✅ **新增邮政API控制台测试项目**
+  - 创建ZakYip.Sorting.RuleEngine.PostalApi.ConsoleTest
+  - 提供两种适配器的完整测试
+  - 支持扫描包裹、请求格口、上传图片功能测试
+
 ### v1.14.1 (2025-11-06)
 - ✅ **代码质量全面提升** - 超额完成质量改进目标
   - **代码文档覆盖率**: 从70%提升至**96.5%** (192/198文件) - 超额完成90%目标
@@ -1092,6 +1103,53 @@ DEFAULT                # 默认规则（匹配所有）
 
 **重要说明**：生产环境中，分拣程序和DWS设备应使用TCP或SignalR通信，不应使用HTTP API。HTTP API仅用于测试和调试。
 
+### 邮政API适配器（IWcsApiAdapter）
+
+系统提供了两种独立的邮政API适配器实现，每个都根据其对应的参考代码独立实现：
+
+#### 1. 邮政处理中心API适配器（PostProcessingCenterApiAdapter）
+- **实现接口**：IWcsApiAdapter
+- **基础URL**：`/api/post/processing`
+- **参考实现**：[PostApi.cs](https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostApi.cs)
+- **特点**：独立实现，按照PostApi.cs的具体逻辑和数据结构
+
+#### 2. 邮政分揽投机构API适配器（PostCollectionApiAdapter）
+- **实现接口**：IWcsApiAdapter
+- **基础URL**：`/api/post/collection`
+- **参考实现**：[PostInApi.cs](https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostInApi.cs)
+- **特点**：独立实现，按照PostInApi.cs的具体逻辑和数据结构
+
+#### 标准接口方法
+所有WCS API适配器都实现相同的IWcsApiAdapter接口方法：
+- `ScanParcelAsync(string barcode)` - 扫描包裹
+- `RequestChuteAsync(string barcode)` - 请求格口号
+- `UploadImageAsync(string barcode, byte[] imageData, string contentType)` - 上传图片
+
+**注**：虽然接口相同，但每个适配器的具体实现都是独立的，根据各自的参考代码实现，可能在请求格式、数据结构、处理流程等方面有所不同。
+
+#### 使用示例
+```csharp
+// 邮政处理中心适配器注册
+services.AddHttpClient<IWcsApiAdapter, PostProcessingCenterApiAdapter>(client =>
+{
+    client.BaseAddress = new Uri("https://api.post-processing.example.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// 邮政分揽投机构适配器注册
+services.AddHttpClient<IWcsApiAdapter, PostCollectionApiAdapter>(client =>
+{
+    client.BaseAddress = new Uri("https://api.post-collection.example.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// 使用适配器
+var adapter = serviceProvider.GetService<IWcsApiAdapter>();
+var scanResult = await adapter.ScanParcelAsync("POST123456");
+var chuteResult = await adapter.RequestChuteAsync("POST123456");
+var imageResult = await adapter.UploadImageAsync("POST123456", imageBytes, "image/jpeg");
+```
+
 ### SignalR Hub（推荐）
 - **SortingHub** - `/hubs/sorting` 分拣机实时通信
 - **DwsHub** - `/hubs/dws` DWS实时通信
@@ -2157,6 +2215,14 @@ dotnet run
 - **TMS系统集成**
 - **ERP系统集成**
 - **标准API接口提供**
+
+#### 3. 邮政系统深度集成（v1.14.2新增）
+- ✅ 邮政处理中心API适配器（已实现IWcsApiAdapter）
+- ✅ 邮政分揽投机构API适配器（已实现IWcsApiAdapter）
+- ⏳ 邮政API弹性策略（Polly重试和熔断）（待实现）
+- ⏳ 邮政API配置化（配置文件管理端点和参数）（待实现）
+- ⏳ 邮政API强类型响应模型（待实现）
+- ⏳ 邮政API批量操作支持（待实现）
 
 ---
 
