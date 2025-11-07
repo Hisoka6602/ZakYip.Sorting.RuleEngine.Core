@@ -38,20 +38,12 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             $"DWS数据已接收: {notification.ParcelId}",
             $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³");
 
-        // 主动上传DWS数据到WCS API（主动调用，不发布事件）
+        // 主动请求格口（主动调用，不发布事件）
         var apiStartTime = DateTime.UtcNow;
         try
         {
-            var parcelInfo = new Domain.Entities.ParcelInfo
-            {
-                ParcelId = notification.ParcelId,
-                Barcode = notification.DwsData.Barcode,
-                Status = ParcelStatus.Processing
-            };
-
-            var response = await _apiAdapterFactory.GetActiveAdapter().UploadDataAsync(
-                parcelInfo,
-                notification.DwsData,
+            var response = await _apiAdapterFactory.GetActiveAdapter().RequestChuteAsync(
+                notification.DwsData.Barcode,
                 cancellationToken);
 
             var apiDuration = DateTime.UtcNow - apiStartTime;
@@ -67,7 +59,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 await _publisher.Publish(new WcsApiCalledEvent
                 {
                     ParcelId = notification.ParcelId,
-                    ApiUrl = "/api/sorting/upload",
+                    ApiUrl = "/api/chute/request",
                     IsSuccess = response.Success,
                     StatusCode = int.TryParse(response.Code, out var code) ? code : null,
                     DurationMs = (long)apiDuration.TotalMilliseconds,
@@ -89,7 +81,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             await _publisher.Publish(new WcsApiCalledEvent
             {
                 ParcelId = notification.ParcelId,
-                ApiUrl = "/api/sorting/upload",
+                ApiUrl = "/api/chute/request",
                 IsSuccess = false,
                 StatusCode = null,
                 DurationMs = (long)apiDuration.TotalMilliseconds,

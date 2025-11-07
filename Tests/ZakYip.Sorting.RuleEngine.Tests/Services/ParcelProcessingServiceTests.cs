@@ -97,13 +97,14 @@ public class ParcelProcessingServiceTests
     }
 
     [Fact]
-    public async Task ProcessParcelAsync_WithDwsData_CallsWcsApi()
+    public async Task ProcessParcelAsync_WithBarcode_CallsWcsApi()
     {
         // Arrange
         var request = new ParcelProcessRequest
         {
             ParcelId = "PKG003",
             CartNumber = "CART003",
+            Barcode = "1234567890",
             Weight = 2000,
             Length = 300,
             Width = 200,
@@ -118,9 +119,8 @@ public class ParcelProcessingServiceTests
             Data = "Test Data"
         };
 
-        _mockApiAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockApiAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResponse);
 
@@ -136,9 +136,8 @@ public class ParcelProcessingServiceTests
 
         // Assert
         _mockApiAdapter.Verify(
-            a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+            a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.True(response.Success);
@@ -152,13 +151,13 @@ public class ParcelProcessingServiceTests
         {
             ParcelId = "PKG004",
             CartNumber = "CART004",
+            Barcode = "1234567890",
             Weight = 1000,
             Volume = 5000
         };
 
-        _mockApiAdapter.Setup(a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+        _mockApiAdapter.Setup(a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("API connection failed"));
 
@@ -211,14 +210,14 @@ public class ParcelProcessingServiceTests
     }
 
     [Fact]
-    public async Task ProcessParcelAsync_WithoutDwsData_SkipsWcsApi()
+    public async Task ProcessParcelAsync_WithoutBarcode_SkipsWcsApi()
     {
         // Arrange
         var request = new ParcelProcessRequest
         {
             ParcelId = "PKG006",
-            CartNumber = "CART006",
-            Barcode = "TEST123"
+            CartNumber = "CART006"
+            // No Barcode
         };
 
         _mockRuleEngineService.Setup(r => r.EvaluateRulesAsync(
@@ -233,9 +232,8 @@ public class ParcelProcessingServiceTests
 
         // Assert
         _mockApiAdapter.Verify(
-            a => a.UploadDataAsync(
-                It.IsAny<ParcelInfo>(),
-                It.IsAny<DwsData>(),
+            a => a.RequestChuteAsync(
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
         Assert.True(response.Success);

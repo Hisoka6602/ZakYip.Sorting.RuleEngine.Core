@@ -34,19 +34,10 @@ public class JushuitanErpApiAdapterTests
     }
 
     [Fact]
-    public async Task UploadDataAsync_Success_ReturnsSuccessResponse()
+    public async Task RequestChuteAsync_WithDwsData_ReturnsSuccessResponse()
     {
         // Arrange
-        var parcelInfo = new ParcelInfo { ParcelId = "P123", CartNumber = "C001" };
-        var dwsData = new DwsData
-        {
-            Barcode = "TEST123456",
-            Weight = 1.5m,
-            Length = 30m,
-            Width = 20m,
-            Height = 10m,
-            Volume = 0.006m
-        };
+        var barcode = "TEST123456";
         var responseContent = "{\"code\":0,\"msg\":\"success\",\"data\":{\"result\":true}}";
 
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -56,7 +47,7 @@ public class JushuitanErpApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/open/api/weigh/upload")),
+                    req.RequestUri!.ToString().Contains("/open/api/open/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -67,12 +58,12 @@ public class JushuitanErpApiAdapterTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.UploadDataAsync(parcelInfo, dwsData);
+        var result = await client.RequestChuteAsync(barcode);
 
         // Assert
         Assert.True(result.Success);
         Assert.Equal("200", result.Code);
-        Assert.Equal("上传数据成功", result.Message);
+        Assert.Equal("请求格口成功", result.Message);
         Assert.Contains("success", result.Data);
     }
 
@@ -90,7 +81,7 @@ public class JushuitanErpApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/open/api/orders/query")),
+                    req.RequestUri!.ToString().Contains("/open/api/open/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -124,7 +115,7 @@ public class JushuitanErpApiAdapterTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
-                    req.RequestUri!.ToString().Contains("/open/api/logistic/update")),
+                    req.RequestUri!.ToString().Contains("/open/api/open/router")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -163,11 +154,10 @@ public class JushuitanErpApiAdapterTests
     }
 
     [Fact]
-    public async Task UploadDataAsync_Exception_ReturnsErrorResponse()
+    public async Task RequestChuteAsync_Exception_ReturnsErrorResponse()
     {
         // Arrange
-        var parcelInfo = new ParcelInfo { ParcelId = "P123", CartNumber = "C001" };
-        var dwsData = new DwsData { Barcode = "TEST123456", Weight = 1.5m };
+        var barcode = "TEST123456";
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock
@@ -181,7 +171,7 @@ public class JushuitanErpApiAdapterTests
         var client = CreateClient(handlerMock.Object);
 
         // Act
-        var result = await client.UploadDataAsync(parcelInfo, dwsData);
+        var result = await client.RequestChuteAsync(barcode);
 
         // Assert
         Assert.False(result.Success);

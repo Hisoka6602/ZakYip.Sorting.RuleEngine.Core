@@ -78,14 +78,14 @@ public class ParcelProcessingService : IParcelProcessingService
             }
 
             // 调用WCS API获取响应
-            // Call wcs API if DWS data is available
+            // Call wcs API if barcode is available
             WcsApiResponse? thirdPartyResponse = null;
-            if (dwsData != null)
+            if (!string.IsNullOrEmpty(request.Barcode))
             {
                 try
                 {
-                    thirdPartyResponse = await _apiAdapterFactory.GetActiveAdapter().UploadDataAsync(
-                        parcelInfo, dwsData, cancellationToken);
+                    thirdPartyResponse = await _apiAdapterFactory.GetActiveAdapter().RequestChuteAsync(
+                        request.Barcode, cancellationToken);
                 }
                 catch (Exception ex)
                 {
