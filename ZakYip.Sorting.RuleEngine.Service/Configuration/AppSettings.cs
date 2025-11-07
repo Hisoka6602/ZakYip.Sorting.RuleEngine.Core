@@ -31,6 +31,13 @@ public class AppSettings
     public ThirdPartyApiSettings ThirdPartyApi { get; set; } = new();
 
     /// <summary>
+    /// 激活的第三方API适配器类型
+    /// Active third-party API adapter type
+    /// 可选值: ThirdPartyApiClient, WdtWmsApiClient, JushuitanErpApiClient
+    /// </summary>
+    public string ActiveApiAdapter { get; set; } = "ThirdPartyApiClient";
+
+    /// <summary>
     /// 旺店通WMS API配置
     /// WDT WMS API configuration
     /// </summary>

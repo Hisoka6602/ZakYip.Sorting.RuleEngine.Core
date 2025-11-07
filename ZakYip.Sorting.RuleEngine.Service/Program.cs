@@ -211,7 +211,8 @@ public class Program
         }
 
         // 配置HttpClient用于第三方API
-        builder.Services.AddHttpClient<IThirdPartyApiClient, ThirdPartyApiClient>(client =>
+        // 注册所有API适配器实现
+        builder.Services.AddHttpClient<ThirdPartyApiClient>(client =>
         {
             client.BaseAddress = new Uri(appSettings.ThirdPartyApi.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(appSettings.ThirdPartyApi.TimeoutSeconds);
@@ -222,44 +223,51 @@ public class Program
             }
         });
 
-        // 配置旺店通WMS API客户端
-        if (appSettings.WdtWmsApi.Enabled)
+        // 注册旺店通WMS API适配器
+        builder.Services.AddHttpClient<WdtWmsApiClient>((sp, client) =>
         {
-            builder.Services.AddHttpClient<IWdtWmsApiClient, WdtWmsApiClient>((sp, client) =>
-            {
-                client.BaseAddress = new Uri(appSettings.WdtWmsApi.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(appSettings.WdtWmsApi.TimeoutSeconds);
-            })
-            .AddTypedClient<IWdtWmsApiClient>((client, sp) =>
-            {
-                var logger = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
-                return new WdtWmsApiClient(
-                    client,
-                    logger,
-                    appSettings.WdtWmsApi.AppKey,
-                    appSettings.WdtWmsApi.AppSecret);
-            });
-        }
+            client.BaseAddress = new Uri(appSettings.WdtWmsApi.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(appSettings.WdtWmsApi.TimeoutSeconds);
+        })
+        .AddTypedClient<WdtWmsApiClient>((client, sp) =>
+        {
+            var logger = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
+            return new WdtWmsApiClient(
+                client,
+                logger,
+                appSettings.WdtWmsApi.AppKey,
+                appSettings.WdtWmsApi.AppSecret);
+        });
 
-        // 配置聚水潭ERP API客户端
-        if (appSettings.JushuitanErpApi.Enabled)
+        // 注册聚水潭ERP API适配器
+        builder.Services.AddHttpClient<JushuitanErpApiClient>((sp, client) =>
         {
-            builder.Services.AddHttpClient<IJushuitanErpApiClient, JushuitanErpApiClient>((sp, client) =>
-            {
-                client.BaseAddress = new Uri(appSettings.JushuitanErpApi.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(appSettings.JushuitanErpApi.TimeoutSeconds);
-            })
-            .AddTypedClient<IJushuitanErpApiClient>((client, sp) =>
-            {
-                var logger = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
-                return new JushuitanErpApiClient(
-                    client,
-                    logger,
-                    appSettings.JushuitanErpApi.PartnerKey,
-                    appSettings.JushuitanErpApi.PartnerSecret,
-                    appSettings.JushuitanErpApi.Token);
-            });
-        }
+            client.BaseAddress = new Uri(appSettings.JushuitanErpApi.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(appSettings.JushuitanErpApi.TimeoutSeconds);
+        })
+        .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
+        {
+            var logger = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
+            return new JushuitanErpApiClient(
+                client,
+                logger,
+                appSettings.JushuitanErpApi.PartnerKey,
+                appSettings.JushuitanErpApi.PartnerSecret,
+                appSettings.JushuitanErpApi.Token);
+        });
+
+        // 注册所有适配器到DI容器
+        builder.Services.AddSingleton<IThirdPartyApiAdapter>(sp => sp.GetRequiredService<ThirdPartyApiClient>());
+        builder.Services.AddSingleton<IThirdPartyApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
+        builder.Services.AddSingleton<IThirdPartyApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
+
+        // 注册适配器工厂 - 根据配置选择唯一激活的适配器
+        builder.Services.AddSingleton<IThirdPartyApiAdapterFactory>(sp =>
+        {
+            var adapters = sp.GetServices<IThirdPartyApiAdapter>();
+            var logger = sp.GetRequiredService<ILogger<ThirdPartyApiAdapterFactory>>();
+            return new ThirdPartyApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, logger);
+        });
 
         // 注册仓储
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();

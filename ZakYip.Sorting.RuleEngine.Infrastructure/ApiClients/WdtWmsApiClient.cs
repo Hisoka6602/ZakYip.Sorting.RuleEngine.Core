@@ -8,10 +8,10 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 
 /// <summary>
-/// 旺店通WMS API客户端实现
-/// WDT (Wang Dian Tong) WMS API client implementation
+/// 旺店通WMS API适配器实现
+/// WDT (Wang Dian Tong) WMS API adapter implementation
 /// </summary>
-public class WdtWmsApiClient : IWdtWmsApiClient
+public class WdtWmsApiClient : IThirdPartyApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<WdtWmsApiClient> _logger;
@@ -38,32 +38,31 @@ public class WdtWmsApiClient : IWdtWmsApiClient
     }
 
     /// <summary>
-    /// 包裹称重扫描
-    /// Parcel weight scanning
+    /// 上传包裹和DWS数据到第三方API（旺店通WMS数据上传）
+    /// Upload parcel and DWS data to third-party API (WDT WMS data upload)
     /// </summary>
-    public async Task<ThirdPartyResponse> WeighScanAsync(
-        string barcode,
-        decimal weight,
-        decimal length,
-        decimal width,
-        decimal height,
+    public async Task<ThirdPartyResponse> UploadDataAsync(
+        ParcelInfo parcelInfo,
+        DwsData dwsData,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("WDT WMS - 开始称重扫描，条码: {Barcode}, 重量: {Weight}kg", barcode, weight);
+            _logger.LogDebug("WDT WMS - 开始上传数据，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            
             // 构造请求数据
             var requestData = new
             {
                 appkey = _appKey,
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                barcode,
-                weight = weight.ToString("F3"),
-                length = length.ToString("F2"),
-                width = width.ToString("F2"),
-                height = height.ToString("F2"),
-                volume = (length * width * height / 1000000).ToString("F6") // 转换为立方米
+                timestamp,
+                barcode = dwsData.Barcode,
+                weight = dwsData.Weight.ToString("F3"),
+                length = dwsData.Length.ToString("F2"),
+                width = dwsData.Width.ToString("F2"),
+                height = dwsData.Height.ToString("F2"),
+                volume = dwsData.Volume.ToString("F6")
             };
 
             // 生成签名
@@ -86,41 +85,41 @@ public class WdtWmsApiClient : IWdtWmsApiClient
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             // 发送POST请求
-            var response = await _httpClient.PostAsync("/openapi/weigh/scan", content, cancellationToken);
+            var response = await _httpClient.PostAsync("/openapi/data/upload", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "WDT WMS - 称重扫描成功，条码: {Barcode}, 重量: {Weight}kg",
-                    barcode, weight);
+                    "WDT WMS - 上传数据成功，包裹ID: {ParcelId}",
+                    parcelInfo.ParcelId);
 
                 return new ThirdPartyResponse
                 {
                     Success = true,
                     Code = "200",
-                    Message = "称重扫描成功",
+                    Message = "上传数据成功",
                     Data = responseContent
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "WDT WMS - 称重扫描失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
+                    "WDT WMS - 上传数据失败，包裹ID: {ParcelId}, 状态码: {StatusCode}",
+                    parcelInfo.ParcelId, response.StatusCode);
 
                 return new ThirdPartyResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = $"称重扫描失败: {response.StatusCode}",
+                    Message = $"上传数据失败: {response.StatusCode}",
                     Data = responseContent
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "WDT WMS - 称重扫描异常，条码: {Barcode}", barcode);
+            _logger.LogError(ex, "WDT WMS - 上传数据异常，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
             return new ThirdPartyResponse
             {
@@ -133,16 +132,94 @@ public class WdtWmsApiClient : IWdtWmsApiClient
     }
 
     /// <summary>
-    /// 查询包裹信息
-    /// Query parcel information
+    /// 扫描包裹
+    /// Scan parcel to register it in the third-party system
     /// </summary>
-    public async Task<ThirdPartyResponse> QueryParcelAsync(
+    public async Task<ThirdPartyResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("WDT WMS - 开始查询包裹，条码: {Barcode}", barcode);
+            _logger.LogDebug("WDT WMS - 开始扫描包裹，条码: {Barcode}", barcode);
+
+            var requestData = new
+            {
+                appkey = _appKey,
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                barcode
+            };
+
+            var sign = GenerateSign(requestData);
+            
+            var requestWithSign = new
+            {
+                requestData.appkey,
+                requestData.timestamp,
+                requestData.barcode,
+                sign
+            };
+
+            var json = JsonSerializer.Serialize(requestWithSign, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/openapi/parcel/scan", content, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "WDT WMS - 扫描包裹成功，条码: {Barcode}",
+                    barcode);
+
+                return new ThirdPartyResponse
+                {
+                    Success = true,
+                    Code = "200",
+                    Message = "扫描包裹成功",
+                    Data = responseContent
+                };
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "WDT WMS - 扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}",
+                    barcode, response.StatusCode);
+
+                return new ThirdPartyResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"扫描包裹失败: {response.StatusCode}",
+                    Data = responseContent
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "WDT WMS - 扫描包裹异常，条码: {Barcode}", barcode);
+
+            return new ThirdPartyResponse
+            {
+                Success = false,
+                Code = "ERROR",
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 请求格口
+    /// Request a chute/gate number for the parcel
+    /// </summary>
+    public async Task<ThirdPartyResponse> RequestChuteAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug("WDT WMS - 开始查询包裹/请求格口，条码: {Barcode}", barcode);
 
             var requestData = new
             {
@@ -211,31 +288,30 @@ public class WdtWmsApiClient : IWdtWmsApiClient
     }
 
     /// <summary>
-    /// 上传包裹图片
-    /// Upload parcel image
+    /// 上传图片
+    /// Upload image to third-party API
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadParcelImageAsync(
+    public async Task<ThirdPartyResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
-        string imageType,
+        string contentType = "image/jpeg",
         CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogDebug(
-                "WDT WMS - 开始上传图片，条码: {Barcode}, 类型: {ImageType}, 大小: {Size} bytes",
-                barcode, imageType, imageData.Length);
+                "WDT WMS - 开始上传图片，条码: {Barcode}, 大小: {Size} bytes",
+                barcode, imageData.Length);
 
             using var formContent = new MultipartFormDataContent();
             
             formContent.Add(new StringContent(_appKey), "appkey");
             formContent.Add(new StringContent(DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()), "timestamp");
             formContent.Add(new StringContent(barcode), "barcode");
-            formContent.Add(new StringContent(imageType), "imageType");
             
             var imageContent = new ByteArrayContent(imageData);
-            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-            formContent.Add(imageContent, "image", $"{barcode}_{imageType}.jpg");
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            formContent.Add(imageContent, "image", $"{barcode}.jpg");
 
             var response = await _httpClient.PostAsync("/openapi/parcel/image", formContent, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -243,8 +319,8 @@ public class WdtWmsApiClient : IWdtWmsApiClient
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "WDT WMS - 上传图片成功，条码: {Barcode}, 类型: {ImageType}",
-                    barcode, imageType);
+                    "WDT WMS - 上传图片成功，条码: {Barcode}",
+                    barcode);
 
                 return new ThirdPartyResponse
                 {

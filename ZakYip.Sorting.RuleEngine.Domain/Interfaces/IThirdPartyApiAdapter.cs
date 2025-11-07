@@ -3,9 +3,10 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
-/// 第三方API客户端接口
+/// 第三方API适配器接口
+/// Third-party API adapter interface
 /// </summary>
-public interface IThirdPartyApiClient
+public interface IThirdPartyApiAdapter
 {
     /// <summary>
     /// 上传包裹和DWS数据到第三方API

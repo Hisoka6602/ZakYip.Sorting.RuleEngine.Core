@@ -15,7 +15,8 @@ namespace ZakYip.Sorting.RuleEngine.Tests.Services;
 public class ParcelProcessingServiceTests
 {
     private readonly Mock<IRuleEngineService> _mockRuleEngineService;
-    private readonly Mock<IThirdPartyApiClient> _mockThirdPartyApiClient;
+    private readonly Mock<IThirdPartyApiAdapter> _mockApiAdapter;
+    private readonly Mock<IThirdPartyApiAdapterFactory> _mockFactory;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<ILogger<ParcelProcessingService>> _mockLogger;
     private readonly ParcelProcessingService _service;
@@ -23,13 +24,15 @@ public class ParcelProcessingServiceTests
     public ParcelProcessingServiceTests()
     {
         _mockRuleEngineService = new Mock<IRuleEngineService>();
-        _mockThirdPartyApiClient = new Mock<IThirdPartyApiClient>();
+        _mockApiAdapter = new Mock<IThirdPartyApiAdapter>();
+        _mockFactory = new Mock<IThirdPartyApiAdapterFactory>();
+        _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockApiAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockLogger = new Mock<ILogger<ParcelProcessingService>>();
 
         _service = new ParcelProcessingService(
             _mockRuleEngineService.Object,
-            _mockThirdPartyApiClient.Object,
+            _mockFactory.Object,
             _mockLogRepository.Object,
             _mockLogger.Object);
     }
@@ -115,7 +118,7 @@ public class ParcelProcessingServiceTests
             Data = "Test Data"
         };
 
-        _mockThirdPartyApiClient.Setup(a => a.UploadDataAsync(
+        _mockApiAdapter.Setup(a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
                 It.IsAny<CancellationToken>()))
@@ -153,7 +156,7 @@ public class ParcelProcessingServiceTests
             Volume = 5000
         };
 
-        _mockThirdPartyApiClient.Setup(a => a.UploadDataAsync(
+        _mockApiAdapter.Setup(a => a.UploadDataAsync(
                 It.IsAny<ParcelInfo>(),
                 It.IsAny<DwsData>(),
                 It.IsAny<CancellationToken>()))

@@ -8,10 +8,10 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 
 /// <summary>
-/// 聚水潭ERP API客户端实现
-/// Jushuituan ERP API client implementation
+/// 聚水潭ERP API适配器实现
+/// Jushuituan ERP API adapter implementation
 /// </summary>
-public class JushuitanErpApiClient : IJushuitanErpApiClient
+public class JushuitanErpApiClient : IThirdPartyApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<JushuitanErpApiClient> _logger;
@@ -41,32 +41,29 @@ public class JushuitanErpApiClient : IJushuitanErpApiClient
     }
 
     /// <summary>
-    /// 称重回传
-    /// Weight data callback
+    /// 上传包裹和DWS数据到第三方API（聚水潭ERP称重回传）
+    /// Upload parcel and DWS data to third-party API (Jushuituan ERP weight callback)
     /// </summary>
-    public async Task<ThirdPartyResponse> WeightCallbackAsync(
-        string barcode,
-        decimal weight,
-        decimal length,
-        decimal width,
-        decimal height,
+    public async Task<ThirdPartyResponse> UploadDataAsync(
+        ParcelInfo parcelInfo,
+        DwsData dwsData,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("聚水潭ERP - 开始称重回传，条码: {Barcode}, 重量: {Weight}kg", barcode, weight);
+            _logger.LogDebug("聚水潭ERP - 开始上传数据，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
             
             // 构造业务参数
             var bizContent = new
             {
-                so_id = barcode,
-                weight = weight.ToString("F3"),
-                length = length.ToString("F2"),
-                width = width.ToString("F2"),
-                height = height.ToString("F2"),
-                volume = (length * width * height / 1000000).ToString("F6")
+                so_id = dwsData.Barcode,
+                weight = dwsData.Weight.ToString("F3"),
+                length = dwsData.Length.ToString("F2"),
+                width = dwsData.Width.ToString("F2"),
+                height = dwsData.Height.ToString("F2"),
+                volume = dwsData.Volume.ToString("F6")
             };
 
             var bizContentJson = JsonSerializer.Serialize(bizContent, _jsonOptions);
@@ -95,35 +92,35 @@ public class JushuitanErpApiClient : IJushuitanErpApiClient
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "聚水潭ERP - 称重回传成功，条码: {Barcode}, 重量: {Weight}kg",
-                    barcode, weight);
+                    "聚水潭ERP - 上传数据成功，包裹ID: {ParcelId}",
+                    parcelInfo.ParcelId);
 
                 return new ThirdPartyResponse
                 {
                     Success = true,
                     Code = "200",
-                    Message = "称重回传成功",
+                    Message = "上传数据成功",
                     Data = responseContent
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "聚水潭ERP - 称重回传失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
+                    "聚水潭ERP - 上传数据失败，包裹ID: {ParcelId}, 状态码: {StatusCode}, 响应: {Response}",
+                    parcelInfo.ParcelId, response.StatusCode, responseContent);
 
                 return new ThirdPartyResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = $"称重回传失败: {response.StatusCode}",
+                    Message = $"上传数据失败: {response.StatusCode}",
                     Data = responseContent
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "聚水潭ERP - 称重回传异常，条码: {Barcode}", barcode);
+            _logger.LogError(ex, "聚水潭ERP - 上传数据异常，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
             return new ThirdPartyResponse
             {
@@ -136,16 +133,16 @@ public class JushuitanErpApiClient : IJushuitanErpApiClient
     }
 
     /// <summary>
-    /// 查询订单信息
-    /// Query order information
+    /// 扫描包裹
+    /// Scan parcel to register it in the third-party system
     /// </summary>
-    public async Task<ThirdPartyResponse> QueryOrderAsync(
+    public async Task<ThirdPartyResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("聚水潭ERP - 开始查询订单，条码: {Barcode}", barcode);
+            _logger.LogDebug("聚水潭ERP - 开始扫描包裹/查询订单，条码: {Barcode}", barcode);
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
 
@@ -179,35 +176,35 @@ public class JushuitanErpApiClient : IJushuitanErpApiClient
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "聚水潭ERP - 查询订单成功，条码: {Barcode}",
+                    "聚水潭ERP - 扫描包裹/查询订单成功，条码: {Barcode}",
                     barcode);
 
                 return new ThirdPartyResponse
                 {
                     Success = true,
                     Code = "200",
-                    Message = "查询订单成功",
+                    Message = "扫描包裹成功",
                     Data = responseContent
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "聚水潭ERP - 查询订单失败，条码: {Barcode}, 状态码: {StatusCode}",
+                    "聚水潭ERP - 扫描包裹/查询订单失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
                 return new ThirdPartyResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = $"查询订单失败: {response.StatusCode}",
+                    Message = $"扫描包裹失败: {response.StatusCode}",
                     Data = responseContent
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "聚水潭ERP - 查询订单异常，条码: {Barcode}", barcode);
+            _logger.LogError(ex, "聚水潭ERP - 扫描包裹/查询订单异常，条码: {Barcode}", barcode);
 
             return new ThirdPartyResponse
             {
@@ -220,28 +217,26 @@ public class JushuitanErpApiClient : IJushuitanErpApiClient
     }
 
     /// <summary>
-    /// 更新物流信息
-    /// Update logistics information
+    /// 请求格口
+    /// Request a chute/gate number for the parcel
     /// </summary>
-    public async Task<ThirdPartyResponse> UpdateLogisticsAsync(
+    public async Task<ThirdPartyResponse> RequestChuteAsync(
         string barcode,
-        string logisticsCompany,
-        string trackingNumber,
         CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogDebug(
-                "聚水潭ERP - 开始更新物流，条码: {Barcode}, 物流公司: {Company}, 物流单号: {Tracking}",
-                barcode, logisticsCompany, trackingNumber);
+                "聚水潭ERP - 开始请求格口/更新物流，条码: {Barcode}",
+                barcode);
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
 
             var bizContent = new
             {
                 so_id = barcode,
-                lc_id = logisticsCompany,
-                l_id = trackingNumber,
+                lc_id = "AUTO",  // 自动分配
+                l_id = barcode,
                 modified = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             };
 
@@ -268,35 +263,77 @@ public class JushuitanErpApiClient : IJushuitanErpApiClient
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "聚水潭ERP - 更新物流成功，条码: {Barcode}, 物流单号: {Tracking}",
-                    barcode, trackingNumber);
+                    "聚水潭ERP - 请求格口/更新物流成功，条码: {Barcode}",
+                    barcode);
 
                 return new ThirdPartyResponse
                 {
                     Success = true,
                     Code = "200",
-                    Message = "更新物流成功",
+                    Message = "请求格口成功",
                     Data = responseContent
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "聚水潭ERP - 更新物流失败，条码: {Barcode}, 状态码: {StatusCode}",
+                    "聚水潭ERP - 请求格口/更新物流失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
                 return new ThirdPartyResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = $"更新物流失败: {response.StatusCode}",
+                    Message = $"请求格口失败: {response.StatusCode}",
                     Data = responseContent
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "聚水潭ERP - 更新物流异常，条码: {Barcode}", barcode);
+            _logger.LogError(ex, "聚水潭ERP - 请求格口/更新物流异常，条码: {Barcode}", barcode);
+
+            return new ThirdPartyResponse
+            {
+                Success = false,
+                Code = "ERROR",
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 上传图片（聚水潭ERP暂不支持，返回成功响应）
+    /// Upload image to third-party API
+    /// </summary>
+    public async Task<ThirdPartyResponse> UploadImageAsync(
+        string barcode,
+        byte[] imageData,
+        string contentType = "image/jpeg",
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogDebug(
+                "聚水潭ERP - 上传图片请求（当前版本不支持），条码: {Barcode}",
+                barcode);
+
+            // 聚水潭ERP当前版本不支持直接上传图片
+            // 返回成功响应以保持接口一致性
+            await Task.CompletedTask;
+
+            return new ThirdPartyResponse
+            {
+                Success = true,
+                Code = "200",
+                Message = "聚水潭ERP暂不支持图片上传功能",
+                Data = "{\"info\":\"Feature not supported\"}"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "聚水潭ERP - 上传图片异常，条码: {Barcode}", barcode);
 
             return new ThirdPartyResponse
             {
