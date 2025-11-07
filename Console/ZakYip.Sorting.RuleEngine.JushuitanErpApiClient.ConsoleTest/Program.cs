@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 
 namespace ZakYip.Sorting.RuleEngine.JushuitanErpApiClient.ConsoleTest;
 
@@ -22,10 +23,10 @@ class Program
             builder.SetMinimumLevel(LogLevel.Debug);
         });
         
-        var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.JushuitanErpApiClient>();
+        var logger = loggerFactory.CreateLogger<JushuitanErpApiAdapter>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.JushuitanErpApiClient(httpClient, logger, PARTNER_KEY, PARTNER_SECRET, TOKEN);
+        var client = new JushuitanErpApiAdapter(httpClient, logger, PARTNER_KEY, PARTNER_SECRET, TOKEN);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         
