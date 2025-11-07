@@ -6,6 +6,35 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.14.4 (2025-11-07)
+- ✅ **API客户端重构完成** - 按照参考代码重新实现API适配器
+  - **RequestChuteAsync方法签名更新** - 现在接受ParcelId、DwsData、OcrData参数
+    - 对应参考代码中的UploadData方法
+    - 包含完整的DWS数据（重量、长度、宽度、高度、体积）
+    - 可选的OCR数据支持
+  - **WcsApiResponse字段完善** - 与ApiCommunicationLog保持一致
+    - 添加ParcelId、RequestUrl、RequestBody、RequestHeaders
+    - 添加ResponseTime、DurationMs、ResponseStatusCode
+    - 添加ErrorMessage、FormattedCurl等字段
+    - 支持完整的通信日志持久化
+  - **PostCollectionApiClient（邮政分揽投机构）**
+    - RequestChuteAsync对应UploadData，包含DWS数据上传
+    - ScanParcelAsync对应SubmitScanInfo
+    - UploadImageAsync留空实现（根据要求）
+  - **PostProcessingCenterApiClient（邮政处理中心）**
+    - RequestChuteAsync对应UploadData，包含DWS数据上传
+    - ScanParcelAsync对应SubmitScanInfo
+    - UploadImageAsync留空实现（根据要求）
+  - **JushuitanErpApiClient（聚水潭ERP）**
+    - RequestChuteAsync使用DwsData中的实际重量
+    - ScanParcelAsync不支持（返回不支持消息）
+  - **WdtWmsApiClient（旺店通WMS）**
+    - RequestChuteAsync使用DwsData中的实际重量
+    - ScanParcelAsync不支持（返回不支持消息）
+  - **WcsApiClient（通用WCS客户端）**
+    - RequestChuteAsync支持完整DWS和OCR数据
+  - **所有调用代码和测试已更新** - 匹配新的方法签名
+
 ### v1.14.3 (2025-11-07)
 - ✅ **API客户端重构** - 统一命名规范和方法映射
   - 重命名JushuitanErpApiAdapter → JushuitanErpApiClient
@@ -18,37 +47,205 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
   - JushuitanErpApiClient和WdtWmsApiClient的ScanParcelAsync返回不支持消息
   - 更新所有相关引用和测试文件
 
-### v1.14.2 (2025-11-07)
-- ✅ **邮政API适配器重构** - 修正PostProcessingCenterApiAdapter和PostCollectionApiAdapter实现
-  - 两个适配器现在正确实现IWcsApiAdapter接口
-  - 实现标准WCS API方法：ScanParcelAsync、RequestChuteAsync、UploadImageAsync
-  - 参考JayTom.Dws项目的PostApi.cs和PostInApi.cs模式
-  - 两个适配器仅在命名和API端点上有区别
-- ✅ **新增邮政API控制台测试项目**
-  - 创建ZakYip.Sorting.RuleEngine.PostalApi.ConsoleTest
-  - 提供两种适配器的完整测试
-  - 支持扫描包裹、请求格口、上传图片功能测试
+## 当前实现内容
 
-### v1.14.1 (2025-11-06)
-- ✅ **代码质量全面提升** - 超额完成质量改进目标
-  - **代码文档覆盖率**: 从70%提升至**96.5%** (192/198文件) - 超额完成90%目标
-  - **静态代码分析集成**: 完整配置SonarCloud和GitHub Actions工作流
-  - **单元测试覆盖率提升**: 新增36个高质量测试用例（边界条件、异常处理、并发场景）
-  - **详细文档**: 新增CODE_QUALITY_GUIDE.md和QUALITY_IMPROVEMENT_SUMMARY.md
-- ✅ **SonarQube/SonarCloud集成**
-  - 配置sonar-project.properties
-  - GitHub Actions自动化扫描工作流
-  - 代码重复率监控（目标≤3%）
-  - 圈复杂度控制
-  - 代码异味检测
-- ✅ **测试覆盖增强**
-  - 新增18个边界条件测试（DTOs和实体验证）
-  - 新增11个RuleEngineService边界和异常测试
-  - 新增7个并发场景专项测试（最高200并发）
-  - 所有36个新测试100%通过
-  - 测试总数: 232+ (从196增加)
+### 核心功能
+- ✅ **包裹分拣流程** - 完整的包裹创建、DWS数据接收、规则匹配、格口分配流程
+- ✅ **规则引擎** - 支持6种匹配方法（条码正则、重量、体积、OCR、API响应、低代码表达式）
+- ✅ **API适配器** - 统一的IWcsApiAdapter接口，支持多种第三方系统集成
+  - PostCollectionApiClient - 邮政分揽投机构API客户端
+  - PostProcessingCenterApiClient - 邮政处理中心API客户端
+  - JushuitanErpApiClient - 聚水潭ERP API客户端
+  - WdtWmsApiClient - 旺店通WMS API客户端
+  - WcsApiClient - 通用WCS API客户端
+- ✅ **数据持久化** - LiteDB（配置）、MySQL（日志）、SQLite（降级）
+- ✅ **数据库熔断** - MySQL失败自动降级到SQLite，恢复后完整同步
+- ✅ **性能监控** - P50/P95/P99延迟统计，完整的性能指标收集
 
-### v1.14.0 (2025-11-04)
+### 通信支持
+- ✅ **SignalR Hub** - SortingHub和DwsHub，实时双向通信（生产环境推荐）
+- ✅ **TouchSocket TCP** - 高性能TCP通信，支持连接池和自动重连
+- ✅ **HTTP API** - 完整的REST API（仅用于测试和调试）
+- ✅ **适配器热切换** - 运行时切换不同厂商设备，无需重启
+
+### 数据管理
+- ✅ **数据分片** - 按时间维度分表（日/周/月），支持热冷数据分离
+- ✅ **自动清理** - 基于空闲策略的数据清理（默认90天保留）
+- ✅ **数据归档** - 批量处理大数据集，自动归档冷数据
+- ✅ **日志系统** - NLog日志框架，多种专用日志表
+
+### 测试覆盖
+- ✅ **单元测试** - 232+ 测试用例，覆盖核心功能
+- ✅ **性能测试** - BenchmarkDotNet基准测试
+- ✅ **压力测试** - NBomber高并发压力测试（支持100-1000包裹/秒）
+- ✅ **测试控制台** - 模拟分拣机信号和DWS数据发送
+
+## 当前存在的问题
+
+### 已知问题
+1. **API客户端增强待实现** - 当前基础实现完成，待增强：
+   - ⏳ Polly弹性策略（重试、熔断、超时）待添加到各API客户端
+   - ⏳ 强类型响应模型解析待实现
+   - ⏳ 批量操作支持（批量扫描、批量请求格口）待实现
+   - ⏳ 配置文件管理（端点、超时、认证参数）待完善
+   - ⏳ 响应缓存机制待实现
+
+2. **代码质量提升中**
+   - ⏳ 代码文档覆盖率需从70%提升至90%以上
+   - ⏳ 静态代码分析（SonarQube）待集成
+   - ⏳ 单元测试覆盖率需从当前提升至85%以上
+
+3. **Web管理界面缺失**
+   - ⏳ 规则管理界面待开发
+   - ⏳ 格口管理界面待开发
+   - ⏳ 日志查询和分析界面待开发
+   - ⏳ 性能监控仪表板待开发
+
+## 未来优化方向
+
+### 短期优化（1-2周）
+1. **API客户端功能完善**
+   - 添加Polly弹性策略到所有API客户端
+   - 实现强类型响应模型和自动解析
+   - 支持批量操作以提高效率
+   - 完善配置管理和认证机制
+
+2. **代码质量改进**
+   - 提升代码文档覆盖率至90%
+   - 集成SonarQube静态分析
+   - 增加单元测试覆盖率至85%
+
+3. **监控告警系统**
+   - 实时包裹处理量监控
+   - 格口使用率监控和告警
+   - 系统性能指标监控
+   - 错误率和异常监控告警
+   - 邮件/短信/企业微信通知
+
+### 中期优化（1-3个月）
+1. **Web管理界面开发**（高优先级）
+   - 规则管理界面（创建、编辑、测试规则）
+   - 格口管理界面（格口配置和使用统计）
+   - 日志查询和分析界面（支持多维度过滤和导出）
+   - 系统配置界面（实时配置更新）
+   - 性能监控仪表板（P50/P95/P99延迟图表）
+
+2. **智能分析功能**
+   - 基于历史数据的规则优化建议
+   - 异常模式识别和自动规则生成
+   - 格口利用率分析和优化建议
+
+3. **性能优化**
+   - 数据库查询优化（应用QueryOptimizationExtensions到更多场景）
+   - 引入Redis分布式缓存支持多实例部署
+   - 批量处理优化和并行处理增强
+
+### 长期优化（3-6个月）
+1. **容器化和云原生**（优先级提高）
+   - Docker镜像构建和优化
+   - Kubernetes部署配置
+   - Helm Charts包管理
+   - CI/CD流水线（GitHub Actions）
+
+2. **微服务架构演进**
+   - 规则引擎服务独立
+   - 包裹处理服务独立
+   - 通信网关服务
+   - 日志服务独立
+   - 配置中心和API网关
+
+3. **AI和大数据**
+   - 智能规则推荐系统
+   - 异常包裹自动识别
+   - 格口分配优化算法
+   - 负载预测和资源调度
+
+## 技术栈
+
+- **.NET 8.0** - 最新的.NET框架
+- **ASP.NET Core Minimal API** - 轻量级Web API
+- **MediatR** - 事件驱动架构实现
+- **LiteDB** - 嵌入式NoSQL数据库（配置存储）
+- **Entity Framework Core** - ORM框架，支持自动迁移
+- **MySQL / SQLite** - 关系型数据库（日志存储）
+- **Polly** - 弹性和瞬态故障处理
+- **TouchSocket** - 高性能TCP通信库
+- **SignalR** - 实时双向通信
+- **NLog** - 高性能日志框架
+- **xUnit / Moq** - 单元测试框架
+- **BenchmarkDotNet** - 性能基准测试框架
+
+## 快速开始
+
+### 前置要求
+
+- .NET 8.0 SDK
+- Visual Studio 2022 或 Visual Studio Code
+- （可选）MySQL服务器
+
+### 构建项目
+
+```bash
+# 克隆仓库
+git clone https://github.com/Hisoka6602/ZakYip.Sorting.RuleEngine.Core.git
+cd ZakYip.Sorting.RuleEngine
+
+# 还原依赖并构建
+dotnet restore
+dotnet build
+```
+
+### 配置
+
+编辑 `ZakYip.Sorting.RuleEngine.Service/appsettings.json` 配置文件：
+
+```json
+{
+  "AppSettings": {
+    "LiteDb": {
+      "ConnectionString": "Filename=./data/config.db;Connection=shared"
+    },
+    "MySql": {
+      "ConnectionString": "Server=localhost;Database=sorting_logs;User=root;Password=your_password;",
+      "Enabled": true
+    },
+    "Sqlite": {
+      "ConnectionString": "Data Source=./data/logs.db"
+    },
+    "MiniApi": {
+      "Urls": [ "http://localhost:5000" ],
+      "EnableSwagger": true
+    }
+  }
+}
+```
+
+### 运行服务
+
+#### 开发模式
+
+```bash
+cd ZakYip.Sorting.RuleEngine.Service
+dotnet run
+```
+
+访问 Swagger UI: http://localhost:5000/swagger
+
+## 许可证
+
+MIT License
+
+## 联系方式
+
+- 项目地址: https://github.com/Hisoka6602/ZakYip.Sorting.RuleEngine.Core
+- 问题反馈: https://github.com/Hisoka6602/ZakYip.Sorting.RuleEngine.Core/issues
+
+---
+
+**注意**: 
+- 本系统设计用于高频率场景，确保硬件资源充足以获得最佳性能。
+- 生产环境中分拣程序和DWS应使用TCP或SignalR通信，HTTP API仅用于测试。
+- 数据清理策略基于空闲检测（默认30分钟无包裹创建后触发清理）。
 - ✅ **日志安全性增强** - 防止敏感信息泄露
   - 生产环境完全禁止SQL语句和表名记录
   - EF Core配置条件编译：DEBUG模式启用详细日志，Release禁用敏感数据
