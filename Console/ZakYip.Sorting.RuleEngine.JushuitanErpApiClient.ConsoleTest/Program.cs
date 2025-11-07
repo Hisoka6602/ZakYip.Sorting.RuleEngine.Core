@@ -22,10 +22,10 @@ class Program
             builder.SetMinimumLevel(LogLevel.Debug);
         });
         
-        var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.JushuitanErpApiClient>();
+        var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.JushuitanErpApiAdapter>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.JushuitanErpApiClient(httpClient, logger, PARTNER_KEY, PARTNER_SECRET, TOKEN);
+        var client = new Infrastructure.ApiClients.JushuitanErpApiAdapter(httpClient, logger, PARTNER_KEY, PARTNER_SECRET, TOKEN);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

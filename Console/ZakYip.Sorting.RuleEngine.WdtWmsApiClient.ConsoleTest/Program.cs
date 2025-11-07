@@ -21,10 +21,10 @@ class Program
             builder.SetMinimumLevel(LogLevel.Debug);
         });
         
-        var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.WdtWmsApiClient>();
+        var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.WdtWmsApiAdapter>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.WdtWmsApiClient(httpClient, logger, APP_KEY, APP_SECRET);
+        var client = new Infrastructure.ApiClients.WdtWmsApiAdapter(httpClient, logger, APP_KEY, APP_SECRET);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

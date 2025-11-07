@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -11,39 +13,35 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// <summary>
 /// 聚水潭ERP API适配器实现
 /// Jushuituan ERP API adapter implementation
+/// 参考: JushuitanErpApi from reference code
 /// </summary>
 public class JushuitanErpApiAdapter : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<JushuitanErpApiAdapter> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
-    private readonly string _partnerKey;
-    private readonly string _partnerSecret;
-    private readonly string _token;
+    private readonly ApiParameters _parameters;
 
     public JushuitanErpApiAdapter(
         HttpClient httpClient,
         ILogger<JushuitanErpApiAdapter> logger,
-        string partnerKey = "",
-        string partnerSecret = "",
-        string token = "")
+        string appKey = "",
+        string appSecret = "",
+        string accessToken = "")
     {
         _httpClient = httpClient;
         _logger = logger;
-        _partnerKey = partnerKey;
-        _partnerSecret = partnerSecret;
-        _token = token;
-
-        _jsonOptions = new JsonSerializerOptions
+        _parameters = new ApiParameters
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
+            AppKey = appKey,
+            AppSecret = appSecret,
+            AccessToken = accessToken
         };
     }
 
     /// <summary>
-    /// 扫描包裹
-    /// Scan parcel to register it in the wcs system
+    /// 扫描包裹（提交扫描信息）
+    /// Scan parcel to register it in the system
+    /// 对应参考代码中的 SubmitScanInfo 方法
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
@@ -51,7 +49,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
     {
         try
         {
-            _logger.LogDebug("聚水潭ERP - 开始扫描包裹/查询订单，条码: {Barcode}", barcode);
+            _logger.LogDebug("聚水潭ERP - 开始扫描包裹，条码: {Barcode}", barcode);
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
 
@@ -62,30 +60,30 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
                 page_size = 1
             };
 
-            var bizContentJson = JsonSerializer.Serialize(bizContent, _jsonOptions);
+            var bizContentJson = System.Text.Json.JsonSerializer.Serialize(bizContent);
 
             var requestData = new Dictionary<string, string>
             {
-                { "partnerkey", _partnerKey },
-                { "token", _token },
-                { "ts", timestamp },
-                { "method", ApiConstants.JushuitanErpApi.Methods.OrdersSingleQuery },
+                { "app_key", _parameters.AppKey },
+                { "access_token", _parameters.AccessToken },
+                { "timestamp", timestamp },
                 { "charset", "utf-8" },
-                { "biz_content", bizContentJson }
+                { "version", _parameters.Version.ToString() },
+                { "biz", bizContentJson }
             };
 
-            var sign = GenerateSign(requestData);
+            var sign = GenerateSign(requestData, _parameters.AppSecret);
             requestData.Add("sign", sign);
 
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync(ApiConstants.JushuitanErpApi.RouterEndpoint, content, cancellationToken);
+            var response = await _httpClient.PostAsync(_parameters.Url, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "聚水潭ERP - 扫描包裹/查询订单成功，条码: {Barcode}",
+                    "聚水潭ERP - 扫描包裹成功，条码: {Barcode}",
                     barcode);
 
                 return new WcsApiResponse
@@ -99,7 +97,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
             else
             {
                 _logger.LogWarning(
-                    "聚水潭ERP - 扫描包裹/查询订单失败，条码: {Barcode}, 状态码: {StatusCode}",
+                    "聚水潭ERP - 扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
                 return new WcsApiResponse
@@ -113,7 +111,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "聚水潭ERP - 扫描包裹/查询订单异常，条码: {Barcode}", barcode);
+            _logger.LogError(ex, "聚水潭ERP - 扫描包裹异常，条码: {Barcode}", barcode);
 
             return new WcsApiResponse
             {
@@ -126,54 +124,77 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
     }
 
     /// <summary>
-    /// 请求格口
+    /// 请求格口（上传数据）
     /// Request a chute/gate number for the parcel
+    /// 对应参考代码中的 UploadData 方法
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
         try
         {
             _logger.LogDebug(
-                "聚水潭ERP - 开始请求格口/更新物流，条码: {Barcode}",
+                "聚水潭ERP - 开始请求格口/上传数据，条码: {Barcode}",
                 barcode);
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
 
-            var bizContent = new
+            // 构造业务参数
+            var biz = new[]
             {
-                so_id = barcode,
-                lc_id = ApiConstants.JushuitanErpApi.CommonParams.AutoAssign,  // 自动分配
-                l_id = barcode,
-                modified = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                new
+                {
+                    l_id = barcode,
+                    type = _parameters.Type,
+                    is_un_lid = _parameters.IsUnLid,
+                    channel = _parameters.Channel,
+                    weight = _parameters.IsUploadWeight ? -1 : -1
+                }
             };
 
-            var bizContentJson = JsonSerializer.Serialize(bizContent, _jsonOptions);
+            var bizJson = Newtonsoft.Json.JsonConvert.SerializeObject(biz);
 
             var requestData = new Dictionary<string, string>
             {
-                { "partnerkey", _partnerKey },
-                { "token", _token },
-                { "ts", timestamp },
-                { "method", ApiConstants.JushuitanErpApi.Methods.LogisticUpload },
+                { "app_key", _parameters.AppKey },
+                { "access_token", _parameters.AccessToken },
+                { "biz", bizJson },
+                { "timestamp", timestamp },
                 { "charset", "utf-8" },
-                { "biz_content", bizContentJson }
+                { "version", _parameters.Version.ToString() }
             };
 
-            var sign = GenerateSign(requestData);
+            var sign = GenerateSign(requestData, _parameters.AppSecret);
             requestData.Add("sign", sign);
 
+            _httpClient.Timeout = TimeSpan.FromMilliseconds(_parameters.TimeOut);
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync(ApiConstants.JushuitanErpApi.RouterEndpoint, content, cancellationToken);
+            var response = await _httpClient.PostAsync(_parameters.Url, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-            if (response.IsSuccessStatusCode)
+            bool isSuccess = false;
+            if (!string.IsNullOrWhiteSpace(responseContent))
+            {
+                var jObject = JObject.Parse(responseContent);
+                // 确保 data 存在，并且 data.datas 是一个非空数组
+                if (jObject["data"]?["datas"] is JArray { Count: > 0 } jArray)
+                {
+                    isSuccess = jArray[0]["is_success"]?.Value<bool>() == true;
+                }
+            }
+
+            stopwatch.Stop();
+
+            if (response.IsSuccessStatusCode && isSuccess)
             {
                 _logger.LogInformation(
-                    "聚水潭ERP - 请求格口/更新物流成功，条码: {Barcode}",
-                    barcode);
+                    "聚水潭ERP - 请求格口成功，条码: {Barcode}, 耗时: {Duration}ms",
+                    barcode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
@@ -186,8 +207,8 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
             else
             {
                 _logger.LogWarning(
-                    "聚水潭ERP - 请求格口/更新物流失败，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
+                    "聚水潭ERP - 请求格口失败，条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
@@ -198,9 +219,39 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
                 };
             }
         }
+        catch (HttpRequestException ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "聚水潭ERP - HTTP请求异常，条码: {Barcode}, 耗时: {Duration}ms", 
+                barcode, stopwatch.ElapsedMilliseconds);
+
+            return new WcsApiResponse
+            {
+                Success = false,
+                Code = ApiConstants.HttpStatusCodes.Error,
+                Message = ex.Message,
+                Data = ex.ToString()
+            };
+        }
+        catch (TaskCanceledException ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "聚水潭ERP - 请求超时，条码: {Barcode}, 耗时: {Duration}ms", 
+                barcode, stopwatch.ElapsedMilliseconds);
+
+            return new WcsApiResponse
+            {
+                Success = false,
+                Code = ApiConstants.HttpStatusCodes.Error,
+                Message = "接口访问返回超时",
+                Data = ex.ToString()
+            };
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "聚水潭ERP - 请求格口/更新物流异常，条码: {Barcode}", barcode);
+            stopwatch.Stop();
+            _logger.LogError(ex, "聚水潭ERP - 请求格口异常，条码: {Barcode}, 耗时: {Duration}ms", 
+                barcode, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
@@ -257,28 +308,101 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
     /// <summary>
     /// 生成签名
     /// Generate signature for API authentication
-    /// JST signature: md5(partnersecret + key1value1key2value2... + partnersecret)
-    /// Parameters are sorted alphabetically by key before concatenation
+    /// 参考代码的签名算法: appSecret + key1value1key2value2... 然后MD5
     /// </summary>
-    private string GenerateSign(Dictionary<string, string> parameters)
+    private static string GenerateSign(Dictionary<string, string> parameters, string appSecret)
     {
-        if (string.IsNullOrEmpty(_partnerSecret))
+        if (string.IsNullOrEmpty(appSecret))
         {
             return string.Empty;
         }
 
-        // 按字典序排序参数
-        var sortedParams = parameters
-            .Where(p => p.Key != "sign")
-            .OrderBy(p => p.Key)
-            .Select(p => $"{p.Key}{p.Value}");
+        // 1. 按键名字典序排序
+        var sortedKeys = parameters.Keys
+            .Where(k => k != "sign")
+            .OrderBy(k => k, StringComparer.Ordinal)
+            .ToList();
 
-        // 拼接字符串
-        var signString = $"{_partnerSecret}{string.Join("", sortedParams)}{_partnerSecret}";
+        // 2. 按 key+value 拼接
+        var paramStr = new StringBuilder();
+        foreach (var key in sortedKeys)
+        {
+            paramStr.Append(key).Append(parameters[key]);
+        }
 
-        // 使用MD5生成签名
+        // 3. 拼接 appSecret 在前
+        var signStr = appSecret + paramStr.ToString();
+
+        // 4. 计算 MD5 并转小写
         using var md5 = MD5.Create();
-        var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
-        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signStr));
+        var sb = new StringBuilder();
+        foreach (var b in hashBytes)
+        {
+            sb.Append(b.ToString("x2")); // x2 = 小写
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// API参数配置类
+    /// </summary>
+    public class ApiParameters
+    {
+        /// <summary>
+        /// Url
+        /// </summary>
+        public string Url { get; set; } = "https://openapi.jushuitan.com/open/orders/weight/send/upload";
+
+        /// <summary>
+        /// 超时时间（毫秒）
+        /// </summary>
+        public int TimeOut { get; set; } = 5000;
+
+        /// <summary>
+        /// AppKey
+        /// </summary>
+        public string AppKey { get; set; } = string.Empty;
+
+        /// <summary>
+        /// AppSecret
+        /// </summary>
+        public string AppSecret { get; set; } = string.Empty;
+
+        /// <summary>
+        /// AccessToken
+        /// </summary>
+        public string AccessToken { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 版本
+        /// </summary>
+        public int Version { get; set; } = 2;
+
+        /// <summary>
+        /// 是否上传重量（默认值 true）
+        /// </summary>
+        public bool IsUploadWeight { get; set; } = true;
+
+        /// <summary>
+        /// 称重类型（默认值为 1）
+        /// 0: 验货后称重
+        /// 1: 验货后称重并发货
+        /// 2: 无须验货称重
+        /// 3: 无须验货称重并发货
+        /// 4: 发货后称重
+        /// 5: 自动判断称重并发货
+        /// </summary>
+        public int Type { get; set; } = 1;
+
+        /// <summary>
+        /// 是否为国际运单号（默认值 false，表示国内快递）
+        /// </summary>
+        public bool IsUnLid { get; set; } = false;
+
+        /// <summary>
+        /// 称重来源备注（会显示在订单操作日志中）
+        /// </summary>
+        public string Channel { get; set; } = string.Empty;
     }
 }
