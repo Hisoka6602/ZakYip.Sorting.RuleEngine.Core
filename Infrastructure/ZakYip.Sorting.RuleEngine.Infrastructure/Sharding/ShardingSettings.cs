@@ -70,4 +70,16 @@ public class ShardingSettings
     /// Archive failure threshold (consecutive failures, default 10)
     /// </summary>
     public int ArchiveFailureThreshold { get; set; } = 10;
+
+    /// <summary>
+    /// 归档并行度（同时处理的批次数，默认2）
+    /// Archive parallelism (concurrent batches, default 2)
+    /// </summary>
+    public int ArchiveParallelism { get; set; } = 2;
+
+    /// <summary>
+    /// 是否启用并行统计查询（默认true）
+    /// Enable parallel statistics queries (default true)
+    /// </summary>
+    public bool EnableParallelStatistics { get; set; } = true;
 }

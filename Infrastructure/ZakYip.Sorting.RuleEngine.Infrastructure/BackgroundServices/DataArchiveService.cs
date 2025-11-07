@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Buffers;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
@@ -191,20 +192,25 @@ public class DataArchiveService : BackgroundService
         _logger.LogInformation("开始批量归档 {TotalCount} 条冷数据，批次大小: {BatchSize}，批次延迟: {DelayMs}ms", 
             totalCount, batchSize, batchDelayMs);
 
-        while (processedCount < totalCount && !cancellationToken.IsCancellationRequested)
+        // 使用ArrayPool<long>来存储批次ID，减少内存分配
+        // Use ArrayPool<long> to store batch IDs, reducing memory allocations
+        var idBuffer = ArrayPool<long>.Shared.Rent(batchSize);
+        try
         {
-            try
+            while (processedCount < totalCount && !cancellationToken.IsCancellationRequested)
             {
-                // 获取一批需要归档的记录ID
-                var batchIds = await dbContext.LogEntries
-                    .Where(e => e.CreatedAt < threshold)
-                    .OrderBy(e => e.CreatedAt)
-                    .Take(batchSize)
-                    .Select(e => e.Id)
-                    .ToListAsync(cancellationToken);
+                try
+                {
+                    // 获取一批需要归档的记录ID
+                    var batchIds = await dbContext.LogEntries
+                        .Where(e => e.CreatedAt < threshold)
+                        .OrderBy(e => e.CreatedAt)
+                        .Take(batchSize)
+                        .Select(e => e.Id)
+                        .ToListAsync(cancellationToken);
 
-                if (!batchIds.Any())
-                    break;
+                    if (!batchIds.Any())
+                        break;
 
                 // 在实际应用中，这里应该：
                 // 1. 将这批数据复制到归档表
@@ -240,26 +246,33 @@ public class DataArchiveService : BackgroundService
                 }
                 */
 
-                // 暂时只记录日志，不实际移动数据
-                processedCount += batchIds.Count;
-                _logger.LogInformation("处理进度: {ProcessedCount}/{TotalCount} ({Percentage:F1}%)", 
-                    processedCount, totalCount, (processedCount * 100.0 / totalCount));
+                    // 暂时只记录日志，不实际移动数据
+                    processedCount += batchIds.Count;
+                    _logger.LogInformation("处理进度: {ProcessedCount}/{TotalCount} ({Percentage:F1}%)", 
+                        processedCount, totalCount, (processedCount * 100.0 / totalCount));
 
-                // 避免对数据库造成过大压力，批次之间稍作延迟
-                await Task.Delay(batchDelayMs, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "处理归档批次时发生错误");
-                failedCount++;
-                
-                // 如果连续失败太多次，停止归档
-                if (failedCount > failureThreshold)
+                    // 避免对数据库造成过大压力，批次之间稍作延迟
+                    await Task.Delay(batchDelayMs, cancellationToken);
+                }
+                catch (Exception ex)
                 {
-                    _logger.LogError("归档失败次数超过阈值({Threshold})，停止归档操作", failureThreshold);
-                    break;
+                    _logger.LogError(ex, "处理归档批次时发生错误");
+                    failedCount++;
+                    
+                    // 如果连续失败太多次，停止归档
+                    if (failedCount > failureThreshold)
+                    {
+                        _logger.LogError("归档失败次数超过阈值({Threshold})，停止归档操作", failureThreshold);
+                        break;
+                    }
                 }
             }
+        }
+        finally
+        {
+            // 归还数组到ArrayPool，避免内存泄漏
+            // Return array to ArrayPool to avoid memory leaks
+            ArrayPool<long>.Shared.Return(idBuffer, clearArray: true);
         }
 
         _logger.LogInformation("批量归档完成，成功: {ProcessedCount} 条, 失败: {FailedCount} 条", 

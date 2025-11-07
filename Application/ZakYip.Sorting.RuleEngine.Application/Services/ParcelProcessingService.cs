@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Buffers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using ZakYip.Sorting.RuleEngine.Application.DTOs;
@@ -154,25 +155,48 @@ public class ParcelProcessingService : IParcelProcessingService
 
     /// <summary>
     /// 批量处理包裹
-    /// Process parcels in batch with parallel execution
+    /// Process parcels in batch with parallel execution and ArrayPool optimization
     /// </summary>
     public async Task<IEnumerable<ParcelProcessResponse>> ProcessParcelsAsync(
         IEnumerable<ParcelProcessRequest> requests,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("开始批量处理 {Count} 个包裹", requests.Count());
+        var requestList = requests.ToList();
+        var count = requestList.Count;
+        
+        _logger.LogInformation("开始批量处理 {Count} 个包裹", count);
 
-        // 并行处理以提高性能
-        // Parallel processing for better performance
-        var tasks = requests.Select(request => 
-            ProcessParcelAsync(request, cancellationToken));
+        // 使用ArrayPool优化批量响应存储
+        // Use ArrayPool to optimize batch response storage
+        var responseBuffer = ArrayPool<ParcelProcessResponse>.Shared.Rent(count);
+        try
+        {
+            // 并行处理以提高性能
+            // Parallel processing for better performance
+            var tasks = requestList.Select(async (request, index) =>
+            {
+                var response = await ProcessParcelAsync(request, cancellationToken);
+                responseBuffer[index] = response;
+                return response;
+            });
 
-        var responses = await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
 
-        _logger.LogInformation("批量处理完成，成功: {Success}，失败: {Failed}",
-            responses.Count(r => r.Success),
-            responses.Count(r => !r.Success));
+            // 复制结果到最终数组
+            var results = new ParcelProcessResponse[count];
+            Array.Copy(responseBuffer, results, count);
 
-        return responses;
+            _logger.LogInformation("批量处理完成，成功: {Success}，失败: {Failed}",
+                results.Count(r => r.Success),
+                results.Count(r => !r.Success));
+
+            return results;
+        }
+        finally
+        {
+            // 归还数组到ArrayPool
+            // Return array to ArrayPool
+            ArrayPool<ParcelProcessResponse>.Shared.Return(responseBuffer, clearArray: true);
+        }
     }
 }
