@@ -113,4 +113,65 @@ public static class ApiConstants
             public const string AutoAssign = "AUTO";
         }
     }
+
+    /// <summary>
+    /// 邮政分揽投机构API相关常量
+    /// Postal Collection/Delivery Institution API constants
+    /// </summary>
+    public static class PostCollectionApi
+    {
+        public const string RouterEndpoint = "/api/post/collection";
+        
+        /// <summary>
+        /// API端点
+        /// API endpoints
+        /// </summary>
+        public static class Endpoints
+        {
+            public const string WeighingUpload = "/weighing/upload";
+            public const string ParcelQuery = "/parcel/query";
+            public const string ScanUpload = "/scan/upload";
+        }
+        
+        /// <summary>
+        /// API通用参数值
+        /// Common API parameter values
+        /// </summary>
+        public static class CommonParams
+        {
+            public const string Version = "1.0";
+            public const string FormatJson = "json";
+        }
+    }
+
+    /// <summary>
+    /// 邮政处理中心API相关常量
+    /// Postal Processing Center API constants
+    /// </summary>
+    public static class PostProcessingCenterApi
+    {
+        public const string RouterEndpoint = "/api/post/processing";
+        
+        /// <summary>
+        /// API端点
+        /// API endpoints
+        /// </summary>
+        public static class Endpoints
+        {
+            public const string WeighingUpload = "/weighing/upload";
+            public const string RoutingQuery = "/routing/query";
+            public const string SortingResultUpload = "/sorting/result";
+            public const string ScanUpload = "/scan/upload";
+        }
+        
+        /// <summary>
+        /// API通用参数值
+        /// Common API parameter values
+        /// </summary>
+        public static class CommonParams
+        {
+            public const string Version = "1.0";
+            public const string FormatJson = "json";
+        }
+    }
 }
