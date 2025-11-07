@@ -9,15 +9,12 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 ### v1.14.2 (2025-11-07)
 - ✅ **邮政API适配器重构** - 修正PostProcessingCenterApiAdapter和PostCollectionApiAdapter实现
   - 两个适配器现在正确实现IWcsApiAdapter接口
-  - 区分邮政处理中心接口和邮政分揽投机构接口
   - 实现标准WCS API方法：ScanParcelAsync、RequestChuteAsync、UploadImageAsync
   - 参考JayTom.Dws项目的PostApi.cs和PostInApi.cs模式
-  - 邮政处理中心：主要负责包裹分拣和路由
-  - 邮政分揽投机构：主要负责包裹收集和投递
+  - 两个适配器仅在命名和API端点上有区别
 - ✅ **新增邮政API控制台测试项目**
   - 创建ZakYip.Sorting.RuleEngine.PostalApi.ConsoleTest
-  - 提供邮政处理中心API测试
-  - 提供邮政分揽投机构API测试
+  - 提供两种适配器的完整测试
   - 支持扫描包裹、请求格口、上传图片功能测试
 
 ### v1.14.1 (2025-11-06)
@@ -1108,29 +1105,27 @@ DEFAULT                # 默认规则（匹配所有）
 
 ### 邮政API适配器（IWcsApiAdapter）
 
-系统现在提供了两种邮政API适配器，区分不同的邮政业务场景：
+系统提供了两种独立的邮政API适配器实现，每个都根据其对应的参考代码独立实现：
 
 #### 1. 邮政处理中心API适配器（PostProcessingCenterApiAdapter）
-专门用于邮政处理中心（分拣中心）的API对接：
-- **主要功能**：包裹分拣、路由查询、格口分配
 - **实现接口**：IWcsApiAdapter
-- **API端点**：
-  - `ScanParcelAsync` - 扫描包裹到邮政处理中心系统
-  - `RequestChuteAsync` - 请求格口号（查询路由信息）
-  - `UploadImageAsync` - 上传包裹图片
 - **基础URL**：`/api/post/processing`
 - **参考实现**：[PostApi.cs](https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostApi.cs)
+- **特点**：独立实现，按照PostApi.cs的具体逻辑和数据结构
 
 #### 2. 邮政分揽投机构API适配器（PostCollectionApiAdapter）
-专门用于邮政分揽投机构（收发站点）的API对接：
-- **主要功能**：包裹收集、查询、投递
 - **实现接口**：IWcsApiAdapter
-- **API端点**：
-  - `ScanParcelAsync` - 扫描包裹到邮政分揽投机构系统
-  - `RequestChuteAsync` - 请求格口号（查询包裹信息）
-  - `UploadImageAsync` - 上传包裹图片
 - **基础URL**：`/api/post/collection`
 - **参考实现**：[PostInApi.cs](https://github.com/Hisoka6602/JayTom.Dws/blob/聚水潭(正式)/JayTom.Dws.Interface/Post/PostInApi.cs)
+- **特点**：独立实现，按照PostInApi.cs的具体逻辑和数据结构
+
+#### 标准接口方法
+所有WCS API适配器都实现相同的IWcsApiAdapter接口方法：
+- `ScanParcelAsync(string barcode)` - 扫描包裹
+- `RequestChuteAsync(string barcode)` - 请求格口号
+- `UploadImageAsync(string barcode, byte[] imageData, string contentType)` - 上传图片
+
+**注**：虽然接口相同，但每个适配器的具体实现都是独立的，根据各自的参考代码实现，可能在请求格式、数据结构、处理流程等方面有所不同。
 
 #### 使用示例
 ```csharp
