@@ -238,8 +238,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 { "method", ApiConstants.WdtWmsApi.Methods.ParcelQuery },
                 { "app_key", _appKey },
                 { "timestamp", timestamp },
-                { "format", "json" },
-                { "v", "1.0" },
+                { "format", ApiConstants.WdtWmsApi.CommonParams.FormatJson },
+                { "v", ApiConstants.WdtWmsApi.CommonParams.Version },
                 { "body", bodyJson }
             };
 
@@ -329,8 +329,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 { "method", ApiConstants.WdtWmsApi.Methods.ImageUpload },
                 { "app_key", _appKey },
                 { "timestamp", timestamp },
-                { "format", "json" },
-                { "v", "1.0" },
+                { "format", ApiConstants.WdtWmsApi.CommonParams.FormatJson },
+                { "v", ApiConstants.WdtWmsApi.CommonParams.Version },
                 { "barcode", barcode }
             };
             
