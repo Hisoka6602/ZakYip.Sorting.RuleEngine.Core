@@ -17,10 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj" />
-    <ProjectReference Include="..\ZakYip.Sorting.RuleEngine.Service\ZakYip.Sorting.RuleEngine.Service.csproj" />
+    <ProjectReference Include="..\..\Domain\ZakYip.Sorting.RuleEngine.Domain\ZakYip.Sorting.RuleEngine.Domain.csproj" />
+    <ProjectReference Include="..\..\Application\ZakYip.Sorting.RuleEngine.Application\ZakYip.Sorting.RuleEngine.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure\ZakYip.Sorting.RuleEngine.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Service\ZakYip.Sorting.RuleEngine.Service\ZakYip.Sorting.RuleEngine.Service.csproj" />
   </ItemGroup>
 
   <ItemGroup>
