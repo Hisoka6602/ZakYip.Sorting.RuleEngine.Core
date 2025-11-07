@@ -9,6 +9,11 @@ namespace ZakYip.Sorting.RuleEngine.Tests.Helpers;
 /// </summary>
 public static class TestDataBuilder
 {
+    // OCR测试数据的默认值
+    private const string DefaultFirstSegmentCode = "64";
+    private const string DefaultSecondSegmentCode = "12";
+    private const string DefaultThirdSegmentCode = "34";
+    
     /// <summary>
     /// 创建测试用的排序规则
     /// Create a test sorting rule
@@ -86,18 +91,22 @@ public static class TestDataBuilder
     /// </summary>
     public static OcrData CreateOcrData(
         string? threeSegmentCode = null,
-        string? firstSegmentCode = "64",
-        string? secondSegmentCode = "12",
-        string? thirdSegmentCode = "34",
+        string? firstSegmentCode = null,
+        string? secondSegmentCode = null,
+        string? thirdSegmentCode = null,
         string? recipientAddress = null,
         string? senderAddress = null)
     {
+        var first = firstSegmentCode ?? DefaultFirstSegmentCode;
+        var second = secondSegmentCode ?? DefaultSecondSegmentCode;
+        var third = thirdSegmentCode ?? DefaultThirdSegmentCode;
+        
         return new OcrData
         {
-            ThreeSegmentCode = threeSegmentCode ?? $"{firstSegmentCode ?? "64"}{secondSegmentCode ?? "12"}{thirdSegmentCode ?? "34"}",
-            FirstSegmentCode = firstSegmentCode ?? "64",
-            SecondSegmentCode = secondSegmentCode ?? "12",
-            ThirdSegmentCode = thirdSegmentCode ?? "34",
+            ThreeSegmentCode = threeSegmentCode ?? $"{first}{second}{third}",
+            FirstSegmentCode = first,
+            SecondSegmentCode = second,
+            ThirdSegmentCode = third,
             RecipientAddress = recipientAddress ?? "Test Recipient Address",
             SenderAddress = senderAddress ?? "Test Sender Address",
             RecipientPhoneSuffix = "1234",
