@@ -12,25 +12,25 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 /// 聚水潭ERP API适配器测试
 /// Jushuituan ERP API adapter tests
 /// </summary>
-public class JushuitanErpApiAdapterTests
+public class JushuitanErpApiClientTests
 {
-    private readonly Mock<ILogger<JushuitanErpApiAdapter>> _loggerMock;
+    private readonly Mock<ILogger<JushuitanErpApiClient>> _loggerMock;
     private const string PartnerKey = "test_partner_key";
     private const string PartnerSecret = "test_partner_secret";
     private const string Token = "test_token";
 
-    public JushuitanErpApiAdapterTests()
+    public JushuitanErpApiClientTests()
     {
-        _loggerMock = new Mock<ILogger<JushuitanErpApiAdapter>>();
+        _loggerMock = new Mock<ILogger<JushuitanErpApiClient>>();
     }
 
-    private JushuitanErpApiAdapter CreateClient(HttpMessageHandler handler)
+    private JushuitanErpApiClient CreateClient(HttpMessageHandler handler)
     {
         var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("https://api.jushuitan.com")
         };
-        return new JushuitanErpApiAdapter(httpClient, _loggerMock.Object, PartnerKey, PartnerSecret, Token);
+        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, PartnerKey, PartnerSecret, Token);
     }
 
     [Fact]

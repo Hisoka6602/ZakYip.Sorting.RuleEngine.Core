@@ -12,19 +12,19 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
 /// <summary>
-/// 旺店通WMS API适配器实现
-/// WDT (Wang Dian Tong) WMS API adapter implementation
-/// 参考: WdtWmsApi from reference code
+/// 旺店通WMS API客户端实现
+/// WDT (Wang Dian Tong) WMS API client implementation
+/// 参考: https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e
 /// </summary>
-public class WdtWmsApiAdapter : IWcsApiAdapter
+public class WdtWmsApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<WdtWmsApiAdapter> _logger;
+    private readonly ILogger<WdtWmsApiClient> _logger;
     public WdtWmsApiParameters Parameters { get; set; }
 
-    public WdtWmsApiAdapter(
+    public WdtWmsApiClient(
         HttpClient httpClient,
-        ILogger<WdtWmsApiAdapter> logger,
+        ILogger<WdtWmsApiClient> logger,
         string appKey = "",
         string appSecret = "",
         string sid = "")
@@ -40,100 +40,25 @@ public class WdtWmsApiAdapter : IWcsApiAdapter
     }
 
     /// <summary>
-    /// 扫描包裹
-    /// Scan parcel to register it in the system
+    /// 扫描包裹（旺店通WMS不支持此功能）
+    /// Scan parcel - Not supported in WDT WMS
+    /// 注意：根据要求，WdtWmsApiClient不应该实现ScanParcelAsync
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogWarning("旺店通WMS不支持扫描包裹功能，条码: {Barcode}", barcode);
+        
+        await Task.CompletedTask;
+        
+        return new WcsApiResponse
         {
-            _logger.LogDebug("WDT WMS - 开始扫描包裹，条码: {Barcode}", barcode);
-
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            
-            var bodyData = new
-            {
-                logistics_no = barcode
-            };
-
-            var requestData = new Dictionary<string, object>
-            {
-                { "appkey", Parameters.AppKey },
-                { "format", "json" },
-                { "method", Parameters.Method },
-                { "sid", Parameters.Sid },
-                { "sign_method", "md5" },
-                { "timestamp", timestamp }
-            };
-
-            var sign = GenerateSign(requestData, JsonConvert.SerializeObject(bodyData), Parameters.AppSecret);
-            requestData.Add("sign", sign);
-
-            var param = string.Join("&", requestData.OrderBy(o => o.Key).Select(s => $"{s.Key}={s.Value}"));
-
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
-
-            using var dataStream = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(bodyData)));
-            using HttpContent content = new StreamContent(dataStream);
-            content.Headers.Add("Content-Type", "text/xml");
-
-            var response = await _httpClient.PostAsync($"{Parameters.Url}?{param}", content, cancellationToken);
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            responseContent = Regex.Unescape(responseContent);
-
-            bool isSuccess = false;
-            if (!string.IsNullOrWhiteSpace(responseContent))
-            {
-                var jObject = JObject.Parse(responseContent);
-                if (jObject["flag"]?.ToString()?.ToLower()?.Equals("success") == true)
-                {
-                    isSuccess = true;
-                }
-            }
-
-            if (response.IsSuccessStatusCode && isSuccess)
-            {
-                _logger.LogInformation(
-                    "WDT WMS - 扫描包裹成功，条码: {Barcode}",
-                    barcode);
-
-                return new WcsApiResponse
-                {
-                    Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
-                    Message = "扫描包裹成功",
-                    Data = responseContent
-                };
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "WDT WMS - 扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
-
-                return new WcsApiResponse
-                {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"扫描包裹失败: {response.StatusCode}",
-                    Data = responseContent
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "WDT WMS - 扫描包裹异常，条码: {Barcode}", barcode);
-
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString()
-            };
-        }
+            Success = true,
+            Code = ApiConstants.HttpStatusCodes.Success,
+            Message = "旺店通WMS不支持扫描包裹功能",
+            Data = "{\"info\":\"Feature not supported\"}"
+        };
     }
 
     /// <summary>

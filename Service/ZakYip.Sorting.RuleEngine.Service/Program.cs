@@ -163,15 +163,15 @@ try
                 });
 
                 // 注册旺店通WMS API适配器
-                services.AddHttpClient<WdtWmsApiAdapter>((sp, client) =>
+                services.AddHttpClient<WdtWmsApiClient>((sp, client) =>
                 {
                     client.BaseAddress = new Uri(appSettings.WdtWmsApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.WdtWmsApi.TimeoutSeconds);
                 })
-                .AddTypedClient<WdtWmsApiAdapter>((client, sp) =>
+                .AddTypedClient<WdtWmsApiClient>((client, sp) =>
                 {
-                    var loggerWdt = sp.GetRequiredService<ILogger<WdtWmsApiAdapter>>();
-                    return new WdtWmsApiAdapter(
+                    var loggerWdt = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
+                    return new WdtWmsApiClient(
                         client,
                         loggerWdt,
                         appSettings.WdtWmsApi.AppKey,
@@ -179,15 +179,15 @@ try
                 });
 
                 // 注册聚水潭ERP API适配器
-                services.AddHttpClient<JushuitanErpApiAdapter>((sp, client) =>
+                services.AddHttpClient<JushuitanErpApiClient>((sp, client) =>
                 {
                     client.BaseAddress = new Uri(appSettings.JushuitanErpApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.JushuitanErpApi.TimeoutSeconds);
                 })
-                .AddTypedClient<JushuitanErpApiAdapter>((client, sp) =>
+                .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
                 {
-                    var loggerJst = sp.GetRequiredService<ILogger<JushuitanErpApiAdapter>>();
-                    return new JushuitanErpApiAdapter(
+                    var loggerJst = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
+                    return new JushuitanErpApiClient(
                         client,
                         loggerJst,
                         appSettings.JushuitanErpApi.PartnerKey,
@@ -197,8 +197,8 @@ try
 
                 // 注册所有适配器到DI容器
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WcsApiClient>());
-                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiAdapter>());
-                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiAdapter>());
+                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
+                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
 
                 // 注册适配器工厂 - 根据配置选择唯一激活的适配器
                 services.AddSingleton<IWcsApiAdapterFactory>(sp =>
