@@ -348,6 +348,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     /// <summary>
     /// 生成签名
     /// Generate signature for API authentication
+    /// JST signature: md5(partnersecret + key1value1key2value2... + partnersecret)
+    /// Parameters are sorted alphabetically by key before concatenation
     /// </summary>
     private string GenerateSign(Dictionary<string, string> parameters)
     {

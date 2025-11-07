@@ -321,7 +321,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
             formContent.Add(new StringContent("1.0"), "v");
             formContent.Add(new StringContent(barcode), "barcode");
             
-            // 生成签名（不包含文件内容）
+            // 生成签名（签名不包含文件内容，只包含非文件参数）
+            // Generate signature (signature excludes file content, only includes non-file parameters)
             var signParams = new Dictionary<string, string>
             {
                 { "method", "wms.parcel.image.upload" },
@@ -389,6 +390,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
     /// 生成签名
     /// Generate signature for API authentication
     /// WDT signature: md5(appsecret + key1value1key2value2... + appsecret)
+    /// Parameters are sorted alphabetically by key before concatenation
     /// </summary>
     private string GenerateSign(Dictionary<string, string> parameters)
     {
