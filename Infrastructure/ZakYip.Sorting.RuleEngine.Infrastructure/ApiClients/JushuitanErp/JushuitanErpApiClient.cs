@@ -66,7 +66,9 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     /// 对应参考代码中的 UploadData 方法
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
-        string barcode,
+        string parcelId,
+        DwsData dwsData,
+        OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = new Stopwatch();
@@ -75,21 +77,22 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         try
         {
             _logger.LogDebug(
-                "聚水潭ERP - 开始请求格口/上传数据，条码: {Barcode}",
-                barcode);
+                "聚水潭ERP - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}",
+                parcelId, dwsData.Barcode);
 
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
 
             // 构造业务参数 (参考代码中的UploadData方法)
+            // 使用DWS数据中的重量
             var biz = new[]
             {
                 new
                 {
-                    l_id = barcode,
+                    l_id = dwsData.Barcode,
                     type = Parameters.Type,
                     is_un_lid = Parameters.IsUnLid,
                     channel = Parameters.Channel,
-                    weight = Parameters.IsUploadWeight ? Parameters.DefaultWeight : -1
+                    weight = Parameters.IsUploadWeight ? (double)dwsData.Weight : -1
                 }
             };
 
@@ -130,72 +133,94 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             if (response.IsSuccessStatusCode && isSuccess)
             {
                 _logger.LogInformation(
-                    "聚水潭ERP - 请求格口成功，条码: {Barcode}, 耗时: {Duration}ms",
-                    barcode, stopwatch.ElapsedMilliseconds);
+                    "聚水潭ERP - 请求格口成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "请求格口成功",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = parcelId,
+                    RequestUrl = Parameters.Url,
+                    RequestBody = bizJson,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "聚水潭ERP - 请求格口失败，条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
-                    barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
+                    "聚水潭ERP - 请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"请求格口失败: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"请求格口失败: {response.StatusCode}",
+                    ParcelId = parcelId,
+                    RequestUrl = Parameters.Url,
+                    RequestBody = bizJson,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
         }
         catch (HttpRequestException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - HTTP请求异常，条码: {Barcode}, 耗时: {Duration}ms", 
-                barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "聚水潭ERP - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+                parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                DurationMs = stopwatch.ElapsedMilliseconds
             };
         }
         catch (TaskCanceledException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - 请求超时，条码: {Barcode}, 耗时: {Duration}ms", 
-                barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "聚水潭ERP - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+                parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = "接口访问返回超时",
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = "接口访问返回超时",
+                ParcelId = parcelId,
+                DurationMs = stopwatch.ElapsedMilliseconds
             };
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - 请求格口异常，条码: {Barcode}, 耗时: {Duration}ms", 
-                barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "聚水潭ERP - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+                parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                DurationMs = stopwatch.ElapsedMilliseconds
             };
         }
     }

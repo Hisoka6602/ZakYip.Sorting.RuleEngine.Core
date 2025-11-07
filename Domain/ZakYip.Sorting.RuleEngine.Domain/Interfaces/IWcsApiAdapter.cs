@@ -21,14 +21,18 @@ public interface IWcsApiAdapter
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 请求格口
+    /// 请求格口（对应参考代码的UploadData方法）
     /// Request a chute/gate number for the parcel
     /// </summary>
-    /// <param name="barcode">包裹条码</param>
+    /// <param name="parcelId">包裹ID</param>
+    /// <param name="dwsData">DWS数据（重量、尺寸等）</param>
+    /// <param name="ocrData">OCR数据（可选）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>WCS API响应，包含格口号</returns>
     Task<WcsApiResponse> RequestChuteAsync(
-        string barcode,
+        string parcelId,
+        DwsData dwsData,
+        OcrData? ocrData = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

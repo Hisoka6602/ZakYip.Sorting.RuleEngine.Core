@@ -108,18 +108,38 @@ public class WcsApiClient : IWcsApiAdapter
     /// Request a chute/gate number for the parcel
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
-        string barcode,
+        string parcelId,
+        DwsData dwsData,
+        OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var requestTime = DateTime.Now;
+        
         try
         {
-            _logger.LogDebug("开始请求格口，条码: {Barcode}", barcode);
+            _logger.LogDebug("开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
-            // 构造请求数据
-            // Build request data
+            // 构造请求数据 - 包含DWS数据
+            // Build request data - including DWS data
             var requestData = new
             {
-                barcode,
+                parcelId,
+                barcode = dwsData.Barcode,
+                weight = dwsData.Weight,
+                length = dwsData.Length,
+                width = dwsData.Width,
+                height = dwsData.Height,
+                volume = dwsData.Volume,
+                scanTime = dwsData.ScannedAt,
+                ocrData = ocrData != null ? new
+                {
+                    threeSegmentCode = ocrData.ThreeSegmentCode,
+                    firstSegmentCode = ocrData.FirstSegmentCode,
+                    secondSegmentCode = ocrData.SecondSegmentCode,
+                    thirdSegmentCode = ocrData.ThirdSegmentCode,
+                    recipientAddress = ocrData.RecipientAddress
+                } : null,
                 requestTime = DateTime.Now
             };
 
@@ -131,46 +151,73 @@ public class WcsApiClient : IWcsApiAdapter
             var response = await _httpClient.PostAsync(ApiConstants.WcsEndpoints.ChuteRequest, content, cancellationToken);
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            stopwatch.Stop();
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "请求格口成功，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
+                    "请求格口成功，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = "Chute requested successfully",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = parcelId,
+                    RequestUrl = ApiConstants.WcsEndpoints.ChuteRequest,
+                    RequestBody = json,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    OcrData = ocrData
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "请求格口失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
-                    barcode, response.StatusCode, responseContent);
+                    "请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, response.StatusCode, responseContent, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"Chute Request Error: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"Chute Request Error: {response.StatusCode}",
+                    ParcelId = parcelId,
+                    RequestUrl = ApiConstants.WcsEndpoints.ChuteRequest,
+                    RequestBody = json,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    OcrData = ocrData
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "请求格口异常，条码: {Barcode}", barcode);
+            stopwatch.Stop();
+            _logger.LogError(ex, "请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", parcelId, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                OcrData = ocrData
             };
         }
     }

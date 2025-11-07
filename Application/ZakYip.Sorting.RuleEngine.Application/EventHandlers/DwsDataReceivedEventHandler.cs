@@ -43,7 +43,9 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         try
         {
             var response = await _apiAdapterFactory.GetActiveAdapter().RequestChuteAsync(
-                notification.DwsData.Barcode,
+                notification.ParcelId,
+                notification.DwsData,
+                null, // OcrData not available in this event
                 cancellationToken);
 
             var apiDuration = DateTime.UtcNow - apiStartTime;
