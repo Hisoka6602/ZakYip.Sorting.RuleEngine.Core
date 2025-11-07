@@ -57,7 +57,7 @@ public static class ResiliencePolicyFactory
     }
 
     /// <summary>
-    /// 创建第三方API熔断策略
+    /// 创建WCS API熔断策略
     /// </summary>
     /// <param name="logger">日志记录器</param>
     /// <param name="failureThreshold">失败阈值（默认50%）</param>
@@ -83,18 +83,18 @@ public static class ResiliencePolicyFactory
                 {
                     logger.LogWarning(
                         args.Outcome.Exception,
-                        "第三方API熔断器开启，熔断时长: {Duration}秒",
+                        "WCS API熔断器开启，熔断时长: {Duration}秒",
                         durationOfBreak);
                     return ValueTask.CompletedTask;
                 },
                 OnClosed = args =>
                 {
-                    logger.LogInformation("第三方API熔断器关闭，恢复正常");
+                    logger.LogInformation("WCS API熔断器关闭，恢复正常");
                     return ValueTask.CompletedTask;
                 },
                 OnHalfOpened = args =>
                 {
-                    logger.LogInformation("第三方API熔断器进入半开状态，开始测试");
+                    logger.LogInformation("WCS API熔断器进入半开状态，开始测试");
                     return ValueTask.CompletedTask;
                 }
             })
@@ -102,7 +102,7 @@ public static class ResiliencePolicyFactory
     }
 
     /// <summary>
-    /// 创建第三方API重试策略
+    /// 创建WCS API重试策略
     /// </summary>
     /// <param name="logger">日志记录器</param>
     /// <param name="maxRetryAttempts">最大重试次数（默认3次）</param>
@@ -123,7 +123,7 @@ public static class ResiliencePolicyFactory
                 {
                     logger.LogWarning(
                         args.Outcome.Exception,
-                        "第三方API调用失败，第{RetryCount}次重试，等待{Delay}秒后重试",
+                        "WCS API调用失败，第{RetryCount}次重试，等待{Delay}秒后重试",
                         args.AttemptNumber,
                         args.RetryDelay.TotalSeconds);
                     return ValueTask.CompletedTask;
@@ -133,7 +133,7 @@ public static class ResiliencePolicyFactory
     }
 
     /// <summary>
-    /// 创建第三方API超时策略
+    /// 创建WCS API超时策略
     /// </summary>
     /// <param name="timeoutSeconds">超时秒数（默认30秒）</param>
     /// <returns>弹性管道</returns>
@@ -196,7 +196,7 @@ public static class ResiliencePolicyFactory
                 {
                     logger.LogWarning(
                         args.Outcome.Exception,
-                        "第三方API调用失败，第{RetryCount}次重试",
+                        "WCS API调用失败，第{RetryCount}次重试",
                         args.AttemptNumber);
                     return ValueTask.CompletedTask;
                 }
@@ -209,7 +209,7 @@ public static class ResiliencePolicyFactory
                 BreakDuration = TimeSpan.FromSeconds(60),
                 OnOpened = args =>
                 {
-                    logger.LogWarning("第三方API熔断器开启");
+                    logger.LogWarning("WCS API熔断器开启");
                     return ValueTask.CompletedTask;
                 }
             })

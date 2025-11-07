@@ -8,20 +8,20 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
-/// 第三方API配置管理控制器
+/// WCS API配置管理控制器
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("第三方API配置管理接口")]
-public class ThirdPartyApiConfigController : ControllerBase
+[SwaggerTag("WCS API配置管理接口")]
+public class WcsApiConfigController : ControllerBase
 {
-    private readonly IThirdPartyApiConfigRepository _repository;
-    private readonly ILogger<ThirdPartyApiConfigController> _logger;
+    private readonly IWcsApiConfigRepository _repository;
+    private readonly ILogger<WcsApiConfigController> _logger;
 
-    public ThirdPartyApiConfigController(
-        IThirdPartyApiConfigRepository repository,
-        ILogger<ThirdPartyApiConfigController> logger)
+    public WcsApiConfigController(
+        IWcsApiConfigRepository repository,
+        ILogger<WcsApiConfigController> logger)
     {
         _repository = repository;
         _logger = logger;
@@ -36,26 +36,26 @@ public class ThirdPartyApiConfigController : ControllerBase
     [HttpGet]
     [SwaggerOperation(
         Summary = "获取所有API配置",
-        Description = "获取系统中所有第三方API配置（API密钥已脱敏）",
+        Description = "获取系统中所有WCS API配置（API密钥已脱敏）",
         OperationId = "GetAllApiConfigs",
-        Tags = new[] { "ThirdPartyApiConfig" }
+        Tags = new[] { "WcsApiConfig" }
     )]
-    [SwaggerResponse(200, "成功返回API配置列表", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 500)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>>> GetAll()
+    [SwaggerResponse(200, "成功返回API配置列表", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<WcsApiConfigResponseDto>>>> GetAll()
     {
         try
         {
             var configs = await _repository.GetAllAsync();
             var dtos = configs.ToResponseDtos();
-            return Ok(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.SuccessResult(dtos));
+            return Ok(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取所有API配置时发生错误");
-            return StatusCode(500, ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.FailureResult("获取API配置失败", "GET_CONFIGS_FAILED"));
+            return StatusCode(500, ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.FailureResult("获取API配置失败", "GET_CONFIGS_FAILED"));
         }
     }
 
@@ -68,26 +68,26 @@ public class ThirdPartyApiConfigController : ControllerBase
     [HttpGet("enabled")]
     [SwaggerOperation(
         Summary = "获取启用的API配置",
-        Description = "获取系统中所有已启用的第三方API配置，按优先级排序（API密钥已脱敏）",
+        Description = "获取系统中所有已启用的WCS API配置，按优先级排序（API密钥已脱敏）",
         OperationId = "GetEnabledApiConfigs",
-        Tags = new[] { "ThirdPartyApiConfig" }
+        Tags = new[] { "WcsApiConfig" }
     )]
-    [SwaggerResponse(200, "成功返回启用的API配置列表", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>))]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>), 500)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>>> GetEnabled()
+    [SwaggerResponse(200, "成功返回启用的API配置列表", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 500)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<WcsApiConfigResponseDto>>>> GetEnabled()
     {
         try
         {
             var configs = await _repository.GetEnabledConfigsAsync();
             var dtos = configs.ToResponseDtos();
-            return Ok(ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.SuccessResult(dtos));
+            return Ok(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取启用的API配置时发生错误");
-            return StatusCode(500, ApiResponse<IEnumerable<ThirdPartyApiConfigResponseDto>>.FailureResult("获取启用的API配置失败", "GET_ENABLED_CONFIGS_FAILED"));
+            return StatusCode(500, ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.FailureResult("获取启用的API配置失败", "GET_ENABLED_CONFIGS_FAILED"));
         }
     }
 
@@ -102,17 +102,17 @@ public class ThirdPartyApiConfigController : ControllerBase
     [HttpGet("{id}")]
     [SwaggerOperation(
         Summary = "根据ID获取API配置",
-        Description = "根据配置ID获取特定第三方API配置的详细信息（API密钥已脱敏）",
+        Description = "根据配置ID获取特定WCS API配置的详细信息（API密钥已脱敏）",
         OperationId = "GetApiConfigById",
-        Tags = new[] { "ThirdPartyApiConfig" }
+        Tags = new[] { "WcsApiConfig" }
     )]
-    [SwaggerResponse(200, "成功返回API配置", typeof(ApiResponse<ThirdPartyApiConfigResponseDto>))]
-    [SwaggerResponse(404, "API配置未找到", typeof(ApiResponse<ThirdPartyApiConfigResponseDto>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<ThirdPartyApiConfigResponseDto>))]
-    [ProducesResponseType(typeof(ApiResponse<ThirdPartyApiConfigResponseDto>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<ThirdPartyApiConfigResponseDto>), 404)]
-    [ProducesResponseType(typeof(ApiResponse<ThirdPartyApiConfigResponseDto>), 500)]
-    public async Task<ActionResult<ApiResponse<ThirdPartyApiConfigResponseDto>>> GetById(
+    [SwaggerResponse(200, "成功返回API配置", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    [SwaggerResponse(404, "API配置未找到", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    [ProducesResponseType(typeof(ApiResponse<WcsApiConfigResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<WcsApiConfigResponseDto>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<WcsApiConfigResponseDto>), 500)]
+    public async Task<ActionResult<ApiResponse<WcsApiConfigResponseDto>>> GetById(
         [SwaggerParameter("配置ID", Required = true)] string id)
     {
         try
@@ -120,15 +120,15 @@ public class ThirdPartyApiConfigController : ControllerBase
             var config = await _repository.GetByIdAsync(id);
             if (config == null)
             {
-                return NotFound(ApiResponse<ThirdPartyApiConfigResponseDto>.FailureResult("API配置未找到", "CONFIG_NOT_FOUND"));
+                return NotFound(ApiResponse<WcsApiConfigResponseDto>.FailureResult("API配置未找到", "CONFIG_NOT_FOUND"));
             }
             var dto = config.ToResponseDto();
-            return Ok(ApiResponse<ThirdPartyApiConfigResponseDto>.SuccessResult(dto));
+            return Ok(ApiResponse<WcsApiConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取API配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, ApiResponse<ThirdPartyApiConfigResponseDto>.FailureResult("获取API配置失败", "GET_CONFIG_FAILED"));
+            return StatusCode(500, ApiResponse<WcsApiConfigResponseDto>.FailureResult("获取API配置失败", "GET_CONFIG_FAILED"));
         }
     }
 
@@ -138,7 +138,7 @@ public class ThirdPartyApiConfigController : ControllerBase
     /// <param name="config">API配置</param>
     /// <returns>创建结果</returns>
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] ThirdPartyApiConfig config)
+    public async Task<ActionResult> Create([FromBody] WcsApiConfig config)
     {
         try
         {
@@ -164,7 +164,7 @@ public class ThirdPartyApiConfigController : ControllerBase
     /// <param name="config">API配置</param>
     /// <returns>更新结果</returns>
     [HttpPut("{id}")]
-    public async Task<ActionResult> Update(string id, [FromBody] ThirdPartyApiConfig config)
+    public async Task<ActionResult> Update(string id, [FromBody] WcsApiConfig config)
     {
         try
         {

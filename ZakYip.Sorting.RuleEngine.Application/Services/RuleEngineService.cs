@@ -46,7 +46,7 @@ public class RuleEngineService : IRuleEngineService
     public async Task<string?> EvaluateRulesAsync(
         ParcelInfo parcelInfo,
         DwsData? dwsData,
-        ThirdPartyResponse? thirdPartyResponse,
+        WcsApiResponse? thirdPartyResponse,
         CancellationToken cancellationToken = default)
     {
         return await _performanceService.ExecuteWithMetricsAsync(
@@ -159,7 +159,7 @@ public class RuleEngineService : IRuleEngineService
         SortingRule rule,
         ParcelInfo parcelInfo,
         DwsData? dwsData,
-        ThirdPartyResponse? thirdPartyResponse)
+        WcsApiResponse? thirdPartyResponse)
     {
         try
         {
@@ -223,7 +223,7 @@ public class RuleEngineService : IRuleEngineService
         string condition,
         ParcelInfo parcelInfo,
         DwsData? dwsData,
-        ThirdPartyResponse? thirdPartyResponse)
+        WcsApiResponse? thirdPartyResponse)
     {
         // Weight条件
         if (condition.StartsWith("Weight", StringComparison.OrdinalIgnoreCase) && dwsData != null)

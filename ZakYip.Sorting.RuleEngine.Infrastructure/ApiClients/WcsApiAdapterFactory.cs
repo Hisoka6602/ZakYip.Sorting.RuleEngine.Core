@@ -4,21 +4,21 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 
 /// <summary>
-/// 第三方API适配器工厂实现
-/// Third-party API adapter factory implementation
+/// WCS API适配器工厂实现
+/// WCS API adapter factory implementation
 /// 根据配置选择唯一激活的API适配器
 /// Selects the single active API adapter based on configuration
 /// </summary>
-public class ThirdPartyApiAdapterFactory : IThirdPartyApiAdapterFactory
+public class WcsApiAdapterFactory : IWcsApiAdapterFactory
 {
-    private readonly IThirdPartyApiAdapter _activeAdapter;
+    private readonly IWcsApiAdapter _activeAdapter;
     private readonly string _activeAdapterName;
-    private readonly ILogger<ThirdPartyApiAdapterFactory> _logger;
+    private readonly ILogger<WcsApiAdapterFactory> _logger;
 
-    public ThirdPartyApiAdapterFactory(
-        IEnumerable<IThirdPartyApiAdapter> adapters,
+    public WcsApiAdapterFactory(
+        IEnumerable<IWcsApiAdapter> adapters,
         string activeAdapterType,
-        ILogger<ThirdPartyApiAdapterFactory> logger)
+        ILogger<WcsApiAdapterFactory> logger)
     {
         _logger = logger;
         
@@ -26,12 +26,12 @@ public class ThirdPartyApiAdapterFactory : IThirdPartyApiAdapterFactory
         // Select the active adapter based on configuration
         _activeAdapter = adapters.FirstOrDefault(a => a.GetType().Name == activeAdapterType)
             ?? adapters.FirstOrDefault()
-            ?? throw new InvalidOperationException("未找到可用的第三方API适配器 / No third-party API adapter found");
+            ?? throw new InvalidOperationException("未找到可用的WCS API适配器 / No wcs API adapter found");
 
         _activeAdapterName = _activeAdapter.GetType().Name;
         
         _logger.LogInformation(
-            "第三方API适配器工厂已初始化，当前激活: {AdapterName}",
+            "WCS API适配器工厂已初始化，当前激活: {AdapterName}",
             _activeAdapterName);
     }
 
@@ -39,7 +39,7 @@ public class ThirdPartyApiAdapterFactory : IThirdPartyApiAdapterFactory
     /// 获取当前激活的API适配器
     /// Get the currently active API adapter
     /// </summary>
-    public IThirdPartyApiAdapter GetActiveAdapter()
+    public IWcsApiAdapter GetActiveAdapter()
     {
         _logger.LogDebug("返回激活的API适配器: {AdapterName}", _activeAdapterName);
         return _activeAdapter;

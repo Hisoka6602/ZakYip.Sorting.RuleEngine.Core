@@ -1,10 +1,10 @@
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
-/// 第三方API配置实体
-/// 用于存储多个第三方API的配置信息
+/// WCS API配置实体
+/// 用于存储多个WCS API的配置信息
 /// </summary>
-public record class ThirdPartyApiConfig
+public record class WcsApiConfig
 {
     /// <summary>
     /// 配置ID（主键）

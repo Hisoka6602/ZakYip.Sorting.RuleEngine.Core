@@ -204,7 +204,7 @@ public class LogController : ControllerBase
     [HttpGet("api-communication")]
     [SwaggerOperation(
         Summary = "获取API通信日志",
-        Description = "查询第三方API通信日志，支持时间范围和包裹ID筛选",
+        Description = "查询WCS API通信日志，支持时间范围和包裹ID筛选",
         OperationId = "GetApiCommunicationLogs",
         Tags = new[] { "Log" }
     )]

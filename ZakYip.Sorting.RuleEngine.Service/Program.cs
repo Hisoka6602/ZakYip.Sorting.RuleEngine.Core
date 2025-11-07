@@ -210,16 +210,16 @@ public class Program
             builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
         }
 
-        // 配置HttpClient用于第三方API
+        // 配置HttpClient用于WCS API
         // 注册所有API适配器实现
-        builder.Services.AddHttpClient<ThirdPartyApiClient>(client =>
+        builder.Services.AddHttpClient<WcsApiClient>(client =>
         {
-            client.BaseAddress = new Uri(appSettings.ThirdPartyApi.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(appSettings.ThirdPartyApi.TimeoutSeconds);
+            client.BaseAddress = new Uri(appSettings.WcsApi.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(appSettings.WcsApi.TimeoutSeconds);
             
-            if (!string.IsNullOrEmpty(appSettings.ThirdPartyApi.ApiKey))
+            if (!string.IsNullOrEmpty(appSettings.WcsApi.ApiKey))
             {
-                client.DefaultRequestHeaders.Add("X-API-Key", appSettings.ThirdPartyApi.ApiKey);
+                client.DefaultRequestHeaders.Add("X-API-Key", appSettings.WcsApi.ApiKey);
             }
         });
 
@@ -257,22 +257,22 @@ public class Program
         });
 
         // 注册所有适配器到DI容器
-        builder.Services.AddSingleton<IThirdPartyApiAdapter>(sp => sp.GetRequiredService<ThirdPartyApiClient>());
-        builder.Services.AddSingleton<IThirdPartyApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
-        builder.Services.AddSingleton<IThirdPartyApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
+        builder.Services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WcsApiClient>());
+        builder.Services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
+        builder.Services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
 
         // 注册适配器工厂 - 根据配置选择唯一激活的适配器
-        builder.Services.AddSingleton<IThirdPartyApiAdapterFactory>(sp =>
+        builder.Services.AddSingleton<IWcsApiAdapterFactory>(sp =>
         {
-            var adapters = sp.GetServices<IThirdPartyApiAdapter>();
-            var logger = sp.GetRequiredService<ILogger<ThirdPartyApiAdapterFactory>>();
-            return new ThirdPartyApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, logger);
+            var adapters = sp.GetServices<IWcsApiAdapter>();
+            var logger = sp.GetRequiredService<ILogger<WcsApiAdapterFactory>>();
+            return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, logger);
         });
 
         // 注册仓储
         builder.Services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
         builder.Services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
-        builder.Services.AddScoped<IThirdPartyApiConfigRepository, LiteDbThirdPartyApiConfigRepository>();
+        builder.Services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
         builder.Services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         builder.Services.AddScoped<IMonitoringAlertRepository, LiteDbMonitoringAlertRepository>();
 
@@ -324,7 +324,7 @@ public class Program
             .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MySqlHealthCheck>("mysql", tags: new[] { "database", "mysql" })
             .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.SqliteHealthCheck>("sqlite", tags: new[] { "database", "sqlite" })
             .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MemoryCacheHealthCheck>("memory_cache", tags: new[] { "cache" })
-            .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.ThirdPartyApiHealthCheck>("third_party_api", tags: new[] { "external", "api" });
+            .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.WcsApiHealthCheck>("wcs_api", tags: new[] { "external", "api" });
 
         // 添加控制器和API服务
         builder.Services.AddControllers(options =>

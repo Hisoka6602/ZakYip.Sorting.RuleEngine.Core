@@ -22,7 +22,7 @@ public class LowCodeExpressionMatcher
         string expression,
         ParcelInfo parcelInfo,
         DwsData? dwsData,
-        ThirdPartyResponse? thirdPartyResponse)
+        WcsApiResponse? thirdPartyResponse)
     {
         if (string.IsNullOrWhiteSpace(expression))
             return false;
@@ -64,7 +64,7 @@ public class LowCodeExpressionMatcher
         string condition,
         ParcelInfo parcelInfo,
         DwsData? dwsData,
-        ThirdPartyResponse? thirdPartyResponse)
+        WcsApiResponse? thirdPartyResponse)
     {
         condition = condition.Trim();
 

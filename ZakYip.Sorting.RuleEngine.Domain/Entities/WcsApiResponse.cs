@@ -1,9 +1,9 @@
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
-/// 第三方API响应实体
+/// WCS API响应实体
 /// </summary>
-public class ThirdPartyResponse
+public class WcsApiResponse
 {
     /// <summary>
     /// 响应是否成功

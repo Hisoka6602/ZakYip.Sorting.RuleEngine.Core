@@ -64,9 +64,9 @@ public static class EntityToDtoMapper
     /// <summary>
     /// 将ThirdPartyApiConfig实体映射为ThirdPartyApiConfigResponseDto（脱敏API密钥）
     /// </summary>
-    public static ThirdPartyApiConfigResponseDto ToResponseDto(this ThirdPartyApiConfig entity)
+    public static WcsApiConfigResponseDto ToResponseDto(this WcsApiConfig entity)
     {
-        return new ThirdPartyApiConfigResponseDto
+        return new WcsApiConfigResponseDto
         {
             ConfigId = entity.ConfigId,
             Name = entity.ApiName,
@@ -86,7 +86,7 @@ public static class EntityToDtoMapper
     /// <summary>
     /// 将ThirdPartyApiConfig实体集合映射为ThirdPartyApiConfigResponseDto集合
     /// </summary>
-    public static IEnumerable<ThirdPartyApiConfigResponseDto> ToResponseDtos(this IEnumerable<ThirdPartyApiConfig> entities)
+    public static IEnumerable<WcsApiConfigResponseDto> ToResponseDtos(this IEnumerable<WcsApiConfig> entities)
     {
         return entities.Select(e => e.ToResponseDto());
     }

@@ -181,7 +181,7 @@ public class LowCodeExpressionMatcherTests
         { 
             FirstSegmentCode = "641234" 
         };
-        var thirdPartyResponse = new ThirdPartyResponse 
+        var thirdPartyResponse = new WcsApiResponse 
         { 
             OcrData = ocrData 
         };

@@ -7,18 +7,18 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 
 /// <summary>
-/// 第三方API客户端实现
-/// Third-party API client implementation
+/// WCS API客户端实现
+/// WCS API client implementation
 /// </summary>
-public class ThirdPartyApiClient : IThirdPartyApiAdapter
+public class WcsApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<ThirdPartyApiClient> _logger;
+    private readonly ILogger<WcsApiClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public ThirdPartyApiClient(
+    public WcsApiClient(
         HttpClient httpClient,
-        ILogger<ThirdPartyApiClient> logger)
+        ILogger<WcsApiClient> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
@@ -31,17 +31,17 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
     }
 
     /// <summary>
-    /// 上传数据到第三方API
-    /// Upload data to third-party API
+    /// 上传数据到WCS API
+    /// Upload data to wcs API
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadDataAsync(
+    public async Task<WcsApiResponse> UploadDataAsync(
         ParcelInfo parcelInfo,
         DwsData dwsData,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("开始调用第三方API，包裹ID: {ParcelId}", parcelInfo.ParcelId);
+            _logger.LogDebug("开始调用WCS API，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
             // 构造请求数据
             // Build request data
@@ -70,10 +70,10 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "第三方API调用成功，包裹ID: {ParcelId}, 状态码: {StatusCode}",
+                    "WCS API调用成功，包裹ID: {ParcelId}, 状态码: {StatusCode}",
                     parcelInfo.ParcelId, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
@@ -84,10 +84,10 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
             else
             {
                 _logger.LogWarning(
-                    "第三方API返回错误，包裹ID: {ParcelId}, 状态码: {StatusCode}, 响应: {Response}",
+                    "WCS API返回错误，包裹ID: {ParcelId}, 状态码: {StatusCode}, 响应: {Response}",
                     parcelInfo.ParcelId, response.StatusCode, responseContent);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -98,9 +98,9 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "第三方API调用异常，包裹ID: {ParcelId}", parcelInfo.ParcelId);
+            _logger.LogError(ex, "WCS API调用异常，包裹ID: {ParcelId}", parcelInfo.ParcelId);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -112,9 +112,9 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
 
     /// <summary>
     /// 扫描包裹
-    /// Scan parcel to register it in the third-party system
+    /// Scan parcel to register it in the wcs system
     /// </summary>
-    public async Task<ThirdPartyResponse> ScanParcelAsync(
+    public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
@@ -145,7 +145,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
                     "扫描包裹成功，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
@@ -159,7 +159,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
                     "扫描包裹失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
                     barcode, response.StatusCode, responseContent);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -172,7 +172,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "扫描包裹异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -186,7 +186,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
     /// 请求格口
     /// Request a chute/gate number for the parcel
     /// </summary>
-    public async Task<ThirdPartyResponse> RequestChuteAsync(
+    public async Task<WcsApiResponse> RequestChuteAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
@@ -217,7 +217,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
                     "请求格口成功，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
@@ -231,7 +231,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
                     "请求格口失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
                     barcode, response.StatusCode, responseContent);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -244,7 +244,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "请求格口异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",
@@ -256,9 +256,9 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
 
     /// <summary>
     /// 上传图片
-    /// Upload image to third-party API
+    /// Upload image to wcs API
     /// </summary>
-    public async Task<ThirdPartyResponse> UploadImageAsync(
+    public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
         string contentType = "image/jpeg",
@@ -305,7 +305,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
                     "上传图片成功，条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
@@ -319,7 +319,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
                     "上传图片失败，条码: {Barcode}, 状态码: {StatusCode}, 响应: {Response}",
                     barcode, response.StatusCode, responseContent);
 
-                return new ThirdPartyResponse
+                return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
@@ -332,7 +332,7 @@ public class ThirdPartyApiClient : IThirdPartyApiAdapter
         {
             _logger.LogError(ex, "上传图片异常，条码: {Barcode}", barcode);
 
-            return new ThirdPartyResponse
+            return new WcsApiResponse
             {
                 Success = false,
                 Code = "ERROR",

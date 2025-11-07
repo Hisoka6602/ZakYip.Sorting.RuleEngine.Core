@@ -106,17 +106,17 @@ public static class TestDataBuilder
     }
 
     /// <summary>
-    /// 创建测试用的第三方API响应
-    /// Create test third-party API response
+    /// 创建测试用的WCS API响应
+    /// Create test wcs API response
     /// </summary>
-    public static ThirdPartyResponse CreateThirdPartyResponse(
+    public static WcsApiResponse CreateThirdPartyResponse(
         bool success = true,
         string code = "200",
         string message = "Success",
         string? data = null,
         OcrData? ocrData = null)
     {
-        return new ThirdPartyResponse
+        return new WcsApiResponse
         {
             Success = success,
             Code = code,
