@@ -180,7 +180,7 @@ public class PostCollectionApiAdapterTests
     {
         // Arrange
         var barcode = "POST123456";
-        var scanTime = DateTime.Now;
+        var scanTime = new DateTime(2024, 1, 1, 12, 0, 0);
         var responseContent = "{\"success\":true,\"scanId\":\"SCAN123\"}";
 
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -215,7 +215,7 @@ public class PostCollectionApiAdapterTests
     {
         // Arrange
         var barcode = "POST123456";
-        var scanTime = DateTime.Now;
+        var scanTime = new DateTime(2024, 1, 1, 12, 0, 0);
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock
