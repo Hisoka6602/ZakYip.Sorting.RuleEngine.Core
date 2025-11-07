@@ -20,7 +20,7 @@ public class WdtWmsApiAdapter : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<WdtWmsApiAdapter> _logger;
-    public ApiParameter Parameters { get; set; }
+    public WdtWmsApiParameters Parameters { get; set; }
 
     public WdtWmsApiAdapter(
         HttpClient httpClient,
@@ -31,7 +31,7 @@ public class WdtWmsApiAdapter : IWcsApiAdapter
     {
         _httpClient = httpClient;
         _logger = logger;
-        Parameters = new ApiParameter
+        Parameters = new WdtWmsApiParameters
         {
             AppKey = appKey,
             AppSecret = appSecret,
@@ -157,7 +157,7 @@ public class WdtWmsApiAdapter : IWcsApiAdapter
             var data = new
             {
                 logistics_no = barcode,
-                weight = 0.0, // 默认重量
+                weight = Parameters.DefaultWeight, // 使用配置的默认重量
                 is_weight = "Y",
                 package_barcode = string.Empty
             };
@@ -409,31 +409,5 @@ public class WdtWmsApiAdapter : IWcsApiAdapter
         var result = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
         var strResult = BitConverter.ToString(result);
         return strResult.Replace("-", "");
-    }
-
-    /// <summary>
-    /// API参数配置类
-    /// </summary>
-    public class ApiParameter
-    {
-        public string Url { get; set; } = string.Empty;
-        
-        public string Sid { get; set; } = string.Empty;
-        
-        public string AppKey { get; set; } = string.Empty;
-        
-        public string AppSecret { get; set; } = string.Empty;
-        
-        public string Method { get; set; } = "wms.logistics.Consign.weigh";
-
-        /// <summary>
-        /// 超时时间（毫秒）
-        /// </summary>
-        public int TimeOut { get; set; } = 5000;
-
-        /// <summary>
-        /// 表示是否必须包含包装条码
-        /// </summary>
-        public bool MustIncludeBoxBarcode { get; set; } = false;
     }
 }

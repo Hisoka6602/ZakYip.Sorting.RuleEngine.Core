@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -19,7 +19,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<JushuitanErpApiAdapter> _logger;
-    private readonly ApiParameters _parameters;
+    private readonly JushuitanErpApiParameters _parameters;
 
     public JushuitanErpApiAdapter(
         HttpClient httpClient,
@@ -30,7 +30,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
     {
         _httpClient = httpClient;
         _logger = logger;
-        _parameters = new ApiParameters
+        _parameters = new JushuitanErpApiParameters
         {
             AppKey = appKey,
             AppSecret = appSecret,
@@ -60,7 +60,7 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
                 page_size = 1
             };
 
-            var bizContentJson = System.Text.Json.JsonSerializer.Serialize(bizContent);
+            var bizContentJson = JsonConvert.SerializeObject(bizContent);
 
             var requestData = new Dictionary<string, string>
             {
@@ -342,67 +342,5 @@ public class JushuitanErpApiAdapter : IWcsApiAdapter
             sb.Append(b.ToString("x2")); // x2 = 小写
         }
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// API参数配置类
-    /// </summary>
-    public class ApiParameters
-    {
-        /// <summary>
-        /// Url
-        /// </summary>
-        public string Url { get; set; } = "https://openapi.jushuitan.com/open/orders/weight/send/upload";
-
-        /// <summary>
-        /// 超时时间（毫秒）
-        /// </summary>
-        public int TimeOut { get; set; } = 5000;
-
-        /// <summary>
-        /// AppKey
-        /// </summary>
-        public string AppKey { get; set; } = string.Empty;
-
-        /// <summary>
-        /// AppSecret
-        /// </summary>
-        public string AppSecret { get; set; } = string.Empty;
-
-        /// <summary>
-        /// AccessToken
-        /// </summary>
-        public string AccessToken { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 版本
-        /// </summary>
-        public int Version { get; set; } = 2;
-
-        /// <summary>
-        /// 是否上传重量（默认值 true）
-        /// </summary>
-        public bool IsUploadWeight { get; set; } = true;
-
-        /// <summary>
-        /// 称重类型（默认值为 1）
-        /// 0: 验货后称重
-        /// 1: 验货后称重并发货
-        /// 2: 无须验货称重
-        /// 3: 无须验货称重并发货
-        /// 4: 发货后称重
-        /// 5: 自动判断称重并发货
-        /// </summary>
-        public int Type { get; set; } = 1;
-
-        /// <summary>
-        /// 是否为国际运单号（默认值 false，表示国内快递）
-        /// </summary>
-        public bool IsUnLid { get; set; } = false;
-
-        /// <summary>
-        /// 称重来源备注（会显示在订单操作日志中）
-        /// </summary>
-        public string Channel { get; set; } = string.Empty;
     }
 }
