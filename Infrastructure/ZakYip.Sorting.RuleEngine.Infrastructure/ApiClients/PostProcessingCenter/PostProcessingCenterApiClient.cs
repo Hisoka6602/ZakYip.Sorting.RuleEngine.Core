@@ -1,5 +1,5 @@
 using System.Text;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -11,12 +11,22 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCent
 /// 邮政处理中心API客户端实现
 /// Postal Processing Center API client implementation
 /// 参考: https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e (PostApi)
+/// 使用SOAP协议进行通信
 /// </summary>
 public class PostProcessingCenterApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<PostProcessingCenterApiClient> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private static long _sequenceNumber = 1;
+    private readonly object _sequenceLock = new();
+
+    // Configuration parameters - should be injected via options pattern in production
+    private const string WorkshopCode = "WS20140010";
+    private const string DeviceId = "20140010";
+    private const string CompanyName = "广东泽业科技有限公司";
+    private const string DeviceBarcode = "141562320001131";
+    private const string OrganizationNumber = "20140011";
+    private const string EmployeeNumber = "00818684";
 
     public PostProcessingCenterApiClient(
         HttpClient httpClient,
@@ -24,43 +34,64 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     {
         _httpClient = httpClient;
         _logger = logger;
-        
-        _jsonOptions = new JsonSerializerOptions
+    }
+
+    private long GetNextSequenceNumber()
+    {
+        lock (_sequenceLock)
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
+            return _sequenceNumber++;
+        }
     }
 
     /// <summary>
     /// 扫描包裹到邮政处理中心系统
     /// Scan parcel to register it in the postal processing center system
-    /// 对应参考代码中的 SubmitScanInfo 方法
+    /// 对应参考代码中的 SubmitScanInfo 方法 (getYJSM)
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var requestTime = DateTime.Now;
+        
         try
         {
+            // Skip processing for "NoRead" barcodes
+            if (barcode.Contains("NoRead", StringComparison.InvariantCultureIgnoreCase))
+            {
+                _logger.LogDebug("跳过NoRead条码扫描: {Barcode}", barcode);
+                return new WcsApiResponse
+                {
+                    Success = true,
+                    Code = ApiConstants.HttpStatusCodes.Success,
+                    Message = "NoRead barcode skipped",
+                    Data = "NoRead barcode skipped",
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    DurationMs = 0
+                };
+            }
+
             _logger.LogDebug("开始扫描包裹到邮政处理中心，条码: {Barcode}", barcode);
 
-            // 构造请求数据
-            var requestData = new
-            {
-                barcode,
-                scanTime = DateTime.Now,
-                version = ApiConstants.PostProcessingCenterApi.CommonParams.Version
-            };
+            // 构造SOAP请求 - getYJSM方法
+            var soapRequest = $@"
+<soapenv:Envelope xmlns:web=""http://serverNs.webservice.pcs.jdpt.chinapost.cn/"" xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"">
+    <soapenv:Header />
+    <soapenv:Body>
+        <web:getYJSM>
+            <arg0>#HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{DateTime.Now:yyyyMMddHHmmss}::2::001::0000::0000::0::0::0::0::0::0::0||#END</arg0>
+        </web:getYJSM>
+    </soapenv:Body>
+</soapenv:Envelope>";
 
-            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
+            var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
-            // 发送POST请求到邮政处理中心扫描端点
-            var endpoint = $"{ApiConstants.PostProcessingCenterApi.RouterEndpoint}{ApiConstants.PostProcessingCenterApi.Endpoints.ScanUpload}";
-            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
-
+            // 发送SOAP请求
+            var response = await _httpClient.PostAsync("", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseContent = Regex.Unescape(responseContent);
 
             if (response.IsSuccessStatusCode)
             {
@@ -73,7 +104,12 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     Success = true,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = "Parcel scanned successfully at processing center",
-                    Data = responseContent
+                    Data = responseContent,
+                    RequestBody = soapRequest,
+                    ResponseBody = responseContent,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode
                 };
             }
             else
@@ -87,7 +123,13 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"Scan Error: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    RequestBody = soapRequest,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"Scan Error: {response.StatusCode}",
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode
                 };
             }
         }
@@ -100,7 +142,10 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now
             };
         }
     }
@@ -108,7 +153,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// <summary>
     /// 请求格口号（查询包裹路由信息并返回格口）
     /// Request a chute/gate number for the parcel (query routing and return chute)
-    /// 对应参考代码中的 UploadData 方法
+    /// 对应参考代码中的 UploadData 方法 (getLTGKCX)
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
@@ -126,45 +171,39 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             // 先提交扫描信息（对应参考代码中UploadData内部调用SubmitScanInfo）
             await ScanParcelAsync(dwsData.Barcode, cancellationToken);
 
-            // 构造请求数据 - 包含DWS数据
-            var requestData = new
-            {
-                parcelId,
-                barcode = dwsData.Barcode,
-                weight = dwsData.Weight,
-                length = dwsData.Length,
-                width = dwsData.Width,
-                height = dwsData.Height,
-                volume = dwsData.Volume,
-                scanTime = dwsData.ScannedAt,
-                // 如果有OCR数据，也包含进去
-                ocrData = ocrData != null ? new
-                {
-                    threeSegmentCode = ocrData.ThreeSegmentCode,
-                    firstSegmentCode = ocrData.FirstSegmentCode,
-                    secondSegmentCode = ocrData.SecondSegmentCode,
-                    thirdSegmentCode = ocrData.ThirdSegmentCode,
-                    recipientAddress = ocrData.RecipientAddress
-                } : null,
-                requestTime = DateTime.Now,
-                version = ApiConstants.PostProcessingCenterApi.CommonParams.Version
-            };
+            var seqNum = GetNextSequenceNumber();
+            var yearMonth = DateTime.Now.ToString("yyyyMM");
+            var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
-            var json = JsonSerializer.Serialize(requestData, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
+            // 构造SOAP请求 - getLTGKCX方法（查询格口）
+            var soapRequest = $@"
+<soapenv:Envelope xmlns:web=""http://serverNs.webservice.pcs.jdpt.chinapost.cn/"" xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"">
+    <soapenv:Header />
+    <soapenv:Body>
+        <web:getLTGKCX>
+            <arg0>#HEAD::{sequenceId}::{DeviceId}::{dwsData.Barcode}::0:: :: :: ::{DateTime.Now:yyyy-MM-dd HH:mm:ss}::{EmployeeNumber}::{OrganizationNumber}::{CompanyName}::{DeviceBarcode}::||#END</arg0>
+        </web:getLTGKCX>
+    </soapenv:Body>
+</soapenv:Envelope>";
 
-            // 发送POST请求查询路由
-            var endpoint = $"{ApiConstants.PostProcessingCenterApi.RouterEndpoint}{ApiConstants.PostProcessingCenterApi.Endpoints.RoutingQuery}";
-            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+            var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
+            // 发送SOAP请求
+            var response = await _httpClient.PostAsync("", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseContent = Regex.Unescape(responseContent);
+            
             stopwatch.Stop();
 
-            if (response.IsSuccessStatusCode)
+            // 解析响应，提取格口信息
+            var chute = ExtractChuteFromResponse(responseContent);
+            var isSuccess = !string.IsNullOrEmpty(chute);
+
+            if (response.IsSuccessStatusCode && isSuccess)
             {
                 _logger.LogInformation(
-                    "请求格口成功（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
-                    parcelId, dwsData.Barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
+                    "请求格口成功（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}, 格口: {Chute}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    parcelId, dwsData.Barcode, chute, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
@@ -174,8 +213,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
-                    RequestUrl = endpoint,
-                    RequestBody = json,
+                    RequestBody = soapRequest,
                     RequestTime = requestTime,
                     ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
@@ -198,8 +236,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseBody = responseContent,
                     ErrorMessage = $"Chute Request Error: {response.StatusCode}",
                     ParcelId = parcelId,
-                    RequestUrl = endpoint,
-                    RequestBody = json,
+                    RequestBody = soapRequest,
                     RequestTime = requestTime,
                     ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
@@ -227,6 +264,34 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 OcrData = ocrData
             };
         }
+    }
+
+    /// <summary>
+    /// 从SOAP响应中提取格口信息
+    /// Extract chute information from SOAP response
+    /// </summary>
+    private string? ExtractChuteFromResponse(string responseContent)
+    {
+        if (string.IsNullOrWhiteSpace(responseContent))
+        {
+            return null;
+        }
+
+        var pattern = @"#HEAD::(.*?)::\|\|#END";
+        var match = Regex.Match(responseContent, pattern);
+        if (match.Success)
+        {
+            var content = match.Groups[1].Value;
+            var parts = content.Split(new string[] { "::" }, StringSplitOptions.None);
+
+            if (parts.Length > 7 && parts[7].Length >= 4)
+            {
+                // 格口在第8个字段（索引7），取前4位
+                return parts[7][..4];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
