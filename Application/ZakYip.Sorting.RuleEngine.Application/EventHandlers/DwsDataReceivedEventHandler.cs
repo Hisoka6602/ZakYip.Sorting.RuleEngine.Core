@@ -57,16 +57,17 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                     $"WCS API响应已接收: {notification.ParcelId}",
                     $"成功: {response.Success}, 消息: {response.Message}");
                 
-                // 发布WCS API调用事件
+                // 发布WCS API调用事件，包含完整的API响应数据
                 await _publisher.Publish(new WcsApiCalledEvent
                 {
                     ParcelId = notification.ParcelId,
-                    ApiUrl = "/api/chute/request",
+                    ApiUrl = response.RequestUrl ?? "/api/chute/request",
                     IsSuccess = response.Success,
-                    StatusCode = int.TryParse(response.Code, out var code) ? code : null,
-                    DurationMs = (long)apiDuration.TotalMilliseconds,
+                    StatusCode = response.ResponseStatusCode,
+                    DurationMs = response.DurationMs,
                     CalledAt = DateTime.Now,
-                    ErrorMessage = response.Success ? null : response.Message
+                    ErrorMessage = response.Success ? null : response.Message,
+                    ApiResponse = response
                 }, cancellationToken);
             }
         }
@@ -88,7 +89,8 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 StatusCode = null,
                 DurationMs = (long)apiDuration.TotalMilliseconds,
                 CalledAt = DateTime.Now,
-                ErrorMessage = ex.Message
+                ErrorMessage = ex.Message,
+                ApiResponse = null
             }, cancellationToken);
         }
     }

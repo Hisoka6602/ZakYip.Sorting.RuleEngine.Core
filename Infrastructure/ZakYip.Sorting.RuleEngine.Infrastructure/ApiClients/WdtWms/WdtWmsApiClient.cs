@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
@@ -48,16 +49,29 @@ public class WdtWmsApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var requestTime = DateTime.Now;
+        
         _logger.LogWarning("旺店通WMS不支持扫描包裹功能，条码: {Barcode}", barcode);
         
         await Task.CompletedTask;
+        stopwatch.Stop();
         
         return new WcsApiResponse
         {
             Success = true,
             Code = ApiConstants.HttpStatusCodes.Success,
             Message = "旺店通WMS不支持扫描包裹功能",
-            Data = "{\"info\":\"Feature not supported\"}"
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = barcode,
+            RequestUrl = "N/A",
+            RequestBody = "N/A",
+            RequestHeaders = "{}",
+            RequestTime = requestTime,
+            ResponseTime = DateTime.Now,
+            DurationMs = stopwatch.ElapsedMilliseconds,
+            FormattedCurl = "# Feature not supported by WDT WMS"
         };
     }
 
@@ -74,7 +88,14 @@ public class WdtWmsApiClient : IWcsApiAdapter
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
+        var requestTime = DateTime.Now;
 
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
+        
         try
         {
             _logger.LogDebug("WDT WMS - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
@@ -103,6 +124,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
             requestData.Add("sign", sign);
 
             var param = string.Join("&", requestData.OrderBy(o => o.Key).Select(s => $"{s.Key}={s.Value}"));
+            var requestUrl = $"{Parameters.Url}?{param}";
 
             _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
 
@@ -112,6 +134,18 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 stopwatch.Stop();
                 _logger.LogWarning("WDT WMS - 包装码不能为空，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
+                // 生成请求信息（即使失败也要记录）
+                var headers = new Dictionary<string, string>
+                {
+                    ["Content-Type"] = "text/xml"
+                };
+                formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
+                    "POST",
+                    requestUrl,
+                    headers,
+                    JsonConvert.SerializeObject(data));
+                requestHeaders = ApiRequestHelper.FormatHeaders(headers);
+
                 return new WcsApiResponse
                 {
                     Success = false,
@@ -120,7 +154,13 @@ public class WdtWmsApiClient : IWcsApiAdapter
                     Data = string.Empty,
                     ErrorMessage = "包装码不能为空",
                     ParcelId = parcelId,
-                    DurationMs = stopwatch.ElapsedMilliseconds
+                    RequestUrl = requestUrl,
+                    RequestBody = JsonConvert.SerializeObject(data),
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
 
@@ -128,9 +168,22 @@ public class WdtWmsApiClient : IWcsApiAdapter
             using HttpContent content = new StreamContent(dataStream);
             content.Headers.Add("Content-Type", "text/xml");
 
-            var response = await _httpClient.PostAsync($"{Parameters.Url}?{param}", content, cancellationToken);
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            // 生成请求信息
+            var reqHeaders = new Dictionary<string, string>
+            {
+                ["Content-Type"] = "text/xml"
+            };
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                requestUrl,
+                reqHeaders,
+                JsonConvert.SerializeObject(data));
+            requestHeaders = ApiRequestHelper.FormatHeaders(reqHeaders);
+
+            response = await _httpClient.PostAsync(requestUrl, content, cancellationToken);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             responseContent = Regex.Unescape(responseContent);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             bool isSuccess = false;
             string? exceptionMsg = null;
@@ -172,10 +225,15 @@ public class WdtWmsApiClient : IWcsApiAdapter
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
-                    RequestUrl = $"{Parameters.Url}?{param}",
+                    RequestUrl = requestUrl,
                     RequestBody = JsonConvert.SerializeObject(data),
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
-                    DurationMs = stopwatch.ElapsedMilliseconds
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
             else
@@ -193,10 +251,15 @@ public class WdtWmsApiClient : IWcsApiAdapter
                     ResponseBody = responseContent,
                     ErrorMessage = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
                     ParcelId = parcelId,
-                    RequestUrl = $"{Parameters.Url}?{param}",
+                    RequestUrl = requestUrl,
                     RequestBody = JsonConvert.SerializeObject(data),
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
-                    DurationMs = stopwatch.ElapsedMilliseconds
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
         }
@@ -214,7 +277,14 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
-                DurationMs = stopwatch.ElapsedMilliseconds
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
         catch (TaskCanceledException ex)
@@ -231,7 +301,14 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = "接口访问返回超时",
                 ParcelId = parcelId,
-                DurationMs = stopwatch.ElapsedMilliseconds
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
         catch (Exception ex)
@@ -248,7 +325,14 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
-                DurationMs = stopwatch.ElapsedMilliseconds
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
     }
@@ -263,6 +347,16 @@ public class WdtWmsApiClient : IWcsApiAdapter
         string contentType = "image/jpeg",
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var requestTime = DateTime.Now;
+        
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
+        
         try
         {
             _logger.LogDebug(
@@ -300,48 +394,98 @@ public class WdtWmsApiClient : IWcsApiAdapter
             imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
             formContent.Add(imageContent, "image", $"{barcode}.jpg");
 
-            var response = await _httpClient.PostAsync(Parameters.Url, formContent, cancellationToken);
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            // 生成请求信息
+            var headers = new Dictionary<string, string>
+            {
+                ["Content-Type"] = $"multipart/form-data; boundary={formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary")?.Value}"
+            };
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                Parameters.Url,
+                headers,
+                $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]");
+            requestHeaders = ApiRequestHelper.FormatHeaders(headers);
+
+            response = await _httpClient.PostAsync(Parameters.Url, formContent, cancellationToken);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
+
+            stopwatch.Stop();
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "WDT WMS - 上传图片成功，条码: {Barcode}",
-                    barcode);
+                    "WDT WMS - 上传图片成功，条码: {Barcode}, 耗时: {Duration}ms",
+                    barcode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = ApiConstants.HttpStatusCodes.Success,
                     Message = "上传图片成功",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ParcelId = barcode,
+                    RequestUrl = Parameters.Url,
+                    RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
             else
             {
                 _logger.LogWarning(
-                    "WDT WMS - 上传图片失败，条码: {Barcode}, 状态码: {StatusCode}",
-                    barcode, response.StatusCode);
+                    "WDT WMS - 上传图片失败，条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
                     Message = $"上传图片失败: {response.StatusCode}",
-                    Data = responseContent
+                    Data = responseContent,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"上传图片失败: {response.StatusCode}",
+                    ParcelId = barcode,
+                    RequestUrl = Parameters.Url,
+                    RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "WDT WMS - 上传图片异常，条码: {Barcode}", barcode);
+            stopwatch.Stop();
+            _logger.LogError(ex, "WDT WMS - 上传图片异常，条码: {Barcode}, 耗时: {Duration}ms", barcode, stopwatch.ElapsedMilliseconds);
 
             return new WcsApiResponse
             {
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = barcode,
+                RequestUrl = Parameters.Url,
+                RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
     }

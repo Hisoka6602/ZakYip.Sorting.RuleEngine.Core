@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 
@@ -47,16 +48,29 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var requestTime = DateTime.Now;
+        
         _logger.LogWarning("聚水潭ERP不支持扫描包裹功能，条码: {Barcode}", barcode);
         
         await Task.CompletedTask;
+        stopwatch.Stop();
         
         return new WcsApiResponse
         {
             Success = true,
             Code = ApiConstants.HttpStatusCodes.Success,
             Message = "聚水潭ERP不支持扫描包裹功能",
-            Data = "{\"info\":\"Feature not supported\"}"
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = barcode,
+            RequestUrl = "N/A",
+            RequestBody = "N/A",
+            RequestHeaders = "{}",
+            RequestTime = requestTime,
+            ResponseTime = DateTime.Now,
+            DurationMs = stopwatch.ElapsedMilliseconds,
+            FormattedCurl = "# Feature not supported by Jushuituan ERP"
         };
     }
 
@@ -73,7 +87,14 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
+        var requestTime = DateTime.Now;
 
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
+        
         try
         {
             _logger.LogDebug(
@@ -114,8 +135,21 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
             var content = new FormUrlEncodedContent(requestData);
 
-            var response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken);
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            // 生成请求信息
+            var headers = new Dictionary<string, string>
+            {
+                ["Content-Type"] = "application/x-www-form-urlencoded"
+            };
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                Parameters.Url,
+                headers,
+                bizJson);
+            requestHeaders = ApiRequestHelper.FormatHeaders(headers);
+
+            response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             bool isSuccess = false;
             if (!string.IsNullOrWhiteSpace(responseContent))
@@ -152,8 +186,13 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                     ParcelId = parcelId,
                     RequestUrl = Parameters.Url,
                     RequestBody = bizJson,
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
-                    DurationMs = stopwatch.ElapsedMilliseconds
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
             else
@@ -173,8 +212,13 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                     ParcelId = parcelId,
                     RequestUrl = Parameters.Url,
                     RequestBody = bizJson,
+                    RequestHeaders = requestHeaders,
+                    RequestTime = requestTime,
+                    ResponseTime = DateTime.Now,
                     ResponseStatusCode = (int)response.StatusCode,
-                    DurationMs = stopwatch.ElapsedMilliseconds
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = formattedCurl
                 };
             }
         }
@@ -192,7 +236,14 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
-                DurationMs = stopwatch.ElapsedMilliseconds
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
         catch (TaskCanceledException ex)
@@ -209,7 +260,14 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = "接口访问返回超时",
                 ParcelId = parcelId,
-                DurationMs = stopwatch.ElapsedMilliseconds
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
         catch (Exception ex)
@@ -226,7 +284,14 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
-                DurationMs = stopwatch.ElapsedMilliseconds
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl
             };
         }
     }
@@ -241,6 +306,10 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         string contentType = "image/jpeg",
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var requestTime = DateTime.Now;
+        
         try
         {
             _logger.LogDebug(
@@ -250,17 +319,27 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             // 聚水潭ERP当前版本不支持直接上传图片
             // 返回成功响应以保持接口一致性
             await Task.CompletedTask;
+            stopwatch.Stop();
 
             return new WcsApiResponse
             {
                 Success = true,
                 Code = ApiConstants.HttpStatusCodes.Success,
                 Message = "聚水潭ERP暂不支持图片上传功能",
-                Data = "{\"info\":\"Feature not supported\"}"
+                Data = "{\"info\":\"Feature not supported\"}",
+                ParcelId = barcode,
+                RequestUrl = "N/A",
+                RequestBody = $"[image upload request: size={imageData.Length} bytes]",
+                RequestHeaders = "{}",
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = "# Feature not supported by Jushuituan ERP"
             };
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
             _logger.LogError(ex, "聚水潭ERP - 上传图片异常，条码: {Barcode}", barcode);
 
             return new WcsApiResponse
@@ -268,7 +347,16 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 Success = false,
                 Code = ApiConstants.HttpStatusCodes.Error,
                 Message = ex.Message,
-                Data = ex.ToString()
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = barcode,
+                RequestUrl = "N/A",
+                RequestBody = $"[image upload request: size={imageData.Length} bytes]",
+                RequestHeaders = "{}",
+                RequestTime = requestTime,
+                ResponseTime = DateTime.Now,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = "# Feature not supported by Jushuituan ERP"
             };
         }
     }
