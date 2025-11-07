@@ -31,13 +31,13 @@ public class LiteDbChuteRepository : IChuteRepository
     public Task<Chute?> GetByIdAsync(long chuteId, CancellationToken cancellationToken = default)
     {
         var chute = _collection.FindById(chuteId);
-        return Task.FromResult(chute);
+        return Task.FromResult<Chute?>(chute);
     }
 
     public Task<Chute?> GetByCodeAsync(string chuteCode, CancellationToken cancellationToken = default)
     {
         var chute = _collection.FindOne(x => x.ChuteCode == chuteCode);
-        return Task.FromResult(chute);
+        return Task.FromResult<Chute?>(chute);
     }
 
     public Task<Chute> AddAsync(Chute chute, CancellationToken cancellationToken = default)

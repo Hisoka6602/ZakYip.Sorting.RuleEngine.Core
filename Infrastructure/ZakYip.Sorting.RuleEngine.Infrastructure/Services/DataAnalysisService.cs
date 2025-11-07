@@ -620,14 +620,15 @@ public class DataAnalysisService : IDataAnalysisService
 
         // 步骤5：批量加载关联数据
         var parcelIds = allLogs.Select(l => l.ParcelId).Distinct().ToList();
-        var chuteIds = allLogs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
+        var chuteIds = allLogs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId!.Value).Distinct().ToList();
 
         var dwsLogs = await _mysqlContext.DwsCommunicationLogs
-            .Where(d => parcelIds.Contains(d.Barcode))
+            .Where(d => d.Barcode != null && parcelIds.Contains(d.Barcode))
             .OrderByDescending(d => d.CommunicationTime)
             .ToListAsync(cancellationToken);
         var dwsLogDict = dwsLogs
-            .GroupBy(d => d.Barcode)
+            .Where(d => d.Barcode != null)
+            .GroupBy(d => d.Barcode!)
             .ToDictionary(g => g.Key, g => g.First());
 
         var apiLogs = await _mysqlContext.ApiCommunicationLogs
@@ -729,10 +730,10 @@ public class DataAnalysisService : IDataAnalysisService
 
         // 批量查询相关数据
         var parcelIds = allLogs.Select(l => l.ParcelId).Distinct().ToList();
-        var chuteIds = allLogs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId.Value).Distinct().ToList();
+        var chuteIds = allLogs.Where(l => l.ChuteId.HasValue).Select(l => l.ChuteId!.Value).Distinct().ToList();
 
         var dwsLogs = await _sqliteContext.DwsCommunicationLogs
-            .Where(d => parcelIds.Contains(d.Barcode))
+            .Where(d => d.Barcode != null && parcelIds.Contains(d.Barcode))
             .OrderByDescending(d => d.CommunicationTime)
             .ToListAsync(cancellationToken);
 
@@ -747,7 +748,8 @@ public class DataAnalysisService : IDataAnalysisService
 
         // 构建查找字典
         var dwsLogDict = dwsLogs
-            .GroupBy(d => d.Barcode)
+            .Where(d => d.Barcode != null)
+            .GroupBy(d => d.Barcode!)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.CommunicationTime).First());
 
         var apiLogDict = apiLogs
