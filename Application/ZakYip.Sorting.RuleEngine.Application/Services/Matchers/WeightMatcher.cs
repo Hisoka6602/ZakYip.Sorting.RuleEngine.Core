@@ -1,4 +1,5 @@
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
@@ -11,6 +12,7 @@ public class WeightMatcher
     /// <summary>
     /// 评估重量匹配表达式
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(string expression, decimal weight)
     {
         if (string.IsNullOrWhiteSpace(expression))
@@ -34,6 +36,7 @@ public class WeightMatcher
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string NormalizeLogicalOperators(string expression)
     {
         // 替换and/or为&&/||
@@ -56,6 +59,7 @@ public class WeightMatcher
         return expression;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateBooleanExpression(string expression)
     {
         try
@@ -86,6 +90,7 @@ public class WeightMatcher
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateComparison(string expression)
     {
         expression = expression.Trim();

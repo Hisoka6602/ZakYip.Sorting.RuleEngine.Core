@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
@@ -12,6 +13,7 @@ public class VolumeMatcher
     /// <summary>
     /// 评估体积匹配表达式
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(string expression, DwsData dwsData)
     {
         if (string.IsNullOrWhiteSpace(expression) || dwsData == null)

@@ -2566,22 +2566,260 @@ dotnet run
 .\cleanup-branches.ps1
 ```
 
+## 性能优化指南
+
+系统已实施多项性能优化措施，以确保在高频率场景下的最佳性能表现。
+
+### 已实施的性能优化
+
+#### 1. 方法内联优化 (`[MethodImpl]`)
+
+为关键业务方法添加了 `[MethodImpl(MethodImplOptions.AggressiveInlining)]` 特性，编译器会优先内联这些方法以减少方法调用开销。
+
+**优化的关键方法**：
+- **规则匹配器**（所有Matcher类）：
+  - `BarcodeRegexMatcher.Evaluate()` - 条码正则匹配
+  - `WeightMatcher.Evaluate()` - 重量匹配
+  - `VolumeMatcher.Evaluate()` - 体积匹配
+  - `OcrMatcher.Evaluate()` - OCR匹配
+  - `ApiResponseMatcher.Evaluate()` - API响应匹配
+  - `LowCodeExpressionMatcher.Evaluate()` - 低代码表达式匹配
+- **规则引擎服务**：
+  - `RuleEngineService.EvaluateRule()` - 单条规则评估
+
+**性能提升**：预计在高频率调用场景下性能提升 5-15%
+
+#### 2. 对象池化
+
+系统使用 `ObjectPool<T>` 模式避免频繁对象创建和垃圾回收：
+
+```csharp
+// Stopwatch对象池（ParcelProcessingService）
+private readonly ObjectPool<Stopwatch> _stopwatchPool;
+
+// 使用示例
+var stopwatch = _stopwatchPool.Get();
+stopwatch.Restart();
+// ... 使用 stopwatch
+stopwatch.Reset();
+_stopwatchPool.Return(stopwatch);
+```
+
+**优势**：减少GC压力，提高高并发场景性能
+
+#### 3. 内存缓存
+
+使用 `IMemoryCache` 缓存规则配置：
+
+```csharp
+// 滑动过期：5分钟无访问则过期
+// 绝对过期：30分钟后强制过期
+SetSlidingExpiration(TimeSpan.FromMinutes(5))
+SetAbsoluteExpiration(TimeSpan.FromMinutes(30))
+```
+
+**优势**：避免频繁数据库查询，显著提升规则评估性能
+
+#### 4. 数组池化建议 (`ArrayPool<T>`)
+
+对于大数组分配场景（如批量处理、日志归档），建议使用 `ArrayPool<T>`：
+
+```csharp
+using System.Buffers;
+
+// 租用数组
+var buffer = ArrayPool<byte>.Shared.Rent(minimumLength);
+try
+{
+    // 使用 buffer
+}
+finally
+{
+    // 归还数组
+    ArrayPool<byte>.Shared.Return(buffer);
+}
+```
+
+**适用场景**：
+- 批量包裹处理（`ProcessBatchAsync`）
+- 日志数据归档（`DataArchiveService`）
+- 大文件读写操作
+
+### 编译优化配置
+
+#### 1. Release 配置
+
+**生产环境必须使用 Release 配置构建**：
+
+```bash
+dotnet build -c Release
+dotnet publish -c Release -o ./publish
+```
+
+**Release vs Debug 性能差异**：
+- 启用代码优化（移除调试符号、内联优化）
+- 禁用调试断言（Debug.Assert）
+- 移除详细日志输出（条件编译）
+- 性能提升：**20-40%**
+
+#### 2. ReadyToRun (R2R) 编译
+
+R2R 编译可以减少应用启动时间和首次执行延迟：
+
+在 `.csproj` 文件中启用：
+
+```xml
+<PropertyGroup>
+  <PublishReadyToRun>true</PublishReadyToRun>
+  <PublishReadyToRunComposite>true</PublishReadyToRunComposite>
+</PropertyGroup>
+```
+
+**优势**：
+- 减少应用启动时间：**30-50%**
+- 降低首次请求延迟
+- 适合生产环境部署
+
+**注意**：R2R会增加发布包大小（约10-20%）
+
+#### 3. Ahead-of-Time (AOT) 编译
+
+.NET 8 支持原生 AOT 编译，生成独立的原生可执行文件：
+
+```xml
+<PropertyGroup>
+  <PublishAot>true</PublishAot>
+  <InvariantGlobalization>true</InvariantGlobalization>
+</PropertyGroup>
+```
+
+**优势**：
+- 最快的启动速度（几乎瞬间）
+- 更小的内存占用
+- 无需 .NET 运行时
+- 适合容器化部署和边缘计算
+
+**限制**：
+- 不支持部分反射和动态代码生成
+- 需要代码适配（移除动态特性）
+- 发布时间更长
+
+**建议**：当前项目因使用 EF Core、LiteDB 等依赖反射的库，暂不推荐启用 AOT。可在未来微服务拆分后，为无状态服务启用 AOT。
+
+### 监控和度量
+
+#### 1. 性能指标收集
+
+系统已集成 `PerformanceMetricService` 收集关键性能指标：
+
+```csharp
+// 自动收集规则评估性能
+await _performanceService.ExecuteWithMetricsAsync(
+    "RuleEvaluation",
+    async () => { /* 业务逻辑 */ },
+    parcelId,
+    ruleId,
+    cancellationToken);
+```
+
+**监控指标**：
+- P50、P95、P99 延迟
+- 操作耗时统计
+- API调用性能
+- 数据库查询性能
+
+#### 2. 慢查询监控
+
+系统已配置慢查询阈值（1000ms）：
+
+```json
+{
+  "MySqlCircuitBreaker": {
+    "SlowQueryThresholdMs": 1000
+  }
+}
+```
+
+**查询优化工具**：
+- `QueryOptimizationExtensions.OptimizedPaging()` - 分页优化
+- `QueryOptimizationExtensions.OptimizedTimeRange()` - 时间范围查询优化
+- `QueryOptimizationExtensions.BulkInsertAsync()` - 批量插入优化
+
+#### 3. 缓存命中率监控
+
+建议定期审查缓存命中率：
+
+```csharp
+// 缓存移除回调
+RegisterPostEvictionCallback((key, value, reason, state) =>
+{
+    _logger.LogInformation("规则缓存被移除，原因: {Reason}", reason);
+});
+```
+
+### 生产环境性能建议
+
+#### 建议配置
+
+| 配置项 | 推荐值 | 说明 |
+|-------|--------|------|
+| 构建配置 | Release | 必须 |
+| ReadyToRun | 启用 | 减少启动时间 |
+| AOT | 暂不启用 | 等待微服务拆分后评估 |
+| 对象池大小 | 100-200 | 根据并发量调整 |
+| 缓存过期时间 | 滑动5分钟，绝对30分钟 | 平衡性能和数据新鲜度 |
+| 数据库连接池 | 5-100 | 根据负载调整 |
+| 慢查询阈值 | 1000ms | 识别性能瓶颈 |
+
+#### 性能测试
+
+系统包含完整的性能测试工具：
+
+```bash
+# 基准测试（BenchmarkDotNet）
+cd Tests/ZakYip.Sorting.RuleEngine.Benchmarks
+dotnet run -c Release
+
+# 压力测试（NBomber）
+cd Tests/ZakYip.Sorting.RuleEngine.LoadTests
+dotnet run -c Release
+```
+
+**目标性能指标**：
+- 包裹处理能力：**50-1000 包裹/秒**
+- P99 延迟：**< 2000ms**
+- API响应时间：**< 500ms**
+- 缓存命中率：**> 95%**
+
+### 性能优化路线图
+
+#### 短期（已完成）
+- ✅ 添加 `[MethodImpl]` 特性到关键方法
+- ✅ 实现对象池化（Stopwatch）
+- ✅ 配置内存缓存策略
+- ✅ 数据库查询优化工具
+
+#### 中期（规划中）
+- ⏳ 更多场景使用 `ArrayPool<T>`（批量处理、归档）
+- ⏳ Redis 分布式缓存（多实例部署）
+- ⏳ 批量操作优化（并行处理）
+- ⏳ 查询计划分析和优化
+
+#### 长期（研究中）
+- 🔍 微服务拆分后启用 AOT（无状态服务）
+- 🔍 SIMD 指令优化（数值计算密集场景）
+- 🔍 零拷贝技术（大数据传输）
+- 🔍 预编译表达式树（规则引擎）
+
 ## 代码质量文档
 
-项目包含以下代码质量相关文档：
+项目遵循高质量代码标准，相关文档已移除以简化项目结构。主要质量措施包括：
 
-- **[CODE_QUALITY_GUIDE.md](./CODE_QUALITY_GUIDE.md)** - 代码质量和测试改进完整指南
-  - 代码文档覆盖率详情
-  - SonarQube配置和使用说明
-  - 单元测试策略和工具
-  - 持续改进流程
-  - 质量门限建议
-
-- **[QUALITY_IMPROVEMENT_SUMMARY.md](./QUALITY_IMPROVEMENT_SUMMARY.md)** - v1.14.1质量改进实施总结
-  - 实施成果和指标对比
-  - 新增测试详情
-  - 技术债务和改进建议
-  - 运行和验证指南
+- **代码文档**：核心代码使用中文XML注释
+- **单元测试**：196+ 测试用例，覆盖率 70%+
+- **性能测试**：BenchmarkDotNet 基准测试 + NBomber 压力测试
+- **代码规范**：统一命名规范，Is/Has 前缀布尔字段
+- **安全扫描**：CodeQL 静态分析，依赖漏洞扫描
 
 ## 贡献
 

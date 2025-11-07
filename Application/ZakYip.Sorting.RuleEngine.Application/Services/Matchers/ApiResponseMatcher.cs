@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -13,6 +14,7 @@ public class ApiResponseMatcher
     /// <summary>
     /// 评估API响应匹配（使用枚举）
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(ApiResponseMatchType matchType, string parameter, string? responseData)
     {
         if (string.IsNullOrWhiteSpace(responseData) || string.IsNullOrWhiteSpace(parameter))

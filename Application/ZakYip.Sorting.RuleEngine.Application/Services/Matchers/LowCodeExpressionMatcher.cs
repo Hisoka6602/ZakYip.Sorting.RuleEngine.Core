@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using System.Text.RegularExpressions;
 
@@ -18,6 +19,7 @@ public class LowCodeExpressionMatcher
     /// <summary>
     /// 评估低代码表达式
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(
         string expression,
         ParcelInfo parcelInfo,
