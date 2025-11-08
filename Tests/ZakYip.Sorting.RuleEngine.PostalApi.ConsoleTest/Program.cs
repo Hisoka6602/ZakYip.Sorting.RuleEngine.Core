@@ -40,10 +40,26 @@ class Program
         Console.WriteLine("### 测试邮政处理中心API / Testing Postal Processing Center API ###\n");
         
         var logger = loggerFactory.CreateLogger<PostProcessingCenterApiClient>();
-        var handler = new HttpClientHandler
+        
+        // Use SocketsHttpHandler for better SSL/TLS control and connection management
+        var handler = new SocketsHttpHandler
         {
-            ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+            // Enable all SSL/TLS protocols to maximize compatibility
+            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            {
+                // Allow TLS 1.2 and 1.3 for maximum compatibility with postal API servers
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                                     System.Security.Authentication.SslProtocols.Tls13,
+                // Bypass certificate validation for testing
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+            },
+            // Set connection lifetime to avoid connection reuse issues
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            // Limit connection idle time to prevent stale connections
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            MaxConnectionsPerServer = 10
         };
+        
         var httpClient = new HttpClient(handler) 
         { 
             BaseAddress = new Uri(PROCESSING_CENTER_URL), 
@@ -90,10 +106,26 @@ class Program
         Console.WriteLine("### 测试邮政分揽投机构API / Testing Postal Collection Institution API ###\n");
         
         var logger = loggerFactory.CreateLogger<PostCollectionApiClient>();
-        var handler = new HttpClientHandler
+        
+        // Use SocketsHttpHandler for better SSL/TLS control and connection management
+        var handler = new SocketsHttpHandler
         {
-            ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+            // Enable all SSL/TLS protocols to maximize compatibility
+            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            {
+                // Allow TLS 1.2 and 1.3 for maximum compatibility with postal API servers
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                                     System.Security.Authentication.SslProtocols.Tls13,
+                // Bypass certificate validation for testing
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+            },
+            // Set connection lifetime to avoid connection reuse issues
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            // Limit connection idle time to prevent stale connections
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            MaxConnectionsPerServer = 10
         };
+        
         var httpClient = new HttpClient(handler) 
         { 
             BaseAddress = new Uri(COLLECTION_INSTITUTION_URL), 
