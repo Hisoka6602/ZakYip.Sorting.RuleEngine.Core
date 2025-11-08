@@ -173,6 +173,13 @@ try
                     {
                         client.DefaultRequestHeaders.Add("X-API-Key", appSettings.WcsApi.ApiKey);
                     }
+                })
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    return new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                    };
                 });
 
                 // 注册旺店通WMS API适配器
@@ -180,6 +187,13 @@ try
                 {
                     client.BaseAddress = new Uri(appSettings.WdtWmsApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.WdtWmsApi.TimeoutSeconds);
+                })
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    return new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                    };
                 })
                 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
                 {
@@ -196,6 +210,13 @@ try
                 {
                     client.BaseAddress = new Uri(appSettings.JushuitanErpApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.JushuitanErpApi.TimeoutSeconds);
+                })
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    return new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                    };
                 })
                 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
                 {
