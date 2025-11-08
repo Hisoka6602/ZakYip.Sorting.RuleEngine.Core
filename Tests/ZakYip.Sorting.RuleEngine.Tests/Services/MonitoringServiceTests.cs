@@ -167,10 +167,12 @@ public class MonitoringServiceTests
     public async Task CheckAndGenerateAlertsAsync_WithHighChuteUsage_GeneratesAlert()
     {
         // Arrange
-        var metrics = Enumerable.Range(1, 100)
+        // 需要至少 600 * 0.8 = 480 个指标来触发警告阈值
+        // Need at least 600 * 0.8 = 480 metrics to trigger warning threshold
+        var metrics = Enumerable.Range(1, 500)
             .Select(i => new PerformanceMetric
             {
-                OperationName = "Chute_1",
+                OperationName = "Chute_Chute1",
                 Success = true,
                 DurationMs = 50
             })
@@ -182,7 +184,7 @@ public class MonitoringServiceTests
         };
 
         _mockPerformanceMetricRepository
-            .Setup(r => r.GetMetricsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetMetricsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "Chute_Chute1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(metrics);
 
         _mockChuteRepository
