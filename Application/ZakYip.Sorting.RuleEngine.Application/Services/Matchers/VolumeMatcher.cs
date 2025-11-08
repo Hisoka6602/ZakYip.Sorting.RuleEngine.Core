@@ -5,14 +5,13 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
 /// <summary>
 /// 体积匹配器 - 支持长宽高和体积的复杂表达式评估
-/// Volume matcher - supports complex expressions for length, width, height and volume evaluation
 /// </summary>
 /// <remarks>
-/// This matcher evaluates dimensional expressions for parcel sorting based on DWS (Dimension Weight Scan) data.
-/// Supported variables: Length, Width, Height, Volume
-/// Supported operators: >, &lt;, >=, &lt;=, ==, &amp;&amp;, ||, and, or
+/// 此匹配器基于DWS（尺寸重量扫描）数据评估包裹分拣的尺寸表达式。
+/// 支持的变量：Length（长）、Width（宽）、Height（高）、Volume（体积）
+/// 支持的运算符：>、&lt;、>=、&lt;=、==、&amp;&amp;、||、and、or
 /// 
-/// Example expressions:
+/// 表达式示例：
 /// - "Length > 20 and Width > 10"
 /// - "Height = 20.5 or Volume > 200"
 /// - "Length >= 10 &amp;&amp; Width &lt;= 30 &amp;&amp; Height > 5"
@@ -21,11 +20,10 @@ public class VolumeMatcher
 {
     /// <summary>
     /// 评估体积匹配表达式
-    /// Evaluates volume matching expression against DWS data
     /// </summary>
-    /// <param name="expression">The expression to evaluate (e.g., "Length > 20 and Width > 10")</param>
-    /// <param name="dwsData">The DWS data containing dimensional information</param>
-    /// <returns>True if the expression matches the DWS data, false otherwise</returns>
+    /// <param name="expression">要评估的表达式（例如："Length > 20 and Width > 10"）</param>
+    /// <param name="dwsData">包含尺寸信息的DWS数据</param>
+    /// <returns>如果表达式与DWS数据匹配则返回true，否则返回false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(string expression, DwsData dwsData)
     {
