@@ -75,7 +75,7 @@ public class SqliteMonitoringAlertRepository : IMonitoringAlertRepository
         }
     }
 
-    public async Task ResolveAlertAsync(string alertId, CancellationToken cancellationToken = default)
+    public async Task ResolveAlertAsync(long alertId, CancellationToken cancellationToken = default)
     {
         try
         {

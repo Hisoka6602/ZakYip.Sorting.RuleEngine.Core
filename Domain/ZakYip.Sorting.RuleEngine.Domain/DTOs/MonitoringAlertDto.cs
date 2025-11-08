@@ -11,7 +11,7 @@ public class MonitoringAlertDto
     /// <summary>
     /// 告警ID
     /// </summary>
-    public string AlertId { get; set; } = Guid.NewGuid().ToString();
+    public long AlertId { get; set; }
 
     /// <summary>
     /// 告警类型

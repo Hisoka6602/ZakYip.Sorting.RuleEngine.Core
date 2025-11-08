@@ -58,7 +58,7 @@ public class MonitoringHub : Hub
     /// <summary>
     /// 解决告警
     /// </summary>
-    public async Task ResolveAlert(string alertId)
+    public async Task ResolveAlert(long alertId)
     {
         try
         {

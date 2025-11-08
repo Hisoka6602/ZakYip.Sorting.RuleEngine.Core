@@ -30,7 +30,7 @@ public interface IMonitoringService
     /// 解决告警
     /// Resolve alert
     /// </summary>
-    Task ResolveAlertAsync(string alertId, CancellationToken cancellationToken = default);
+    Task ResolveAlertAsync(long alertId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 获取告警历史

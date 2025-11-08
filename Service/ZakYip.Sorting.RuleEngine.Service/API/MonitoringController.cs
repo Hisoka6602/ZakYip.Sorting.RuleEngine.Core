@@ -160,7 +160,7 @@ public class MonitoringController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> ResolveAlert(
-        string alertId,
+        long alertId,
         CancellationToken cancellationToken = default)
     {
         try
