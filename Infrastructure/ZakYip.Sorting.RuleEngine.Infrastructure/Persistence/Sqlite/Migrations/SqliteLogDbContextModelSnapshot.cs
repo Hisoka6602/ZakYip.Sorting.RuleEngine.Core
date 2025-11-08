@@ -362,9 +362,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
 
             modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert", b =>
                 {
-                    b.Property<string>("AlertId")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                    b.Property<long>("AlertId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AdditionalData")
                         .HasColumnType("TEXT");
