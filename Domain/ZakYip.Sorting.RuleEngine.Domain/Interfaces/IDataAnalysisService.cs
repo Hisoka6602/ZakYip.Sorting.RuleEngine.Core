@@ -4,23 +4,27 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 数据分析服务接口
-/// Data analysis service interface
 /// 包含格口使用热力图、分拣效率分析、甘特图数据查询和格口统计功能
 /// </summary>
 public interface IDataAnalysisService
 {
     /// <summary>
     /// 获取格口使用热力图数据
-    /// Get chute usage heatmap data
     /// </summary>
+    /// <param name="query">热力图查询参数</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>格口热力图数据集合</returns>
     Task<List<ChuteHeatmapDto>> GetChuteHeatmapAsync(
         HeatmapQueryDto query,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 获取分拣效率分析报表
-    /// Get sorting efficiency analysis report
     /// </summary>
+    /// <param name="startTime">开始时间，不指定则默认为7天前</param>
+    /// <param name="endTime">结束时间，不指定则默认为当前时间</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分拣效率概览数据</returns>
     Task<SortingEfficiencyOverviewDto> GetSortingEfficiencyReportAsync(
         DateTime? startTime = null,
         DateTime? endTime = null,
@@ -28,7 +32,6 @@ public interface IDataAnalysisService
 
     /// <summary>
     /// 查询指定包裹前后N条数据的甘特图数据
-    /// Query Gantt chart data for N records before and after the specified parcel
     /// </summary>
     /// <param name="target">目标包裹ID或条码</param>
     /// <param name="beforeCount">查询目标前面N条数据</param>
@@ -43,16 +46,22 @@ public interface IDataAnalysisService
 
     /// <summary>
     /// 获取格口利用率统计
-    /// Get chute utilization statistics
     /// </summary>
+    /// <param name="query">格口统计查询参数</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>格口利用率统计数据集合</returns>
     Task<List<ChuteUtilizationStatisticsDto>> GetChuteUtilizationStatisticsAsync(
         ChuteStatisticsQueryDto query,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 获取单个格口的统计信息
-    /// Get statistics for a single chute
     /// </summary>
+    /// <param name="chuteId">格口ID</param>
+    /// <param name="startTime">开始时间，不指定则默认为7天前</param>
+    /// <param name="endTime">结束时间，不指定则默认为当前时间</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>格口统计信息，如果格口不存在则返回null</returns>
     Task<ChuteUtilizationStatisticsDto?> GetChuteStatisticsByIdAsync(
         long chuteId,
         DateTime? startTime = null,
