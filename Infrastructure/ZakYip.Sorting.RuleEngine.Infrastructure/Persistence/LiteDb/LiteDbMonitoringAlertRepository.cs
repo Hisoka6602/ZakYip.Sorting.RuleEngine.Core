@@ -79,7 +79,7 @@ public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
         }
     }
 
-    public Task ResolveAlertAsync(string alertId, CancellationToken cancellationToken = default)
+    public Task ResolveAlertAsync(long alertId, CancellationToken cancellationToken = default)
     {
         try
         {
