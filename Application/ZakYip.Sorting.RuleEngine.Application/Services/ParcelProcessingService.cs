@@ -155,16 +155,22 @@ public class ParcelProcessingService : IParcelProcessingService
     /// <summary>
     /// 批量处理包裹
     /// Process parcels in batch with parallel execution
+    /// Note: ArrayPool optimization is more beneficial for larger data structures.
+    /// For ParcelProcessResponse, parallel Task.WhenAll provides good performance.
     /// </summary>
     public async Task<IEnumerable<ParcelProcessResponse>> ProcessParcelsAsync(
         IEnumerable<ParcelProcessRequest> requests,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("开始批量处理 {Count} 个包裹", requests.Count());
+        var requestList = requests.ToList();
+        var count = requestList.Count;
+        
+        _logger.LogInformation("开始批量处理 {Count} 个包裹", count);
 
         // 并行处理以提高性能
         // Parallel processing for better performance
-        var tasks = requests.Select(request => 
+        // Using Task.WhenAll is safe and efficient for this scenario
+        var tasks = requestList.Select(request => 
             ProcessParcelAsync(request, cancellationToken));
 
         var responses = await Task.WhenAll(tasks);
