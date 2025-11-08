@@ -14,6 +14,10 @@ public class ApiResponseMatcher
     /// <summary>
     /// 评估API响应匹配（使用枚举）
     /// </summary>
+    /// <param name="matchType">API响应匹配类型（字符串匹配、反向字符串匹配、正则匹配、JSON匹配）</param>
+    /// <param name="parameter">匹配参数（根据匹配类型而定，如关键字、正则模式、JSON路径等）</param>
+    /// <param name="responseData">API响应数据字符串</param>
+    /// <returns>如果响应数据符合匹配条件返回true，否则返回false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(ApiResponseMatchType matchType, string parameter, string? responseData)
     {
@@ -39,13 +43,16 @@ public class ApiResponseMatcher
 
     /// <summary>
     /// 评估API响应匹配表达式（保持向后兼容）
-    /// 格式示例：
+    /// 支持多种格式：
     /// - STRING:keyword (正向字符串查找)
     /// - STRING_REVERSE:keyword (反向字符串查找)
-    /// - REGEX:pattern (正则查找)
-    /// - JSON:field=value (JSON字段匹配)
+    /// - REGEX:pattern (正则表达式匹配)
+    /// - JSON:field=value (JSON字段精确匹配)
     /// - JSON:field.nested=value (JSON嵌套字段匹配)
     /// </summary>
+    /// <param name="expression">匹配表达式字符串</param>
+    /// <param name="responseData">API响应数据字符串</param>
+    /// <returns>如果响应数据符合表达式规则返回true，否则返回false</returns>
     public bool Evaluate(string expression, string? responseData)
     {
         if (string.IsNullOrWhiteSpace(expression) || string.IsNullOrWhiteSpace(responseData))
@@ -92,16 +99,22 @@ public class ApiResponseMatcher
     }
 
     /// <summary>
-    /// 评估正则表达式
+    /// 评估正则表达式匹配
     /// </summary>
+    /// <param name="pattern">正则表达式模式</param>
+    /// <param name="responseData">要匹配的响应数据</param>
+    /// <returns>如果响应数据匹配正则表达式返回true，否则返回false</returns>
     private bool EvaluateRegex(string pattern, string responseData)
     {
         return Regex.IsMatch(responseData, pattern);
     }
 
     /// <summary>
-    /// 评估JSON匹配
+    /// 评估JSON字段匹配
     /// </summary>
+    /// <param name="expression">JSON匹配表达式，格式为"field=value"或"field.nested=value"</param>
+    /// <param name="jsonData">JSON格式的响应数据</param>
+    /// <returns>如果JSON数据中指定字段的值与期望值匹配返回true，否则返回false</returns>
     private bool EvaluateJsonMatch(string expression, string jsonData)
     {
         try
@@ -132,6 +145,12 @@ public class ApiResponseMatcher
         }
     }
 
+    /// <summary>
+    /// 从JSON元素中获取指定路径的值
+    /// </summary>
+    /// <param name="element">JSON元素</param>
+    /// <param name="fieldPath">字段路径，使用点号分隔（如"user.name"）</param>
+    /// <returns>找到字段时返回字段值的字符串表示，否则返回null</returns>
     private string? GetJsonValue(JsonElement element, string fieldPath)
     {
         try

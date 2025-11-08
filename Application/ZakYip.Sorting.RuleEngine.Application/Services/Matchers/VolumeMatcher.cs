@@ -12,9 +12,9 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 /// 支持的运算符：>、&lt;、>=、&lt;=、==、&amp;&amp;、||、and、or
 /// 
 /// 表达式示例：
-/// - "Length > 20 and Width > 10"
-/// - "Height = 20.5 or Volume > 200"
-/// - "Length >= 10 &amp;&amp; Width &lt;= 30 &amp;&amp; Height > 5"
+/// - "Length > 20 and Width > 10" - 长度大于20且宽度大于10
+/// - "Height = 20.5 or Volume > 200" - 高度等于20.5或体积大于200
+/// - "Length >= 10 &amp;&amp; Width &lt;= 30 &amp;&amp; Height > 5" - 长度大于等于10且宽度小于等于30且高度大于5
 /// </remarks>
 public class VolumeMatcher
 {
@@ -53,10 +53,10 @@ public class VolumeMatcher
 
     /// <summary>
     /// 标准化逻辑操作符，将 and/or 转换为 &amp;&amp;/||
-    /// Normalizes logical operators, converting 'and'/'or' to '&amp;&amp;'/'||'
+    /// 将用户友好的逻辑运算符转换为程序可识别的标准格式
     /// </summary>
-    /// <param name="expression">The expression to normalize</param>
-    /// <returns>Normalized expression with standardized operators</returns>
+    /// <param name="expression">原始表达式，可能包含 and、or、单个 &amp; 或 |</param>
+    /// <returns>标准化后的表达式，使用 &amp;&amp; 和 || 表示逻辑运算</returns>
     private string NormalizeLogicalOperators(string expression)
     {
         // 替换and/or为&&/||
@@ -81,10 +81,10 @@ public class VolumeMatcher
 
     /// <summary>
     /// 评估布尔表达式，处理逻辑运算符和比较操作
-    /// Evaluates boolean expression, handling logical operators and comparisons
+    /// 递归处理逻辑运算符（&&和||），并评估各个比较条件
     /// </summary>
-    /// <param name="expression">The boolean expression to evaluate</param>
-    /// <returns>The result of the boolean evaluation</returns>
+    /// <param name="expression">布尔表达式，可能包含多个由逻辑运算符连接的比较条件</param>
+    /// <returns>表达式的布尔计算结果</returns>
     private bool EvaluateBooleanExpression(string expression)
     {
         try
@@ -114,10 +114,10 @@ public class VolumeMatcher
 
     /// <summary>
     /// 评估单个比较表达式，支持各种比较运算符
-    /// Evaluates a single comparison expression, supporting various comparison operators
+    /// 支持六种比较运算符：&gt;=, &lt;=, ==, =, &gt;, &lt;
     /// </summary>
-    /// <param name="expression">The comparison expression to evaluate</param>
-    /// <returns>The result of the comparison</returns>
+    /// <param name="expression">单个比较表达式（如 50 &gt; 30）</param>
+    /// <returns>比较的布尔结果</returns>
     private bool EvaluateComparison(string expression)
     {
         expression = expression.Trim();

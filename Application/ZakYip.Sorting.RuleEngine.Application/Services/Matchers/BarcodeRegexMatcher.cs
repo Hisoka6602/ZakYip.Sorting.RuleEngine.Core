@@ -14,6 +14,10 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估条码正则匹配（使用枚举）
     /// </summary>
+    /// <param name="preset">条码匹配预设类型</param>
+    /// <param name="parameter">匹配参数（根据预设类型而定，如前缀、子串、长度范围等）</param>
+    /// <param name="barcode">要匹配的条码字符串</param>
+    /// <returns>如果条码符合预设规则返回true，否则返回false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(BarcodeMatchPreset preset, string parameter, string barcode)
     {
@@ -36,6 +40,9 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估条码正则匹配（使用字符串表达式，保持向后兼容）
     /// </summary>
+    /// <param name="expression">匹配表达式字符串，支持多种格式（如"STARTSWITH:prefix"、"CONTAINS:text"等）</param>
+    /// <param name="barcode">要匹配的条码字符串</param>
+    /// <returns>如果条码符合表达式规则返回true，否则返回false</returns>
     public bool Evaluate(string expression, string barcode)
     {
         if (string.IsNullOrWhiteSpace(barcode) || string.IsNullOrWhiteSpace(expression))
@@ -97,6 +104,9 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估长度范围
     /// </summary>
+    /// <param name="lengthSpec">长度规格字符串，格式为"min-max"（例如："10-20"）</param>
+    /// <param name="barcode">要检查的条码字符串</param>
+    /// <returns>如果条码长度在指定范围内返回true，否则返回false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateLengthRange(string lengthSpec, string barcode)
     {
@@ -113,6 +123,9 @@ public class BarcodeRegexMatcher
     /// <summary>
     /// 评估正则表达式
     /// </summary>
+    /// <param name="pattern">正则表达式模式</param>
+    /// <param name="barcode">要匹配的条码字符串</param>
+    /// <returns>如果条码匹配正则表达式返回true，否则返回false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateRegex(string pattern, string barcode)
     {
