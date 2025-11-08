@@ -4,15 +4,28 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
 /// <summary>
-/// 体积匹配器
-/// 支持长宽高和体积的复杂表达式
-/// 例如：Length > 20 and Width > 10 or Height = 20.5 or Volume > 200
+/// 体积匹配器 - 支持长宽高和体积的复杂表达式评估
+/// Volume matcher - supports complex expressions for length, width, height and volume evaluation
 /// </summary>
+/// <remarks>
+/// This matcher evaluates dimensional expressions for parcel sorting based on DWS (Dimension Weight Scan) data.
+/// Supported variables: Length, Width, Height, Volume
+/// Supported operators: >, &lt;, >=, &lt;=, ==, &amp;&amp;, ||, and, or
+/// 
+/// Example expressions:
+/// - "Length > 20 and Width > 10"
+/// - "Height = 20.5 or Volume > 200"
+/// - "Length >= 10 &amp;&amp; Width &lt;= 30 &amp;&amp; Height > 5"
+/// </remarks>
 public class VolumeMatcher
 {
     /// <summary>
     /// 评估体积匹配表达式
+    /// Evaluates volume matching expression against DWS data
     /// </summary>
+    /// <param name="expression">The expression to evaluate (e.g., "Length > 20 and Width > 10")</param>
+    /// <param name="dwsData">The DWS data containing dimensional information</param>
+    /// <returns>True if the expression matches the DWS data, false otherwise</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(string expression, DwsData dwsData)
     {
@@ -40,6 +53,12 @@ public class VolumeMatcher
         }
     }
 
+    /// <summary>
+    /// 标准化逻辑操作符，将 and/or 转换为 &amp;&amp;/||
+    /// Normalizes logical operators, converting 'and'/'or' to '&amp;&amp;'/'||'
+    /// </summary>
+    /// <param name="expression">The expression to normalize</param>
+    /// <returns>Normalized expression with standardized operators</returns>
     private string NormalizeLogicalOperators(string expression)
     {
         // 替换and/or为&&/||
@@ -62,6 +81,12 @@ public class VolumeMatcher
         return expression;
     }
 
+    /// <summary>
+    /// 评估布尔表达式，处理逻辑运算符和比较操作
+    /// Evaluates boolean expression, handling logical operators and comparisons
+    /// </summary>
+    /// <param name="expression">The boolean expression to evaluate</param>
+    /// <returns>The result of the boolean evaluation</returns>
     private bool EvaluateBooleanExpression(string expression)
     {
         try
@@ -89,6 +114,12 @@ public class VolumeMatcher
         }
     }
 
+    /// <summary>
+    /// 评估单个比较表达式，支持各种比较运算符
+    /// Evaluates a single comparison expression, supporting various comparison operators
+    /// </summary>
+    /// <param name="expression">The comparison expression to evaluate</param>
+    /// <returns>The result of the comparison</returns>
     private bool EvaluateComparison(string expression)
     {
         expression = expression.Trim();
