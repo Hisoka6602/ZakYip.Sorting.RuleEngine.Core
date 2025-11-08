@@ -229,10 +229,40 @@ try
                         appSettings.JushuitanErpApi.Token);
                 });
 
+                // 注册邮政处理中心API适配器
+                services.AddHttpClient<PostProcessingCenterApiClient>((sp, client) =>
+                {
+                    client.BaseAddress = new Uri(appSettings.PostProcessingCenterApi.BaseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(appSettings.PostProcessingCenterApi.TimeoutSeconds);
+                })
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    return new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                    };
+                });
+
+                // 注册邮政分揽投机构API适配器
+                services.AddHttpClient<PostCollectionApiClient>((sp, client) =>
+                {
+                    client.BaseAddress = new Uri(appSettings.PostCollectionApi.BaseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(appSettings.PostCollectionApi.TimeoutSeconds);
+                })
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    return new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                    };
+                });
+
                 // 注册所有适配器到DI容器
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WcsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
+                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostProcessingCenterApiClient>());
+                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostCollectionApiClient>());
 
                 // 注册适配器工厂 - 根据配置选择唯一激活的适配器
                 services.AddSingleton<IWcsApiAdapterFactory>(sp =>
