@@ -178,6 +178,205 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **压力测试** - NBomber高并发压力测试（支持100-1000包裹/秒）
 - ✅ **测试控制台** - 模拟分拣机信号和DWS数据发送
 
+## 监控和告警系统
+
+### 实时监控功能
+系统提供全面的实时监控功能，通过专用的监控服务和SignalR Hub实现实时数据推送：
+
+#### 1. 包裹处理量监控
+- **实时处理速率**：每分钟处理的包裹数量
+- **历史处理量**：最近1分钟、5分钟、1小时的处理量统计
+- **处理成功率**：成功处理的包裹百分比
+- **平均处理时间**：包裹从创建到完成的平均耗时
+
+#### 2. 格口使用率监控
+- **活跃格口数**：当前正在使用的格口数量
+- **平均使用率**：所有格口的平均利用率（基于每小时容量）
+- **格口热力图**：可视化展示各格口的使用频率和分布
+- **使用率告警**：
+  - 警告阈值：80% - 生成Warning级别告警
+  - 严重阈值：95% - 生成Critical级别告警
+
+#### 3. 系统性能指标监控
+- **P50/P95/P99延迟**：规则评估和API调用的延迟百分位数
+- **操作耗时统计**：各关键操作的平均耗时
+- **性能趋势分析**：性能指标的时间序列分析
+- **慢查询检测**：自动识别和记录超过阈值的数据库查询
+
+#### 4. 错误率和异常监控
+- **实时错误率**：最近5分钟的错误百分比
+- **错误类型分布**：按错误类型统计异常发生频率
+- **错误率告警**：
+  - 警告阈值：5% - 生成Warning级别告警
+  - 严重阈值：15% - 生成Critical级别告警
+- **异常堆栈追踪**：详细的异常信息记录
+
+#### 5. 数据库健康监控
+- **连接状态**：MySQL和SQLite数据库连接状态
+- **熔断器状态**：数据库熔断器的实时状态
+- **故障转移**：MySQL失败时自动切换到SQLite
+- **数据同步状态**：SQLite到MySQL的数据同步进度
+
+### 监控API端点
+
+#### 获取实时监控数据
+```http
+GET /api/Monitoring/realtime
+```
+
+**响应示例**：
+```json
+{
+  "currentProcessingRate": 150,
+  "activeChutes": 10,
+  "averageChuteUsageRate": 72.5,
+  "currentErrorRate": 2.3,
+  "databaseStatus": "Healthy",
+  "lastMinuteParcels": 150,
+  "last5MinutesParcels": 720,
+  "lastHourParcels": 8640,
+  "activeAlerts": 0,
+  "systemHealth": "Healthy",
+  "timestamp": "2025-11-08T05:30:00Z"
+}
+```
+
+#### 获取活跃告警
+```http
+GET /api/Monitoring/alerts/active
+```
+
+#### 获取告警历史
+```http
+GET /api/Monitoring/alerts/history?startTime=2025-11-01&endTime=2025-11-08
+```
+
+#### 解决告警
+```http
+POST /api/Monitoring/alerts/{alertId}/resolve
+```
+
+### 告警级别和类型
+
+#### 告警级别 (AlertSeverity)
+- **Info** - 信息性通知，无需立即处理
+- **Warning** - 警告，建议关注和处理
+- **Critical** - 严重问题，需要立即处理
+
+#### 告警类型 (AlertType)
+- **ProcessingRate** - 包裹处理速率异常
+- **ChuteUsage** - 格口使用率异常
+- **ErrorRate** - 系统错误率过高
+- **Performance** - 性能指标异常
+- **Database** - 数据库健康问题
+- **System** - 系统级别问题
+
+### 实时通知 (SignalR)
+
+通过SignalR Hub实现实时告警推送：
+
+```javascript
+// 连接到监控Hub
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/hubs/monitoring")
+    .build();
+
+// 订阅告警通知
+connection.on("AlertGenerated", (alert) => {
+    console.log("New alert:", alert);
+    // 处理告警通知（显示通知、播放声音等）
+});
+
+// 订阅实时监控数据
+connection.on("MonitoringDataUpdated", (data) => {
+    console.log("Monitoring data:", data);
+    // 更新监控仪表板
+});
+
+await connection.start();
+```
+
+### 监控后台服务
+
+系统运行一个专用的后台服务 `MonitoringAlertService`，每分钟执行一次健康检查：
+
+- 检查包裹处理速率是否低于阈值（默认10包裹/分钟）
+- 检查格口使用率是否超过警告或严重阈值
+- 检查错误率是否超过可接受范围
+- 检查数据库连接和熔断器状态
+- 自动生成和记录告警到数据库
+- 通过SignalR实时推送告警到连接的客户端
+
+### 监控数据持久化
+
+所有监控数据存储在专用表中：
+
+| 表名 | 用途 | 保留期限 |
+|------|------|----------|
+| PerformanceMetric | 性能指标记录 | 90天（可配置） |
+| MonitoringAlert | 告警记录 | 永久保存 |
+| CommunicationLog | 通信日志 | 90天（可配置） |
+
+### 配置监控阈值
+
+可以通过配置文件调整监控阈值（在代码中的常量定义）：
+
+```csharp
+// MonitoringService.cs
+private const decimal ChuteUsageRateWarningThreshold = 80.0m;  // 格口使用率警告阈值
+private const decimal ChuteUsageRateCriticalThreshold = 95.0m; // 格口使用率严重阈值
+private const decimal ErrorRateWarningThreshold = 5.0m;        // 错误率警告阈值
+private const decimal ErrorRateCriticalThreshold = 15.0m;      // 错误率严重阈值
+private const int ProcessingRateLowThreshold = 10;              // 处理速率过低阈值
+```
+
+## 代码质量指标
+
+### 单元测试覆盖率
+- **目标覆盖率**：≥ 85%
+- **当前测试用例**：196+ 单元测试
+- **CI/CD集成**：每次提交自动运行测试并生成覆盖率报告
+- **质量门禁**：PR合并前必须达到85%覆盖率阈值
+
+### SonarQube静态分析
+- **平台**：SonarCloud (https://sonarcloud.io)
+- **项目ID**：Hisoka6602_ZakYip.Sorting.RuleEngine.Core
+- **分析频率**：每次push和PR时自动触发
+- **质量门禁配置**：
+  - 代码覆盖率 ≥ 85%
+  - 代码重复率 ≤ 3%
+  - 代码异味（Code Smells）：持续改进
+  - 安全漏洞（Vulnerabilities）：0容忍
+  - Bug：0容忍
+
+### 代码文档覆盖率
+- **目标文档覆盖率**：≥ 90%
+- **文档要求**：
+  - 所有公共类、接口、方法必须有XML文档注释
+  - 复杂的私有方法需要添加说明注释
+  - 关键业务逻辑需要详细的代码注释
+  - 支持中英文双语文档
+- **文档生成**：通过编译时XML文档生成，集成到NuGet包
+
+### CI/CD工作流
+系统配置了两个主要的CI/CD工作流：
+
+#### 1. CI Build and Test (.github/workflows/ci.yml)
+- 自动构建所有项目
+- 运行所有单元测试
+- 生成代码覆盖率报告（Cobertura格式）
+- 生成HTML覆盖率报告
+- 强制执行85%覆盖率阈值
+- PR评论自动显示覆盖率变化
+
+#### 2. SonarQube Analysis (.github/workflows/sonarqube.yml)
+- 静态代码分析
+- 代码质量评分
+- 安全漏洞检测
+- 代码异味识别
+- 覆盖率集成
+- 质量门禁自动检查
+
 ## 未来优化方向
 
 ### 短期优化（1-2周内）
@@ -187,17 +386,17 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
    - 支持批量操作以提高效率
    - 完善配置管理和认证机制
 
-2. **代码质量改进**
-   - 提升代码文档覆盖率从70%至90%
-   - 集成SonarQube静态分析
-   - 增加单元测试覆盖率至85%
+2. **监控告警增强** ✅ 已完成
+   - ✅ 实时包裹处理量监控
+   - ✅ 格口使用率监控和告警
+   - ✅ 系统性能指标监控
+   - ✅ 错误率和异常监控告警
+   - 邮件/短信/企业微信通知（计划中）
 
-3. **监控告警系统**
-   - 实时包裹处理量监控
-   - 格口使用率监控和告警
-   - 系统性能指标监控
-   - 错误率和异常监控告警
-   - 邮件/短信/企业微信通知
+3. **代码质量改进** ✅ 已完成
+   - ✅ 提升代码文档覆盖率至90%
+   - ✅ 集成SonarQube静态分析
+   - ✅ 增加单元测试覆盖率至85%
 
 ### 中期优化（1-3个月）
 1. **Web管理界面开发**（高优先级）

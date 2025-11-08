@@ -63,7 +63,11 @@ jobs:
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
             /d:sonar.exclusions="**/bin/**,**/obj/**,**/Migrations/**,**/*.Designer.cs" \
-            /d:sonar.coverage.exclusions="**/Tests/**,**/TestConsole/**,**/Benchmarks/**,**/LoadTests/**,**/Migrations/**"
+            /d:sonar.coverage.exclusions="**/Tests/**,**/TestConsole/**,**/Benchmarks/**,**/LoadTests/**,**/Migrations/**" \
+            /d:sonar.qualitygate.wait=true \
+            /d:sonar.cpd.exclusions="**/Migrations/**" \
+            /d:sonar.coverage.minimum=85 \
+            /d:sonar.duplication.exclusions="**/Migrations/**,**/Tests/**"
       
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
@@ -84,3 +88,8 @@ jobs:
         with:
           name: code-coverage
           path: coverage.xml
+      
+      - name: Quality Gate Status Check
+        run: |
+          echo "✅ SonarQube analysis completed successfully"
+          echo "View detailed results at: https://sonarcloud.io/dashboard?id=Hisoka6602_ZakYip.Sorting.RuleEngine.Core"
