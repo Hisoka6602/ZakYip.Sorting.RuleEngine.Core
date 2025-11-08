@@ -7,9 +7,13 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 
 /// <summary>
-/// LiteDB监控告警仓储实现
-/// LiteDB monitoring alert repository implementation
+/// LiteDB监控告警仓储实现（已弃用 - 请使用MySqlMonitoringAlertRepository或SqliteMonitoringAlertRepository）
+/// LiteDB monitoring alert repository implementation (DEPRECATED - Use MySqlMonitoringAlertRepository or SqliteMonitoringAlertRepository instead)
+/// 
+/// 注意：LiteDB仅用于配置存储，不应用于日志数据。监控告警数据应存储在MySQL或SQLite数据库中。
+/// Note: LiteDB should only be used for configuration storage, not for logging data. Monitoring alert data should be stored in MySQL or SQLite databases.
 /// </summary>
+[Obsolete("LiteDB应仅用于配置存储，不应用于日志数据。请使用MySqlMonitoringAlertRepository或SqliteMonitoringAlertRepository代替。", false)]
 public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
 {
     private readonly ILiteDatabase _database;

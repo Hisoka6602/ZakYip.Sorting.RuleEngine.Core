@@ -135,12 +135,20 @@ try
                         
                         // 注册MySQL表存在性检查器
                         services.AddScoped<ITableExistenceChecker, MySqlTableExistenceChecker>();
+                        
+                        // 使用MySQL监控告警仓储
+                        services.AddScoped<IMonitoringAlertRepository, MySqlMonitoringAlertRepository>();
+                        logger.Info("使用MySQL监控告警仓储");
                     }
                     catch (Exception ex)
                     {
                         // MySQL配置失败，使用SQLite仓储
                         logger.Warn(ex, "MySQL数据库连接配置失败，降级使用SQLite仓储: {Message}", ex.Message);
                         services.AddScoped<ILogRepository, SqliteLogRepository>();
+                        
+                        // 降级使用SQLite监控告警仓储
+                        services.AddScoped<IMonitoringAlertRepository, SqliteMonitoringAlertRepository>();
+                        logger.Info("降级使用SQLite监控告警仓储");
                     }
                 }
                 else
@@ -148,6 +156,10 @@ try
                     logger.Info("MySQL未启用或连接字符串为空，使用SQLite仓储");
                     // MySQL未启用，直接使用SQLite仓储
                     services.AddScoped<ILogRepository, SqliteLogRepository>();
+                    
+                    // 使用SQLite监控告警仓储
+                    services.AddScoped<IMonitoringAlertRepository, SqliteMonitoringAlertRepository>();
+                    logger.Info("使用SQLite监控告警仓储");
                 }
 
                 // 配置HttpClient用于WCS API
@@ -214,7 +226,8 @@ try
                 services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
                 services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
                 services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
-                services.AddScoped<IMonitoringAlertRepository, LiteDbMonitoringAlertRepository>();
+                // IMonitoringAlertRepository 现在根据数据库配置在上面注册（MySQL或SQLite）
+                // IMonitoringAlertRepository is now registered above based on database configuration (MySQL or SQLite)
                 services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
 
                 // 添加内存缓存（带可配置的绝对过期和滑动过期）

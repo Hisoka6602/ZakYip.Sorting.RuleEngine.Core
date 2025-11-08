@@ -205,6 +205,10 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                     b.HasIndex("ChuteName")
                         .HasDatabaseName("IX_chutes_ChuteName");
 
+                    b.HasIndex("CreatedAt")
+                        .IsDescending()
+                        .HasDatabaseName("IX_chutes_CreatedAt_Desc");
+
                     b.ToTable("chutes", (string)null);
                 });
 
@@ -373,6 +377,72 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                         .HasDatabaseName("IX_matching_logs_ParcelId");
 
                     b.ToTable("matching_logs", (string)null);
+                });
+
+            modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert", b =>
+                {
+                    b.Property<string>("AlertId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("AdditionalData")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("AlertTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal?>("CurrentValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("ResolvedTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ResourceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ThresholdValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("AlertId");
+
+                    b.HasIndex("AlertTime")
+                        .IsDescending()
+                        .HasDatabaseName("IX_monitoring_alerts_AlertTime_Desc");
+
+                    b.HasIndex("IsResolved")
+                        .HasDatabaseName("IX_monitoring_alerts_IsResolved");
+
+                    b.HasIndex("IsResolved", "AlertTime")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_monitoring_alerts_IsResolved_AlertTime");
+
+                    b.HasIndex("Type", "AlertTime")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_monitoring_alerts_Type_AlertTime");
+
+                    b.ToTable("monitoring_alerts", (string)null);
                 });
 
             modelBuilder.Entity("ZakYip.Sorting.RuleEngine.Domain.Entities.SorterCommunicationLog", b =>
