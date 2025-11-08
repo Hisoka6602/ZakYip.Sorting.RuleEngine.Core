@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.ApiCommunicationLogs;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
@@ -106,5 +107,31 @@ public class DependencyInjectionTests
         // Assert
         Assert.NotNull(metrics);
         Assert.Contains(metrics, m => m.ParcelId == "TEST123");
+    }
+    
+    [Fact]
+    public void ServiceProvider_CanResolve_IApiCommunicationLogRepository()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        
+        // Add logging
+        services.AddLogging();
+        
+        // Register repository with optional DbContexts (null for testing)
+        services.AddScoped<IApiCommunicationLogRepository>(sp => 
+            new ApiCommunicationLogRepository(
+                sp.GetRequiredService<ILogger<ApiCommunicationLogRepository>>(),
+                null, // MySqlLogDbContext (optional)
+                null  // SqliteLogDbContext (optional)
+            ));
+        
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var repository = serviceProvider.GetService<IApiCommunicationLogRepository>();
+        
+        // Assert
+        Assert.NotNull(repository);
     }
 }

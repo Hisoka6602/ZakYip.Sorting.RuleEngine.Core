@@ -21,6 +21,7 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
 using ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.ApiCommunicationLogs;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
@@ -214,6 +215,7 @@ try
                 services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
                 services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
                 services.AddScoped<IMonitoringAlertRepository, LiteDbMonitoringAlertRepository>();
+                services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
 
                 // 添加内存缓存（带可配置的绝对过期和滑动过期）
                 // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
