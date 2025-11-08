@@ -33,7 +33,7 @@ public class AppSettings
     /// <summary>
     /// 激活的WCS API适配器类型
     /// Active wcs API adapter type
-    /// 可选值: WcsApiClient, WdtWmsApiClient, JushuitanErpApiClient, PostCollectionApiAdapter, PostProcessingCenterApiAdapter
+    /// 可选值: WcsApiClient, WdtWmsApiClient, JushuitanErpApiClient, PostCollectionApiClient, PostProcessingCenterApiClient
     /// </summary>
     public string ActiveApiAdapter { get; set; } = "WcsApiClient";
 
@@ -48,6 +48,18 @@ public class AppSettings
     /// Jushuituan ERP API configuration
     /// </summary>
     public JushuitanErpApiSettings JushuitanErpApi { get; set; } = new();
+
+    /// <summary>
+    /// 邮政处理中心API配置
+    /// Postal Processing Center API configuration
+    /// </summary>
+    public PostProcessingCenterApiSettings PostProcessingCenterApi { get; set; } = new();
+
+    /// <summary>
+    /// 邮政分揽投机构API配置
+    /// Postal Collection Institution API configuration
+    /// </summary>
+    public PostCollectionApiSettings PostCollectionApi { get; set; } = new();
 
     /// <summary>
     /// MiniAPI配置
