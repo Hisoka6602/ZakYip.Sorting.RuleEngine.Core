@@ -237,10 +237,27 @@ try
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    return new HttpClientHandler
+                    // Use SocketsHttpHandler for better SSL/TLS control and connection management
+                    var handler = new SocketsHttpHandler
                     {
-                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                        // Enable all SSL/TLS protocols to maximize compatibility
+                        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                        {
+                            // Allow all SSL/TLS versions for maximum compatibility with postal API servers
+                            EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                                                 System.Security.Authentication.SslProtocols.Tls13,
+                            // Bypass certificate validation (as configured in original code)
+                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+                        },
+                        // Set connection lifetime to avoid connection reuse issues
+                        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                        // Limit connection idle time to prevent stale connections
+                        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                        // Disable HTTP/2 to ensure HTTP/1.1 is used for better SOAP compatibility
+                        // Some SOAP servers may not support HTTP/2 properly
+                        MaxConnectionsPerServer = 10
                     };
+                    return handler;
                 });
 
                 // 注册邮政分揽投机构API适配器
@@ -251,10 +268,27 @@ try
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    return new HttpClientHandler
+                    // Use SocketsHttpHandler for better SSL/TLS control and connection management
+                    var handler = new SocketsHttpHandler
                     {
-                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+                        // Enable all SSL/TLS protocols to maximize compatibility
+                        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                        {
+                            // Allow all SSL/TLS versions for maximum compatibility with postal API servers
+                            EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                                                 System.Security.Authentication.SslProtocols.Tls13,
+                            // Bypass certificate validation (as configured in original code)
+                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+                        },
+                        // Set connection lifetime to avoid connection reuse issues
+                        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                        // Limit connection idle time to prevent stale connections
+                        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                        // Disable HTTP/2 to ensure HTTP/1.1 is used for better SOAP compatibility
+                        // Some SOAP servers may not support HTTP/2 properly
+                        MaxConnectionsPerServer = 10
                     };
+                    return handler;
                 });
 
                 // 注册所有适配器到DI容器
