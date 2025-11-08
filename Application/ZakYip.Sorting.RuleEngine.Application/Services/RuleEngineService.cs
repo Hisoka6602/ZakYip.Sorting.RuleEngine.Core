@@ -294,7 +294,7 @@ public class RuleEngineService : IRuleEngineService
     {
         if (condition.Contains("CONTAINS", StringComparison.OrdinalIgnoreCase))
         {
-            var pattern = $@"{fieldName}\s+CONTAINS\s+'([^']+)'";
+            var pattern = $@"{fieldName}\s+CONTAINS\s+'([^']*)'";
             var match = Regex.Match(condition, pattern, RegexOptions.IgnoreCase);
             if (match.Success)
             {
@@ -304,7 +304,7 @@ public class RuleEngineService : IRuleEngineService
         }
         else if (condition.Contains("STARTSWITH", StringComparison.OrdinalIgnoreCase))
         {
-            var pattern = $@"{fieldName}\s+STARTSWITH\s+'([^']+)'";
+            var pattern = $@"{fieldName}\s+STARTSWITH\s+'([^']*)'";
             var match = Regex.Match(condition, pattern, RegexOptions.IgnoreCase);
             if (match.Success)
             {
@@ -314,7 +314,7 @@ public class RuleEngineService : IRuleEngineService
         }
         else if (condition.Contains("ENDSWITH", StringComparison.OrdinalIgnoreCase))
         {
-            var pattern = $@"{fieldName}\s+ENDSWITH\s+'([^']+)'";
+            var pattern = $@"{fieldName}\s+ENDSWITH\s+'([^']*)'";
             var match = Regex.Match(condition, pattern, RegexOptions.IgnoreCase);
             if (match.Success)
             {
@@ -324,7 +324,7 @@ public class RuleEngineService : IRuleEngineService
         }
         else if (condition.Contains("=="))
         {
-            var pattern = $@"{fieldName}\s*==\s*'([^']+)'";
+            var pattern = $@"{fieldName}\s*==\s*'([^']*)'";
             var match = Regex.Match(condition, pattern, RegexOptions.IgnoreCase);
             if (match.Success)
             {

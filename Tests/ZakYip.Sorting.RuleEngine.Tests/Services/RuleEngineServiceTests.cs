@@ -490,8 +490,8 @@ public class RuleEngineServiceTests
         var parcelInfo = new ParcelInfo { ParcelId = "PKG001", CartNumber = "CART001" };
         var dwsData = new DwsData { Weight = 1000 };
 
-        // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        // Act & Assert - TaskCanceledException is derived from OperationCanceledException
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             _service.EvaluateRulesAsync(parcelInfo, dwsData, null, cts.Token));
     }
 
