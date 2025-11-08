@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
@@ -11,9 +12,11 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
 {
     [DbContext(typeof(MySqlLogDbContext))]
-    partial class MySqlLogDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251108061415_FixMonitoringAlertIdType")]
+    partial class FixMonitoringAlertIdType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

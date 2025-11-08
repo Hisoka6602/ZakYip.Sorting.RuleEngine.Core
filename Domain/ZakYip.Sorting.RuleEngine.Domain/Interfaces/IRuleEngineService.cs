@@ -9,7 +9,6 @@ public interface IRuleEngineService
 {
     /// <summary>
     /// 评估规则并返回格口号
-    /// Evaluate rules and return chute number
     /// </summary>
     /// <param name="parcelInfo">包裹信息</param>
     /// <param name="dwsData">DWS数据</param>

@@ -5,10 +5,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// 添加监控告警表
+    /// </summary>
     public partial class AddMonitoringAlertsTable : Migration
     {
-        /// <inheritdoc />
+        /// <summary>
+        /// 应用迁移：创建monitoring_alerts表及相关索引
+        /// </summary>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -69,7 +73,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                 descending: new[] { false, true });
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// 回滚迁移：删除monitoring_alerts表及相关索引
+        /// </summary>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

@@ -41,7 +41,6 @@ public class ParcelOrchestrationService
         _activityTracker = activityTracker;
         
         // 创建有界通道，确保FIFO处理
-        // Create bounded channel for FIFO processing
         var channelOptions = new BoundedChannelOptions(1000)
         {
             FullMode = BoundedChannelFullMode.Wait,

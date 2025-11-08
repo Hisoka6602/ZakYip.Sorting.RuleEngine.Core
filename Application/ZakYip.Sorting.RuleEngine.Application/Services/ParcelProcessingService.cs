@@ -33,14 +33,12 @@ public class ParcelProcessingService : IParcelProcessingService
         _logger = logger;
         
         // 创建Stopwatch对象池以提高性能
-        // Create Stopwatch object pool for performance
         var policy = new DefaultPooledObjectPolicy<Stopwatch>();
         _stopwatchPool = new DefaultObjectPool<Stopwatch>(policy, ConfigurationDefaults.ObjectPool.StopwatchPoolSize);
     }
 
     /// <summary>
     /// 处理单个包裹
-    /// Process a single parcel
     /// </summary>
     public async Task<ParcelProcessResponse> ProcessParcelAsync(
         ParcelProcessRequest request,
@@ -77,8 +75,7 @@ public class ParcelProcessingService : IParcelProcessingService
                 };
             }
 
-            // 调用WCS API获取响应
-            // Call wcs API if barcode is available and dwsData exists
+            // 调用WCS API获取响应（如果条码可用且DWS数据存在）
             WcsApiResponse? thirdPartyResponse = null;
             if (!string.IsNullOrEmpty(request.Barcode) && dwsData != null)
             {
@@ -87,7 +84,7 @@ public class ParcelProcessingService : IParcelProcessingService
                     thirdPartyResponse = await _apiAdapterFactory.GetActiveAdapter().RequestChuteAsync(
                         request.ParcelId,
                         dwsData,
-                        null, // OcrData not available in this context
+                        null, // 此上下文中OCR数据不可用
                         cancellationToken);
                 }
                 catch (Exception ex)
@@ -100,12 +97,10 @@ public class ParcelProcessingService : IParcelProcessingService
             }
 
             // 使用规则引擎计算格口号
-            // Use rule engine to calculate chute number
             var chuteNumber = await _ruleEngineService.EvaluateRulesAsync(
                 parcelInfo, dwsData, thirdPartyResponse, cancellationToken);
 
             // 更新包裹状态
-            // Update parcel status
             parcelInfo.ChuteNumber = chuteNumber;
             parcelInfo.Status = chuteNumber != null ? ParcelStatus.Completed : ParcelStatus.Failed;
             parcelInfo.UpdatedAt = DateTime.Now;
@@ -153,10 +148,8 @@ public class ParcelProcessingService : IParcelProcessingService
     }
 
     /// <summary>
-    /// 批量处理包裹
-    /// Process parcels in batch with parallel execution
-    /// Note: ArrayPool optimization is more beneficial for larger data structures.
-    /// For ParcelProcessResponse, parallel Task.WhenAll provides good performance.
+    /// 批量处理包裹，使用并行执行提高性能
+    /// 注意：对于ParcelProcessResponse，使用Task.WhenAll并行处理提供了良好的性能
     /// </summary>
     public async Task<IEnumerable<ParcelProcessResponse>> ProcessParcelsAsync(
         IEnumerable<ParcelProcessRequest> requests,
@@ -167,9 +160,7 @@ public class ParcelProcessingService : IParcelProcessingService
         
         _logger.LogInformation("开始批量处理 {Count} 个包裹", count);
 
-        // 并行处理以提高性能
-        // Parallel processing for better performance
-        // Using Task.WhenAll is safe and efficient for this scenario
+        // 并行处理以提高性能，使用Task.WhenAll在此场景中安全且高效
         var tasks = requestList.Select(request => 
             ProcessParcelAsync(request, cancellationToken));
 

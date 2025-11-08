@@ -227,7 +227,7 @@ public class MySqlLogDbContext : DbContext
         {
             entity.ToTable("monitoring_alerts");
             entity.HasKey(e => e.AlertId);
-            entity.Property(e => e.AlertId).IsRequired();
+            entity.Property(e => e.AlertId).ValueGeneratedOnAdd();
             entity.Property(e => e.Type).IsRequired();
             entity.Property(e => e.Severity).IsRequired();
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();

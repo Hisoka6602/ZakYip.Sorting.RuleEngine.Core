@@ -346,8 +346,7 @@ public class DataAnalysisService : IDataAnalysisService
         {
             try
             {
-                // 表统计消息仅在控制台输出，不记录到logs (按需求规范)
-                // Statistics messages only output to console, not to logs (per requirements)
+                // 表统计消息仅在控制台输出，不记录到logs（按需求规范）
                 Console.WriteLine($"查询格口利用率统计: ChuteId={query.ChuteId}, StartTime={query.StartTime}, EndTime={query.EndTime}");
 
                 // 获取所有格口或指定格口
