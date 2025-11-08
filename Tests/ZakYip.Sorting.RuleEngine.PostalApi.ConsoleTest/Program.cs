@@ -40,7 +40,11 @@ class Program
         Console.WriteLine("### 测试邮政处理中心API / Testing Postal Processing Center API ###\n");
         
         var logger = loggerFactory.CreateLogger<PostProcessingCenterApiClient>();
-        var httpClient = new HttpClient 
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+        };
+        var httpClient = new HttpClient(handler) 
         { 
             BaseAddress = new Uri(PROCESSING_CENTER_URL), 
             Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) 
@@ -86,7 +90,11 @@ class Program
         Console.WriteLine("### 测试邮政分揽投机构API / Testing Postal Collection Institution API ###\n");
         
         var logger = loggerFactory.CreateLogger<PostCollectionApiClient>();
-        var httpClient = new HttpClient 
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
+        };
+        var httpClient = new HttpClient(handler) 
         { 
             BaseAddress = new Uri(COLLECTION_INSTITUTION_URL), 
             Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) 
