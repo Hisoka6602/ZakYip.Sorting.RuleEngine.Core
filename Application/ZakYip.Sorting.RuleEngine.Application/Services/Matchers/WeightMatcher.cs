@@ -36,6 +36,12 @@ public class WeightMatcher
         }
     }
 
+    /// <summary>
+    /// 标准化逻辑操作符，将 and/or 转换为 &amp;&amp;/||
+    /// Normalize logical operators, convert 'and'/'or' to '&amp;&amp;'/'||'
+    /// </summary>
+    /// <param name="expression">原始表达式</param>
+    /// <returns>标准化后的表达式</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string NormalizeLogicalOperators(string expression)
     {
@@ -59,6 +65,12 @@ public class WeightMatcher
         return expression;
     }
 
+    /// <summary>
+    /// 评估布尔表达式，支持 &amp;&amp;, ||, &gt;, &lt;, &gt;=, &lt;=, == 操作符
+    /// Evaluate boolean expression, supports &amp;&amp;, ||, &gt;, &lt;, &gt;=, &lt;=, == operators
+    /// </summary>
+    /// <param name="expression">布尔表达式</param>
+    /// <returns>表达式计算结果</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateBooleanExpression(string expression)
     {
@@ -90,6 +102,12 @@ public class WeightMatcher
         }
     }
 
+    /// <summary>
+    /// 评估比较表达式，解析并计算数值比较
+    /// Evaluate comparison expression, parse and compute numeric comparison
+    /// </summary>
+    /// <param name="expression">比较表达式</param>
+    /// <returns>比较结果</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateComparison(string expression)
     {
