@@ -8,8 +8,8 @@ namespace ZakYip.Sorting.RuleEngine.PostalApi.ConsoleTest;
 class Program
 {
     // 配置参数 / Configuration parameters
-    private const string PROCESSING_CENTER_URL = "https://api.post-processing.example.com";
-    private const string COLLECTION_INSTITUTION_URL = "https://api.post-collection.example.com";
+    private const string PROCESSING_CENTER_URL = "http://10.4.188.85/pcs-tc-nc-job/WyService/services/CommWY";
+    private const string COLLECTION_INSTITUTION_URL = "http://10.4.201.115/pcs-ci-job/WyService/services/CommWY";
     private const int TIMEOUT_SECONDS = 30;
     private const string API_KEY = "your-api-key-here";
     
