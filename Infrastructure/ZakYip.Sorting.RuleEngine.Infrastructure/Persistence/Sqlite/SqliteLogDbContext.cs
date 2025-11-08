@@ -21,6 +21,7 @@ public class SqliteLogDbContext : DbContext
     public DbSet<ApiCommunicationLog> ApiCommunicationLogs { get; set; } = null!;
     public DbSet<MatchingLog> MatchingLogs { get; set; } = null!;
     public DbSet<ApiRequestLog> ApiRequestLogs { get; set; } = null!;
+    public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -181,6 +182,36 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.RequestPath).HasDatabaseName("IX_api_request_logs_RequestPath");
             entity.HasIndex(e => e.RequestIp).HasDatabaseName("IX_api_request_logs_RequestIp");
             entity.HasIndex(e => new { e.RequestMethod, e.RequestTime }).IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Method_Time");
+        });
+
+        modelBuilder.Entity<MonitoringAlert>(entity =>
+        {
+            entity.ToTable("monitoring_alerts");
+            entity.HasKey(e => e.AlertId);
+            entity.Property(e => e.AlertId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.Severity).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.ResourceId).HasMaxLength(100);
+            entity.Property(e => e.CurrentValue).HasColumnType("DECIMAL(18,2)");
+            entity.Property(e => e.ThresholdValue).HasColumnType("DECIMAL(18,2)");
+            entity.Property(e => e.AlertTime).IsRequired();
+            entity.Property(e => e.IsResolved).IsRequired();
+            entity.Property(e => e.ResolvedTime);
+            entity.Property(e => e.AdditionalData);
+            
+            // 索引：AlertTime按降序，用于时间范围查询
+            entity.HasIndex(e => e.AlertTime).IsDescending().HasDatabaseName("IX_monitoring_alerts_AlertTime_Desc");
+            
+            // 索引：IsResolved用于查询活跃告警
+            entity.HasIndex(e => e.IsResolved).HasDatabaseName("IX_monitoring_alerts_IsResolved");
+            
+            // 复合索引：Type + AlertTime
+            entity.HasIndex(e => new { e.Type, e.AlertTime }).IsDescending(false, true).HasDatabaseName("IX_monitoring_alerts_Type_AlertTime");
+            
+            // 复合索引：IsResolved + AlertTime，优化活跃告警查询
+            entity.HasIndex(e => new { e.IsResolved, e.AlertTime }).IsDescending(false, true).HasDatabaseName("IX_monitoring_alerts_IsResolved_AlertTime");
         });
     }
 }
