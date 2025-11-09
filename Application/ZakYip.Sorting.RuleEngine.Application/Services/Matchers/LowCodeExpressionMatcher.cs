@@ -9,6 +9,15 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 /// 支持用户自定义表达式，可混合使用各种条件
 /// 支持表达式格式：if(条件) and/or 其他条件
 /// 例如：if(Weight>10) and firstSegmentCode=^64\d*$
+/// 
+/// 注意：此匹配器仅支持混合使用以下数据源：
+/// - 条码（Barcode）
+/// - 重量和体积（Weight/Volume/Length/Width/Height）
+/// - OCR识别数据（三段码、地址、电话后缀等）
+/// 
+/// 重要：此匹配器不支持API响应内容判断（thirdPartyResponse.Data）。
+/// 如需使用API响应内容，请使用MatchingMethodType.ApiResponseMatch。
+/// 这确保了匹配策略的"多选一"原则，不存在数据源混合或降级。
 /// </summary>
 public class LowCodeExpressionMatcher
 {
@@ -16,6 +25,7 @@ public class LowCodeExpressionMatcher
     private readonly WeightMatcher _weightMatcher = new();
     private readonly VolumeMatcher _volumeMatcher = new();
     private readonly OcrMatcher _ocrMatcher = new();
+    // 注意：此处不包含ApiResponseMatcher，确保低代码表达式不能访问API响应内容
 
     /// <summary>
     /// 评估低代码表达式
