@@ -24,6 +24,8 @@
     <PackageReference Include="Polly.Extensions" />
     <PackageReference Include="EFCore.Sharding" />
     <PackageReference Include="TouchSocket" />
+    <PackageReference Include="MQTTnet" />
+    <PackageReference Include="MQTTnet.Extensions.ManagedClient" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
     <PackageReference Include="Microsoft.AspNetCore.Http" />

@@ -11,7 +11,7 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 当系统接收到创建包裹消息后，会执行以下步骤：
 
 #### 1. 分拣机发送包裹创建信号
-- **触发方式**：分拣机通过 TCP/SignalR/HTTP 发送包裹创建请求
+- **触发方式**：分拣机通过 TCP/SignalR/HTTP/MQTT 发送包裹创建请求
 - **请求内容**：
   - `ParcelId` - 包裹唯一ID
   - `CartNumber` - 小车号
@@ -27,7 +27,7 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
   - 等待DWS数据到达
 
 #### 3. DWS设备发送测量数据
-- **触发方式**：DWS设备通过 TCP/SignalR/HTTP 发送测量数据
+- **触发方式**：DWS设备通过 TCP/SignalR/HTTP/MQTT 发送测量数据
 - **测量内容**：
   - `Barcode` - 条码
   - `Weight` - 重量（克）
@@ -89,7 +89,7 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
   - `CartCount` - 占用小车数量
   - `Success` - 处理是否成功
   - `ProcessingTimeMs` - 处理耗时
-- **通知方式**：通过分拣机适配器（TCP/SignalR/HTTP）发送结果
+- **通知方式**：通过分拣机适配器（TCP/SignalR/HTTP/MQTT）发送结果
 - **记录通信日志** - 保存到 `SorterCommunicationLog` 表
 
 #### 8. 关闭处理空间
@@ -123,6 +123,14 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 | LogEntry | 系统日志 | Level, Message, Exception |
 
 ## 最新更新
+
+### v1.14.8 (2025-11-09)
+- ✅ **MQTT通信支持** - 新增基于MQTTnet的MQTT通信适配器
+  - MqttSorterAdapter - 支持向分拣机发送格口号
+  - MqttDwsAdapter - 支持接收DWS测量数据
+  - 支持QoS控制和自动重连
+  - 完整的单元测试覆盖（15个测试用例）
+  - 通信日志持久化支持
 
 ### v1.14.7 (2025-11-08)
 - ✅ **测试修复和代码质量提升** - 确保所有测试通过，构建无警告无错误
@@ -170,6 +178,7 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **SignalR Hub** - SortingHub和DwsHub，实时双向通信（生产环境推荐）
 - ✅ **TouchSocket TCP** - 高性能TCP通信，支持连接池和自动重连
 - ✅ **HTTP API** - 完整的REST API（仅用于测试和调试）
+- ✅ **MQTT** - 基于MQTTnet的MQTT通信，支持QoS控制和自动重连（v1.14.8新增）
 - ✅ **适配器热切换** - 运行时切换不同厂商设备，无需重启
 
 ### 数据管理
@@ -455,6 +464,7 @@ private const int ProcessingRateLowThreshold = 10;              // 处理速率�
 - **Polly** - 弹性和瞬态故障处理
 - **TouchSocket** - 高性能TCP通信库
 - **SignalR** - 实时双向通信
+- **MQTTnet** - MQTT通信库（支持MQTT 3.1.1和5.0）
 - **NLog** - 高性能日志框架
 - **xUnit / Moq** - 单元测试框架
 - **BenchmarkDotNet** - 性能基准测试框架
