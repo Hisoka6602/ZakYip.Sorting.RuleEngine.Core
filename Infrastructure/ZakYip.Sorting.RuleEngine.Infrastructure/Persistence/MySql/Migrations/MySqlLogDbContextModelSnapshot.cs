@@ -30,6 +30,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("CommunicationType")
+                        .HasColumnType("int");
+
                     b.Property<long>("DurationMs")
                         .HasColumnType("bigint");
 
@@ -75,6 +78,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CommunicationType")
+                        .HasDatabaseName("IX_api_comm_logs_Type");
 
                     b.HasIndex("ParcelId")
                         .HasDatabaseName("IX_api_comm_logs_ParcelId");
@@ -280,6 +286,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                     b.Property<DateTime>("CommunicationTime")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("CommunicationType")
+                        .HasColumnType("int");
+
                     b.Property<string>("DwsAddress")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -317,6 +326,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                     b.HasIndex("CommunicationTime")
                         .IsDescending()
                         .HasDatabaseName("IX_dws_comm_logs_Time_Desc");
+
+                    b.HasIndex("CommunicationType")
+                        .HasDatabaseName("IX_dws_comm_logs_Type");
 
                     b.ToTable("dws_communication_logs", (string)null);
                 });
@@ -458,10 +470,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                     b.Property<DateTime>("CommunicationTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CommunicationType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                    b.Property<int>("CommunicationType")
+                        .HasColumnType("int");
 
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(1000)
@@ -497,6 +507,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.Migrations
                     b.HasIndex("CommunicationTime")
                         .IsDescending()
                         .HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
+
+                    b.HasIndex("CommunicationType")
+                        .HasDatabaseName("IX_sorter_comm_logs_Type");
 
                     b.HasIndex("ExtractedParcelId")
                         .HasDatabaseName("IX_sorter_comm_logs_ParcelId");
