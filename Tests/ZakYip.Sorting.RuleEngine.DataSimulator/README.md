@@ -2,16 +2,18 @@
 
 ## 概述
 
-ZakYip.Sorting.RuleEngine.DataSimulator 是一个综合的数据模拟工具，用于测试和验证分拣规则引擎系统的运行效果。该工具支持模拟分拣机信号和DWS（尺寸重量扫描）数据，并提供压力测试功能。
+ZakYip.Sorting.RuleEngine.DataSimulator 是一个综合的数据模拟工具，用于测试和验证分拣规则引擎系统的运行效果。该工具支持模拟分拣机信号（MQTT/TCP）和DWS（尺寸重量扫描）数据（TCP），并提供压力测试功能。
 
 ## 主要功能
 
 ### 1. 分拣机信号模拟
+- **通信协议**: 支持MQTT和TCP两种协议
 - **单次发送**: 发送单个包裹信号到系统
 - **批量发送**: 批量发送多个包裹信号
 - **压力测试**: 持续以指定速率发送包裹信号（支持100-1000包裹/秒）
 
 ### 2. DWS数据模拟
+- **通信协议**: TCP
 - **单次发送**: 发送单条DWS测量数据
 - **批量发送**: 批量发送多条DWS数据
 - **压力测试**: 持续以指定速率发送DWS数据
@@ -31,7 +33,8 @@ ZakYip.Sorting.RuleEngine.DataSimulator 是一个综合的数据模拟工具，�
 ### 前置条件
 
 1. .NET 8.0 SDK
-2. 确保分拣规则引擎服务正在运行（默认端口：5000）
+2. 确保分拣规则引擎服务正在运行
+3. MQTT代理（如使用MQTT模式）或TCP服务器
 
 ### 运行模拟器
 
@@ -44,7 +47,7 @@ dotnet run
 
 ```bash
 dotnet build
-./bin/Debug/net8.0/ZakYip.Sorting.RuleEngine.DataSimulator
+../bin/Debug/net8.0/ZakYip.Sorting.RuleEngine.DataSimulator
 ```
 
 ### 配置文件
@@ -54,7 +57,19 @@ dotnet build
 ```json
 {
   "Simulator": {
-    "HttpApiUrl": "http://localhost:5000",
+    "SorterCommunicationType": "MQTT",
+    "SorterMqtt": {
+      "BrokerHost": "127.0.0.1",
+      "BrokerPort": 1883,
+      "PublishTopic": "sorter/parcel",
+      "ClientId": "DataSimulator",
+      "Username": null,
+      "Password": null
+    },
+    "SorterTcp": {
+      "Host": "127.0.0.1",
+      "Port": 8000
+    },
     "DwsTcpHost": "127.0.0.1",
     "DwsTcpPort": 8001,
     "StressTest": {
@@ -75,6 +90,26 @@ dotnet build
   }
 }
 ```
+
+### 配置说明
+
+#### 分拣机通信配置
+
+**SorterCommunicationType**: 选择分拣机通信类型
+- `MQTT` - 使用MQTT协议（推荐）
+- `TCP` - 使用TCP协议
+
+**SorterMqtt**: MQTT配置（当SorterCommunicationType为MQTT时使用）
+- `BrokerHost` - MQTT代理地址
+- `BrokerPort` - MQTT代理端口（默认1883）
+- `PublishTopic` - 发布主题
+- `ClientId` - 客户端ID
+- `Username` - 用户名（可选，如不需要认证设为null）
+- `Password` - 密码（可选，如不需要认证设为null）
+
+**SorterTcp**: TCP配置（当SorterCommunicationType为TCP时使用）
+- `Host` - TCP服务器地址
+- `Port` - TCP端口
 
 ## 使用指南
 
@@ -124,7 +159,8 @@ dotnet build
 {
   "parcelId": "PKG20231109150000000001",
   "cartNumber": "CART001",
-  "barcode": "BC1699517200000001"
+  "barcode": "BC1699517200000001",
+  "timestamp": "2023-11-09T15:00:00Z"
 }
 ```
 
@@ -158,6 +194,78 @@ dotnet build
 - **P95延迟**: 95%的请求响应时间低于此值
 - **P99延迟**: 99%的请求响应时间低于此值
 
+## 切换通信协议
+
+### 切换到MQTT
+在 `appsettings.json` 中设置：
+```json
+{
+  "Simulator": {
+    "SorterCommunicationType": "MQTT"
+  }
+}
+```
+
+### 切换到TCP
+在 `appsettings.json` 中设置：
+```json
+{
+  "Simulator": {
+    "SorterCommunicationType": "TCP"
+  }
+}
+```
+
+## 故障排查
+
+### 问题1: 无法连接到MQTT代理
+**原因**: MQTT代理未运行或配置错误
+**解决方案**: 
+- 确认MQTT代理（如Mosquitto）正在运行
+- 验证 `BrokerHost` 和 `BrokerPort` 配置正确
+- 检查防火墙规则
+
+### 问题2: 无法连接到TCP服务器
+**原因**: TCP服务器未监听或端口配置错误
+**解决方案**:
+- 检查服务配置中的TCP端口设置
+- 验证防火墙规则允许TCP连接
+- 确认端口号与服务配置一致
+
+### 问题3: 压力测试成功率低
+**原因**: 系统资源不足或配置不当
+**解决方案**:
+- 降低测试速率
+- 增加系统资源（CPU、内存）
+- 检查网络连接稳定性
+- 查看服务日志了解具体错误
+
+### 问题4: 实际速率远低于目标速率
+**原因**: 系统瓶颈或网络延迟
+**解决方案**:
+- 检查网络延迟
+- 优化系统配置
+- 使用更快的通信协议（MQTT vs TCP）
+- 检查服务器性能
+
+## 技术架构
+
+### 核心组件
+
+1. **DataGenerator**: 随机生成测试数据
+2. **MqttSorterSimulator**: MQTT分拣机信号模拟器
+3. **TcpSorterSimulator**: TCP分拣机信号模拟器
+4. **DwsSimulator**: DWS数据模拟器（TCP）
+5. **SimulatorConfig**: 配置管理
+
+### 使用的技术栈
+
+- **.NET 8.0**: 运行时框架
+- **Spectre.Console**: 交互式控制台UI
+- **TouchSocket**: 高性能TCP通信
+- **MQTTnet**: MQTT协议支持
+- **System.Text.Json**: JSON序列化
+
 ## 最佳实践
 
 ### 1. 渐进式测试
@@ -170,7 +278,7 @@ dotnet build
 在压力测试期间，监控以下指标：
 - 服务器CPU使用率
 - 内存占用
-- 数据库连接数
+- 网络连接数
 - 响应时间分布
 
 ### 3. 调整配置
@@ -179,78 +287,23 @@ dotnet build
 - 如果成功率低于95%，检查系统资源和配置
 - 如果实际速率远低于目标速率，优化系统性能
 
-### 4. 使用完整流程模拟
-在生产环境部署前，使用完整流程模拟验证：
-- 测试包裹和DWS数据的匹配逻辑
-- 验证规则引擎的匹配结果
-- 检查格口分配的准确性
-
-## 故障排查
-
-### 问题1: 无法连接到HTTP API
-**原因**: 分拣规则引擎服务未运行或端口配置错误
-**解决方案**: 
-- 检查服务是否启动：`dotnet run --project Service/ZakYip.Sorting.RuleEngine.Service`
-- 验证 `appsettings.json` 中的 `HttpApiUrl` 配置
-
-### 问题2: DWS TCP连接失败
-**原因**: DWS TCP服务未监听或端口配置错误
-**解决方案**:
-- 检查服务配置中的DWS TCP端口设置
-- 验证防火墙规则是否允许TCP连接
-- 确认 `appsettings.json` 中的端口号与服务配置一致
-
-### 问题3: 压力测试成功率低
-**原因**: 系统资源不足或配置不当
-**解决方案**:
-- 降低测试速率
-- 增加系统资源（CPU、内存）
-- 检查数据库连接池配置
-- 查看服务日志了解具体错误
-
-### 问题4: 实际速率远低于目标速率
-**原因**: 系统瓶颈或网络延迟
-**解决方案**:
-- 检查网络延迟
-- 优化数据库查询
-- 增加服务实例数（负载均衡）
-- 使用异步处理提高吞吐量
-
-## 技术架构
-
-### 核心组件
-
-1. **DataGenerator**: 随机生成测试数据
-2. **SorterSimulator**: 分拣机信号模拟器（HTTP API）
-3. **DwsSimulator**: DWS数据模拟器（TCP）
-4. **SimulatorConfig**: 配置管理
-
-### 使用的技术栈
-
-- **.NET 8.0**: 运行时框架
-- **Spectre.Console**: 交互式控制台UI
-- **TouchSocket**: 高性能TCP通信
-- **System.Text.Json**: JSON序列化
-
-## 扩展功能
-
-### 自定义数据生成
-您可以扩展 `DataGenerator` 类来生成特定的测试数据：
-
-```csharp
-// 生成特定重量范围的包裹
-var heavyParcel = generator.GenerateDwsData();
-heavyParcel.Weight = 5000; // 5kg
-```
-
-### 添加自定义测试场景
-在 `Program.cs` 中添加新的菜单选项和测试逻辑。
+### 4. 选择合适的协议
+- **MQTT**: 适合分布式部署，支持QoS控制
+- **TCP**: 直连简单，低延迟
 
 ## 版本历史
 
+### v1.1.0 (2025-11-09)
+- ✅ 添加MQTT分拣机模拟器支持
+- ✅ 添加TCP分拣机模拟器支持
+- ✅ 移除HTTP API分拣机模拟器
+- ✅ 支持运行时切换通信协议
+- ✅ 更新配置结构
+- ✅ 完整的异常处理和日志记录
+
 ### v1.0.0 (2025-11-09)
 - ✅ 初始版本发布
-- ✅ 支持分拣机信号模拟（HTTP）
+- ✅ 支持分拣机信号模拟（HTTP API）
 - ✅ 支持DWS数据模拟（TCP）
 - ✅ 批量和压力测试功能
 - ✅ 完整流程模拟
