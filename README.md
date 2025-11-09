@@ -114,13 +114,26 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 | 日志表 | 用途 | 关键字段 |
 |--------|------|----------|
-| SorterCommunicationLog | 分拣机通信日志 | ParcelId, CartNumber, 原始内容 |
-| DwsCommunicationLog | DWS通信日志 | Barcode, Weight, Volume, 测量数据 |
-| ApiCommunicationLog | 第三方API调用日志 | RequestUrl, RequestBody, ResponseBody, 耗时 |
+| SorterCommunicationLog | 分拣机通信日志 | ParcelId, CartNumber, CommunicationType (TCP/SignalR/HTTP/MQTT), 原始内容 |
+| DwsCommunicationLog | DWS通信日志 | Barcode, Weight, Volume, CommunicationType (TCP/SignalR/HTTP/MQTT), 测量数据 |
+| ApiCommunicationLog | 第三方API调用日志 | RequestUrl, RequestBody, ResponseBody, CommunicationType (HTTP), 耗时 |
 | MatchingLog | 规则匹配日志 | RuleId, MatchingReason, ChuteId, 匹配依据 |
 | ApiRequestLog | HTTP请求日志 | Method, Path, StatusCode, IP地址 |
 | CommunicationLog | 通用通信日志 | Direction, Type, Message, 成功状态 |
 | LogEntry | 系统日志 | Level, Message, Exception |
+
+## 最新更新
+
+### v1.14.9 (2025-11-09)
+- ✅ **数据日志增强** - 所有通信日志表新增CommunicationType字段
+  - DwsCommunicationLog增加通信类型记录（TCP/SignalR/HTTP/MQTT）
+  - SorterCommunicationLog增加通信类型记录（TCP/SignalR/HTTP/MQTT）
+  - ApiCommunicationLog增加通信类型记录（默认HTTP）
+  - 支持按通信类型查询和分析日志
+  - 新增索引优化按通信类型查询性能
+  - 数据库迁移支持MySQL和SQLite
+- ✅ **代码质量提升** - 修复XML文档注释警告，构建零警告零错误
+- ✅ **测试覆盖提升** - 新增6个通信日志实体测试用例，总测试用例达到310个
 
 ## 最新更新
 
