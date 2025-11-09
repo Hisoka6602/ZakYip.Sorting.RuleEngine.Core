@@ -224,10 +224,33 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 最新更新
 
+### v1.16.0 (2025-11-09)
+- ✅ **数据模拟器协议升级** - 分拣机信号支持MQTT和TCP协议
+  - 新增MQTT分拣机模拟器（MqttSorterSimulator）
+  - 新增TCP分拣机模拟器（TcpSorterSimulator）
+  - 移除HTTP API分拣机模拟器
+  - 支持运行时动态切换通信协议（MQTT/TCP）
+  - 统一的ISorterSimulator接口抽象
+  - DWS保持TCP协议不变
+  - 完整的异常处理和连接管理
+- ✅ **接口模拟器** - 新增独立的接口模拟器项目
+  - 随机返回接口ID（1-50）
+  - 支持单个和批量获取
+  - Swagger UI文档
+  - 健康检查端点
+  - 完整的异常处理
+  - 详见 [InterfaceSimulator README](Tests/ZakYip.Sorting.RuleEngine.InterfaceSimulator/README.md)
+- ✅ **异常安全隔离** - 全面的异常处理文档和实践
+  - 所有外部调用都有异常保护
+  - 数据库熔断和降级策略
+  - API端点标准化错误响应
+  - 后台服务异常恢复机制
+  - 详见 [EXCEPTION_SAFETY.md](EXCEPTION_SAFETY.md)
+
 ### v1.15.0 (2025-11-09)
 - ✅ **数据模拟器** - 新增分拣机和DWS数据模拟程序
   - 支持单次、批量和压力测试模式
-  - 分拣机信号模拟（HTTP API）
+  - 分拣机信号模拟（现已升级为MQTT/TCP）
   - DWS数据模拟（TCP）
   - 完整流程模拟（包裹+DWS）
   - 详细的性能统计（成功率、延迟、P50/P95/P99）
@@ -246,8 +269,6 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
   - 数据库迁移支持MySQL和SQLite
 - ✅ **代码质量提升** - 修复XML文档注释警告，构建零警告零错误
 - ✅ **测试覆盖提升** - 新增6个通信日志实体测试用例，总测试用例达到310个
-
-## 最新更新
 
 ### v1.14.8 (2025-11-09)
 - ✅ **MQTT通信支持** - 新增基于MQTTnet的MQTT通信适配器
@@ -345,11 +366,17 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 - ✅ **性能测试** - BenchmarkDotNet基准测试
 - ✅ **压力测试** - NBomber高并发压力测试（支持100-1000包裹/秒）
 - ✅ **测试控制台** - 模拟分拣机信号和DWS数据发送
-- ✅ **数据模拟器** - 综合的分拣机和DWS数据模拟工具（新增）
+- ✅ **数据模拟器** - 综合的分拣机和DWS数据模拟工具（v1.16.0更新）
+  - 支持MQTT和TCP分拣机信号模拟
   - 交互式UI，支持单次/批量/压力测试
   - 详细的性能统计和分析报告
   - 完整流程模拟验证
   - 详见 [DataSimulator README](Tests/ZakYip.Sorting.RuleEngine.DataSimulator/README.md)
+- ✅ **接口模拟器** - 独立的接口ID模拟服务（v1.16.0新增）
+  - 随机返回接口ID（1-50）
+  - 支持单个和批量获取
+  - 适用于测试第三方接口集成
+  - 详见 [InterfaceSimulator README](Tests/ZakYip.Sorting.RuleEngine.InterfaceSimulator/README.md)
 
 ## 监控和告警系统
 
