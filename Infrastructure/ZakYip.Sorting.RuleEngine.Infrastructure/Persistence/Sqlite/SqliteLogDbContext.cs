@@ -82,8 +82,8 @@ public class SqliteLogDbContext : DbContext
         {
             entity.ToTable("sorter_communication_logs");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
             entity.Property(e => e.SorterAddress).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.CommunicationType).HasMaxLength(50).IsRequired();
             entity.Property(e => e.OriginalContent).HasMaxLength(2000).IsRequired();
             entity.Property(e => e.FormattedContent).HasMaxLength(2000);
             entity.Property(e => e.ExtractedParcelId).HasMaxLength(100);
@@ -94,12 +94,14 @@ public class SqliteLogDbContext : DbContext
             
             entity.HasIndex(e => e.ExtractedParcelId).HasDatabaseName("IX_sorter_comm_logs_ParcelId");
             entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
+            entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_sorter_comm_logs_Type");
         });
 
         modelBuilder.Entity<DwsCommunicationLog>(entity =>
         {
             entity.ToTable("dws_communication_logs");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
             entity.Property(e => e.DwsAddress).HasMaxLength(200).IsRequired();
             entity.Property(e => e.OriginalContent).HasMaxLength(2000).IsRequired();
             entity.Property(e => e.FormattedContent).HasMaxLength(2000);
@@ -112,12 +114,14 @@ public class SqliteLogDbContext : DbContext
             
             entity.HasIndex(e => e.Barcode).HasDatabaseName("IX_dws_comm_logs_Barcode");
             entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_dws_comm_logs_Time_Desc");
+            entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_dws_comm_logs_Type");
         });
 
         modelBuilder.Entity<ApiCommunicationLog>(entity =>
         {
             entity.ToTable("api_communication_logs");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
             entity.Property(e => e.ParcelId).HasMaxLength(100).IsRequired();
             entity.Property(e => e.RequestUrl).HasMaxLength(500).IsRequired();
             entity.Property(e => e.RequestBody);
@@ -133,6 +137,7 @@ public class SqliteLogDbContext : DbContext
             
             entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_api_comm_logs_ParcelId");
             entity.HasIndex(e => e.RequestTime).IsDescending().HasDatabaseName("IX_api_comm_logs_RequestTime_Desc");
+            entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_api_comm_logs_Type");
         });
 
         modelBuilder.Entity<MatchingLog>(entity =>

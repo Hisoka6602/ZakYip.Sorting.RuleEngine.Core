@@ -103,8 +103,8 @@ public class MySqlLogDbContext : DbContext
         {
             entity.ToTable("sorter_communication_logs");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
             entity.Property(e => e.SorterAddress).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.CommunicationType).HasMaxLength(50).IsRequired();
             entity.Property(e => e.OriginalContent).HasMaxLength(2000).IsRequired();
             entity.Property(e => e.FormattedContent).HasMaxLength(2000);
             entity.Property(e => e.ExtractedParcelId).HasMaxLength(100);
@@ -118,12 +118,16 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：CommunicationTime按降序
             entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
+            
+            // 索引：CommunicationType用于按通信类型查询
+            entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_sorter_comm_logs_Type");
         });
 
         modelBuilder.Entity<DwsCommunicationLog>(entity =>
         {
             entity.ToTable("dws_communication_logs");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
             entity.Property(e => e.DwsAddress).HasMaxLength(200).IsRequired();
             entity.Property(e => e.OriginalContent).HasMaxLength(2000).IsRequired();
             entity.Property(e => e.FormattedContent).HasMaxLength(2000);
@@ -139,12 +143,16 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：CommunicationTime按降序
             entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_dws_comm_logs_Time_Desc");
+            
+            // 索引：CommunicationType用于按通信类型查询
+            entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_dws_comm_logs_Type");
         });
 
         modelBuilder.Entity<ApiCommunicationLog>(entity =>
         {
             entity.ToTable("api_communication_logs");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.CommunicationType).IsRequired();
             entity.Property(e => e.ParcelId).HasMaxLength(100).IsRequired();
             entity.Property(e => e.RequestUrl).HasMaxLength(500).IsRequired();
             entity.Property(e => e.RequestBody).HasColumnType("text");
@@ -163,6 +171,9 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：RequestTime按降序
             entity.HasIndex(e => e.RequestTime).IsDescending().HasDatabaseName("IX_api_comm_logs_RequestTime_Desc");
+            
+            // 索引：CommunicationType用于按通信类型查询
+            entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_api_comm_logs_Type");
         });
 
         modelBuilder.Entity<MatchingLog>(entity =>

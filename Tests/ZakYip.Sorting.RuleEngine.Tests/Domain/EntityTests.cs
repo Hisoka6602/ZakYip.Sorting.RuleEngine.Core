@@ -336,3 +336,112 @@ public class TestDataBuilderTests
         Assert.Equal(5, uniqueIds);
     }
 }
+
+/// <summary>
+/// 通信日志实体单元测试
+/// Unit tests for communication log entities
+/// </summary>
+public class CommunicationLogEntityTests
+{
+    [Fact]
+    public void DwsCommunicationLog_CommunicationType_CanBeSet()
+    {
+        // Arrange & Act
+        var log = new DwsCommunicationLog
+        {
+            CommunicationType = CommunicationType.Mqtt,
+            DwsAddress = "192.168.1.100:1883",
+            OriginalContent = "Test DWS Data",
+            IsSuccess = true
+        };
+
+        // Assert
+        Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
+        Assert.Equal("192.168.1.100:1883", log.DwsAddress);
+    }
+
+    [Fact]
+    public void DwsCommunicationLog_AllCommunicationTypes_CanBeAssigned()
+    {
+        // Arrange
+        var log = new DwsCommunicationLog();
+
+        // Act & Assert - Test all communication types
+        log.CommunicationType = CommunicationType.Tcp;
+        Assert.Equal(CommunicationType.Tcp, log.CommunicationType);
+
+        log.CommunicationType = CommunicationType.SignalR;
+        Assert.Equal(CommunicationType.SignalR, log.CommunicationType);
+
+        log.CommunicationType = CommunicationType.Http;
+        Assert.Equal(CommunicationType.Http, log.CommunicationType);
+
+        log.CommunicationType = CommunicationType.Mqtt;
+        Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
+    }
+
+    [Fact]
+    public void SorterCommunicationLog_CommunicationType_CanBeSet()
+    {
+        // Arrange & Act
+        var log = new SorterCommunicationLog
+        {
+            CommunicationType = CommunicationType.Tcp,
+            SorterAddress = "192.168.1.50:5000",
+            OriginalContent = "Test Sorter Data",
+            IsSuccess = true
+        };
+
+        // Assert
+        Assert.Equal(CommunicationType.Tcp, log.CommunicationType);
+        Assert.Equal("192.168.1.50:5000", log.SorterAddress);
+    }
+
+    [Fact]
+    public void ApiCommunicationLog_CommunicationType_DefaultsToHttp()
+    {
+        // Arrange & Act
+        var log = new ApiCommunicationLog
+        {
+            ParcelId = "PKG001",
+            RequestUrl = "http://api.example.com/chute",
+            IsSuccess = true
+        };
+
+        // Assert - Should default to HTTP
+        Assert.Equal(CommunicationType.Http, log.CommunicationType);
+    }
+
+    [Fact]
+    public void ApiCommunicationLog_CommunicationType_CanBeChanged()
+    {
+        // Arrange
+        var log = new ApiCommunicationLog
+        {
+            ParcelId = "PKG001"
+        };
+
+        // Act
+        log.CommunicationType = CommunicationType.SignalR;
+
+        // Assert
+        Assert.Equal(CommunicationType.SignalR, log.CommunicationType);
+    }
+
+    [Fact]
+    public void CommunicationLog_CommunicationType_CanBeSet()
+    {
+        // Arrange & Act
+        var log = new CommunicationLog
+        {
+            CommunicationType = CommunicationType.Mqtt,
+            Direction = CommunicationDirection.Inbound,
+            Message = "Test communication",
+            IsSuccess = true
+        };
+
+        // Assert
+        Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
+        Assert.Equal(CommunicationDirection.Inbound, log.Direction);
+    }
+}

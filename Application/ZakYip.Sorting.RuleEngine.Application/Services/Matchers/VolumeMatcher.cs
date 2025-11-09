@@ -81,7 +81,7 @@ public class VolumeMatcher
 
     /// <summary>
     /// 评估布尔表达式，处理逻辑运算符和比较操作
-    /// 递归处理逻辑运算符（&&和||），并评估各个比较条件
+    /// 递归处理逻辑运算符（&amp;&amp;和||），并评估各个比较条件
     /// </summary>
     /// <param name="expression">布尔表达式，可能包含多个由逻辑运算符连接的比较条件</param>
     /// <returns>表达式的布尔计算结果</returns>
