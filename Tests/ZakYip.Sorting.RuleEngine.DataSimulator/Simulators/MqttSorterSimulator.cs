@@ -1,30 +1,94 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using MQTTnet;
+using MQTTnet.Client;
 using ZakYip.Sorting.RuleEngine.DataSimulator.Configuration;
 using ZakYip.Sorting.RuleEngine.DataSimulator.Generators;
 
 namespace ZakYip.Sorting.RuleEngine.DataSimulator.Simulators;
 
 /// <summary>
-/// 分拣机模拟器 - 通过HTTP API发送包裹信号
-/// Sorter simulator - Send parcel signals via HTTP API
+/// MQTT分拣机模拟器 - 通过MQTT发送包裹信号
+/// MQTT Sorter simulator - Send parcel signals via MQTT
 /// </summary>
-public class SorterSimulator
+public class MqttSorterSimulator : ISorterSimulator
 {
-    private readonly HttpClient _httpClient;
+    private readonly MqttConfig _config;
     private readonly DataGenerator _generator;
-    private readonly SimulatorConfig _config;
+    private IMqttClient? _mqttClient;
+    private bool _isConnected;
 
-    public SorterSimulator(SimulatorConfig config, DataGenerator generator)
+    public MqttSorterSimulator(MqttConfig config, DataGenerator generator)
     {
         _config = config;
         _generator = generator;
-        _httpClient = new HttpClient 
-        { 
-            BaseAddress = new Uri(config.HttpApiUrl),
-            Timeout = TimeSpan.FromSeconds(30)
-        };
+    }
+
+    /// <summary>
+    /// 连接到MQTT代理
+    /// Connect to MQTT broker
+    /// </summary>
+    public async Task<bool> ConnectAsync()
+    {
+        try
+        {
+            var factory = new MqttFactory();
+            _mqttClient = factory.CreateMqttClient();
+
+            var optionsBuilder = new MqttClientOptionsBuilder()
+                .WithTcpServer(_config.BrokerHost, _config.BrokerPort)
+                .WithClientId(_config.ClientId)
+                .WithCleanSession();
+
+            if (!string.IsNullOrEmpty(_config.Username) && !string.IsNullOrEmpty(_config.Password))
+            {
+                optionsBuilder = optionsBuilder.WithCredentials(_config.Username, _config.Password);
+            }
+
+            var options = optionsBuilder.Build();
+
+            var result = await _mqttClient.ConnectAsync(options, CancellationToken.None);
+            _isConnected = result.ResultCode == MqttClientConnectResultCode.Success;
+
+            if (_isConnected)
+            {
+                Console.WriteLine($"✓ 已连接到MQTT代理: {_config.BrokerHost}:{_config.BrokerPort}");
+            }
+            else
+            {
+                Console.WriteLine($"✗ 连接MQTT代理失败: {result.ReasonString}");
+            }
+
+            return _isConnected;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"✗ 连接MQTT代理异常: {ex.Message}");
+            _isConnected = false;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 断开连接
+    /// Disconnect
+    /// </summary>
+    public async Task DisconnectAsync()
+    {
+        try
+        {
+            if (_mqttClient != null && _isConnected)
+            {
+                await _mqttClient.DisconnectAsync();
+                _isConnected = false;
+                Console.WriteLine("✓ 已断开MQTT代理连接");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"✗ 断开MQTT连接异常: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -33,30 +97,45 @@ public class SorterSimulator
     /// </summary>
     public async Task<SimulatorResult> SendParcelAsync(ParcelData parcel)
     {
+        if (!_isConnected || _mqttClient == null)
+        {
+            return new SimulatorResult
+            {
+                Success = false,
+                Message = "未连接到MQTT代理",
+                ElapsedMs = 0
+            };
+        }
+
         var sw = Stopwatch.StartNew();
         try
         {
-            var request = new
+            var data = new
             {
                 parcelId = parcel.ParcelId,
                 cartNumber = parcel.CartNumber,
-                barcode = parcel.Barcode
+                barcode = parcel.Barcode,
+                timestamp = DateTime.UtcNow
             };
 
-            var json = JsonSerializer.Serialize(request);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var json = JsonSerializer.Serialize(data);
+            var payload = Encoding.UTF8.GetBytes(json);
 
-            var response = await _httpClient.PostAsync("/api/sortingmachine/create-parcel", content);
-            var result = await response.Content.ReadAsStringAsync();
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(_config.PublishTopic)
+                .WithPayload(payload)
+                .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                .WithRetainFlag(false)
+                .Build();
 
+            await _mqttClient.PublishAsync(message, CancellationToken.None);
             sw.Stop();
 
             return new SimulatorResult
             {
-                Success = response.IsSuccessStatusCode,
-                Message = result,
-                ElapsedMs = sw.ElapsedMilliseconds,
-                StatusCode = (int)response.StatusCode
+                Success = true,
+                Message = "包裹信号发送成功",
+                ElapsedMs = sw.ElapsedMilliseconds
             };
         }
         catch (Exception ex)
@@ -116,6 +195,11 @@ public class SorterSimulator
         int ratePerSecond,
         CancellationToken cancellationToken = default)
     {
+        if (!_isConnected)
+        {
+            throw new InvalidOperationException("未连接到MQTT代理");
+        }
+
         var results = new List<SimulatorResult>();
         var startTime = DateTime.Now;
         var endTime = startTime.AddSeconds(durationSeconds);
@@ -190,50 +274,17 @@ public class SorterSimulator
         index = Math.Max(0, Math.Min(index, sorted.Count - 1));
         return sorted[index].ElapsedMs;
     }
-}
 
-/// <summary>
-/// 模拟器结果
-/// Simulator result
-/// </summary>
-public class SimulatorResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public long ElapsedMs { get; set; }
-    public int StatusCode { get; set; }
-}
-
-/// <summary>
-/// 批量测试结果
-/// Batch test result
-/// </summary>
-public class BatchResult
-{
-    public int TotalCount { get; set; }
-    public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public long TotalTimeMs { get; set; }
-    public double AverageLatencyMs { get; set; }
-    public long MinLatencyMs { get; set; }
-    public long MaxLatencyMs { get; set; }
-    public List<SimulatorResult> Results { get; set; } = new();
-}
-
-/// <summary>
-/// 压力测试结果
-/// Stress test result
-/// </summary>
-public class StressTestResult
-{
-    public double DurationSeconds { get; set; }
-    public int TargetRate { get; set; }
-    public double ActualRate { get; set; }
-    public int TotalSent { get; set; }
-    public int SuccessCount { get; set; }
-    public int FailureCount { get; set; }
-    public double AverageLatencyMs { get; set; }
-    public double P50LatencyMs { get; set; }
-    public double P95LatencyMs { get; set; }
-    public double P99LatencyMs { get; set; }
+    public void Dispose()
+    {
+        try
+        {
+            DisconnectAsync().GetAwaiter().GetResult();
+            _mqttClient?.Dispose();
+        }
+        catch
+        {
+            // Ignore disposal exceptions
+        }
+    }
 }
