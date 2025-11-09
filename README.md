@@ -6,7 +6,90 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 
 ## 主逻辑流程
 
+### 系统架构说明
+
+系统采用**事件驱动架构（Event-Driven Architecture）**和**CQRS模式**，核心组件包括：
+
+#### 核心服务层次
+1. **ParcelOrchestrationService（包裹编排服务）**
+   - 管理包裹处理的完整生命周期
+   - 使用 `Channel<T>` 实现 FIFO 队列，确保包裹按顺序处理
+   - 维护包裹处理上下文（ProcessingContext）在内存缓存中
+   - 协调事件发布和工作项调度
+
+2. **ParcelProcessingService（包裹处理服务）**
+   - 执行实际的包裹处理逻辑
+   - 调用规则引擎和第三方API
+   - 生成处理结果和性能指标
+
+3. **RuleEngineService（规则引擎服务）**
+   - 评估规则并计算格口号
+   - 支持6种匹配方法（条码正则、重量、体积、OCR、API响应、低代码表达式）
+   - 使用内存缓存提高规则评估性能
+
+#### 事件驱动流程
+系统使用 **MediatR** 实现事件驱动架构，关键事件包括：
+- `ParcelCreatedEvent` - 包裹创建时触发
+- `DwsDataReceivedEvent` - DWS数据接收时触发
+- `WcsApiCalledEvent` - 第三方API调用完成时触发
+- `RuleMatchCompletedEvent` - 规则匹配完成时触发
+
+#### FIFO队列机制
+- 使用 `System.Threading.Channels` 实现有界通道（容量1000）
+- 保证包裹按照创建顺序严格处理（FIFO - First In First Out）
+- 支持异步并发处理，但保持顺序性
+- 队列满时自动等待（BoundedChannelFullMode.Wait）
+
 ### 包裹分拣完整流程
+
+#### 流程图概览
+
+```
+                    ┌─────────────┐
+                    │  分拣机设备  │
+                    └──────┬──────┘
+                           │ 1. 创建包裹信号
+                           ▼
+                    ┌─────────────────────┐
+                    │ ParcelOrchestration │
+                    │     Service         │
+                    └──────┬──────────────┘
+                           │ 2. 加入FIFO队列
+                           ▼
+                    ┌─────────────────────┐         ┌─────────────┐
+                    │  FIFO Channel       │────────▶│  DWS设备    │
+                    │  (有界队列 1000)    │◀────────│  测量数据   │
+                    └──────┬──────────────┘         └─────────────┘
+                           │ 3. 按序处理                    │
+                           ▼                               │
+            ┌──────────────────────────┐                   │
+            │   DwsDataReceivedEvent   │◀──────────────────┘
+            └──────────┬───────────────┘
+                       │ 4. 调用第三方API (可选)
+                       ▼
+            ┌──────────────────────────┐
+            │   第三方WCS API          │
+            │  (PostalApi/JushuitanErp │
+            │   /WdtWms/WdtErpFlagship)│
+            └──────────┬───────────────┘
+                       │ 5. API响应 or 超时
+                       ▼
+            ┌──────────────────────────┐
+            │   RuleEngineService      │
+            │   (6种匹配方法)          │
+            └──────────┬───────────────┘
+                       │ 6. 计算格口号
+                       ▼
+            ┌──────────────────────────┐
+            │  RuleMatchCompletedEvent │
+            └──────────┬───────────────┘
+                       │ 7. 返回结果
+                       ▼
+                    ┌─────────────┐
+                    │  分拣机设备  │
+                    │  (接收格口号)│
+                    └─────────────┘
+```
 
 当系统接收到创建包裹消息后，会执行以下步骤：
 
@@ -48,6 +131,7 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
        - PostCollectionApiClient（邮政分揽投机构）
        - JushuitanErpApiClient（聚水潭ERP）
        - WdtWmsApiClient（旺店通WMS）
+       - WdtErpFlagshipApiClient（旺店通ERP旗舰版）
        - WcsApiClient（通用WCS）
   3. **记录API响应** - 保存到 `ApiCommunicationLog` 表
   4. **发布API调用事件** - 触发 `WcsApiCalledEvent`
@@ -123,6 +207,21 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 | CommunicationLog | 通用通信日志 | Direction, Type, Message, 成功状态 |
 | LogEntry | 系统日志 | Level, Message, Exception |
 
+### 后台服务
+
+系统运行多个后台服务，自动执行维护和优化任务：
+
+| 后台服务 | 功能描述 | 执行频率 |
+|---------|---------|---------|
+| ParcelQueueProcessorService | 处理FIFO队列中的包裹工作项 | 持续运行 |
+| MonitoringAlertService | 监控系统健康状态并生成告警 | 每分钟 |
+| DataCleanupService | 基于空闲检测清理过期数据 | 每30分钟 |
+| DataArchiveService | 归档冷数据到历史表 | 每天凌晨2点 |
+| ShardingTableManagementService | 自动创建和管理分片表 | 每小时 |
+| MySqlAutoTuningService | 优化MySQL查询计划和索引 | 每6小时 |
+| LogFileCleanupService | 清理过期的NLog日志文件 | 每天 |
+| ConfigurationCachePreloadService | 预加载配置到缓存 | 启动时一次 |
+
 ## 最新更新
 
 ### v1.14.9 (2025-11-09)
@@ -183,17 +282,43 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
   - PostProcessingCenterApiClient - 邮政处理中心
   - JushuitanErpApiClient - 聚水潭ERP
   - WdtWmsApiClient - 旺店通WMS
+  - WdtErpFlagshipApiClient - 旺店通ERP旗舰版
   - WcsApiClient - 通用WCS客户端
 - ✅ **数据持久化** - LiteDB（配置）、MySQL（日志）、SQLite（降级）
 - ✅ **数据库熔断** - MySQL失败自动降级到SQLite，恢复后完整同步
 - ✅ **性能监控** - P50/P95/P99延迟统计，完整的性能指标收集
 
 ### 通信支持
-- ✅ **SignalR Hub** - SortingHub和DwsHub，实时双向通信（生产环境推荐）
-- ✅ **TouchSocket TCP** - 高性能TCP通信，支持连接池和自动重连
-- ✅ **HTTP API** - 完整的REST API（仅用于测试和调试）
-- ✅ **MQTT** - 基于MQTTnet的MQTT通信，支持QoS控制和自动重连（v1.14.8新增）
-- ✅ **适配器热切换** - 运行时切换不同厂商设备，无需重启
+
+系统提供**适配器模式**实现的多种通信协议支持，支持运行时热切换：
+
+#### 分拣机通信适配器（ISorterAdapter）
+- ✅ **SignalR Hub (SortingHub)** - 实时双向通信（生产环境推荐）
+  - 支持自动重连和心跳检测
+  - 双向RPC调用支持
+  - 连接状态实时监控
+- ✅ **TouchSocket TCP (TouchSocketSorterAdapter)** - 高性能TCP通信
+  - 支持连接池和自动重连
+  - 自定义协议解析
+  - 高并发场景优化
+- ✅ **传统TCP (TcpSorterAdapter)** - 传统TCP Socket通信
+  - 兼容老旧分拣机设备
+  - 简单可靠的通信方式
+- ✅ **MQTT (MqttSorterAdapter)** - 基于MQTTnet的MQTT通信（v1.14.8新增）
+  - QoS控制和自动重连
+  - 支持MQTT 3.1.1和5.0
+  - 适合分布式部署场景
+
+#### DWS设备通信适配器（IDwsAdapter）
+- ✅ **SignalR Hub (DwsHub)** - 实时数据推送（生产环境推荐）
+- ✅ **TouchSocket TCP (TouchSocketDwsAdapter)** - 高性能TCP接收
+- ✅ **MQTT (MqttDwsAdapter)** - MQTT订阅模式（v1.14.8新增）
+- ✅ **HTTP API** - REST API接收（仅用于测试和调试）
+
+#### 第三方WCS API适配器（IWcsApiAdapter）
+- ✅ **运行时切换** - 通过配置动态切换不同厂商API，无需重启
+- ✅ **统一接口** - 所有适配器实现统一的IWcsApiAdapter接口
+- ✅ **容错机制** - API调用失败时自动降级到规则引擎
 
 ### 数据管理
 - ✅ **数据分片** - 按时间维度分表（日/周/月），支持热冷数据分离
