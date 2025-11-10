@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -201,5 +202,205 @@ namespace ZakYip.Sorting.RuleEngine.Tests.Infrastructure.Services
             // Assert
             Assert.Equal(42, result);
         }
+
+        #region Async Tests
+
+        [Fact]
+        public async Task ExecuteAsync_Action_SuccessfulExecution_ReturnsTrue()
+        {
+            // Arrange
+            var executed = false;
+            Func<Task> action = async () =>
+            {
+                await Task.Delay(10);
+                executed = true;
+            };
+
+            // Act
+            var result = await _isolator.ExecuteAsync(action, "test async operation");
+
+            // Assert
+            Assert.True(result);
+            Assert.True(executed);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_Action_ThrowsException_ReturnsFalse()
+        {
+            // Arrange
+            Func<Task> action = async () =>
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("Test async exception");
+            };
+
+            // Act
+            var result = await _isolator.ExecuteAsync(action, "test async operation");
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_Func_SuccessfulExecution_ReturnsResult()
+        {
+            // Arrange
+            Func<Task<int>> func = async () =>
+            {
+                await Task.Delay(10);
+                return 42;
+            };
+
+            // Act
+            var result = await _isolator.ExecuteAsync(func, "test async operation", 0);
+
+            // Assert
+            Assert.Equal(42, result);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_Func_ThrowsException_ReturnsDefaultValue()
+        {
+            // Arrange
+            Func<Task<int>> func = async () =>
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("Test async exception");
+            };
+
+            // Act
+            var result = await _isolator.ExecuteAsync(func, "test async operation", -1);
+
+            // Assert
+            Assert.Equal(-1, result);
+        }
+
+        [Fact]
+        public async Task TryExecuteAsync_SuccessfulExecution_ReturnsSuccessAndResult()
+        {
+            // Arrange
+            Func<Task<string>> func = async () =>
+            {
+                await Task.Delay(10);
+                return "success";
+            };
+
+            // Act
+            var (success, result) = await _isolator.TryExecuteAsync(func, "test async operation", "default");
+
+            // Assert
+            Assert.True(success);
+            Assert.Equal("success", result);
+        }
+
+        [Fact]
+        public async Task TryExecuteAsync_ThrowsException_ReturnsFailureAndDefaultValue()
+        {
+            // Arrange
+            Func<Task<string>> func = async () =>
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("Test async exception");
+            };
+
+            // Act
+            var (success, result) = await _isolator.TryExecuteAsync(func, "test async operation", "default");
+
+            // Assert
+            Assert.False(success);
+            Assert.Equal("default", result);
+        }
+
+        [Fact]
+        public async Task ExecuteSilentAsync_Action_SuccessfulExecution_ReturnsTrue()
+        {
+            // Arrange
+            var executed = false;
+            Func<Task> action = async () =>
+            {
+                await Task.Delay(10);
+                executed = true;
+            };
+
+            // Act
+            var result = await _isolator.ExecuteSilentAsync(action);
+
+            // Assert
+            Assert.True(result);
+            Assert.True(executed);
+        }
+
+        [Fact]
+        public async Task ExecuteSilentAsync_Action_ThrowsException_ReturnsFalseWithoutLogging()
+        {
+            // Arrange
+            Func<Task> action = async () =>
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("Test async exception");
+            };
+
+            // Act
+            var result = await _isolator.ExecuteSilentAsync(action);
+
+            // Assert
+            Assert.False(result);
+            
+            // Verify no error was logged (silent execution)
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task ExecuteSilentAsync_Func_SuccessfulExecution_ReturnsResult()
+        {
+            // Arrange
+            Func<Task<int>> func = async () =>
+            {
+                await Task.Delay(10);
+                return 42;
+            };
+
+            // Act
+            var result = await _isolator.ExecuteSilentAsync(func, 0);
+
+            // Assert
+            Assert.Equal(42, result);
+        }
+
+        [Fact]
+        public async Task ExecuteSilentAsync_Func_ThrowsException_ReturnsDefaultValueWithoutLogging()
+        {
+            // Arrange
+            Func<Task<int>> func = async () =>
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("Test async exception");
+            };
+
+            // Act
+            var result = await _isolator.ExecuteSilentAsync(func, -999);
+
+            // Assert
+            Assert.Equal(-999, result);
+            
+            // Verify no error was logged (silent execution)
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Never);
+        }
+
+        #endregion
     }
 }
