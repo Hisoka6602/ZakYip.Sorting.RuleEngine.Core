@@ -1,0 +1,6 @@
+@ZakYip.Sorting.RuleEngine.InterfaceSimulator_HostAddress = http://localhost:5207
+
+GET {{ZakYip.Sorting.RuleEngine.InterfaceSimulator_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

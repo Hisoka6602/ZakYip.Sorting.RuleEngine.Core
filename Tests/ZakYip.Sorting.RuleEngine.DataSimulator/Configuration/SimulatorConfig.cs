@@ -7,9 +7,22 @@ namespace ZakYip.Sorting.RuleEngine.DataSimulator.Configuration;
 public class SimulatorConfig
 {
     /// <summary>
-    /// HTTP API URL
+    /// 分拣机通信类型 (MQTT/TCP)
+    /// Sorter communication type (MQTT/TCP)
     /// </summary>
-    public string HttpApiUrl { get; set; } = "http://localhost:5000";
+    public string SorterCommunicationType { get; set; } = "MQTT";
+
+    /// <summary>
+    /// 分拣机MQTT配置
+    /// Sorter MQTT configuration
+    /// </summary>
+    public MqttConfig SorterMqtt { get; set; } = new();
+
+    /// <summary>
+    /// 分拣机TCP配置
+    /// Sorter TCP configuration
+    /// </summary>
+    public TcpConfig SorterTcp { get; set; } = new();
 
     /// <summary>
     /// DWS TCP主机地址
@@ -34,6 +47,68 @@ public class SimulatorConfig
     /// Data generation configuration
     /// </summary>
     public DataGenerationConfig DataGeneration { get; set; } = new();
+}
+
+/// <summary>
+/// MQTT配置
+/// MQTT configuration
+/// </summary>
+public class MqttConfig
+{
+    /// <summary>
+    /// MQTT代理地址
+    /// MQTT broker host
+    /// </summary>
+    public string BrokerHost { get; set; } = "127.0.0.1";
+
+    /// <summary>
+    /// MQTT代理端口
+    /// MQTT broker port
+    /// </summary>
+    public int BrokerPort { get; set; } = 1883;
+
+    /// <summary>
+    /// 发布主题
+    /// Publish topic
+    /// </summary>
+    public string PublishTopic { get; set; } = "sorter/parcel";
+
+    /// <summary>
+    /// 客户端ID
+    /// Client ID
+    /// </summary>
+    public string ClientId { get; set; } = "DataSimulator";
+
+    /// <summary>
+    /// 用户名（可选）
+    /// Username (optional)
+    /// </summary>
+    public string? Username { get; set; }
+
+    /// <summary>
+    /// 密码（可选）
+    /// Password (optional)
+    /// </summary>
+    public string? Password { get; set; }
+}
+
+/// <summary>
+/// TCP配置
+/// TCP configuration
+/// </summary>
+public class TcpConfig
+{
+    /// <summary>
+    /// TCP主机地址
+    /// TCP host address
+    /// </summary>
+    public string Host { get; set; } = "127.0.0.1";
+
+    /// <summary>
+    /// TCP端口
+    /// TCP port
+    /// </summary>
+    public int Port { get; set; } = 8000;
 }
 
 /// <summary>

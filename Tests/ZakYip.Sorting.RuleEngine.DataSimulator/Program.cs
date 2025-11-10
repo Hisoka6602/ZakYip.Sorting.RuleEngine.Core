@@ -14,7 +14,7 @@ class Program
 {
     private static SimulatorConfig _config = null!;
     private static DataGenerator _generator = null!;
-    private static SorterSimulator _sorterSimulator = null!;
+    private static ISorterSimulator? _sorterSimulator;
     private static DwsSimulator? _dwsSimulator;
 
     static async Task Main(string[] args)
@@ -27,7 +27,6 @@ class Program
 
         _config = configuration.GetSection("Simulator").Get<SimulatorConfig>() ?? new SimulatorConfig();
         _generator = new DataGenerator(_config.DataGeneration);
-        _sorterSimulator = new SorterSimulator(_config, _generator);
 
         // Display welcome banner
         DisplayWelcomeBanner();
@@ -54,6 +53,7 @@ class Program
         }
 
         // Cleanup
+        _sorterSimulator?.Dispose();
         _dwsSimulator?.Dispose();
         
         AnsiConsole.MarkupLine("[green]程序已退出。再见！[/]");
@@ -71,15 +71,20 @@ class Program
         
         AnsiConsole.WriteLine();
         
+        var communicationType = _config.SorterCommunicationType.ToUpper();
+        var connectionInfo = communicationType == "MQTT" 
+            ? $"{_config.SorterMqtt.BrokerHost}:{_config.SorterMqtt.BrokerPort}" 
+            : $"{_config.SorterTcp.Host}:{_config.SorterTcp.Port}";
+        
         var panel = new Panel(
             new Markup(
                 "[bold]功能说明:[/]\n" +
-                "• 模拟分拣机信号发送（HTTP API）\n" +
+                $"• 模拟分拣机信号发送（{communicationType}）\n" +
                 "• 模拟DWS数据发送（TCP）\n" +
                 "• 支持单次、批量和压力测试模式\n" +
                 "• 提供详细的性能统计报告\n" +
                 "\n" +
-                $"[dim]配置: HTTP API = {_config.HttpApiUrl}[/]\n" +
+                $"[dim]配置: 分拣机 {communicationType} = {connectionInfo}[/]\n" +
                 $"[dim]配置: DWS TCP = {_config.DwsTcpHost}:{_config.DwsTcpPort}[/]"
             )
         );
@@ -152,6 +157,19 @@ class Program
     {
         AnsiConsole.MarkupLine("\n[bold cyan]发送单个分拣机信号[/]\n");
 
+        // Ensure connected
+        if (_sorterSimulator == null)
+        {
+            _sorterSimulator = CreateSorterSimulator();
+            var connected = await _sorterSimulator.ConnectAsync();
+            if (!connected)
+            {
+                AnsiConsole.MarkupLine("[red]无法连接到分拣机[/]");
+                WaitForKeyPress();
+                return;
+            }
+        }
+
         var parcel = _generator.GenerateParcel();
         
         var table = new Table();
@@ -187,9 +205,32 @@ class Program
         WaitForKeyPress();
     }
 
+    static ISorterSimulator CreateSorterSimulator()
+    {
+        return _config.SorterCommunicationType.ToUpper() switch
+        {
+            "MQTT" => new MqttSorterSimulator(_config.SorterMqtt, _generator),
+            "TCP" => new TcpSorterSimulator(_config.SorterTcp, _generator),
+            _ => throw new InvalidOperationException($"不支持的通信类型: {_config.SorterCommunicationType}")
+        };
+    }
+
     static async Task SendBatchParcelsAsync()
     {
         AnsiConsole.MarkupLine("\n[bold cyan]批量发送分拣机信号[/]\n");
+
+        // Ensure connected
+        if (_sorterSimulator == null)
+        {
+            _sorterSimulator = CreateSorterSimulator();
+            var connected = await _sorterSimulator.ConnectAsync();
+            if (!connected)
+            {
+                AnsiConsole.MarkupLine("[red]无法连接到分拣机[/]");
+                WaitForKeyPress();
+                return;
+            }
+        }
 
         var count = AnsiConsole.Ask<int>("请输入发送数量:", 10);
         var delayMs = AnsiConsole.Ask<int>("每次发送间隔(毫秒):", 100);
@@ -234,6 +275,19 @@ class Program
     static async Task RunSorterStressTestAsync()
     {
         AnsiConsole.MarkupLine("\n[bold cyan]分拣机压力测试[/]\n");
+
+        // Ensure connected
+        if (_sorterSimulator == null)
+        {
+            _sorterSimulator = CreateSorterSimulator();
+            var connected = await _sorterSimulator.ConnectAsync();
+            if (!connected)
+            {
+                AnsiConsole.MarkupLine("[red]无法连接到分拣机[/]");
+                WaitForKeyPress();
+                return;
+            }
+        }
 
         var duration = AnsiConsole.Ask("测试持续时间(秒):", _config.StressTest.Duration);
         var rate = AnsiConsole.Ask("目标速率(包裹/秒):", _config.StressTest.RatePerSecond);
@@ -431,6 +485,19 @@ class Program
 
         AnsiConsole.WriteLine();
 
+        // Ensure sorter connected
+        if (_sorterSimulator == null)
+        {
+            _sorterSimulator = CreateSorterSimulator();
+            var connected = await _sorterSimulator.ConnectAsync();
+            if (!connected)
+            {
+                AnsiConsole.MarkupLine("[red]无法连接到分拣机[/]");
+                WaitForKeyPress();
+                return;
+            }
+        }
+
         // Ensure DWS connected
         if (_dwsSimulator == null)
         {
@@ -500,7 +567,21 @@ class Program
         table.AddColumn("配置项");
         table.AddColumn("值");
 
-        table.AddRow("HTTP API URL", _config.HttpApiUrl);
+        table.AddRow("分拣机通信类型", _config.SorterCommunicationType);
+        
+        if (_config.SorterCommunicationType.ToUpper() == "MQTT")
+        {
+            table.AddRow("MQTT代理地址", _config.SorterMqtt.BrokerHost);
+            table.AddRow("MQTT代理端口", _config.SorterMqtt.BrokerPort.ToString());
+            table.AddRow("MQTT发布主题", _config.SorterMqtt.PublishTopic);
+            table.AddRow("MQTT客户端ID", _config.SorterMqtt.ClientId);
+        }
+        else
+        {
+            table.AddRow("分拣机TCP主机", _config.SorterTcp.Host);
+            table.AddRow("分拣机TCP端口", _config.SorterTcp.Port.ToString());
+        }
+        
         table.AddRow("DWS TCP 主机", _config.DwsTcpHost);
         table.AddRow("DWS TCP 端口", _config.DwsTcpPort.ToString());
         table.AddRow("压力测试持续时间", $"{_config.StressTest.Duration}秒");
