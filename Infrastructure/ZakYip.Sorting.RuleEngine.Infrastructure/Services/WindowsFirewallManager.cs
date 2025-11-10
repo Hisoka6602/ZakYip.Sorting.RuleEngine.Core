@@ -8,16 +8,18 @@ using Microsoft.Extensions.Logging;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
 {
     /// <summary>
-    /// Windows防火墙管理服务
-    /// Manages Windows Firewall settings and port rules
+    /// Windows防火墙和网络管理服务
+    /// Manages Windows Firewall settings, port rules, and network adapter configuration
     /// </summary>
     public class WindowsFirewallManager
     {
         private readonly ILogger<WindowsFirewallManager> _logger;
+        private readonly SafetyIsolator _safetyIsolator;
 
         public WindowsFirewallManager(ILogger<WindowsFirewallManager> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _safetyIsolator = new SafetyIsolator(logger);
         }
 
         /// <summary>
@@ -108,17 +110,12 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         /// </summary>
         private bool IsFirewallEnabled()
         {
-            try
+            return _safetyIsolator.Execute(() =>
             {
                 var result = ExecuteNetshCommand("advfirewall show allprofiles state");
                 // 检查输出中是否包含 "ON"
                 return result.Contains("ON", StringComparison.OrdinalIgnoreCase);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "检查防火墙状态时发生错误 | Error checking firewall status");
-                return false;
-            }
+            }, "检查防火墙状态 | Check firewall status", false);
         }
 
         /// <summary>
@@ -127,7 +124,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         /// </summary>
         private bool DisableFirewall()
         {
-            try
+            return _safetyIsolator.Execute(() =>
             {
                 _logger.LogInformation("尝试关闭Windows防火墙所有配置文件 | Attempting to disable Windows Firewall for all profiles");
                 
@@ -145,12 +142,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                     _logger.LogWarning("关闭防火墙命令执行，但结果未知: {Result} | Firewall disable command executed, but result unknown: {Result}", result);
                     return false;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "关闭防火墙时发生错误 | Error disabling firewall");
-                return false;
-            }
+            }, "关闭防火墙 | Disable firewall", false);
         }
 
         /// <summary>
@@ -159,7 +151,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         /// </summary>
         private void EnsurePortRuleExists(int port)
         {
-            try
+            _safetyIsolator.Execute(() =>
             {
                 var ruleName = $"ZakYip.Sorting.RuleEngine.Port{port}";
                 
@@ -201,11 +193,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                 {
                     _logger.LogWarning("添加端口 {Port} 出站规则失败: {Result} | Failed to add outbound rule for port {Port}: {Result}", port, outboundResult);
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "为端口 {Port} 添加防火墙规则时发生错误 | Error adding firewall rule for port {Port}", port);
-            }
+            }, $"添加端口{port}的防火墙规则 | Add firewall rule for port {port}");
         }
 
         /// <summary>
@@ -214,17 +202,12 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         /// </summary>
         private bool CheckRuleExists(string ruleName)
         {
-            try
+            return _safetyIsolator.Execute(() =>
             {
                 var result = ExecuteNetshCommand("advfirewall firewall show rule name=all");
                 return result.Contains($"{ruleName}_Inbound", StringComparison.OrdinalIgnoreCase) ||
                        result.Contains($"{ruleName}_Outbound", StringComparison.OrdinalIgnoreCase);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "检查防火墙规则 {RuleName} 时发生错误 | Error checking firewall rule {RuleName}", ruleName);
-                return false;
-            }
+            }, $"检查防火墙规则 {ruleName} | Check firewall rule {ruleName}", false);
         }
 
         /// <summary>
@@ -233,7 +216,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         /// </summary>
         private string ExecuteNetshCommand(string arguments)
         {
-            try
+            return _safetyIsolator.Execute(() =>
             {
                 var processStartInfo = new ProcessStartInfo
                 {
@@ -261,12 +244,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                 }
 
                 return output;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "执行netsh命令时发生错误: {Arguments} | Error executing netsh command: {Arguments}", arguments);
-                throw;
-            }
+            }, $"执行netsh命令: {arguments} | Execute netsh command: {arguments}", string.Empty);
         }
 
         /// <summary>
@@ -361,6 +339,12 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                     if (SetMaxTransmitBuffers(adapter))
                     {
                         _logger.LogInformation("成功为适配器 {Adapter} 设置最大传输缓存 | Successfully set maximum transmit buffers for adapter {Adapter}", adapter);
+                    }
+                    
+                    // 关闭网卡节能功能
+                    if (DisablePowerSaving(adapter))
+                    {
+                        _logger.LogInformation("成功为适配器 {Adapter} 关闭节能功能 | Successfully disabled power saving for adapter {Adapter}", adapter);
                         successCount++;
                     }
                 }
@@ -565,12 +549,100 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         }
 
         /// <summary>
+        /// 关闭网卡节能功能
+        /// Disable power saving features for network adapter
+        /// </summary>
+        private bool DisablePowerSaving(string adapterName)
+        {
+            try
+            {
+                var success = false;
+
+                // 1. 关闭"允许计算机关闭此设备以节约电源"
+                // Disable "Allow the computer to turn off this device to save power"
+                var disablePowerMgmt = _safetyIsolator.ExecuteSilent(() =>
+                {
+                    var command = $"Get-NetAdapter -Name '{adapterName}' | Get-NetAdapterPowerManagement | Set-NetAdapterPowerManagement -AllowComputerToTurnOffDevice Disabled -ErrorAction SilentlyContinue";
+                    ExecutePowerShellCommand(command);
+                });
+
+                if (disablePowerMgmt)
+                {
+                    _logger.LogInformation("已为适配器 {Adapter} 禁用计算机关闭设备选项 | Disabled computer turn off device option for adapter {Adapter}", adapterName);
+                    success = true;
+                }
+
+                // 2. 禁用网卡的各种节能选项
+                // Disable various power saving options for the adapter
+                var powerSavingProperties = new[]
+                {
+                    "*EEE",                          // Energy Efficient Ethernet
+                    "EEE",
+                    "GreenEthernet",                 // Green Ethernet
+                    "*GreenEthernet",
+                    "PowerSavingMode",               // Power Saving Mode
+                    "*PowerSavingMode",
+                    "ReduceSpeedOnPowerDown",        // Reduce Speed On Power Down
+                    "*AdvancedEEE",                  // Advanced EEE
+                    "UltraLowPowerMode",             // Ultra Low Power Mode
+                    "*UltraLowPowerMode",
+                    "EnablePME",                     // Enable PME (Power Management Event)
+                    "*PME",
+                    "WakeOnMagicPacket",             // Wake on Magic Packet (可选择性禁用)
+                    "*WakeOnMagicPacket",
+                    "WakeOnPattern",                 // Wake on Pattern
+                    "*WakeOnPattern"
+                };
+
+                foreach (var property in powerSavingProperties)
+                {
+                    _safetyIsolator.ExecuteSilent(() =>
+                    {
+                        // 尝试设置为 0 (禁用)
+                        var command = $"Set-NetAdapterAdvancedProperty -Name '{adapterName}' -RegistryKeyword '{property}' -RegistryValue '0' -ErrorAction SilentlyContinue";
+                        ExecutePowerShellCommand(command);
+
+                        // 也尝试设置为 Disabled
+                        command = $"Set-NetAdapterAdvancedProperty -Name '{adapterName}' -RegistryKeyword '{property}' -DisplayValue 'Disabled' -ErrorAction SilentlyContinue";
+                        ExecutePowerShellCommand(command);
+                        
+                        success = true;
+                    });
+                }
+
+                // 3. 使用WMI关闭电源管理（备用方法）
+                // Use WMI to disable power management (alternative method)
+                _safetyIsolator.ExecuteSilent(() =>
+                {
+                    var wmiCommand = $@"
+                        $adapter = Get-WmiObject -Class Win32_NetworkAdapter | Where-Object {{$_.NetConnectionID -eq '{adapterName}'}};
+                        if ($adapter) {{
+                            $adapterConfig = Get-WmiObject -Class MSPower_DeviceEnable -Namespace root\\wmi | Where-Object {{$_.InstanceName -like ""*$($adapter.PNPDeviceID)*""}};
+                            if ($adapterConfig) {{
+                                $adapterConfig.Enable = $false;
+                                $adapterConfig.Put();
+                            }}
+                        }}
+                    ";
+                    ExecutePowerShellCommand(wmiCommand);
+                });
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "为适配器 {Adapter} 关闭节能功能时发生错误 | Error disabling power saving for adapter {Adapter}", adapterName);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 执行PowerShell命令
         /// Execute PowerShell command
         /// </summary>
         private string ExecutePowerShellCommand(string command)
         {
-            try
+            return _safetyIsolator.Execute(() =>
             {
                 var processStartInfo = new ProcessStartInfo
                 {
@@ -598,12 +670,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                 }
 
                 return output;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "执行PowerShell命令时发生错误: {Command} | Error executing PowerShell command: {Command}", command);
-                return string.Empty;
-            }
+            }, "执行PowerShell命令 | Execute PowerShell command", string.Empty);
         }
     }
 }
