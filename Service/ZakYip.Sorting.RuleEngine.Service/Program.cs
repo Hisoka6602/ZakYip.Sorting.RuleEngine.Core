@@ -568,6 +568,69 @@ try
     logger.Info("Windows服务模式已启用");
 #endif
 
+    // 在Windows平台上检查并配置防火墙
+    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+    {
+        try
+        {
+            logger.Info("检测到Windows平台，开始配置防火墙和端口规则 | Windows platform detected, starting firewall and port configuration");
+            
+            // 获取配置
+            var configuration = host.Services.GetRequiredService<IConfiguration>();
+            var appSettings = configuration.GetSection("AppSettings").Get<ZakYip.Sorting.RuleEngine.Service.Configuration.AppSettings>();
+            
+            if (appSettings?.MiniApi?.Urls != null && appSettings.MiniApi.Urls.Length > 0)
+            {
+                // 提取需要的端口
+                var ports = ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager.ExtractPortsFromUrls(appSettings.MiniApi.Urls);
+                
+                if (ports.Any())
+                {
+                    logger.Info("检测到需要开放的端口: {Ports} | Detected ports to open: {Ports}", string.Join(", ", ports));
+                    
+                    // 创建防火墙管理器并配置
+                    var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+                    var firewallLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager>();
+                    var firewallManager = new ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager(firewallLogger);
+                    
+                    var success = firewallManager.EnsureFirewallConfigured(ports);
+                    if (success)
+                    {
+                        logger.Info("防火墙配置完成 | Firewall configuration completed");
+                    }
+                    else
+                    {
+                        logger.Warn("防火墙配置未完全成功，请检查日志 | Firewall configuration not fully successful, please check logs");
+                    }
+                    
+                    // 配置网络适配器（启用巨帧和最大传输缓存）
+                    logger.Info("开始配置网络适配器 | Starting network adapter configuration");
+                    var adapterSuccess = firewallManager.ConfigureNetworkAdapters();
+                    if (adapterSuccess)
+                    {
+                        logger.Info("网络适配器配置完成 | Network adapter configuration completed");
+                    }
+                    else
+                    {
+                        logger.Warn("网络适配器配置未完全成功，请检查日志 | Network adapter configuration not fully successful, please check logs");
+                    }
+                }
+                else
+                {
+                    logger.Warn("未能从配置的URL中提取端口信息 | Could not extract port information from configured URLs");
+                }
+            }
+            else
+            {
+                logger.Warn("未配置MiniApi.Urls，跳过防火墙端口配置 | MiniApi.Urls not configured, skipping firewall port configuration");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warn(ex, "配置防火墙和网络适配器时发生错误，程序将继续运行 | Error occurred while configuring firewall and network adapters, program will continue running");
+        }
+    }
+
     host.Run();
 }
 catch (Exception ex)
