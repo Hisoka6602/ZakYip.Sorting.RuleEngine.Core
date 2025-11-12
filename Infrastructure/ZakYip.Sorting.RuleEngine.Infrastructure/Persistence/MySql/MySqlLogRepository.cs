@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -68,5 +69,26 @@ public class MySqlLogRepository : ILogRepository
         CancellationToken cancellationToken = default)
     {
         return LogAsync("ERROR", message, details, cancellationToken);
+    }
+
+    public async Task<int> BulkUpdateImagePathsAsync(string oldPrefix, string newPrefix, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Use raw SQL for efficient bulk update with REPLACE function
+            var sql = @"
+                UPDATE dws_communication_logs 
+                SET ImagesJson = REPLACE(ImagesJson, @p0, @p1)
+                WHERE ImagesJson IS NOT NULL 
+                AND ImagesJson LIKE CONCAT('%', @p0, '%')";
+
+            var affectedRows = await _context.Database.ExecuteSqlRawAsync(sql, oldPrefix, newPrefix, cancellationToken);
+            return affectedRows;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "批量更新图片路径失败");
+            throw;
+        }
     }
 }

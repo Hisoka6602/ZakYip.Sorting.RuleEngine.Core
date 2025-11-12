@@ -48,6 +48,12 @@ public class DwsCommunicationLog
     public decimal? Volume { get; set; }
 
     /// <summary>
+    /// 图片信息（JSON格式存储）
+    /// Images information stored in JSON format
+    /// </summary>
+    public string? ImagesJson { get; set; }
+
+    /// <summary>
     /// 通信时间
     /// </summary>
     public DateTime CommunicationTime { get; set; } = DateTime.Now;
