@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using MySqlConnector;
 using NLog;
 using NLog.Web;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
@@ -115,7 +116,7 @@ try
                             : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21，作为最低兼容版本。可通过配置使用更高版本（如8.0.33），但默认选择8.0.21以确保与大多数生产环境兼容。
                         
                         services.AddDbContext<MySqlLogDbContext>(options =>
-                            ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion),
+                            ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion, appSettings.MySql.ConnectionPool),
                             ServiceLifetime.Scoped);
                         
                         // 如果启用了分片功能，也注册ShardedLogDbContext
@@ -124,7 +125,7 @@ try
                         if (shardingEnabled)
                         {
                             services.AddDbContext<ShardedLogDbContext>(options =>
-                                ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion),
+                                ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion, appSettings.MySql.ConnectionPool),
                                 ServiceLifetime.Scoped);
                             logger.Info("分片数据库上下文已注册");
                         }
@@ -651,9 +652,21 @@ finally
 // 配置MySQL数据库上下文
 // Configure MySQL database context
 // </summary>
-static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string connectionString, ServerVersion serverVersion)
+static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string connectionString, ServerVersion serverVersion, ConnectionPoolSettings poolSettings)
 {
-    options.UseMySql(connectionString, serverVersion);
+    // 应用连接池配置到连接字符串
+    // Apply connection pool settings to connection string
+    var builder = new MySqlConnectionStringBuilder(connectionString)
+    {
+        Pooling = poolSettings.Pooling,
+        MinimumPoolSize = (uint)poolSettings.MinPoolSize,
+        MaximumPoolSize = (uint)poolSettings.MaxPoolSize,
+        ConnectionLifeTime = (uint)poolSettings.ConnectionLifetimeSeconds,
+        ConnectionIdleTimeout = (uint)poolSettings.ConnectionIdleTimeoutSeconds,
+        ConnectionTimeout = (uint)poolSettings.ConnectionTimeoutSeconds
+    };
+    
+    options.UseMySql(builder.ConnectionString, serverVersion);
     
     // 生产环境安全配置：禁止敏感数据日志和详细错误
     // 仅在DEBUG模式下启用详细错误，帮助开发调试

@@ -60,6 +60,8 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_communication_logs_ParcelId");
             entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_communication_logs_CreatedAt_Desc");
             entity.HasIndex(e => new { e.CommunicationType, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_communication_logs_Type_CreatedAt");
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_communication_logs_IsSuccess");
+            entity.HasIndex(e => new { e.IsSuccess, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_communication_logs_IsSuccess_CreatedAt");
         });
 
         modelBuilder.Entity<Chute>(entity =>
@@ -95,6 +97,9 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.ExtractedParcelId).HasDatabaseName("IX_sorter_comm_logs_ParcelId");
             entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
             entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_sorter_comm_logs_Type");
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_sorter_comm_logs_IsSuccess");
+            entity.HasIndex(e => new { e.CommunicationType, e.IsSuccess, e.CommunicationTime })
+                .IsDescending(false, false, true).HasDatabaseName("IX_sorter_comm_logs_Type_Success_Time");
         });
 
         modelBuilder.Entity<DwsCommunicationLog>(entity =>
@@ -116,6 +121,9 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.Barcode).HasDatabaseName("IX_dws_comm_logs_Barcode");
             entity.HasIndex(e => e.CommunicationTime).IsDescending().HasDatabaseName("IX_dws_comm_logs_Time_Desc");
             entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_dws_comm_logs_Type");
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_dws_comm_logs_IsSuccess");
+            entity.HasIndex(e => new { e.Barcode, e.CommunicationTime })
+                .IsDescending(false, true).HasDatabaseName("IX_dws_comm_logs_Barcode_Time");
         });
 
         modelBuilder.Entity<ApiCommunicationLog>(entity =>
@@ -139,6 +147,10 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_api_comm_logs_ParcelId");
             entity.HasIndex(e => e.RequestTime).IsDescending().HasDatabaseName("IX_api_comm_logs_RequestTime_Desc");
             entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_api_comm_logs_Type");
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_api_comm_logs_IsSuccess");
+            entity.HasIndex(e => new { e.ParcelId, e.RequestTime })
+                .IsDescending(false, true).HasDatabaseName("IX_api_comm_logs_ParcelId_RequestTime");
+            entity.HasIndex(e => e.DurationMs).IsDescending().HasDatabaseName("IX_api_comm_logs_DurationMs_Desc");
         });
 
         modelBuilder.Entity<MatchingLog>(entity =>
@@ -159,6 +171,10 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_matching_logs_ParcelId");
             entity.HasIndex(e => e.MatchingTime).IsDescending().HasDatabaseName("IX_matching_logs_Time_Desc");
             entity.HasIndex(e => e.ChuteId).HasDatabaseName("IX_matching_logs_ChuteId");
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_matching_logs_IsSuccess");
+            entity.HasIndex(e => e.MatchedRuleId).HasDatabaseName("IX_matching_logs_MatchedRuleId");
+            entity.HasIndex(e => new { e.ChuteId, e.MatchingTime })
+                .IsDescending(false, true).HasDatabaseName("IX_matching_logs_ChuteId_Time");
         });
 
         modelBuilder.Entity<ApiRequestLog>(entity =>
@@ -185,6 +201,11 @@ public class SqliteLogDbContext : DbContext
             entity.HasIndex(e => e.RequestPath).HasDatabaseName("IX_api_request_logs_RequestPath");
             entity.HasIndex(e => e.RequestIp).HasDatabaseName("IX_api_request_logs_RequestIp");
             entity.HasIndex(e => new { e.RequestMethod, e.RequestTime }).IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Method_Time");
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_api_request_logs_IsSuccess");
+            entity.HasIndex(e => e.ResponseStatusCode).HasDatabaseName("IX_api_request_logs_StatusCode");
+            entity.HasIndex(e => e.DurationMs).IsDescending().HasDatabaseName("IX_api_request_logs_DurationMs_Desc");
+            entity.HasIndex(e => new { e.RequestPath, e.RequestTime })
+                .IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Path_Time");
         });
 
         modelBuilder.Entity<MonitoringAlert>(entity =>
