@@ -77,6 +77,12 @@ public class MySqlLogDbContext : DbContext
             
             // 复合索引：CommunicationType + CreatedAt
             entity.HasIndex(e => new { e.CommunicationType, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_communication_logs_Type_CreatedAt");
+            
+            // 新增：IsSuccess索引，用于过滤成功/失败的记录
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_communication_logs_IsSuccess");
+            
+            // 新增：复合索引 IsSuccess + CreatedAt，优化失败记录的时间范围查询
+            entity.HasIndex(e => new { e.IsSuccess, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_communication_logs_IsSuccess_CreatedAt");
         });
 
         modelBuilder.Entity<Chute>(entity =>
@@ -121,6 +127,13 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：CommunicationType用于按通信类型查询
             entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_sorter_comm_logs_Type");
+            
+            // 新增：IsSuccess索引，用于过滤成功/失败的记录
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_sorter_comm_logs_IsSuccess");
+            
+            // 新增：复合索引 CommunicationType + IsSuccess + CommunicationTime
+            entity.HasIndex(e => new { e.CommunicationType, e.IsSuccess, e.CommunicationTime })
+                .IsDescending(false, false, true).HasDatabaseName("IX_sorter_comm_logs_Type_Success_Time");
         });
 
         modelBuilder.Entity<DwsCommunicationLog>(entity =>
@@ -147,6 +160,13 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：CommunicationType用于按通信类型查询
             entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_dws_comm_logs_Type");
+            
+            // 新增：IsSuccess索引，用于过滤成功/失败的记录
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_dws_comm_logs_IsSuccess");
+            
+            // 新增：复合索引 Barcode + CommunicationTime，优化按条码查询时间范围
+            entity.HasIndex(e => new { e.Barcode, e.CommunicationTime })
+                .IsDescending(false, true).HasDatabaseName("IX_dws_comm_logs_Barcode_Time");
         });
 
         modelBuilder.Entity<ApiCommunicationLog>(entity =>
@@ -175,6 +195,16 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：CommunicationType用于按通信类型查询
             entity.HasIndex(e => e.CommunicationType).HasDatabaseName("IX_api_comm_logs_Type");
+            
+            // 新增：IsSuccess索引，用于过滤成功/失败的API调用
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_api_comm_logs_IsSuccess");
+            
+            // 新增：复合索引 ParcelId + RequestTime，优化按包裹查询的时间排序
+            entity.HasIndex(e => new { e.ParcelId, e.RequestTime })
+                .IsDescending(false, true).HasDatabaseName("IX_api_comm_logs_ParcelId_RequestTime");
+            
+            // 新增：DurationMs索引，用于查询慢速API调用
+            entity.HasIndex(e => e.DurationMs).IsDescending().HasDatabaseName("IX_api_comm_logs_DurationMs_Desc");
         });
 
         modelBuilder.Entity<MatchingLog>(entity =>
@@ -200,6 +230,16 @@ public class MySqlLogDbContext : DbContext
             
             // 索引：ChuteId用于按格口查询
             entity.HasIndex(e => e.ChuteId).HasDatabaseName("IX_matching_logs_ChuteId");
+            
+            // 新增：IsSuccess索引，用于过滤成功/失败的匹配记录
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_matching_logs_IsSuccess");
+            
+            // 新增：MatchedRuleId索引，用于按规则查询匹配记录
+            entity.HasIndex(e => e.MatchedRuleId).HasDatabaseName("IX_matching_logs_MatchedRuleId");
+            
+            // 新增：复合索引 ChuteId + MatchingTime，优化格口的时间范围查询
+            entity.HasIndex(e => new { e.ChuteId, e.MatchingTime })
+                .IsDescending(false, true).HasDatabaseName("IX_matching_logs_ChuteId_Time");
         });
 
         modelBuilder.Entity<ApiRequestLog>(entity =>
@@ -233,6 +273,19 @@ public class MySqlLogDbContext : DbContext
 
             // 复合索引：RequestMethod + RequestTime
             entity.HasIndex(e => new { e.RequestMethod, e.RequestTime }).IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Method_Time");
+            
+            // 新增：IsSuccess索引，用于过滤成功/失败的请求
+            entity.HasIndex(e => e.IsSuccess).HasDatabaseName("IX_api_request_logs_IsSuccess");
+            
+            // 新增：ResponseStatusCode索引，用于按HTTP状态码查询
+            entity.HasIndex(e => e.ResponseStatusCode).HasDatabaseName("IX_api_request_logs_StatusCode");
+            
+            // 新增：DurationMs索引，用于查询慢速请求
+            entity.HasIndex(e => e.DurationMs).IsDescending().HasDatabaseName("IX_api_request_logs_DurationMs_Desc");
+            
+            // 新增：复合索引 RequestPath + RequestTime，优化按路径的时间范围查询
+            entity.HasIndex(e => new { e.RequestPath, e.RequestTime })
+                .IsDescending(false, true).HasDatabaseName("IX_api_request_logs_Path_Time");
         });
 
         modelBuilder.Entity<MonitoringAlert>(entity =>
