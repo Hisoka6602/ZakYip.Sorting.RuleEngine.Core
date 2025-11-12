@@ -1,5 +1,6 @@
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Domain.ValueObjects;
 using ZakYip.Sorting.RuleEngine.Tests.Helpers;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Domain;
@@ -443,5 +444,78 @@ public class CommunicationLogEntityTests
         // Assert
         Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
         Assert.Equal(CommunicationDirection.Inbound, log.Direction);
+    }
+}
+
+// Image-related tests
+public class DwsDataWithImagesTests
+{
+    [Fact]
+    public void DwsData_ShouldInitializeImagesCollection()
+    {
+        // Act
+        var dwsData = new DwsData();
+
+        // Assert
+        Assert.NotNull(dwsData.Images);
+        Assert.Empty(dwsData.Images);
+    }
+
+    [Fact]
+    public void DwsData_ShouldAllowAddingImages()
+    {
+        // Arrange
+        var dwsData = new DwsData
+        {
+            Barcode = "TEST123",
+            Weight = 100.5m,
+            Length = 200,
+            Width = 150,
+            Height = 100,
+            Volume = 3000000
+        };
+
+        var image1 = new ImageInfo("Camera01", @"D:\images\image001.jpg");
+        var image2 = new ImageInfo("Camera02", @"D:\images\image002.jpg");
+
+        // Act
+        dwsData.Images.Add(image1);
+        dwsData.Images.Add(image2);
+
+        // Assert
+        Assert.Equal(2, dwsData.Images.Count);
+        Assert.Equal("Camera01", dwsData.Images[0].DeviceName);
+        Assert.Equal(@"D:\images\image001.jpg", dwsData.Images[0].LocalPath);
+        Assert.Equal("Camera02", dwsData.Images[1].DeviceName);
+        Assert.Equal(@"D:\images\image002.jpg", dwsData.Images[1].LocalPath);
+    }
+
+    [Fact]
+    public void DwsData_WithMultipleImages_ShouldMaintainOrder()
+    {
+        // Arrange
+        var dwsData = new DwsData();
+        var images = new[]
+        {
+            new ImageInfo("Camera01", @"D:\img1.jpg"),
+            new ImageInfo("Camera02", @"D:\img2.jpg"),
+            new ImageInfo("Camera03", @"D:\img3.jpg"),
+            new ImageInfo("Camera04", @"D:\img4.jpg"),
+            new ImageInfo("Camera05", @"D:\img5.jpg")
+        };
+
+        // Act
+        foreach (var img in images)
+        {
+            dwsData.Images.Add(img);
+        }
+
+        // Assert
+        Assert.Equal(5, dwsData.Images.Count);
+        for (int i = 0; i < images.Length; i++)
+        {
+            Assert.Equal(images[i].DeviceName, dwsData.Images[i].DeviceName);
+            Assert.Equal(images[i].LocalPath, dwsData.Images[i].LocalPath);
+        }
     }
 }
