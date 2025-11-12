@@ -134,6 +134,7 @@ public class MySqlLogDbContext : DbContext
             entity.Property(e => e.Barcode).HasMaxLength(100);
             entity.Property(e => e.Weight).HasPrecision(18, 2);
             entity.Property(e => e.Volume).HasPrecision(18, 2);
+            entity.Property(e => e.ImagesJson).HasColumnType("text");
             entity.Property(e => e.CommunicationTime).IsRequired();
             entity.Property(e => e.IsSuccess).IsRequired();
             entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
