@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 数据清理事件
 /// </summary>
-public record struct DataCleanedEvent : INotification
+public readonly record struct DataCleanedEvent : INotification
 {
     /// <summary>
     /// 清理的记录数

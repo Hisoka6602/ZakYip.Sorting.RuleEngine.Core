@@ -475,8 +475,8 @@ public class DwsDataWithImagesTests
             Volume = 3000000
         };
 
-        var image1 = new ImageInfo("Camera01", @"D:\images\image001.jpg");
-        var image2 = new ImageInfo("Camera02", @"D:\images\image002.jpg");
+        var image1 = new ImageInfo { DeviceName = "Camera01", LocalPath = @"D:\images\image001.jpg" };
+        var image2 = new ImageInfo { DeviceName = "Camera02", LocalPath = @"D:\images\image002.jpg" };
 
         // Act
         dwsData.Images.Add(image1);
@@ -497,11 +497,11 @@ public class DwsDataWithImagesTests
         var dwsData = new DwsData();
         var images = new[]
         {
-            new ImageInfo("Camera01", @"D:\img1.jpg"),
-            new ImageInfo("Camera02", @"D:\img2.jpg"),
-            new ImageInfo("Camera03", @"D:\img3.jpg"),
-            new ImageInfo("Camera04", @"D:\img4.jpg"),
-            new ImageInfo("Camera05", @"D:\img5.jpg")
+            new ImageInfo { DeviceName = "Camera01", LocalPath = @"D:\img1.jpg" },
+            new ImageInfo { DeviceName = "Camera02", LocalPath = @"D:\img2.jpg" },
+            new ImageInfo { DeviceName = "Camera03", LocalPath = @"D:\img3.jpg" },
+            new ImageInfo { DeviceName = "Camera04", LocalPath = @"D:\img4.jpg" },
+            new ImageInfo { DeviceName = "Camera05", LocalPath = @"D:\img5.jpg" }
         };
 
         // Act

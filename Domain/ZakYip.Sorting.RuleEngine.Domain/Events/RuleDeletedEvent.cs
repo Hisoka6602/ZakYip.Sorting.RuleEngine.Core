@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 规则删除事件
 /// </summary>
-public record struct RuleDeletedEvent : INotification
+public readonly record struct RuleDeletedEvent : INotification
 {
     /// <summary>
     /// 规则ID

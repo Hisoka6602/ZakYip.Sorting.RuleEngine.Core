@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 规则创建事件
 /// </summary>
-public record struct RuleCreatedEvent : INotification
+public readonly record struct RuleCreatedEvent : INotification
 {
     /// <summary>
     /// 规则ID

@@ -6,7 +6,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// WCS API调用事件
 /// </summary>
-public record struct WcsApiCalledEvent : INotification
+public readonly record struct WcsApiCalledEvent : INotification
 {
     /// <summary>
     /// 包裹ID
