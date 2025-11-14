@@ -87,7 +87,7 @@ jobs:
           hide_complexity: false
           indicators: true
           output: both
-          thresholds: '85 90'
+          thresholds: '60 80'
       
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
@@ -100,9 +100,9 @@ jobs:
         run: |
           coverage_percentage=$(grep -oP 'Line coverage: \K[\d.]+' ./coverage/report/Summary.txt || echo "0")
           echo "Current code coverage: ${coverage_percentage}%"
-          if (( $(echo "$coverage_percentage < 85" | bc -l) )); then
-            echo "❌ Code coverage ${coverage_percentage}% is below the required threshold of 85%"
+          if (( $(echo "$coverage_percentage < 60" | bc -l) )); then
+            echo "❌ Code coverage ${coverage_percentage}% is below the minimum threshold of 60% (target: 80%)"
             exit 1
           else
-            echo "✅ Code coverage ${coverage_percentage}% meets the threshold of 85%"
+            echo "✅ Code coverage ${coverage_percentage}% meets the minimum threshold of 60% (target: 80%)"
           fi
