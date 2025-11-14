@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 格口创建事件
 /// </summary>
-public record struct ChuteCreatedEvent : INotification
+public readonly record struct ChuteCreatedEvent : INotification
 {
     /// <summary>
     /// 格口ID

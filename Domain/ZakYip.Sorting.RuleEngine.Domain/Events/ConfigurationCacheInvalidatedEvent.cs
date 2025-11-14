@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 配置缓存失效事件
 /// </summary>
-public record struct ConfigurationCacheInvalidatedEvent : INotification
+public readonly record struct ConfigurationCacheInvalidatedEvent : INotification
 {
     /// <summary>
     /// 缓存类型
