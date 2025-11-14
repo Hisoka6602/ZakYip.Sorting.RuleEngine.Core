@@ -4,30 +4,30 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 /// 旺店通WMS API配置请求
 /// WDT WMS API Configuration Request
 /// </summary>
-public class WdtWmsConfigRequest
+public record WdtWmsConfigRequest
 {
-    public string Url { get; set; } = string.Empty;
+    public required string Url { get; init; }
     
-    public string Sid { get; set; } = string.Empty;
+    public required string Sid { get; init; }
     
-    public string AppKey { get; set; } = string.Empty;
+    public required string AppKey { get; init; }
     
-    public string AppSecret { get; set; } = string.Empty;
+    public required string AppSecret { get; init; }
     
-    public string Method { get; set; } = "wms.logistics.Consign.weigh";
+    public string Method { get; init; } = "wms.logistics.Consign.weigh";
 
     /// <summary>
     /// 超时时间（毫秒）
     /// </summary>
-    public int TimeOut { get; set; } = 5000;
+    public int TimeOut { get; init; } = 5000;
 
     /// <summary>
     /// 表示是否必须包含包装条码
     /// </summary>
-    public bool MustIncludeBoxBarcode { get; set; } = false;
+    public bool MustIncludeBoxBarcode { get; init; } = false;
 
     /// <summary>
     /// 默认重量（当无重量数据时使用）
     /// </summary>
-    public double DefaultWeight { get; set; } = 0.0;
+    public double DefaultWeight { get; init; } = 0.0;
 }
