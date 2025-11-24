@@ -47,7 +47,7 @@ app.MapGet("/api/interface/random", () =>
         return Results.Ok(new InterfaceResponse
         {
             InterfaceId = interfaceId,
-            Timestamp = DateTime.UtcNow,
+            Timestamp = DateTime.Now,
             Success = true,
             Message = $"接口ID: {interfaceId}"
         });
@@ -94,7 +94,7 @@ app.MapGet("/api/interface/random/batch", (int count = 10) =>
         {
             InterfaceIds = interfaceIds,
             Count = count,
-            Timestamp = DateTime.UtcNow,
+            Timestamp = DateTime.Now,
             Success = true,
             Message = $"生成了 {count} 个接口ID"
         });
@@ -127,7 +127,7 @@ app.MapGet("/api/health", () =>
     {
         Status = "Healthy",
         Service = "Interface Simulator",
-        Timestamp = DateTime.UtcNow,
+        Timestamp = DateTime.Now,
         Version = "1.0.0"
     });
 })

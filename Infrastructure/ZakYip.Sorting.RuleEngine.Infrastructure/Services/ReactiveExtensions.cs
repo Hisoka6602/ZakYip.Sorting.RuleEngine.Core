@@ -43,8 +43,8 @@ public static class ReactiveExtensions
                 var values = batch.Select(selector).ToList();
                 return new WindowStatistics<T>
                 {
-                    WindowStart = DateTime.UtcNow - windowDuration,
-                    WindowEnd = DateTime.UtcNow,
+                    WindowStart = DateTime.Now - windowDuration,
+                    WindowEnd = DateTime.Now,
                     Count = values.Count,
                     Average = values.Average(),
                     Min = values.Min(),
@@ -171,7 +171,7 @@ public static class ReactiveExtensions
     {
         var heartbeat = Observable
             .Interval(heartbeatInterval)
-            .Select(_ => Either<T, HeartbeatSignal>.CreateRight(new HeartbeatSignal { Timestamp = DateTime.UtcNow }));
+            .Select(_ => Either<T, HeartbeatSignal>.CreateRight(new HeartbeatSignal { Timestamp = DateTime.Now }));
 
         var sourceWithLeft = source.Select(item => Either<T, HeartbeatSignal>.CreateLeft(item));
 

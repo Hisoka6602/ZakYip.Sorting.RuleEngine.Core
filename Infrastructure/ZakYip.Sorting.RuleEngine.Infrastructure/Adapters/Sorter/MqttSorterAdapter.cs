@@ -93,7 +93,7 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
             {
                 ParcelId = parcelId,
                 ChuteNumber = chuteNumber,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.Now
             };
             var jsonMessage = JsonSerializer.Serialize(message);
             var payload = Encoding.UTF8.GetBytes(jsonMessage);
@@ -210,8 +210,8 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
 
             // 等待连接建立（最多5秒）
             var waitTime = TimeSpan.FromSeconds(5);
-            var startTime = DateTime.UtcNow;
-            while (!_mqttClient.IsConnected && DateTime.UtcNow - startTime < waitTime)
+            var startTime = DateTime.Now;
+            while (!_mqttClient.IsConnected && DateTime.Now - startTime < waitTime)
             {
                 await Task.Delay(100, cancellationToken);
             }
