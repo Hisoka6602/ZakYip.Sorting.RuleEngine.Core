@@ -115,7 +115,7 @@ public class MqttSorterSimulator : ISorterSimulator
                 parcelId = parcel.ParcelId,
                 cartNumber = parcel.CartNumber,
                 barcode = parcel.Barcode,
-                timestamp = DateTime.UtcNow
+                timestamp = DateTime.Now
             };
 
             var json = JsonSerializer.Serialize(data);

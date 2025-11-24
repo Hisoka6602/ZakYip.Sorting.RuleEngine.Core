@@ -203,7 +203,7 @@ public class ReactiveParcelProcessingService : IDisposable
                 ParcelProcessed.Buffer(windowDuration),
                 (created, dwsReceived, processed) => new ParcelProcessingMetrics
                 {
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                     ParcelsCreated = created.Count,
                     DwsDataReceived = dwsReceived.Count,
                     ParcelsProcessed = processed.Count,

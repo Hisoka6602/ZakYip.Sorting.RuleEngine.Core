@@ -258,7 +258,7 @@ public class ReactiveMonitoringService : IDisposable
                     }),
                 (apiStats, matchStats) => new PerformanceMetrics
                 {
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                     TotalApiCalls = apiStats.TotalApiCalls,
                     SuccessfulApiCalls = apiStats.SuccessfulApiCalls,
                     AverageApiDuration = apiStats.AvgApiDuration,
