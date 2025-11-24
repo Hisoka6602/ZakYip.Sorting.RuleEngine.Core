@@ -135,11 +135,12 @@ public class MqttDwsAdapter : IDwsAdapter, IDisposable
 
             // 等待连接建立（最多5秒）
             var waitTime = TimeSpan.FromSeconds(5);
-            var startTime = DateTime.Now;
-            while (!_mqttClient.IsConnected && DateTime.Now - startTime < waitTime)
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (!_mqttClient.IsConnected && sw.Elapsed < waitTime)
             {
                 await Task.Delay(100, cancellationToken);
             }
+            sw.Stop();
 
             if (!_mqttClient.IsConnected)
             {

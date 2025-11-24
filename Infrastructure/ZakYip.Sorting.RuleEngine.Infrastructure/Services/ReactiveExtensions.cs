@@ -41,10 +41,11 @@ public static class ReactiveExtensions
             .Select(batch =>
             {
                 var values = batch.Select(selector).ToList();
+                var now = DateTime.Now;
                 return new WindowStatistics<T>
                 {
-                    WindowStart = DateTime.Now - windowDuration,
-                    WindowEnd = DateTime.Now,
+                    WindowStart = now - windowDuration,
+                    WindowEnd = now,
                     Count = values.Count,
                     Average = values.Average(),
                     Min = values.Min(),
