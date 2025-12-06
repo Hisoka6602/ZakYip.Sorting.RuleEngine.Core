@@ -952,15 +952,30 @@ The system has two main CI/CD workflows configured:
 
 **当前技术债务 / Current Technical Debt：** 约2天（非常低）
 
+**⚠️ 重要：请参阅 [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) 了解完整的技术债务清单和解决计划。**
+
+**⚠️ IMPORTANT: Please refer to [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) for the complete technical debt inventory and resolution plan.**
+
 **主要债务项 / Main Debt Items：**
 1. ⏳ API客户端缺少Polly弹性策略（预计4小时）
 2. ⏳ 部分复杂方法需要重构简化（预计8小时）
 3. ⏳ 少数测试用例需要增强断言（预计4小时）
+4. 🔴 代码重复率（影分身代码）：7.28%（目标 < 5%）
+
+**重复代码检测 / Duplicate Code Detection：**
+```bash
+# 安装检测工具 / Install detection tool
+npm install -g jscpd
+
+# 运行检测 / Run detection
+jscpd .
+```
 
 **债务管理策略 / Debt Management Strategy：**
 - 每个Sprint分配20%时间用于技术债务偿还
 - 优先偿还影响可维护性的债务
 - 防止新债务引入（代码审查强制执行）
+- **每次提交PR前必须通读 [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md)**
 
 ## 未来优化方向 / Future Optimization Directions
 

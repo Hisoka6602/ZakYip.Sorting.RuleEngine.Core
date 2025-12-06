@@ -13,9 +13,111 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 重复代码检测作业 / Duplicate Code Detection Job
+  duplicate-code-check:
+    name: Duplicate Code Detection (影分身检测)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install jscpd
+        run: npm install -g jscpd
+      
+      - name: Run duplicate code detection
+        id: jscpd
+        run: |
+          echo "🔍 开始检测重复代码 / Starting duplicate code detection..."
+          jscpd . --pattern "**/*.cs" \
+            --ignore "**/bin/**,**/obj/**,**/Migrations/**,**/Tests/**,**/*.Designer.cs" \
+            --reporters json,console \
+            --output ./jscpd-report \
+            --min-lines 10 \
+            --min-tokens 50 \
+            --threshold 5 || true
+          
+          # 解析结果 / Parse results
+          if [ -f "./jscpd-report/jscpd-report.json" ]; then
+            DUPLICATE_PERCENTAGE=$(cat ./jscpd-report/jscpd-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(f'{data[\"statistics\"][\"total\"][\"percentage\"]:.2f}')")
+            CLONE_COUNT=$(cat ./jscpd-report/jscpd-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(data['statistics']['total']['clones'])")
+            DUPLICATED_LINES=$(cat ./jscpd-report/jscpd-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(data['statistics']['total']['duplicatedLines'])")
+            
+            echo "duplicate_percentage=${DUPLICATE_PERCENTAGE}" >> $GITHUB_OUTPUT
+            echo "clone_count=${CLONE_COUNT}" >> $GITHUB_OUTPUT
+            echo "duplicated_lines=${DUPLICATED_LINES}" >> $GITHUB_OUTPUT
+            
+            echo ""
+            echo "📊 重复代码检测结果 / Duplicate Code Detection Results:"
+            echo "============================================"
+            echo "重复代码比例 / Duplication Rate: ${DUPLICATE_PERCENTAGE}%"
+            echo "重复代码块数 / Clone Count: ${CLONE_COUNT}"
+            echo "重复代码行数 / Duplicated Lines: ${DUPLICATED_LINES}"
+            echo "============================================"
+          else
+            echo "duplicate_percentage=0" >> $GITHUB_OUTPUT
+            echo "clone_count=0" >> $GITHUB_OUTPUT
+            echo "duplicated_lines=0" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload duplication report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duplication-report
+          path: ./jscpd-report/
+      
+      - name: Check duplication threshold
+        run: |
+          THRESHOLD=5
+          PERCENTAGE=${{ steps.jscpd.outputs.duplicate_percentage }}
+          
+          echo "当前重复代码比例 / Current duplication rate: ${PERCENTAGE}%"
+          echo "阈值 / Threshold: ${THRESHOLD}%"
+          
+          if (( $(echo "$PERCENTAGE > $THRESHOLD" | bc -l) )); then
+            echo ""
+            echo "❌ 重复代码检测失败 / Duplicate Code Detection Failed!"
+            echo "代码重复率 ${PERCENTAGE}% 超过了阈值 ${THRESHOLD}%"
+            echo "Code duplication rate ${PERCENTAGE}% exceeds threshold ${THRESHOLD}%"
+            echo ""
+            echo "📖 请参考 TECHNICAL_DEBT.md 了解如何解决重复代码问题"
+            echo "Please refer to TECHNICAL_DEBT.md for guidance on resolving duplicate code"
+            exit 1
+          else
+            echo ""
+            echo "✅ 重复代码检测通过 / Duplicate Code Detection Passed!"
+            echo "代码重复率 ${PERCENTAGE}% 在阈值 ${THRESHOLD}% 以内"
+            echo "Code duplication rate ${PERCENTAGE}% is within threshold ${THRESHOLD}%"
+          fi
+      
+      - name: Add duplication PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: duplication-check
+          message: |
+            ## 🔍 重复代码检测结果 / Duplicate Code Detection Results
+            
+            | 指标 Metric | 值 Value |
+            |-------------|----------|
+            | 重复代码比例 Duplication Rate | ${{ steps.jscpd.outputs.duplicate_percentage }}% |
+            | 重复代码块数 Clone Count | ${{ steps.jscpd.outputs.clone_count }} |
+            | 重复代码行数 Duplicated Lines | ${{ steps.jscpd.outputs.duplicated_lines }} |
+            | 阈值 Threshold | 5% |
+            
+            ---
+            📖 详情请查看 [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    needs: duplicate-code-check
     
     steps:
       - name: Checkout repository
@@ -29,7 +131,7 @@ jobs:
           dotnet-version: '8.0.x'
       
       - name: Cache NuGet packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -64,14 +166,14 @@ jobs:
       
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: '**/test-results.trx'
       
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: ./coverage/report/
