@@ -423,6 +423,76 @@ public class RuleMatcher
 
 ---
 
+## 11. 技术债务管理 / Technical Debt Management
+
+### 规则 / Rules:
+- 每次开启 PR 前必须通读 [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md) 文档
+- Before opening any PR, read through the [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md) document
+- 新代码不得引入重复代码（影分身代码）
+- New code must not introduce duplicate code (shadow clone code)
+- 运行 `jscpd` 检查代码重复率，确保不超过 5%
+- Run `jscpd` to check code duplication rate, ensure it does not exceed 5%
+- 如果引入新的技术债务，必须在 TECHNICAL_DEBT.md 中记录
+- If new technical debt is introduced, it must be documented in TECHNICAL_DEBT.md
+
+### 重复代码检测 / Duplicate Code Detection:
+```bash
+# 安装 jscpd / Install jscpd
+npm install -g jscpd
+
+# 运行检测 / Run detection
+jscpd .
+```
+
+### 示例 / Example:
+```csharp
+// ✗ 避免：复制粘贴代码 / Avoid: Copy-paste code
+public class WeightMatcher
+{
+    public bool Match(decimal weight, decimal min, decimal max) 
+    {
+        if (min > 0 && weight < min) return false;
+        if (max > 0 && weight > max) return false;
+        return true;
+    }
+}
+
+public class VolumeMatcher
+{
+    public bool Match(decimal volume, decimal min, decimal max) 
+    {
+        if (min > 0 && volume < min) return false;  // 重复代码
+        if (max > 0 && volume > max) return false;  // 重复代码
+        return true;
+    }
+}
+
+// ✓ 好的做法：提取通用逻辑 / Good: Extract common logic
+public static class RangeMatcher
+{
+    public static bool IsInRange(decimal value, decimal min, decimal max)
+    {
+        if (min > 0 && value < min) return false;
+        if (max > 0 && value > max) return false;
+        return true;
+    }
+}
+
+public class WeightMatcher
+{
+    public bool Match(decimal weight, decimal min, decimal max) 
+        => RangeMatcher.IsInRange(weight, min, max);
+}
+
+public class VolumeMatcher
+{
+    public bool Match(decimal volume, decimal min, decimal max) 
+        => RangeMatcher.IsInRange(volume, min, max);
+}
+```
+
+---
+
 ## 总结 / Summary
 
 遵循这些编码规范将帮助我们：
@@ -440,3 +510,7 @@ Following these coding standards will help us:
 **请在所有代码更改中严格遵守这些规范。**
 
 **Please strictly follow these standards in all code changes.**
+
+**⚠️ 重要：每次提交 PR 前，请确保已通读 [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)**
+
+**⚠️ IMPORTANT: Before each PR submission, make sure you have read [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)**

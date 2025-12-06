@@ -367,3 +367,7 @@ FodyWeavers.xsd
 *.db
 *.db-shm
 *.db-wal
+
+# jscpd duplicate code detection report
+jscpd-report/
+*.jscpd-report.json
