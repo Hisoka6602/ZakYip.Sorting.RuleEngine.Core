@@ -215,7 +215,8 @@ jobs:
         run: |
           coverage_percentage=$(grep -oP 'Line coverage: \K[\d.]+' ./coverage/report/Summary.txt || echo "0")
           echo "Current code coverage: ${coverage_percentage}%"
-          if (( $(echo "$coverage_percentage < 60" | bc -l) )); then
+          # Use awk for portable floating-point comparison
+          if awk "BEGIN {exit !($coverage_percentage < 60)}"; then
             echo "❌ Code coverage ${coverage_percentage}% is below the minimum threshold of 60% (target: 80%)"
             exit 1
           else
