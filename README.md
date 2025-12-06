@@ -960,7 +960,7 @@ The system has two main CI/CD workflows configured:
 1. ⏳ API客户端缺少Polly弹性策略（预计4小时）
 2. ⏳ 部分复杂方法需要重构简化（预计8小时）
 3. ⏳ 少数测试用例需要增强断言（预计4小时）
-4. 🔴 代码重复率（影分身代码）：7.28%（目标 < 5%）
+4. 🟡 代码重复率（影分身代码）：6.03%（目标 < 5%）
 
 **重复代码检测 / Duplicate Code Detection：**
 ```bash

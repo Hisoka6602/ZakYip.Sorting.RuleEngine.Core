@@ -9,9 +9,11 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 /// </summary>
 /// <remarks>
 /// 此类提取了 VolumeMatcher 和 WeightMatcher 中的共享逻辑，避免代码重复。
+/// This class extracts shared logic from VolumeMatcher and WeightMatcher to avoid code duplication.
 /// 支持的运算符：>, <, >=, <=, ==, =, &&, ||, and, or
+/// Supported operators: >, <, >=, <=, ==, =, &&, ||, and, or
 /// </remarks>
-public static class BaseExpressionEvaluator
+internal static class BaseExpressionEvaluator
 {
     /// <summary>
     /// 标准化逻辑操作符，将 and/or 转换为 &amp;&amp;/||

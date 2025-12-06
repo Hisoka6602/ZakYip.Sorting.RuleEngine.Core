@@ -19,6 +19,7 @@ public class PostCollectionApiClient : BasePostalApiClient
 {
     /// <summary>
     /// 获取客户端类型名称
+    /// Get client type name
     /// </summary>
     protected override string ClientTypeName => "邮政分揽投机构";
 

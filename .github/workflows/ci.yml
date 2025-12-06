@@ -15,7 +15,7 @@ on:
 # 限制 GITHUB_TOKEN 的权限 / Limit GITHUB_TOKEN permissions
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: write  # 用于在 PR 上发布重复代码检测评论 / Required for posting duplication check comments on PRs
 
 jobs:
   # 重复代码检测作业 / Duplicate Code Detection Job
@@ -55,7 +55,7 @@ jobs:
           
           # Parse results using jq
           if [ -f "./jscpd-report/jscpd-report.json" ]; then
-            DUPLICATE_PERCENTAGE=$(jq -r '.statistics.total.percentage | tostring | .[0:5]' ./jscpd-report/jscpd-report.json)
+            DUPLICATE_PERCENTAGE=$(jq -r '.statistics.total.percentage' ./jscpd-report/jscpd-report.json | xargs printf "%.2f")
             CLONE_COUNT=$(jq -r '.statistics.total.clones' ./jscpd-report/jscpd-report.json)
             DUPLICATED_LINES=$(jq -r '.statistics.total.duplicatedLines' ./jscpd-report/jscpd-report.json)
             
@@ -71,7 +71,12 @@ jobs:
             echo "重复代码行数 / Duplicated Lines: ${DUPLICATED_LINES}"
             echo "============================================"
           else
-            echo "⚠️ No report generated - jscpd may have failed (exit code: ${JSCPD_EXIT_CODE})"
+            # jscpd failed and no report generated - this is an error condition
+            if [ $JSCPD_EXIT_CODE -ne 0 ]; then
+              echo "❌ jscpd failed with exit code ${JSCPD_EXIT_CODE}"
+              exit 1
+            fi
+            echo "⚠️ No report generated - treating as 0% duplication"
             echo "duplicate_percentage=0" >> $GITHUB_OUTPUT
             echo "clone_count=0" >> $GITHUB_OUTPUT
             echo "duplicated_lines=0" >> $GITHUB_OUTPUT

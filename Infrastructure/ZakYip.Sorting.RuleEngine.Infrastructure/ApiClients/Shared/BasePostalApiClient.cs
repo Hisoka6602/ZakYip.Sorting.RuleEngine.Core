@@ -22,7 +22,10 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
     protected readonly HttpClient HttpClient;
     protected readonly ILogger Logger;
     protected readonly PostalSoapRequestBuilder SoapRequestBuilder;
-    private static long _sequenceNumber = 1;
+    
+    // 使用线程安全的实例级序列号，避免静态字段的并发问题
+    // Use thread-safe instance-level sequence number to avoid static field concurrency issues
+    private long _sequenceNumber = DateTimeOffset.Now.ToUnixTimeMilliseconds();
     private readonly object _sequenceLock = new();
 
     // Configuration parameters - should be injected via options pattern in production
@@ -98,7 +101,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
 
             var soapRequest = SoapRequestBuilder.BuildScanRequest(scanParameters);
 
-            var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
+            using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             // 发送SOAP请求
             var response = await HttpClient.PostAsync("", content, cancellationToken);
@@ -203,7 +206,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
 
             var soapRequest = SoapRequestBuilder.BuildChuteQueryRequest(chuteQueryParameters);
 
-            var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
+            using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             // 发送SOAP请求
             var response = await HttpClient.PostAsync("", content, cancellationToken);
