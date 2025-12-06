@@ -12,6 +12,11 @@ on:
       - develop
   workflow_dispatch:
 
+# 限制 GITHUB_TOKEN 的权限 / Limit GITHUB_TOKEN permissions
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   # 重复代码检测作业 / Duplicate Code Detection Job
   duplicate-code-check:
@@ -27,26 +32,32 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Install jscpd
-        run: npm install -g jscpd
+      - name: Install jscpd and jq
+        run: |
+          npm install -g jscpd
+          sudo apt-get update && sudo apt-get install -y jq
       
       - name: Run duplicate code detection
         id: jscpd
         run: |
           echo "🔍 开始检测重复代码 / Starting duplicate code detection..."
+          
+          # Run jscpd and capture exit code
+          set +e
           jscpd . --pattern "**/*.cs" \
             --ignore "**/bin/**,**/obj/**,**/Migrations/**,**/Tests/**,**/*.Designer.cs" \
             --reporters json,console \
             --output ./jscpd-report \
             --min-lines 10 \
-            --min-tokens 50 \
-            --threshold 5 || true
+            --min-tokens 50
+          JSCPD_EXIT_CODE=$?
+          set -e
           
-          # 解析结果 / Parse results
+          # Parse results using jq
           if [ -f "./jscpd-report/jscpd-report.json" ]; then
-            DUPLICATE_PERCENTAGE=$(cat ./jscpd-report/jscpd-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(f'{data[\"statistics\"][\"total\"][\"percentage\"]:.2f}')")
-            CLONE_COUNT=$(cat ./jscpd-report/jscpd-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(data['statistics']['total']['clones'])")
-            DUPLICATED_LINES=$(cat ./jscpd-report/jscpd-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(data['statistics']['total']['duplicatedLines'])")
+            DUPLICATE_PERCENTAGE=$(jq -r '.statistics.total.percentage | tostring | .[0:5]' ./jscpd-report/jscpd-report.json)
+            CLONE_COUNT=$(jq -r '.statistics.total.clones' ./jscpd-report/jscpd-report.json)
+            DUPLICATED_LINES=$(jq -r '.statistics.total.duplicatedLines' ./jscpd-report/jscpd-report.json)
             
             echo "duplicate_percentage=${DUPLICATE_PERCENTAGE}" >> $GITHUB_OUTPUT
             echo "clone_count=${CLONE_COUNT}" >> $GITHUB_OUTPUT
@@ -60,6 +71,7 @@ jobs:
             echo "重复代码行数 / Duplicated Lines: ${DUPLICATED_LINES}"
             echo "============================================"
           else
+            echo "⚠️ No report generated - jscpd may have failed (exit code: ${JSCPD_EXIT_CODE})"
             echo "duplicate_percentage=0" >> $GITHUB_OUTPUT
             echo "clone_count=0" >> $GITHUB_OUTPUT
             echo "duplicated_lines=0" >> $GITHUB_OUTPUT
@@ -80,7 +92,8 @@ jobs:
           echo "当前重复代码比例 / Current duplication rate: ${PERCENTAGE}%"
           echo "阈值 / Threshold: ${THRESHOLD}%"
           
-          if (( $(echo "$PERCENTAGE > $THRESHOLD" | bc -l) )); then
+          # Use awk for portable floating-point comparison
+          if awk "BEGIN {exit !($PERCENTAGE > $THRESHOLD)}"; then
             echo ""
             echo "❌ 重复代码检测失败 / Duplicate Code Detection Failed!"
             echo "代码重复率 ${PERCENTAGE}% 超过了阈值 ${THRESHOLD}%"

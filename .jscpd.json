@@ -12,7 +12,6 @@
   ],
   "minLines": 10,
   "minTokens": 50,
-  "threshold": 5,
   "reporters": [
     "json",
     "console"
@@ -22,7 +21,6 @@
   "blame": false,
   "gitignore": true,
   "silent": false,
-  "exitCode": 1,
   "format": [
     "csharp"
   ]

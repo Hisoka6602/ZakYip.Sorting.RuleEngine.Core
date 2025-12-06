@@ -23,7 +23,10 @@ This document records identified technical debt in the project. Before opening a
 | 类别 Category | 数量 Count | 严重程度 Severity | 状态 Status |
 |--------------|-----------|-------------------|-------------|
 | 重复代码 Duplicate Code | 106 处 | 🔴 高 High | 待解决 Pending |
-| 代码重复率 Duplication Rate | 7.28% | 🔴 高 High (目标 < 3%) | 待解决 Pending |
+| 代码重复率 Duplication Rate | 7.28% | 🔴 高 High (CI阈值 5%, 目标 < 3%) | 待解决 Pending |
+
+> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率需要逐步降低至目标值以下。
+> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate needs to be gradually reduced below the target.
 
 ---
 
