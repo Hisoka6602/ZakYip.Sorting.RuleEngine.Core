@@ -2,6 +2,7 @@ using EFCore.Sharding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;

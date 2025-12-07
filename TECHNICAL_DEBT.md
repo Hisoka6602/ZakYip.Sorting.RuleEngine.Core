@@ -22,14 +22,14 @@ This document records identified technical debt in the project. Before opening a
 
 | 类别 Category | 数量 Count | 严重程度 Severity | 状态 Status |
 |--------------|-----------|-------------------|-------------|
-| 重复代码 Duplicate Code | 93 处 | 🟡 中 Medium | 改善中 Improving |
-| 代码重复率 Duplication Rate | 6.03% | 🟡 中 Medium (CI阈值 5%, 目标 < 3%) | 改善中 Improving |
+| 重复代码 Duplicate Code | 79 处 | 🟢 低 Low | ✅ 已达 CI 阈值 |
+| 代码重复率 Duplication Rate | 4.96% | 🟢 低 Low (✅ 低于 CI 阈值 5%) | 持续优化中 |
 
-> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率需要逐步降低至目标值以下。
-> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate needs to be gradually reduced below the target.
+> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率已低于 CI 阈值，继续优化以达到 SonarQube 目标。
+> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate is below CI threshold, continuing optimization to reach SonarQube target.
 
-> **进展 / Progress:** 从 7.28% 降至 6.03%，减少 13 处克隆。
-> Reduced from 7.28% to 6.03%, eliminated 13 clone groups.
+> **进展 / Progress:** 从 6.02% (93 clones) 降至 4.96% (79 clones)，消除 284 行重复代码。
+> Reduced from 6.02% (93 clones) to 4.96% (79 clones), eliminated 284 duplicate lines.
 
 ---
 
@@ -56,20 +56,21 @@ The following are the major duplicate code areas identified in the project (sort
 
 #### ✅ 已解决 / Resolved
 
-| ID | 文件 Files | 原重复行数 Lines | 解决方案 Solution |
-|----|-----------|-----------------|-------------------|
-| TD-DUP-001 | `PostCollectionApiClient.cs` ↔ `PostProcessingCenterApiClient.cs` | 249 行 | ✅ 已抽取 `BasePostalApiClient` 基类 / Extracted `BasePostalApiClient` base class |
-| TD-DUP-006 | `VolumeMatcher.cs` ↔ `WeightMatcher.cs` | 118 行 | ✅ 已抽取 `BaseExpressionEvaluator` 共享逻辑 / Extracted `BaseExpressionEvaluator` shared logic |
+| ID | 文件 Files | 原重复行数 Lines | 解决方案 Solution | 解决日期 Date |
+|----|-----------|-----------------|-------------------|--------------|
+| TD-DUP-001 | `PostCollectionApiClient.cs` ↔ `PostProcessingCenterApiClient.cs` | 249 行 | ✅ 已抽取 `BasePostalApiClient` 基类 / Extracted `BasePostalApiClient` base class | 2025-12-06 |
+| TD-DUP-002 | `MySqlLogDbContext.cs` ↔ `SqliteLogDbContext.cs` | 157 行 | ✅ 已抽取 `BaseLogDbContext` 基类 / Extracted `BaseLogDbContext` base class | 2025-12-07 |
+| TD-DUP-006 | `VolumeMatcher.cs` ↔ `WeightMatcher.cs` | 118 行 | ✅ 已抽取 `BaseExpressionEvaluator` 共享逻辑 / Extracted `BaseExpressionEvaluator` shared logic | 2025-12-06 |
+| TD-DUP-007 | `MySqlMonitoringAlertRepository.cs` ↔ `SqliteMonitoringAlertRepository.cs` | 107 行 | ✅ 已抽取 `BaseMonitoringAlertRepository` 基类 / Extracted `BaseMonitoringAlertRepository` base class | 2025-12-07 |
+| TD-DUP-012 | `MySqlLogRepository.cs` ↔ `SqliteLogRepository.cs` | 61 行 | ✅ 已抽取 `BaseLogRepositoryImpl` 基类 / Extracted `BaseLogRepositoryImpl` base class | 2025-12-07 |
 
 #### 🔴 高优先级 / High Priority (>100 lines)
 
 | ID | 文件 Files | 重复行数 Lines | 描述 Description |
 |----|-----------|---------------|------------------|
-| TD-DUP-002 | `MySqlLogDbContext.cs` ↔ `SqliteLogDbContext.cs` | 157 行 | 数据库上下文重复配置，因数据库提供商差异暂不重构 / Duplicate DB context configuration, deferred due to DB provider differences |
 | TD-DUP-003 | `WdtErpFlagshipApiClient.cs` ↔ `WdtWmsApiClient.cs` | 151 行 | ERP API客户端重复代码，签名算法不同 / Duplicate ERP API client code, different signature algorithms |
 | TD-DUP-004 | `JushuitanErpApiClient.cs` ↔ `WdtWmsApiClient.cs` | 126 行 | ERP API客户端重复代码 / Duplicate ERP API client code |
 | TD-DUP-005 | `ResilientLogRepository.cs` (内部重复) | 120 行 | 弹性日志仓储内部重复逻辑 / Internal duplicate logic in resilient log repository |
-| TD-DUP-007 | `MySqlMonitoringAlertRepository.cs` ↔ `SqliteMonitoringAlertRepository.cs` | 107 行 | 告警仓储重复代码 / Duplicate alert repository code |
 
 #### 🟡 中优先级 / Medium Priority (50-100 lines)
 
@@ -79,7 +80,6 @@ The following are the major duplicate code areas identified in the project (sort
 | TD-DUP-009 | `WcsApiClient.cs` ↔ `WdtWmsApiClient.cs` | 93 行 | API客户端间重复代码 / Duplicate code between API clients |
 | TD-DUP-010 | `WdtWmsApiClient.cs` (内部重复) | 80 行 | API客户端内部重复代码 / Internal duplicate in API client |
 | TD-DUP-011 | `ApiClientTestController.cs` (内部重复) | 78 行 | 测试控制器重复代码 / Duplicate code in test controller |
-| TD-DUP-012 | `MySqlLogRepository.cs` ↔ `SqliteLogRepository.cs` | 61 行 | 日志仓储重复代码 / Duplicate log repository code |
 | TD-DUP-013 | `ApiCommunicationLog.cs` ↔ `WcsApiResponse.cs` | 57 行 | 实体类重复属性定义 / Duplicate property definitions in entities |
 | TD-DUP-014 | `MonitoringAlertDto.cs` ↔ `MonitoringAlert.cs` | 56 行 | DTO与实体类重复 / Duplicate between DTO and entity |
 | TD-DUP-015 | `LogController.cs` (内部重复) | 55 行 | 日志控制器重复代码 / Duplicate code in log controller |
@@ -183,8 +183,11 @@ Record of technical debt resolution:
 
 | 日期 Date | 债务 ID | 描述 Description | 解决者 Resolved By | PR 编号 PR Number |
 |-----------|---------|------------------|-------------------|-------------------|
-| 2025-12-06 | TD-DUP-001 | 抽取 BasePostalApiClient 基类消除 PostCollectionApiClient 与 PostProcessingCenterApiClient 重复 / Extract BasePostalApiClient to eliminate PostCollection/PostProcessingCenter duplication | GitHub Copilot | Current PR |
-| 2025-12-06 | TD-DUP-006 | 抽取 BaseExpressionEvaluator 消除 VolumeMatcher 与 WeightMatcher 重复 / Extract BaseExpressionEvaluator to eliminate VolumeMatcher/WeightMatcher duplication | GitHub Copilot | Current PR |
+| 2025-12-06 | TD-DUP-001 | 抽取 BasePostalApiClient 基类消除 PostCollectionApiClient 与 PostProcessingCenterApiClient 重复 / Extract BasePostalApiClient to eliminate PostCollection/PostProcessingCenter duplication | GitHub Copilot | Previous PR |
+| 2025-12-06 | TD-DUP-006 | 抽取 BaseExpressionEvaluator 消除 VolumeMatcher 与 WeightMatcher 重复 / Extract BaseExpressionEvaluator to eliminate VolumeMatcher/WeightMatcher duplication | GitHub Copilot | Previous PR |
+| 2025-12-07 | TD-DUP-002 | 抽取 BaseLogDbContext 基类消除 MySqlLogDbContext 与 SqliteLogDbContext 重复（157行）/ Extract BaseLogDbContext to eliminate MySql/Sqlite DbContext duplication (157 lines) | GitHub Copilot | Current PR |
+| 2025-12-07 | TD-DUP-007 | 抽取 BaseMonitoringAlertRepository 基类消除 MySql 与 Sqlite MonitoringAlertRepository 重复（107行）/ Extract BaseMonitoringAlertRepository to eliminate MySql/Sqlite repository duplication (107 lines) | GitHub Copilot | Current PR |
+| 2025-12-07 | TD-DUP-012 | 抽取 BaseLogRepositoryImpl 基类消除 MySqlLogRepository 与 SqliteLogRepository 重复（61行）/ Extract BaseLogRepositoryImpl to eliminate MySql/Sqlite log repository duplication (61 lines) | GitHub Copilot | Current PR |
 
 ---
 
@@ -235,5 +238,5 @@ For questions about technical debt, please contact the project lead.
 
 ---
 
-*最后更新 / Last Updated: 2025-12-06*
+*最后更新 / Last Updated: 2025-12-07*
 *更新者 / Updated By: GitHub Copilot Agent*

@@ -194,7 +194,7 @@ public class ResilientLogRepository : ILogRepository
             throw new InvalidOperationException("MySQL context is not available");
         }
 
-        var logEntry = new MySql.LogEntry
+        var logEntry = new LogEntry
         {
             Level = level,
             Message = message,
@@ -218,7 +218,7 @@ public class ResilientLogRepository : ILogRepository
     {
         try
         {
-            var logEntry = new Sqlite.LogEntry
+            var logEntry = new LogEntry
             {
                 Level = level,
                 Message = message,
@@ -317,7 +317,7 @@ public class ResilientLogRepository : ILogRepository
                     return 0;
                 }
 
-                var mysqlLogs = sqliteLogs.Select(log => new MySql.LogEntry
+                var mysqlLogs = sqliteLogs.Select(log => new LogEntry
                 {
                     Level = log.Level,
                     Message = log.Message,
