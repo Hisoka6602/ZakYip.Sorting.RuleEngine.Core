@@ -12,7 +12,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
 /// <typeparam name="TLogEntry">日志实体类型 / Log entry type</typeparam>
 public abstract class BaseLogRepositoryImpl<TContext, TLogEntry> : ILogRepository
     where TContext : DbContext
-    where TLogEntry : class, new()
+    where TLogEntry : class
 {
     protected readonly TContext Context;
     protected readonly ILogger Logger;

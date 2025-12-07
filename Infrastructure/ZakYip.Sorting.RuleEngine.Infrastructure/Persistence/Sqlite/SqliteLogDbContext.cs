@@ -41,11 +41,15 @@ public class SqliteLogDbContext : BaseLogDbContext
     {
         entity.Property(e => e.Weight).HasColumnType("DECIMAL(18,2)");
         entity.Property(e => e.Volume).HasColumnType("DECIMAL(18,2)");
+        // SQLite doesn't require explicit text column type specification
+        // SQLite 不需要显式指定文本列类型
         entity.Property(e => e.ImagesJson);
     }
 
     protected override void ConfigureApiCommunicationLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ApiCommunicationLog> entity)
     {
+        // SQLite doesn't require explicit text column type specification (unlike MySQL's HasColumnType("text"))
+        // SQLite 不需要显式指定文本列类型（不同于 MySQL 的 HasColumnType("text")）
         entity.Property(e => e.RequestBody);
         entity.Property(e => e.RequestHeaders);
         entity.Property(e => e.ResponseBody);
@@ -55,12 +59,16 @@ public class SqliteLogDbContext : BaseLogDbContext
 
     protected override void ConfigureMatchingLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.MatchingLog> entity)
     {
+        // SQLite doesn't require explicit text column type specification
+        // SQLite 不需要显式指定文本列类型
         entity.Property(e => e.DwsContent);
         entity.Property(e => e.ApiContent);
     }
 
     protected override void ConfigureApiRequestLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ApiRequestLog> entity)
     {
+        // SQLite doesn't require explicit text column type specification
+        // SQLite 不需要显式指定文本列类型
         entity.Property(e => e.RequestHeaders);
         entity.Property(e => e.RequestBody);
         entity.Property(e => e.ResponseHeaders);
@@ -71,6 +79,8 @@ public class SqliteLogDbContext : BaseLogDbContext
     {
         entity.Property(e => e.CurrentValue).HasColumnType("DECIMAL(18,2)");
         entity.Property(e => e.ThresholdValue).HasColumnType("DECIMAL(18,2)");
+        // SQLite doesn't require explicit text column type specification
+        // SQLite 不需要显式指定文本列类型
         entity.Property(e => e.AdditionalData);
     }
 }
