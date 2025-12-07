@@ -3,19 +3,6 @@ using Microsoft.EntityFrameworkCore;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
 /// <summary>
-/// SQLite日志实体
-/// SQLite log entry
-/// </summary>
-public class LogEntry
-{
-    public long Id { get; set; }
-    public string Level { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public string? Details { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-}
-
-/// <summary>
 /// SQLite日志数据库上下文（降级方案）
 /// SQLite log database context (fallback solution)
 /// </summary>

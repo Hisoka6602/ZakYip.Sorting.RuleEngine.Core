@@ -3,18 +3,6 @@ using Microsoft.EntityFrameworkCore;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 /// <summary>
-/// MySQL日志实体
-/// </summary>
-public class LogEntry
-{
-    public long Id { get; set; }
-    public string Level { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public string? Details { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-}
-
-/// <summary>
 /// MySQL日志数据库上下文
 /// MySQL log database context
 /// </summary>
