@@ -32,6 +32,18 @@ public abstract class BaseLogDbContext : DbContext
         ConfigureMatchingLog(modelBuilder);
         ConfigureApiRequestLog(modelBuilder);
         ConfigureMonitoringAlert(modelBuilder);
+        ConfigureLogEntry(modelBuilder);
+    }
+
+    /// <summary>
+    /// 配置日志实体，可被子类重写以提供数据库特定配置
+    /// Configure log entry entity, can be overridden for database-specific configuration
+    /// </summary>
+    protected virtual void ConfigureLogEntry(ModelBuilder modelBuilder)
+    {
+        // Default implementation for common index configuration
+        // 子类需要配置表名和字段类型
+        // Subclasses need to configure table name and field types
     }
 
     /// <summary>

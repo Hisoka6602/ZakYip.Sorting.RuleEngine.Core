@@ -17,8 +17,11 @@ public class SqliteLogDbContext : BaseLogDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // SQLite特定：LogEntry配置
-        // SQLite-specific: LogEntry configuration
+        base.OnModelCreating(modelBuilder);
+    }
+
+    protected override void ConfigureLogEntry(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<LogEntry>(entity =>
         {
             entity.ToTable("log_entries");
@@ -32,8 +35,6 @@ public class SqliteLogDbContext : BaseLogDbContext
             entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_log_entries_CreatedAt_Desc");
             entity.HasIndex(e => new { e.Level, e.CreatedAt }).IsDescending(false, true).HasDatabaseName("IX_log_entries_Level_CreatedAt");
         });
-
-        base.OnModelCreating(modelBuilder);
     }
 
     protected override void ConfigureDwsCommunicationLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.DwsCommunicationLog> entity)
