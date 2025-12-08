@@ -292,19 +292,30 @@ try
                     return handler;
                 });
 
+                // 注册自动应答模式服务
+                // Register auto-response mode service
+                services.AddSingleton<IAutoResponseModeService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.AutoResponseModeService>();
+
                 // 注册所有适配器到DI容器
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WcsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostProcessingCenterApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostCollectionApiClient>());
+                
+                // 注册模拟适配器（用于自动应答模式）
+                // Register mock adapter (for auto-response mode)
+                services.AddSingleton<MockWcsApiAdapter>();
+                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<MockWcsApiAdapter>());
 
-                // 注册适配器工厂 - 根据配置选择唯一激活的适配器
+                // 注册适配器工厂 - 根据配置和自动应答模式选择激活的适配器
+                // Register adapter factory - selects active adapter based on configuration and auto-response mode
                 services.AddSingleton<IWcsApiAdapterFactory>(sp =>
                 {
                     var adapters = sp.GetServices<IWcsApiAdapter>();
+                    var autoResponseModeService = sp.GetRequiredService<IAutoResponseModeService>();
                     var loggerFactory = sp.GetRequiredService<ILogger<WcsApiAdapterFactory>>();
-                    return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, loggerFactory);
+                    return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, autoResponseModeService, loggerFactory);
                 });
 
                 // 注册仓储
