@@ -13,12 +13,10 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 public class MockWcsApiAdapter : IWcsApiAdapter
 {
     private readonly ILogger<MockWcsApiAdapter> _logger;
-    private readonly Random _random;
 
     public MockWcsApiAdapter(ILogger<MockWcsApiAdapter> logger)
     {
         _logger = logger;
-        _random = new Random();
     }
 
     /// <summary>
@@ -116,10 +114,12 @@ public class MockWcsApiAdapter : IWcsApiAdapter
     /// <summary>
     /// 生成随机格口号（1-20）
     /// Generate random chute number (1-20)
+    /// 使用 Random.Shared 以确保线程安全和更好的性能
+    /// Uses Random.Shared for thread safety and better performance
     /// </summary>
-    private string GenerateRandomChuteNumber()
+    private static string GenerateRandomChuteNumber()
     {
-        var number = _random.Next(1, 21); // 1-20
+        var number = Random.Shared.Next(1, 21); // 1-20
         return number.ToString();
     }
 }
