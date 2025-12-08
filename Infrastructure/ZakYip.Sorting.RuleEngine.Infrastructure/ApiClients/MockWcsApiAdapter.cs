@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -13,6 +14,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 public class MockWcsApiAdapter : IWcsApiAdapter
 {
     private readonly ILogger<MockWcsApiAdapter> _logger;
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public MockWcsApiAdapter(ILogger<MockWcsApiAdapter> logger)
     {
@@ -35,7 +37,7 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             Success = true,
             Code = "200",
             Message = "模拟扫描成功 / Mock scan successful",
-            Data = $"{{\"chuteNumber\":\"{chuteNumber}\"}}",
+            Data = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions),
             ParcelId = barcode,
             RequestUrl = "/api/mock/scan",
             RequestTime = DateTime.Now,
@@ -67,11 +69,20 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             Success = true,
             Code = "200",
             Message = $"自动应答模式: 已分配模拟格口 {chuteNumber}",
-            Data = $"{{\"chuteNumber\":\"{chuteNumber}\"}}",
-            ResponseBody = $"{{\"chuteNumber\":\"{chuteNumber}\",\"weight\":{dwsData.Weight},\"volume\":{dwsData.Volume}}}",
+            Data = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions),
+            ResponseBody = JsonSerializer.Serialize(new 
+            { 
+                chuteNumber, 
+                weight = dwsData.Weight, 
+                volume = dwsData.Volume 
+            }, JsonOptions),
             ParcelId = parcelId,
             RequestUrl = "/api/mock/chute-request",
-            RequestBody = $"{{\"parcelId\":\"{parcelId}\",\"barcode\":\"{dwsData.Barcode}\"}}",
+            RequestBody = JsonSerializer.Serialize(new 
+            { 
+                parcelId, 
+                barcode = dwsData.Barcode 
+            }, JsonOptions),
             RequestTime = DateTime.Now,
             ResponseTime = DateTime.Now,
             ResponseStatusCode = 200,
@@ -100,7 +111,7 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             Success = true,
             Code = "200",
             Message = "模拟图片上传成功 / Mock image upload successful",
-            Data = $"{{\"uploaded\":true,\"size\":{imageData.Length}}}",
+            Data = JsonSerializer.Serialize(new { uploaded = true, size = imageData.Length }, JsonOptions),
             ParcelId = barcode,
             RequestUrl = "/api/mock/upload-image",
             RequestTime = DateTime.Now,
