@@ -560,6 +560,14 @@ The system is currently approximately **87%** complete, with all core features f
 - ✅ **WdtWmsApiClient** - 旺店通WMS
 - ✅ **WdtErpFlagshipApiClient** - 旺店通ERP旗舰版
 - ✅ **WcsApiClient** - 通用WCS客户端
+- ✅ **MockWcsApiAdapter** - 模拟适配器（自动应答模式）
+
+**自动应答模式 (新功能)：**
+- ✅ **模拟API响应** - 无需调用真实第三方API
+- ✅ **随机格口分配** - 返回1-20之间的随机格口ID
+- ✅ **API端点控制** - 通过REST API启用/禁用
+- ✅ **测试和演示** - 适用于开发、测试和演示场景
+- 📖 详见：[AUTO_RESPONSE_MODE_GUIDE.md](./AUTO_RESPONSE_MODE_GUIDE.md)
 
 **待完善的功能：**
 - ⏳ Polly弹性策略（重试、熔断、超时）
