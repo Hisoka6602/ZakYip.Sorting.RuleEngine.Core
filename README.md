@@ -2244,18 +2244,86 @@ dotnet run
 
 访问 Swagger UI: http://localhost:5000/swagger
 
-#### 作为Windows服务安装
+#### 自含部署（无需安装.NET运行时）/ Self-Contained Deployment (No .NET Runtime Required)
+
+**推荐用于生产环境 / Recommended for Production**
+
+项目已配置支持自含部署，编译时包含 .NET 运行环境，目标设备无需安装 .NET SDK 或 Runtime。
+
+The project is configured to support self-contained deployment, which includes the .NET runtime at compile time. The target device does not need .NET SDK or Runtime installed.
+
+```bash
+# 使用发布脚本（推荐）/ Using Publish Script (Recommended)
+
+# Windows
+.\publish-self-contained.ps1
+
+# Linux/macOS
+./publish-self-contained.sh
+
+# 或直接使用 dotnet 命令 / Or use dotnet command directly
+dotnet publish -c Release -r win-x64 --self-contained true
+dotnet publish -c Release -r linux-x64 --self-contained true
+```
+
+**详细说明请参阅 / For detailed instructions, see:** [SELF_CONTAINED_DEPLOYMENT.md](SELF_CONTAINED_DEPLOYMENT.md)
+
+**优势 / Advantages:**
+- ✅ 目标机器无需安装 .NET / No need to install .NET on target machine
+- ✅ 确保运行时版本一致 / Ensure consistent runtime version
+- ✅ 避免版本冲突 / Avoid version conflicts
+- ✅ 简化部署流程 / Simplify deployment process
+
+#### 作为Windows服务安装 / Install as Windows Service
+
+项目已内置 Windows 服务支持，可直接安装为 Windows 服务运行。
+
+The project has built-in Windows Service support and can be installed directly as a Windows Service.
 
 ```powershell
-# 发布应用
-dotnet publish -c Release -o ./publish
+# 1. 发布自含部署版本 / Publish self-contained deployment
+dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
 
-# 创建Windows服务
-sc create "ZakYipSortingEngine" binPath="C:\path\to\publish\ZakYip.Sorting.RuleEngine.Service.exe"
+# 2. 以管理员身份创建 Windows 服务 / Create Windows Service as Administrator
+sc create "ZakYipSortingService" `
+  binPath="C:\path\to\publish\ZakYip.Sorting.RuleEngine.Service.exe" `
+  DisplayName="ZakYip Sorting Rule Engine Service" `
+  start=auto
 
-# 启动服务
-sc start "ZakYipSortingEngine"
+# 3. 配置服务失败自动重启 / Configure automatic restart on failure
+sc failure "ZakYipSortingService" reset=86400 actions=restart/60000/restart/60000/restart/60000
+
+# 4. 启动服务 / Start service
+sc start ZakYipSortingService
+
+# 5. 查看服务状态 / Check service status
+sc query ZakYipSortingService
+# 或使用 / Or use:
+Get-Service -Name "ZakYipSortingService"
 ```
+
+**服务管理命令 / Service Management Commands:**
+```powershell
+# 停止服务 / Stop service
+Stop-Service -Name "ZakYipSortingService"
+
+# 重启服务 / Restart service
+Restart-Service -Name "ZakYipSortingService"
+
+# 卸载服务 / Uninstall service
+sc stop ZakYipSortingService
+sc delete ZakYipSortingService
+```
+
+**Windows 服务特性 / Windows Service Features:**
+- ✅ 自动启动（系统重启后自动运行）/ Automatic startup after system reboot
+- ✅ 失败自动重启（3 次重试，60 秒间隔）/ Auto-restart on failure (3 retries, 60s interval)
+- ✅ 集成 Windows 事件日志 / Integrated with Windows Event Log
+- ✅ 优雅关闭支持 / Graceful shutdown support
+
+详细的 Windows 服务配置请参阅：[SELF_CONTAINED_DEPLOYMENT.md - Windows 部署](SELF_CONTAINED_DEPLOYMENT.md#windows-部署--windows-deployment)
+
+For detailed Windows Service configuration, see: [SELF_CONTAINED_DEPLOYMENT.md - Windows Deployment](SELF_CONTAINED_DEPLOYMENT.md#windows-部署--windows-deployment)
 
 ## 版本历史 / Version History
 
