@@ -37,9 +37,9 @@ The ZakYip Sorting Rule Engine integrates with multiple third-party WCS (Warehou
 
 ## 已对接的第三方API列表 / Integrated Third-Party APIs
 
-系统目前已对接 **6 个第三方API系统** + **1 个通用适配器** + **1 个模拟适配器**：
+系统目前已对接 **5 个第三方API系统** + **1 个通用适配器** + **1 个模拟适配器**：
 
-The system currently integrates with **6 third-party API systems** + **1 generic adapter** + **1 mock adapter**:
+The system currently integrates with **5 third-party API systems** + **1 generic adapter** + **1 mock adapter**:
 
 | # | API名称 | 类型 | 协议 | 状态 | 主要功能 |
 |---|---------|------|------|------|---------|
@@ -96,7 +96,7 @@ The system currently integrates with **6 third-party API systems** + **1 generic
           ┌──────────────────┼──────────────────┐
           ▼                  ▼                  ▼
 ┌──────────────────┐ ┌──────────────┐ ┌─────────────────┐
-│ BasePostalApi    │ │ Jushuituan   │ │ WdtWms          │
+│ BasePostalApi    │ │ Jushuitan    │ │ WdtWms          │
 │ Client           │ │ ErpApiClient │ │ ApiClient       │
 │                  │ │              │ │                 │
 │ - PostCollection │ └──────────────┘ └─────────────────┘
@@ -221,7 +221,7 @@ public class PostCollectionApiClient : BasePostalApiClient
                 <cd>长度（厘米）</cd>
                 <kd>宽度（厘米）</kd>
                 <gd>高度（厘米）</gd>
-                <jgsj>交个时间</jgsj>
+                <jgsj>交接时间</jgsj>
             </arg0>
         </post:postWLCLMH>
     </soapenv:Body>
@@ -315,25 +315,47 @@ All other implementations are identical to PostCollectionApiClient, sharing the 
 
 **认证机制 / Authentication:**
 
-使用 HMAC-MD5 签名算法：
+使用 MD5 签名算法（注意：MD5 是较弱的哈希算法，建议与API提供商协商升级到更安全的算法如 HMAC-SHA256）：
+
+**⚠️ 安全提示 / Security Note:**
+- MD5 是加密学上较弱的哈希算法，存在碰撞攻击风险
+- 建议仅在 HTTPS/TLS 加密连接上使用
+- 如果API提供商支持，应升级到 HMAC-SHA256 或更强的签名算法
+- 当前实现是基于API提供商要求，需严格保护 appSecret 密钥
 
 ```csharp
 private string GenerateSign(Dictionary<string, object> parameters, string appSecret)
 {
-    // 1. 参数排序
+    // 1. 参数排序 / Sort parameters
     var sortedParams = parameters.OrderBy(p => p.Key);
     
-    // 2. 拼接字符串
+    // 2. 拼接字符串 / Concatenate string
     var signStr = string.Join("", sortedParams.Select(p => $"{p.Key}{p.Value}"));
     
-    // 3. 添加 appSecret
+    // 3. 添加 appSecret / Add appSecret
     signStr = appSecret + signStr + appSecret;
     
-    // 4. MD5 哈希并转大写
+    // 4. MD5 哈希并转大写 / MD5 hash and convert to uppercase
+    // 注意：实际代码中应使用 API 提供商要求的签名算法
     using var md5 = MD5.Create();
     var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signStr));
     return BitConverter.ToString(hashBytes).Replace("-", "").ToUpper();
 }
+
+// 推荐的替代实现（如果 API 支持 HMAC-SHA256）：
+// Recommended alternative (if API supports HMAC-SHA256):
+/*
+private string GenerateSignSecure(Dictionary<string, object> parameters, string appSecret)
+{
+    var sortedParams = parameters.OrderBy(p => p.Key);
+    var signStr = string.Join("", sortedParams.Select(p => $"{p.Key}{p.Value}"));
+    signStr = appSecret + signStr + appSecret;
+    
+    using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(appSecret));
+    var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(signStr));
+    return BitConverter.ToString(hashBytes).Replace("-", "").ToUpper();
+}
+*/
 ```
 
 **请求参数 / Request Parameters:**
@@ -429,18 +451,41 @@ var result = await apiClient.RequestChuteAsync("PKG123456", dwsData);
 
 **认证机制 / Authentication:**
 
-使用 HMAC-MD5 签名算法（与聚水潭类似）：
+使用 MD5 签名算法（注意：MD5 是较弱的哈希算法，建议与API提供商协商升级到更安全的算法如 HMAC-SHA256）：
+
+**⚠️ 安全提示 / Security Note:**
+- MD5 是加密学上较弱的哈希算法，存在碰撞攻击风险
+- 建议仅在 HTTPS/TLS 加密连接上使用
+- 如果API提供商支持，应升级到 HMAC-SHA256 或更强的签名算法
+- 当前实现是基于API提供商要求，需严格保护 appSecret 密钥
 
 ```csharp
 private string CalculateSign(SortedDictionary<string, string> parameters, string appSecret)
 {
+    // 拼接签名字符串 / Concatenate signature string
     var signStr = string.Join("", parameters.Select(p => $"{p.Key}{p.Value}"));
     signStr = appSecret + signStr + appSecret;
     
+    // MD5 哈希并转大写 / MD5 hash and convert to uppercase
+    // 注意：实际代码中应使用 API 提供商要求的签名算法
     using var md5 = MD5.Create();
     var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signStr));
     return BitConverter.ToString(hashBytes).Replace("-", "").ToUpper();
 }
+
+// 推荐的替代实现（如果 API 支持 HMAC-SHA256）：
+// Recommended alternative (if API supports HMAC-SHA256):
+/*
+private string CalculateSignSecure(SortedDictionary<string, string> parameters, string appSecret)
+{
+    var signStr = string.Join("", parameters.Select(p => $"{p.Key}{p.Value}"));
+    signStr = appSecret + signStr + appSecret;
+    
+    using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(appSecret));
+    var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(signStr));
+    return BitConverter.ToString(hashBytes).Replace("-", "").ToUpper();
+}
+*/
 ```
 
 **请求参数 / Request Parameters:**
