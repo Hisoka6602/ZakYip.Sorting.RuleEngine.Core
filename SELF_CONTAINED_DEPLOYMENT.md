@@ -62,93 +62,83 @@ Self-contained deployment packages the .NET runtime and all dependencies into th
 
 ### 使用 dotnet 命令 / Using dotnet Command
 
-#### 方法 1：使用发布配置文件 / Method 1: Using Publish Profile
+#### 方法 1：直接指定参数（推荐）/ Method 1: Direct Parameters (Recommended)
 
 ```bash
 # Windows x64 多文件 / Windows x64 Multiple files
-dotnet publish -c Release -p:PublishProfile=SelfContained-Win-x64
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true
 
 # Windows x64 单文件 / Windows x64 Single file
-dotnet publish -c Release -p:PublishProfile=SelfContained-SingleFile-Win-x64
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true
 
 # Linux x64 多文件 / Linux x64 Multiple files
-dotnet publish -c Release -p:PublishProfile=SelfContained-Linux-x64
+dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishReadyToRun=true
 
 # Linux x64 单文件 / Linux x64 Single file
-dotnet publish -c Release -p:PublishProfile=SelfContained-SingleFile-Linux-x64
-```
-
-#### 方法 2：直接指定参数 / Method 2: Direct Parameters
-
-```bash
-# Windows x64
-dotnet publish -c Release -r win-x64 --self-contained true
-
-# Linux x64
-dotnet publish -c Release -r linux-x64 --self-contained true
+dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true
 
 # macOS x64
-dotnet publish -c Release -r osx-x64 --self-contained true
+dotnet publish -c Release -r osx-x64 --self-contained true -p:PublishReadyToRun=true
+
+# macOS ARM64 (Apple Silicon)
+dotnet publish -c Release -r osx-arm64 --self-contained true -p:PublishReadyToRun=true
 
 # Linux ARM64 (树莓派等) / Linux ARM64 (Raspberry Pi, etc.)
-dotnet publish -c Release -r linux-arm64 --self-contained true
+dotnet publish -c Release -r linux-arm64 --self-contained true -p:PublishReadyToRun=true
 ```
 
-## 发布配置说明 / Publish Configuration Details
+#### 方法 2：使用脚本（更便捷）/ Method 2: Using Scripts (More Convenient)
 
-项目提供了 4 种预配置的发布配置文件：
+```bash
+# Windows
+.\publish-self-contained.ps1
 
-The project provides 4 pre-configured publish profiles:
+# Linux/macOS
+./publish-self-contained.sh
+```
 
-### 1. SelfContained-Win-x64
+## 发布配置选项说明 / Publish Configuration Options
 
-- **目标平台 / Target Platform**: Windows x64
-- **发布方式 / Publish Type**: 多文件 / Multiple files
+项目支持以下发布配置选项：
+
+The project supports the following publish configuration options:
+
+### 多文件发布 / Multiple Files Publish
+
+- **配置 / Configuration**: `-r <runtime> --self-contained true -p:PublishReadyToRun=true`
+- **目标平台 / Target Platforms**: Windows x64, Linux x64, macOS x64/ARM64
 - **ReadyToRun**: 启用 / Enabled
-- **输出目录 / Output Directory**: `bin\Release\net8.0\win-x64\publish\`
+- **输出 / Output**: 所有 DLL 和可执行文件分开存放 / All DLLs and executables stored separately
 
 **适用场景 / Use Cases**:
-- 需要在 Windows 服务器上部署
-- 希望保留文件结构便于调试
-- 需要修改配置文件（appsettings.json, nlog.config）
+- 需要在服务器上部署 / Server deployment needed
+- 希望保留文件结构便于调试 / Want to preserve file structure for debugging
+- 需要修改配置文件（appsettings.json, nlog.config） / Need to modify configuration files
+- 生产环境推荐配置 / Recommended for production
 
-### 2. SelfContained-Linux-x64
+**优势 / Advantages**:
+- ✅ 便于调试和更新单个组件 / Easy to debug and update individual components
+- ✅ 配置文件可直接修改 / Configuration files can be directly modified
+- ✅ 更快的启动速度（ReadyToRun） / Faster startup (ReadyToRun)
 
-- **目标平台 / Target Platform**: Linux x64
-- **发布方式 / Publish Type**: 多文件 / Multiple files
+### 单文件发布 / Single File Publish
+
+- **配置 / Configuration**: `-r <runtime> --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true`
+- **目标平台 / Target Platforms**: Windows x64, Linux x64
 - **ReadyToRun**: 启用 / Enabled
-- **输出目录 / Output Directory**: `bin/Release/net8.0/linux-x64/publish/`
+- **输出 / Output**: 大部分文件打包为单个可执行文件 / Most files packaged into a single executable
 
 **适用场景 / Use Cases**:
-- 需要在 Linux 服务器上部署（Ubuntu, CentOS, Debian 等）
-- Docker 容器部署
-- 云服务器部署
+- 简化分发和部署 / Simplify distribution and deployment
+- 便于版本管理 / Easy version management
+- 客户端环境部署 / Client environment deployment
 
-### 3. SelfContained-SingleFile-Win-x64
+**优势 / Advantages**:
+- ✅ 简化部署流程 / Simplified deployment process
+- ✅ 便于分发 / Easy to distribute
+- ✅ 减少文件数量 / Fewer files
 
-- **目标平台 / Target Platform**: Windows x64
-- **发布方式 / Publish Type**: 单文件 / Single file
-- **压缩 / Compression**: 启用 / Enabled
-- **输出目录 / Output Directory**: `bin\Release\net8.0\win-x64\publish\`
-
-**适用场景 / Use Cases**:
-- 简化分发和部署
-- 便于版本管理
-- 客户端环境部署
-
-**注意 / Note**: 配置文件（appsettings.json, nlog.config）仍会作为单独文件输出
-
-### 4. SelfContained-SingleFile-Linux-x64
-
-- **目标平台 / Target Platform**: Linux x64
-- **发布方式 / Publish Type**: 单文件 / Single file
-- **压缩 / Compression**: 启用 / Enabled
-- **输出目录 / Output Directory**: `bin/Release/net8.0/linux-x64/publish/`
-
-**适用场景 / Use Cases**:
-- 简化 Linux 部署
-- 便于自动化部署脚本
-- 容器化部署
+**注意 / Note**: 配置文件（appsettings.json, nlog.config）仍会作为单独文件输出 / Configuration files still output as separate files
 
 ## 部署步骤 / Deployment Steps
 

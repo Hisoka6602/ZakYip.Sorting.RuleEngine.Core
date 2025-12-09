@@ -82,7 +82,11 @@ rm -rf "bin/Release/net8.0/${RUNTIME}/publish"
 
 # 执行发布 / Execute publish
 echo -e "${YELLOW}开始发布... / Starting publish...${NC}"
-dotnet publish -c Release -p:PublishProfile="${PROFILE}" -p:RuntimeIdentifier="${RUNTIME}"
+if [[ "${PROFILE}" == *"SingleFile"* ]]; then
+    dotnet publish -c Release -r "${RUNTIME}" --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true
+else
+    dotnet publish -c Release -r "${RUNTIME}" --self-contained true -p:PublishReadyToRun=true
+fi
 
 if [ $? -eq 0 ]; then
     echo ""

@@ -94,7 +94,11 @@ if (Test-Path $publishDir) {
 
 # 执行发布 / Execute publish
 Write-ColorOutput Yellow "开始发布... / Starting publish..."
-& dotnet publish -c Release -p:PublishProfile=$publishProfile -p:RuntimeIdentifier=$runtime
+if ($Profile -eq "linux-single" -or $Profile -eq "win-single") {
+    & dotnet publish -c Release -r $runtime --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true
+} else {
+    & dotnet publish -c Release -r $runtime --self-contained true -p:PublishReadyToRun=true
+}
 
 if ($LASTEXITCODE -eq 0) {
     Write-Output ""
