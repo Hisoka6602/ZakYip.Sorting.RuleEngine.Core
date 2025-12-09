@@ -28,14 +28,6 @@
     <!-- 启用程序集裁剪：移除未使用的代码，减小发布包大小 -->
     <!-- Enable assembly trimming: remove unused code, reduce publish package size -->
     <PublishTrimmed>false</PublishTrimmed>
-    
-    <!-- 压缩优化：启用发布时的代码压缩 -->
-    <!-- Compression optimization: enable code compression during publish -->
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    
-    <!-- 包含本地化资源 -->
-    <!-- Include localization resources -->
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>

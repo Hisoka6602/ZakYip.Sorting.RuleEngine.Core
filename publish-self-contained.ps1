@@ -37,7 +37,7 @@ try {
     Write-ColorOutput Red "Error: dotnet command not found"
     Write-ColorOutput Yellow "请安装 .NET 8.0 SDK: https://dotnet.microsoft.com/download"
     Write-ColorOutput Yellow "Please install .NET 8.0 SDK: https://dotnet.microsoft.com/download"
-    exit 1
+    return 1
 }
 
 # 如果没有指定配置，显示菜单 / If profile not specified, show menu
@@ -58,7 +58,7 @@ if ([string]::IsNullOrEmpty($Profile)) {
         "4" { $Profile = "win-single" }
         default {
             Write-ColorOutput Red "无效的选项 / Invalid option"
-            exit 1
+            return 1
         }
     }
 }
@@ -142,5 +142,5 @@ if ($LASTEXITCODE -eq 0) {
     Write-ColorOutput Red "========================================"
     Write-ColorOutput Red "✗ 发布失败 / Publish failed"
     Write-ColorOutput Red "========================================"
-    exit 1
+    return 1
 }
