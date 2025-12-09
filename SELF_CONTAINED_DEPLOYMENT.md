@@ -172,14 +172,115 @@ The project provides 4 pre-configured publish profiles:
    ```
 
 4. **运行应用程序 / Run Application**
+
+   **方式 1: 直接运行（用于测试）/ Direct Run (for testing)**
    ```powershell
-   # 直接运行 / Direct run
    .\ZakYip.Sorting.RuleEngine.Service.exe
-   
-   # 或安装为 Windows 服务 / Or install as Windows Service
-   sc create "ZakYipSortingService" binPath="C:\Path\To\ZakYip.Sorting.RuleEngine.Service.exe"
-   sc start ZakYipSortingService
    ```
+
+   **方式 2: 安装为 Windows 服务（推荐用于生产）/ Install as Windows Service (Recommended for Production)**
+   
+   项目已配置 Windows 服务支持，可以作为 Windows 服务运行。
+   
+   The project is configured with Windows Service support and can run as a Windows Service.
+
+   **安装服务 / Install Service:**
+   ```powershell
+   # 使用管理员权限打开 PowerShell
+   # Open PowerShell as Administrator
+   
+   # 方法 1: 使用 sc 命令（推荐）
+   # Method 1: Using sc command (Recommended)
+   sc create "ZakYipSortingService" `
+     binPath="C:\ZakYip\ZakYip.Sorting.RuleEngine.Service.exe" `
+     DisplayName="ZakYip Sorting Rule Engine Service" `
+     Description="高性能包裹分拣规则引擎服务 / High-performance parcel sorting rule engine service" `
+     start=auto
+   
+   # 方法 2: 使用 New-Service cmdlet
+   # Method 2: Using New-Service cmdlet
+   New-Service -Name "ZakYipSortingService" `
+     -BinaryPathName "C:\ZakYip\ZakYip.Sorting.RuleEngine.Service.exe" `
+     -DisplayName "ZakYip Sorting Rule Engine Service" `
+     -Description "高性能包裹分拣规则引擎服务 / High-performance parcel sorting rule engine service" `
+     -StartupType Automatic
+   ```
+
+   **配置服务恢复选项 / Configure Service Recovery Options:**
+   ```powershell
+   # 配置服务失败后自动重启
+   # Configure automatic restart on failure
+   sc failure "ZakYipSortingService" reset=86400 actions=restart/60000/restart/60000/restart/60000
+   ```
+
+   **启动服务 / Start Service:**
+   ```powershell
+   # 启动服务
+   # Start service
+   sc start ZakYipSortingService
+   # 或 / Or
+   Start-Service -Name "ZakYipSortingService"
+   
+   # 检查服务状态
+   # Check service status
+   sc query ZakYipSortingService
+   # 或 / Or
+   Get-Service -Name "ZakYipSortingService"
+   ```
+
+   **停止服务 / Stop Service:**
+   ```powershell
+   sc stop ZakYipSortingService
+   # 或 / Or
+   Stop-Service -Name "ZakYipSortingService"
+   ```
+
+   **卸载服务 / Uninstall Service:**
+   ```powershell
+   # 先停止服务
+   # Stop service first
+   sc stop ZakYipSortingService
+   
+   # 删除服务
+   # Delete service
+   sc delete ZakYipSortingService
+   # 或 / Or
+   Remove-Service -Name "ZakYipSortingService"
+   ```
+
+   **查看服务日志 / View Service Logs:**
+   ```powershell
+   # 方法 1: 使用事件查看器
+   # Method 1: Using Event Viewer
+   eventvwr.msc
+   # 导航到: Windows 日志 -> 应用程序
+   # Navigate to: Windows Logs -> Application
+   
+   # 方法 2: 使用 PowerShell
+   # Method 2: Using PowerShell
+   Get-EventLog -LogName Application -Source "ZakYipSortingService" -Newest 50
+   
+   # 方法 3: 查看 NLog 日志文件
+   # Method 3: View NLog log files
+   Get-Content -Path "C:\ZakYip\logs\*.log" -Tail 100
+   ```
+
+   **服务配置文件位置 / Service Configuration File Location:**
+   - 配置文件与可执行文件在同一目录
+   - Configuration files are in the same directory as the executable
+   - `appsettings.json` - 应用配置 / Application configuration
+   - `nlog.config` - 日志配置 / Logging configuration
+   - `logs\` - 日志输出目录 / Log output directory
+
+   **注意事项 / Important Notes:**
+   - ✅ 服务会以 LocalSystem 账户运行，具有完整系统权限
+   - ✅ Service runs as LocalSystem account with full system privileges
+   - ⚠️ 建议创建专用服务账户以限制权限
+   - ⚠️ Recommended to create a dedicated service account to limit privileges
+   - ✅ 服务配置为自动启动（系统重启后自动运行）
+   - ✅ Service is configured to start automatically (runs after system reboot)
+   - ✅ 配置了失败自动重启（3 次重试，每次间隔 60 秒）
+   - ✅ Configured for automatic restart on failure (3 retries, 60 seconds interval)
 
 ### Linux 部署 / Linux Deployment
 
@@ -402,6 +503,72 @@ A: 检查发布目录中是否存在以下文件 / Check if the following files 
 发布包大小通常为 60-100 MB，而框架依赖部署通常只有 1-5 MB。
 
 The publish package size is typically 60-100 MB, while framework-dependent deployment is usually only 1-5 MB.
+
+### Q7: 如何以 Windows 服务方式运行？ / How to run as a Windows Service?
+
+A: 项目已内置 Windows 服务支持（`Microsoft.Extensions.Hosting.WindowsServices`），可直接安装为 Windows 服务。
+
+A: The project has built-in Windows Service support (`Microsoft.Extensions.Hosting.WindowsServices`) and can be directly installed as a Windows Service.
+
+**快速安装 / Quick Install:**
+```powershell
+# 以管理员身份运行 PowerShell / Run PowerShell as Administrator
+sc create "ZakYipSortingService" `
+  binPath="C:\ZakYip\ZakYip.Sorting.RuleEngine.Service.exe" `
+  start=auto
+
+# 启动服务 / Start service
+sc start ZakYipSortingService
+```
+
+**服务特性 / Service Features:**
+- ✅ 支持自动启动（系统重启后自动运行）
+- ✅ Supports automatic startup (runs after system reboot)
+- ✅ 支持服务控制命令（Start、Stop、Restart）
+- ✅ Supports service control commands (Start, Stop, Restart)
+- ✅ 支持优雅关闭（Graceful Shutdown）
+- ✅ Supports graceful shutdown
+- ✅ 集成 Windows 事件日志
+- ✅ Integrated with Windows Event Log
+- ✅ 支持服务恢复选项（失败自动重启）
+- ✅ Supports service recovery options (automatic restart on failure)
+
+**服务管理命令 / Service Management Commands:**
+```powershell
+# 查看服务状态 / Check service status
+Get-Service -Name "ZakYipSortingService"
+
+# 停止服务 / Stop service
+Stop-Service -Name "ZakYipSortingService"
+
+# 重启服务 / Restart service
+Restart-Service -Name "ZakYipSortingService"
+
+# 卸载服务 / Uninstall service
+sc delete ZakYipSortingService
+```
+
+**配置服务账户 / Configure Service Account:**
+```powershell
+# 创建专用服务账户（推荐）
+# Create dedicated service account (recommended)
+sc config ZakYipSortingService obj="NT AUTHORITY\NETWORK SERVICE"
+
+# 或使用域账户 / Or use domain account
+sc config ZakYipSortingService obj="DOMAIN\ServiceAccount" password="Password123"
+```
+
+**故障排查 / Troubleshooting:**
+- 服务启动失败：检查事件查看器（Application 日志）
+- Service fails to start: Check Event Viewer (Application log)
+- 权限问题：确保服务账户有访问应用目录和配置文件的权限
+- Permission issues: Ensure service account has access to app directory and config files
+- 日志查看：检查 `logs\` 目录下的 NLog 日志文件
+- View logs: Check NLog log files in `logs\` directory
+
+详细配置请参见"Windows 部署"章节。
+
+For detailed configuration, see the "Windows Deployment" section.
 
 ## 性能考虑 / Performance Considerations
 
