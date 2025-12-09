@@ -37,7 +37,7 @@ try {
     Write-ColorOutput Red "Error: dotnet command not found"
     Write-ColorOutput Yellow "请安装 .NET 8.0 SDK: https://dotnet.microsoft.com/download"
     Write-ColorOutput Yellow "Please install .NET 8.0 SDK: https://dotnet.microsoft.com/download"
-    return 1
+    exit 1
 }
 
 # 如果没有指定配置，显示菜单 / If profile not specified, show menu
@@ -58,7 +58,7 @@ if ([string]::IsNullOrEmpty($Profile)) {
         "4" { $Profile = "win-single" }
         default {
             Write-ColorOutput Red "无效的选项 / Invalid option"
-            return 1
+            exit 1
         }
     }
 }
@@ -109,8 +109,13 @@ if ($LASTEXITCODE -eq 0) {
     # 显示发布文件大小 / Show publish file size
     if (Test-Path $publishDir) {
         Write-ColorOutput Green "发布包大小 / Publish package size:"
-        $size = (Get-ChildItem $publishDir -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
-        Write-Output ("{0:N2} MB" -f $size)
+        $totalSize = (Get-ChildItem $publishDir -Recurse | Measure-Object -Property Length -Sum).Sum
+        if ($totalSize -ne $null -and $totalSize -gt 0) {
+            $sizeMB = $totalSize / 1MB
+            Write-Output ("{0:N2} MB" -f $sizeMB)
+        } else {
+            Write-Output "0 MB (empty directory)"
+        }
         Write-Output ""
         
         Write-ColorOutput Green "主要文件列表 / Main files list:"
@@ -142,5 +147,5 @@ if ($LASTEXITCODE -eq 0) {
     Write-ColorOutput Red "========================================"
     Write-ColorOutput Red "✗ 发布失败 / Publish failed"
     Write-ColorOutput Red "========================================"
-    return 1
+    exit 1
 }
