@@ -481,6 +481,7 @@ This update focuses on **communication protocol optimization**, **testing tool e
 #### 相关文档 / Related Documentation
 
 - 📖 [IMPLEMENTATION_SUMMARY_v1.16.0.md](IMPLEMENTATION_SUMMARY_v1.16.0.md) - 详细实施总结
+- 📖 [THIRD_PARTY_API_INTEGRATION.md](THIRD_PARTY_API_INTEGRATION.md) - 第三方API对接说明文档
 - 📖 [EXCEPTION_SAFETY.md](EXCEPTION_SAFETY.md) - 异常安全隔离文档
 - 📖 [MQTT_USAGE_GUIDE.md](MQTT_USAGE_GUIDE.md) - MQTT适配器使用指南
 - 📖 [DataSimulator README](Tests/ZakYip.Sorting.RuleEngine.DataSimulator/README.md) - 数据模拟器文档
@@ -561,6 +562,7 @@ The system is currently approximately **87%** complete, with all core features f
 - ✅ **WdtErpFlagshipApiClient** - 旺店通ERP旗舰版
 - ✅ **WcsApiClient** - 通用WCS客户端
 - ✅ **MockWcsApiAdapter** - 模拟适配器（自动应答模式）
+- 📖 详见：[第三方API对接说明文档](./THIRD_PARTY_API_INTEGRATION.md)
 
 **自动应答模式 (新功能)：**
 - ✅ **模拟API响应** - 无需调用真实第三方API
