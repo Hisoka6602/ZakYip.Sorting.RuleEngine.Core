@@ -2244,11 +2244,44 @@ dotnet run
 
 访问 Swagger UI: http://localhost:5000/swagger
 
+#### 自含部署（无需安装.NET运行时）/ Self-Contained Deployment (No .NET Runtime Required)
+
+**推荐用于生产环境 / Recommended for Production**
+
+项目已配置支持自含部署，编译时包含 .NET 运行环境，目标设备无需安装 .NET SDK 或 Runtime。
+
+The project is configured to support self-contained deployment, which includes the .NET runtime at compile time. The target device does not need .NET SDK or Runtime installed.
+
+```bash
+# 使用发布脚本（推荐）/ Using Publish Script (Recommended)
+
+# Windows
+.\publish-self-contained.ps1
+
+# Linux/macOS
+./publish-self-contained.sh
+
+# 或直接使用 dotnet 命令 / Or use dotnet command directly
+dotnet publish -c Release -r win-x64 --self-contained true
+dotnet publish -c Release -r linux-x64 --self-contained true
+```
+
+**详细说明请参阅 / For detailed instructions, see:** [SELF_CONTAINED_DEPLOYMENT.md](SELF_CONTAINED_DEPLOYMENT.md)
+
+**优势 / Advantages:**
+- ✅ 目标机器无需安装 .NET / No need to install .NET on target machine
+- ✅ 确保运行时版本一致 / Ensure consistent runtime version
+- ✅ 避免版本冲突 / Avoid version conflicts
+- ✅ 简化部署流程 / Simplify deployment process
+
 #### 作为Windows服务安装
 
 ```powershell
-# 发布应用
+# 框架依赖部署 / Framework-Dependent Deployment
 dotnet publish -c Release -o ./publish
+
+# 或自含部署 / Or Self-Contained Deployment
+dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
 
 # 创建Windows服务
 sc create "ZakYipSortingEngine" binPath="C:\path\to\publish\ZakYip.Sorting.RuleEngine.Service.exe"

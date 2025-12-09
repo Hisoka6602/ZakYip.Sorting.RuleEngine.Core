@@ -11,6 +11,31 @@
     <FileVersion>1.12.0.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    
+    <!-- 自含部署配置 / Self-Contained Deployment Configuration -->
+    <!-- 启用自含部署，包含 .NET 运行时，无需目标设备安装 SDK/Runtime -->
+    <!-- Enable self-contained deployment, includes .NET runtime, no need for SDK/Runtime on target device -->
+    <SelfContained>true</SelfContained>
+    
+    <!-- ReadyToRun 编译：预编译为本机代码，提高启动性能 -->
+    <!-- ReadyToRun compilation: precompile to native code, improve startup performance -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    
+    <!-- 单文件发布：将所有文件打包为单个可执行文件（可选，默认关闭避免调试困难） -->
+    <!-- Single file publish: package all files into a single executable (optional, disabled by default to avoid debugging difficulties) -->
+    <PublishSingleFile>false</PublishSingleFile>
+    
+    <!-- 启用程序集裁剪：移除未使用的代码，减小发布包大小 -->
+    <!-- Enable assembly trimming: remove unused code, reduce publish package size -->
+    <PublishTrimmed>false</PublishTrimmed>
+    
+    <!-- 压缩优化：启用发布时的代码压缩 -->
+    <!-- Compression optimization: enable code compression during publish -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    
+    <!-- 包含本地化资源 -->
+    <!-- Include localization resources -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
