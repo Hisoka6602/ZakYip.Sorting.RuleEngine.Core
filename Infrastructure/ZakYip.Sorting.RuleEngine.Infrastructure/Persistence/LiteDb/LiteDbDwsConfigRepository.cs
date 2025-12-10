@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// DWS配置的LiteDB仓储实现
 /// LiteDB repository implementation for DWS configuration
 /// </summary>
-public class LiteDbDwsConfigRepository : BaseLiteDbRepository<DwsConfig, string>, IDwsConfigRepository
+public class LiteDbDwsConfigRepository : BaseLiteDbRepository<DwsConfig, long>, IDwsConfigRepository
 {
     private const string CollectionName = "dws_configs";
 
@@ -25,7 +25,7 @@ public class LiteDbDwsConfigRepository : BaseLiteDbRepository<DwsConfig, string>
         collection.EnsureIndex(x => x.Mode);
     }
 
-    protected override string GetEntityId(DwsConfig entity) => entity.ConfigId;
+    protected override long GetEntityId(DwsConfig entity) => entity.ConfigId;
 
     protected override DwsConfig UpdateTimestamp(DwsConfig entity) =>
         entity with { UpdatedAt = DateTime.Now };

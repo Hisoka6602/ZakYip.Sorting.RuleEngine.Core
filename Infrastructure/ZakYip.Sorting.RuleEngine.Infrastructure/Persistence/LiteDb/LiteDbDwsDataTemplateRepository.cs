@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// DWS数据模板的LiteDB仓储实现
 /// LiteDB repository implementation for DWS data template
 /// </summary>
-public class LiteDbDwsDataTemplateRepository : BaseLiteDbRepository<DwsDataTemplate, string>, IDwsDataTemplateRepository
+public class LiteDbDwsDataTemplateRepository : BaseLiteDbRepository<DwsDataTemplate, long>, IDwsDataTemplateRepository
 {
     private const string CollectionName = "dws_data_templates";
 
@@ -24,7 +24,7 @@ public class LiteDbDwsDataTemplateRepository : BaseLiteDbRepository<DwsDataTempl
         collection.EnsureIndex(x => x.IsEnabled);
     }
 
-    protected override string GetEntityId(DwsDataTemplate entity) => entity.TemplateId;
+    protected override long GetEntityId(DwsDataTemplate entity) => entity.TemplateId;
 
     protected override DwsDataTemplate UpdateTimestamp(DwsDataTemplate entity) =>
         entity with { UpdatedAt = DateTime.Now };

@@ -1,15 +1,22 @@
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
-/// WCS API配置实体
-/// 用于存储多个WCS API的配置信息
+/// WCS API配置实体（单例模式）
+/// WCS API configuration entity (Singleton pattern)
 /// </summary>
 public record class WcsApiConfig
 {
     /// <summary>
-    /// 配置ID（主键）
+    /// 单例配置ID（固定为1）
+    /// Singleton configuration ID (Fixed as 1)
     /// </summary>
-    public required string ConfigId { get; init; }
+    public const long SINGLETON_ID = 1L;
+    
+    /// <summary>
+    /// 配置ID（主键）- 内部使用
+    /// Configuration ID (Primary Key) - Internal use only
+    /// </summary>
+    public long ConfigId { get; init; } = SINGLETON_ID;
 
     /// <summary>
     /// API名称

@@ -33,10 +33,10 @@ public class LiteDbWcsApiConfigRepository : IWcsApiConfigRepository
         return Task.FromResult<IEnumerable<WcsApiConfig>>(configs);
     }
 
-    public Task<WcsApiConfig?> GetByIdAsync(string configId)
+    public Task<WcsApiConfig?> GetByIdAsync(long configId)
     {
         var collection = _database.GetCollection<WcsApiConfig>(CollectionName);
-        var config = collection.FindById(configId);
+        var config = collection.FindById(new BsonValue(configId));
         return Task.FromResult<WcsApiConfig?>(config);
     }
 
@@ -62,10 +62,10 @@ public class LiteDbWcsApiConfigRepository : IWcsApiConfigRepository
         return Task.FromResult(result);
     }
 
-    public Task<bool> DeleteAsync(string configId)
+    public Task<bool> DeleteAsync(long configId)
     {
         var collection = _database.GetCollection<WcsApiConfig>(CollectionName);
-        var result = collection.Delete(configId);
+        var result = collection.Delete(new BsonValue(configId));
         return Task.FromResult(result);
     }
 }

@@ -1,10 +1,10 @@
-namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 
 /// <summary>
-/// DWS数据模板响应DTO（单例模式，不包含ID）
-/// DWS data template response DTO (Singleton pattern, no ID)
+/// DWS数据模板更新请求DTO
+/// DWS data template update request DTO
 /// </summary>
-public record DwsDataTemplateResponseDto
+public record DwsDataTemplateUpdateRequest
 {
     public required string Name { get; init; }
     public required string Template { get; init; }
@@ -12,6 +12,4 @@ public record DwsDataTemplateResponseDto
     public bool IsJsonFormat { get; init; }
     public required bool IsEnabled { get; init; }
     public string? Description { get; init; }
-    public DateTime CreatedAt { get; init; }
-    public DateTime UpdatedAt { get; init; }
 }

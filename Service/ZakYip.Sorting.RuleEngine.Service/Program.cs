@@ -91,6 +91,7 @@ try
                 }
 
                 // 配置LiteDB（用于配置存储）
+                // Configure LiteDB (for configuration storage)
                 services.AddSingleton<ILiteDatabase>(sp =>
                 {
                     var dbPath = Path.GetDirectoryName(appSettings.LiteDb.ConnectionString.Replace("Filename=", "").Split(';')[0]);
@@ -98,7 +99,14 @@ try
                     {
                         Directory.CreateDirectory(dbPath);
                     }
-                    return new LiteDatabase(appSettings.LiteDb.ConnectionString);
+                    
+                    var db = new LiteDatabase(appSettings.LiteDb.ConnectionString);
+                    
+                    // 配置实体ID映射
+                    // Configure entity ID mapping
+                    ConfigureLiteDbEntityMapping(db.Mapper);
+                    
+                    return db;
                 });
 
                 // 配置日志数据库（带熔断器的弹性日志仓储）
@@ -319,7 +327,8 @@ try
                     return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, autoResponseModeService, loggerFactory);
                 });
 
-                // 注册仓储
+                // 注册仓储（数据库访问层保持Scoped）
+                // Register repositories (keep database access layer as Scoped)
                 services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
                 services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
                 services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
@@ -332,6 +341,10 @@ try
                 // Register DWS-related repositories
                 services.AddScoped<IDwsConfigRepository, LiteDbDwsConfigRepository>();
                 services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
+                
+                // 注册分拣机配置仓储
+                // Register Sorter configuration repository
+                services.AddScoped<ISorterConfigRepository, LiteDbSorterConfigRepository>();
                 
                 // 注册DWS数据解析器
                 // Register DWS data parser
@@ -346,13 +359,25 @@ try
                     options.CompactionPercentage = 0.25; // 压缩百分比
                 });
 
-                // 注册应用服务
-                services.AddScoped<PerformanceMetricService>();
-                services.AddScoped<IRuleEngineService, RuleEngineService>();
-                services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
-                services.AddScoped<RuleValidationService>();
-                services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
-                services.AddScoped<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
+                // 注册应用服务（单例模式，除数据库外）
+                // Register application services (Singleton mode, except database)
+                services.AddSingleton<PerformanceMetricService>();
+                services.AddSingleton<IRuleEngineService, RuleEngineService>();
+                services.AddSingleton<IParcelProcessingService, ParcelProcessingService>();
+                services.AddSingleton<RuleValidationService>();
+                services.AddSingleton<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
+                services.AddSingleton<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
+                
+                // 注册配置热更新服务（单例）
+                // Register configuration hot-reload service (Singleton)
+                services.AddSingleton<ConfigCacheService>();
+                services.AddSingleton<IConfigReloadService, ConfigReloadService>();
+                
+                // 注册适配器管理器（单例）
+                // Register adapter managers (Singleton)
+                services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
+                services.AddSingleton<IWcsAdapterManager, WcsAdapterManager>();
+                services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
                 
                 // 注册包裹活动追踪器（用于空闲检测）
                 services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
@@ -670,6 +695,49 @@ catch (Exception ex)
 finally
 {
     LogManager.Shutdown();
+}
+
+/// <summary>
+/// 配置LiteDB实体ID映射
+/// Configure LiteDB entity ID mapping
+/// </summary>
+/// <param name="mapper">LiteDB的BsonMapper实例 / LiteDB BsonMapper instance</param>
+static void ConfigureLiteDbEntityMapping(BsonMapper mapper)
+{
+    // 配置实体ID映射：将业务ID字段映射为LiteDB的_id字段
+    // Configure entity ID mapping: Map business ID fields to LiteDB's _id field
+    // 这样可以确保通过业务ID（如ConfigId）进行查询、更新和删除操作
+    // This ensures queries, updates, and deletes work with business IDs (like ConfigId)
+    
+    // 单例配置实体 - 使用固定ID
+    // Singleton configuration entities - Use fixed IDs
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsConfig>()
+        .Id(x => x.ConfigId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsDataTemplate>()
+        .Id(x => x.TemplateId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.WcsApiConfig>()
+        .Id(x => x.ConfigId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig>()
+        .Id(x => x.ConfigId);
+    
+    // 其他实体 - 使用自动生成或业务ID
+    // Other entities - Use auto-generated or business IDs
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SortingRule>()
+        .Id(x => x.RuleId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert>()
+        .Id(x => x.AlertId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.PerformanceMetric>()
+        .Id(x => x.MetricId);
+    
+    // 注意：Chute 使用 ChuteId (long) 作为主键，这是自增ID
+    // Note: Chute uses ChuteId (long) as primary key, which is auto-increment
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.Chute>()
+        .Id(x => x.ChuteId, true); // true表示自增 / true means auto-increment
 }
 
 // <summary>

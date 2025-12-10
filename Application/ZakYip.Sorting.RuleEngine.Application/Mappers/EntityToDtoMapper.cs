@@ -68,7 +68,6 @@ public static class EntityToDtoMapper
     {
         return new WcsApiConfigResponseDto
         {
-            ConfigId = entity.ConfigId,
             Name = entity.ApiName,
             BaseUrl = entity.BaseUrl,
             // 脱敏处理：只显示前3位和后3位，中间用*替代

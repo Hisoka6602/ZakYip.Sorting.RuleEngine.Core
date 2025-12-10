@@ -24,7 +24,7 @@ public interface IDwsDataTemplateRepository
     /// 根据ID获取数据模板
     /// Get data template by ID
     /// </summary>
-    Task<DwsDataTemplate?> GetByIdAsync(string templateId);
+    Task<DwsDataTemplate?> GetByIdAsync(long templateId);
 
     /// <summary>
     /// 添加数据模板
@@ -42,5 +42,5 @@ public interface IDwsDataTemplateRepository
     /// 删除数据模板
     /// Delete data template
     /// </summary>
-    Task<bool> DeleteAsync(string templateId);
+    Task<bool> DeleteAsync(long templateId);
 }

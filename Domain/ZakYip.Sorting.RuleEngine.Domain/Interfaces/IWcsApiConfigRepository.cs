@@ -18,7 +18,7 @@ public interface IWcsApiConfigRepository
     /// </summary>
     /// <param name="configId">配置ID</param>
     /// <returns>API配置，如果不存在则返回null</returns>
-    Task<WcsApiConfig?> GetByIdAsync(string configId);
+    Task<WcsApiConfig?> GetByIdAsync(long configId);
 
     /// <summary>
     /// 获取所有API配置
@@ -45,5 +45,5 @@ public interface IWcsApiConfigRepository
     /// </summary>
     /// <param name="configId">配置ID</param>
     /// <returns>是否删除成功</returns>
-    Task<bool> DeleteAsync(string configId);
+    Task<bool> DeleteAsync(long configId);
 }
