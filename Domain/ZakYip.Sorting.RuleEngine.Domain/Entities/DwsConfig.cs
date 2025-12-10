@@ -94,11 +94,11 @@ public record class DwsConfig
     /// 创建时间
     /// Created time
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
+    public required DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// 最后更新时间
     /// Last updated time
     /// </summary>
-    public DateTime UpdatedAt { get; init; } = DateTime.Now;
+    public required DateTime UpdatedAt { get; init; }
 }

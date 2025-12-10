@@ -133,18 +133,26 @@ public class DwsConfigController : ControllerBase
     {
         try
         {
-            var success = await _repository.AddAsync(config);
+            // Set timestamps at persistence layer
+            var now = DateTime.Now;
+            var configWithTimestamps = config with 
+            { 
+                CreatedAt = now, 
+                UpdatedAt = now 
+            };
+            
+            var success = await _repository.AddAsync(configWithTimestamps);
             if (success)
             {
                 _logger.LogInformation("成功创建DWS配置: {ConfigId}", config.ConfigId);
-                return CreatedAtAction(nameof(GetById), new { id = config.ConfigId }, config);
+                return CreatedAtAction(nameof(GetById), new { id = config.ConfigId }, configWithTimestamps);
             }
             return BadRequest(new { message = "创建DWS配置失败" });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "创建DWS配置时发生错误");
-            return StatusCode(500, new { message = "创建DWS配置失败", error = ex.Message });
+            return StatusCode(500, new { message = "创建DWS配置失败" });
         }
     }
 
@@ -185,7 +193,7 @@ public class DwsConfigController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "更新DWS配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, new { message = "更新DWS配置失败", error = ex.Message });
+            return StatusCode(500, new { message = "更新DWS配置失败" });
         }
     }
 
@@ -221,7 +229,7 @@ public class DwsConfigController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "删除DWS配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, new { message = "删除DWS配置失败", error = ex.Message });
+            return StatusCode(500, new { message = "删除DWS配置失败" });
         }
     }
 }

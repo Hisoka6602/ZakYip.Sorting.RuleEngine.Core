@@ -29,7 +29,9 @@ public class DwsDataParserTests
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -59,7 +61,9 @@ public class DwsDataParserTests
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -87,7 +91,9 @@ public class DwsDataParserTests
             Template = "{Code},{Weight},{Length}",
             Delimiter = ",",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -114,7 +120,9 @@ public class DwsDataParserTests
             Name = "JSON Template",
             Template = "", // Not used for JSON
             IsJsonFormat = true,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -142,7 +150,9 @@ public class DwsDataParserTests
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -164,7 +174,9 @@ public class DwsDataParserTests
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -186,7 +198,9 @@ public class DwsDataParserTests
             Template = "{Code}|{Weight}|{Length}|{Width}|{Height}|{Volume}|{Timestamp}",
             Delimiter = "|",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act
@@ -214,7 +228,9 @@ public class DwsDataParserTests
             Template = "{Barcode},{Weight},{Length}",
             Delimiter = ",",
             IsJsonFormat = false,
-            IsEnabled = true
+            IsEnabled = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
         };
 
         // Act

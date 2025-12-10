@@ -133,18 +133,26 @@ public class DwsDataTemplateController : ControllerBase
     {
         try
         {
-            var success = await _repository.AddAsync(template);
+            // Set timestamps at persistence layer
+            var now = DateTime.Now;
+            var templateWithTimestamps = template with 
+            { 
+                CreatedAt = now, 
+                UpdatedAt = now 
+            };
+            
+            var success = await _repository.AddAsync(templateWithTimestamps);
             if (success)
             {
                 _logger.LogInformation("成功创建数据模板: {TemplateId}", template.TemplateId);
-                return CreatedAtAction(nameof(GetById), new { id = template.TemplateId }, template);
+                return CreatedAtAction(nameof(GetById), new { id = template.TemplateId }, templateWithTimestamps);
             }
             return BadRequest(new { message = "创建数据模板失败" });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "创建数据模板时发生错误");
-            return StatusCode(500, new { message = "创建数据模板失败", error = ex.Message });
+            return StatusCode(500, new { message = "创建数据模板失败" });
         }
     }
 
@@ -185,7 +193,7 @@ public class DwsDataTemplateController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "更新数据模板 {TemplateId} 时发生错误", id);
-            return StatusCode(500, new { message = "更新数据模板失败", error = ex.Message });
+            return StatusCode(500, new { message = "更新数据模板失败" });
         }
     }
 
@@ -221,7 +229,7 @@ public class DwsDataTemplateController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "删除数据模板 {TemplateId} 时发生错误", id);
-            return StatusCode(500, new { message = "删除数据模板失败", error = ex.Message });
+            return StatusCode(500, new { message = "删除数据模板失败" });
         }
     }
 }

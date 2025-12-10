@@ -48,14 +48,10 @@ public class DwsDataParser : IDwsDataParser
 
         try
         {
-            if (template.IsJsonFormat)
-            {
-                return ParseJson(rawData);
-            }
-            else
-            {
-                return ParseTemplate(rawData, template);
-            }
+            // Use ternary operator for better readability
+            return template.IsJsonFormat
+                ? ParseJson(rawData)
+                : ParseTemplate(rawData, template);
         }
         catch
         {
@@ -182,6 +178,9 @@ public class DwsDataParser : IDwsDataParser
             return dateTime;
         }
 
+        // 如果所有格式都解析失败，记录警告并使用当前时间作为最后手段
+        // If all parsing fails, log warning and use current time as last resort
+        // Note: This indicates data quality issues that should be investigated
         return DateTime.Now;
     }
 }

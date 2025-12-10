@@ -13,7 +13,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 /// 基于TouchSocket的DWS TCP客户端适配器
 /// TouchSocket-based DWS TCP client adapter
 /// </summary>
-public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
+public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDisposable
 {
     private const string DefaultTerminator = "\n"; // 默认终止符 / Default terminator
     
@@ -63,12 +63,23 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
         }
 
         _reconnectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        await ConnectAsync();
-        _isRunning = true;
-
-        if (_autoReconnect)
+        
+        try
         {
-            _ = MonitorConnectionAsync(_reconnectCts.Token);
+            await ConnectAsync();
+            _isRunning = true;
+
+            if (_autoReconnect)
+            {
+                _ = MonitorConnectionAsync(_reconnectCts.Token);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DWS客户端连接失败，资源已清理 / DWS client connection failed, resources cleaned up");
+            _reconnectCts?.Dispose();
+            _reconnectCts = null;
+            throw;
         }
     }
 
@@ -203,8 +214,20 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
 
     public void Dispose()
     {
-        StopAsync().Wait();
+        // Synchronous disposal - does not wait for async cleanup
+        // For proper cleanup, use DisposeAsync() instead
+        _reconnectCts?.Cancel();
         _reconnectCts?.Dispose();
+        _tcpClient?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Proper async disposal
+        await StopAsync();
+        _reconnectCts?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private class DwsDataPlugin : PluginBase, ITcpReceivedPlugin

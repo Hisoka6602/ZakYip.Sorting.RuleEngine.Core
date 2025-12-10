@@ -26,8 +26,11 @@ public class RulesConfigHealthCheck : IHealthCheck
     {
         try
         {
-            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
-            var enabledCount = rules.Count();
+            // Fetch all rules once and filter in memory for efficiency
+            var allRules = await _ruleRepository.GetAllAsync(cancellationToken);
+            var rules = allRules.Where(r => r.IsEnabled).ToList();
+            var enabledCount = rules.Count;
+            var totalCount = allRules.Count();
 
             if (enabledCount == 0)
             {
@@ -36,7 +39,7 @@ public class RulesConfigHealthCheck : IHealthCheck
                     data: new Dictionary<string, object>
                     {
                         { "enabled_rules", 0 },
-                        { "total_rules", (await _ruleRepository.GetAllAsync(cancellationToken)).Count() }
+                        { "total_rules", totalCount }
                     });
             }
 

@@ -26,8 +26,11 @@ public class DwsConnectionHealthCheck : IHealthCheck
     {
         try
         {
-            var configs = await _dwsConfigRepository.GetEnabledConfigsAsync();
-            var enabledCount = configs.Count();
+            // Fetch all configs once and filter in memory for efficiency
+            var allConfigs = await _dwsConfigRepository.GetAllAsync();
+            var configs = allConfigs.Where(c => c.IsEnabled).ToList();
+            var enabledCount = configs.Count;
+            var totalCount = allConfigs.Count();
 
             if (enabledCount == 0)
             {
@@ -36,7 +39,7 @@ public class DwsConnectionHealthCheck : IHealthCheck
                     data: new Dictionary<string, object>
                     {
                         { "enabled_configs", 0 },
-                        { "total_configs", (await _dwsConfigRepository.GetAllAsync()).Count() }
+                        { "total_configs", totalCount }
                     });
             }
 

@@ -26,8 +26,11 @@ public class ThirdPartyApiConfigHealthCheck : IHealthCheck
     {
         try
         {
-            var configs = await _wcsApiConfigRepository.GetEnabledConfigsAsync();
-            var enabledCount = configs.Count();
+            // Fetch all configs once and filter in memory for efficiency
+            var allConfigs = await _wcsApiConfigRepository.GetAllAsync();
+            var configs = allConfigs.Where(c => c.IsEnabled).ToList();
+            var enabledCount = configs.Count;
+            var totalCount = allConfigs.Count();
 
             if (enabledCount == 0)
             {
@@ -36,7 +39,7 @@ public class ThirdPartyApiConfigHealthCheck : IHealthCheck
                     data: new Dictionary<string, object>
                     {
                         { "enabled_api_configs", 0 },
-                        { "total_api_configs", (await _wcsApiConfigRepository.GetAllAsync()).Count() }
+                        { "total_api_configs", totalCount }
                     });
             }
 
