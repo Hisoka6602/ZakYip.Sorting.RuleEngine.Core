@@ -514,6 +514,6 @@ public class WdtWmsApiClient : IWcsApiAdapter
         using var md5 = MD5.Create();
         var result = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
         var strResult = BitConverter.ToString(result);
-        return strResult.Replace("-", "");
+        return strResult.Replace("-", "", StringComparison.Ordinal);
     }
 }

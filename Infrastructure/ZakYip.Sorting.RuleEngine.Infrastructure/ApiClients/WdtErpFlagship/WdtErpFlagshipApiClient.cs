@@ -160,7 +160,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             {
                 var result = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
                 var strResult = BitConverter.ToString(result);
-                sign = strResult.Replace("-", "").ToLower();
+                sign = strResult.Replace("-", "", StringComparison.Ordinal).ToLower();
             }
 
             // 将sign加入字典，移除body（body通过POST传递）
@@ -204,7 +204,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 {
                     var jObject = JObject.Parse(responseContent);
                     // 检查status字段，值为"0"表示成功
-                    if (jObject["status"]?.ToString()?.ToUpper()?.Equals("0") == true)
+                    if (jObject["status"]?.ToString()?.ToUpper()?.Equals("0", StringComparison.Ordinal) == true)
                     {
                         isSuccess = true;
                     }

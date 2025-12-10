@@ -42,7 +42,7 @@ public static class ApiRequestHelper
         if (!string.IsNullOrEmpty(body))
         {
             // 转义单引号
-            var escapedBody = body.Replace("'", "'\\''");
+            var escapedBody = body.Replace("'", "'\\''", StringComparison.Ordinal);
             curlBuilder.Append($" \\\n  -d '{escapedBody}'");
         }
 
