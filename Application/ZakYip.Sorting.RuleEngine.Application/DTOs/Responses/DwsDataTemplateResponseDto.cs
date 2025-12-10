@@ -1,12 +1,11 @@
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
 /// <summary>
-/// DWS数据模板响应DTO
-/// DWS data template response DTO
+/// DWS数据模板响应DTO（单例模式，不包含ID）
+/// DWS data template response DTO (Singleton pattern, no ID)
 /// </summary>
 public record DwsDataTemplateResponseDto
 {
-    public required string TemplateId { get; init; }
     public required string Name { get; init; }
     public required string Template { get; init; }
     public string Delimiter { get; init; } = ",";

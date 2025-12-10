@@ -88,7 +88,6 @@ public static class DwsDataTemplateMapper
     {
         return new DwsDataTemplateResponseDto
         {
-            TemplateId = entity.TemplateId,
             Name = entity.Name,
             Template = entity.Template,
             Delimiter = entity.Delimiter,

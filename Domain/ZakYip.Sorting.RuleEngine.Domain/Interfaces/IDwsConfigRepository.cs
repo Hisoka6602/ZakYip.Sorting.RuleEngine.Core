@@ -24,7 +24,7 @@ public interface IDwsConfigRepository
     /// 根据ID获取DWS配置
     /// Get DWS configuration by ID
     /// </summary>
-    Task<DwsConfig?> GetByIdAsync(string configId);
+    Task<DwsConfig?> GetByIdAsync(long configId);
 
     /// <summary>
     /// 添加DWS配置
@@ -42,5 +42,5 @@ public interface IDwsConfigRepository
     /// 删除DWS配置
     /// Delete DWS configuration
     /// </summary>
-    Task<bool> DeleteAsync(string configId);
+    Task<bool> DeleteAsync(long configId);
 }

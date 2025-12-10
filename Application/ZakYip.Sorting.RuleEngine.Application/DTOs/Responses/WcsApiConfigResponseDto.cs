@@ -3,17 +3,11 @@ using System.ComponentModel;
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
 /// <summary>
-/// WCS API配置响应数据传输对象
+/// WCS API配置响应数据传输对象（单例模式，不包含ID）
+/// WCS API configuration response DTO (Singleton pattern, no ID)
 /// </summary>
 public record class WcsApiConfigResponseDto
 {
-    /// <summary>
-    /// 配置ID
-    /// </summary>
-    /// <example>API001</example>
-    [Description("WCS API配置ID")]
-    public required string ConfigId { get; init; }
-
     /// <summary>
     /// 配置名称
     /// </summary>

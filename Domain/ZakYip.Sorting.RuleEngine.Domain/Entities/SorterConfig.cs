@@ -7,10 +7,10 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 public record class SorterConfig
 {
     /// <summary>
-    /// 单例配置ID（固定为1，不对外暴露）
-    /// Singleton configuration ID (Fixed as 1, not exposed externally)
+    /// 单例配置ID（固定为1）
+    /// Singleton configuration ID (Fixed as 1)
     /// </summary>
-    internal const long SINGLETON_ID = 1L;
+    public const long SINGLETON_ID = 1L;
     
     /// <summary>
     /// 配置ID（主键）- 内部使用
