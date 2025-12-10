@@ -692,17 +692,24 @@ static void ConfigureLiteDbEntityMapping(BsonMapper mapper)
     // 这样可以确保通过业务ID（如ConfigId）进行查询、更新和删除操作
     // This ensures queries, updates, and deletes work with business IDs (like ConfigId)
     
+    // 单例配置实体 - 使用固定ID
+    // Singleton configuration entities - Use fixed IDs
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsConfig>()
         .Id(x => x.ConfigId);
     
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsDataTemplate>()
         .Id(x => x.TemplateId);
     
-    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SortingRule>()
-        .Id(x => x.RuleId);
-    
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.WcsApiConfig>()
         .Id(x => x.ConfigId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig>()
+        .Id(x => x.ConfigId);
+    
+    // 其他实体 - 使用自动生成或业务ID
+    // Other entities - Use auto-generated or business IDs
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SortingRule>()
+        .Id(x => x.RuleId);
     
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert>()
         .Id(x => x.AlertId);

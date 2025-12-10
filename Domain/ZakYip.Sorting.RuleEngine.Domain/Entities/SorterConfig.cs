@@ -1,10 +1,10 @@
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
-/// DWS通信配置实体（单例模式）
-/// DWS communication configuration entity (Singleton pattern)
+/// 分拣机通信配置实体（单例模式）
+/// Sorter communication configuration entity (Singleton pattern)
 /// </summary>
-public record class DwsConfig
+public record class SorterConfig
 {
     /// <summary>
     /// 单例配置ID（固定为1，不对外暴露）
@@ -25,14 +25,14 @@ public record class DwsConfig
     public required string Name { get; init; }
 
     /// <summary>
-    /// 通信模式：Server（服务端）或 Client（客户端）
-    /// Communication mode: Server or Client
+    /// 通信协议类型：TCP / HTTP / SignalR
+    /// Communication protocol type: TCP / HTTP / SignalR
     /// </summary>
-    public required string Mode { get; init; }
+    public required string Protocol { get; init; }
 
     /// <summary>
-    /// 主机地址（服务端监听地址或客户端连接地址）
-    /// Host address (Server listen address or Client connect address)
+    /// 主机地址
+    /// Host address
     /// </summary>
     public required string Host { get; init; }
 
@@ -43,34 +43,10 @@ public record class DwsConfig
     public required int Port { get; init; }
 
     /// <summary>
-    /// 数据模板ID，关联到 DwsDataTemplate
-    /// Data template ID, links to DwsDataTemplate
-    /// </summary>
-    public required long DataTemplateId { get; init; }
-
-    /// <summary>
     /// 是否启用
     /// Is enabled
     /// </summary>
     public required bool IsEnabled { get; init; }
-
-    /// <summary>
-    /// 最大连接数（仅服务端模式）
-    /// Maximum connections (Server mode only)
-    /// </summary>
-    public int MaxConnections { get; init; } = 1000;
-
-    /// <summary>
-    /// 接收缓冲区大小（字节）
-    /// Receive buffer size (bytes)
-    /// </summary>
-    public int ReceiveBufferSize { get; init; } = 8192;
-
-    /// <summary>
-    /// 发送缓冲区大小（字节）
-    /// Send buffer size (bytes)
-    /// </summary>
-    public int SendBufferSize { get; init; } = 8192;
 
     /// <summary>
     /// 连接超时时间（秒）
@@ -79,8 +55,8 @@ public record class DwsConfig
     public int TimeoutSeconds { get; init; } = 30;
 
     /// <summary>
-    /// 是否自动重连（仅客户端模式）
-    /// Auto reconnect (Client mode only)
+    /// 是否自动重连
+    /// Auto reconnect
     /// </summary>
     public bool AutoReconnect { get; init; } = true;
 
@@ -89,6 +65,12 @@ public record class DwsConfig
     /// Reconnect interval (seconds)
     /// </summary>
     public int ReconnectIntervalSeconds { get; init; } = 5;
+
+    /// <summary>
+    /// 心跳间隔（秒）
+    /// Heartbeat interval (seconds)
+    /// </summary>
+    public int HeartbeatIntervalSeconds { get; init; } = 10;
 
     /// <summary>
     /// 备注说明

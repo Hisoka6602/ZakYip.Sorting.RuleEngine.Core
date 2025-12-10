@@ -1,16 +1,22 @@
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
-/// DWS数据解析模板
-/// DWS data parsing template
+/// DWS数据解析模板（单例模式）
+/// DWS data parsing template (Singleton pattern)
 /// </summary>
 public record class DwsDataTemplate
 {
     /// <summary>
-    /// 模板ID（主键）
-    /// Template ID (Primary Key)
+    /// 单例模板ID（固定为1，不对外暴露）
+    /// Singleton template ID (Fixed as 1, not exposed externally)
     /// </summary>
-    public required string TemplateId { get; init; }
+    internal const long SINGLETON_ID = 1L;
+    
+    /// <summary>
+    /// 模板ID（主键）- 内部使用
+    /// Template ID (Primary Key) - Internal use only
+    /// </summary>
+    public long TemplateId { get; init; } = SINGLETON_ID;
 
     /// <summary>
     /// 模板名称
