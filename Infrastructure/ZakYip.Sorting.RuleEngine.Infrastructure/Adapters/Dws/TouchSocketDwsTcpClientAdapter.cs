@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using System.Text;
-using System.Text.Json;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -11,73 +10,74 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 
 /// <summary>
-/// 基于TouchSocket的DWS TCP服务端适配器
-/// 支持连接池和高性能消息处理，支持自定义数据模板
-/// TouchSocket-based DWS TCP server adapter
-/// Supports connection pooling, high-performance message processing, and custom data templates
+/// 基于TouchSocket的DWS TCP客户端适配器
+/// TouchSocket-based DWS TCP client adapter
 /// </summary>
-public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
+public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
 {
-    private readonly ILogger<TouchSocketDwsAdapter> _logger;
+    private readonly ILogger<TouchSocketDwsTcpClientAdapter> _logger;
     private readonly ICommunicationLogRepository _communicationLogRepository;
-    private readonly IDwsDataParser? _dataParser;
-    private readonly DwsDataTemplate? _dataTemplate;
+    private readonly IDwsDataParser _dataParser;
     private readonly string _host;
     private readonly int _port;
-    private TcpService? _tcpService;
+    private readonly DwsDataTemplate _dataTemplate;
+    private readonly bool _autoReconnect;
+    private readonly int _reconnectIntervalSeconds;
+    private TcpClient? _tcpClient;
     private bool _isRunning;
-    private readonly int _maxConnections;
-    private readonly int _receiveBufferSize;
-    private readonly int _sendBufferSize;
+    private CancellationTokenSource? _reconnectCts;
 
-    public string AdapterName => "TouchSocket-DWS-Server";
-    public string ProtocolType => "TCP-Server";
+    public string AdapterName => "TouchSocket-DWS-Client";
+    public string ProtocolType => "TCP-Client";
 
     public event Func<DwsData, Task>? OnDwsDataReceived;
 
-    /// <summary>
-    /// 构造函数（支持自定义数据模板）
-    /// Constructor (supports custom data template)
-    /// </summary>
-    public TouchSocketDwsAdapter(
+    public TouchSocketDwsTcpClientAdapter(
         string host,
         int port,
-        ILogger<TouchSocketDwsAdapter> logger,
+        DwsDataTemplate dataTemplate,
+        ILogger<TouchSocketDwsTcpClientAdapter> logger,
         ICommunicationLogRepository communicationLogRepository,
-        IDwsDataParser? dataParser = null,
-        DwsDataTemplate? dataTemplate = null,
-        int maxConnections = 1000,
-        int receiveBufferSize = 8192,
-        int sendBufferSize = 8192)
+        IDwsDataParser dataParser,
+        bool autoReconnect = true,
+        int reconnectIntervalSeconds = 5)
     {
         _host = host;
         _port = port;
+        _dataTemplate = dataTemplate;
         _logger = logger;
         _communicationLogRepository = communicationLogRepository;
         _dataParser = dataParser;
-        _dataTemplate = dataTemplate;
-        _maxConnections = maxConnections;
-        _receiveBufferSize = receiveBufferSize;
-        _sendBufferSize = sendBufferSize;
+        _autoReconnect = autoReconnect;
+        _reconnectIntervalSeconds = reconnectIntervalSeconds;
     }
 
-    /// <summary>
-    /// 启动DWS TCP监听
-    /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         if (_isRunning)
         {
-            _logger.LogWarning("DWS适配器已经在运行中");
+            _logger.LogWarning("DWS客户端适配器已经在运行中");
             return;
         }
 
+        _reconnectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        await ConnectAsync();
+        _isRunning = true;
+
+        if (_autoReconnect)
+        {
+            _ = MonitorConnectionAsync(_reconnectCts.Token);
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
         try
         {
-            _tcpService = new TcpService();
-            var config = new TouchSocketConfig();
-            config.SetListenIPHosts(new IPHost[] { new IPHost($"{_host}:{_port}") })
-                .SetMaxCount(_maxConnections) // 设置最大连接数（连接池大小）
+            _tcpClient = new TcpClient();
+            
+            await _tcpClient.SetupAsync(new TouchSocketConfig()
+                .SetRemoteIPHost(new IPHost($"{_host}:{_port}"))
                 .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
                 .ConfigureContainer(a =>
                 {
@@ -86,99 +86,101 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
                 .ConfigurePlugins(a =>
                 {
                     a.Add<DwsDataPlugin>()
-                        .SetOnDataReceived(OnDataReceived);
-                });
+                        .SetOnDataReceived(OnDataReceivedAsync);
+                }));
 
-            await _tcpService.SetupAsync(config);
-            await _tcpService.StartAsync();
+            await _tcpClient.ConnectAsync();
 
-            _isRunning = true;
-            _logger.LogInformation("DWS TCP监听已启动: {Host}:{Port}", _host, _port);
-
+            _logger.LogInformation("DWS TCP客户端已连接: {Host}:{Port}", _host, _port);
             await _communicationLogRepository.LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Inbound,
-                $"DWS TCP监听已启动: {_host}:{_port}",
+                $"DWS TCP客户端已连接: {_host}:{_port}",
                 isSuccess: true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "启动DWS TCP监听失败");
+            _logger.LogError(ex, "连接DWS TCP服务器失败");
             await _communicationLogRepository.LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Inbound,
-                $"启动DWS TCP监听失败: {ex.Message}",
+                $"连接DWS TCP服务器失败: {ex.Message}",
                 isSuccess: false,
                 errorMessage: ex.Message);
             throw;
         }
     }
 
-    /// <summary>
-    /// 停止DWS TCP监听
-    /// </summary>
+    private async Task MonitorConnectionAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested && _isRunning)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(_reconnectIntervalSeconds), cancellationToken);
+
+                if (_tcpClient?.Online == false)
+                {
+                    _logger.LogWarning("检测到连接断开，尝试重连...");
+                    await ConnectAsync();
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "监控连接时发生错误");
+            }
+        }
+    }
+
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (!_isRunning || _tcpService == null)
+        if (!_isRunning)
         {
             return;
         }
 
         try
         {
-            await _tcpService.StopAsync();
-            _tcpService.Dispose();
-            _tcpService = null;
+            _reconnectCts?.Cancel();
+            
+            if (_tcpClient != null)
+            {
+                await _tcpClient.CloseAsync();
+                _tcpClient.Dispose();
+                _tcpClient = null;
+            }
+
             _isRunning = false;
 
-            _logger.LogInformation("DWS TCP监听已停止");
+            _logger.LogInformation("DWS TCP客户端已断开");
             await _communicationLogRepository.LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Inbound,
-                "DWS TCP监听已停止",
+                "DWS TCP客户端已断开",
                 isSuccess: true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "停止DWS TCP监听失败");
+            _logger.LogError(ex, "断开DWS TCP客户端失败");
         }
     }
 
-    private async Task OnDataReceived(ITcpSession client, string data)
+    private async Task OnDataReceivedAsync(ITcpClientBase client, string data)
     {
         try
         {
-            _logger.LogInformation("收到DWS数据: {Data}, 来自: {RemoteEndPoint}", data, client.IP);
+            _logger.LogInformation("收到DWS数据: {Data}", data);
 
             await _communicationLogRepository.LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Inbound,
                 data,
-                remoteAddress: client.IP?.ToString(),
+                remoteAddress: _host,
                 isSuccess: true);
 
-            DwsData? dwsData = null;
-
-            // 如果提供了数据解析器和模板，使用模板解析
-            // If data parser and template are provided, use template parsing
-            if (_dataParser != null && _dataTemplate != null)
-            {
-                dwsData = _dataParser.Parse(data, _dataTemplate);
-            }
-            // 否则尝试JSON解析（向后兼容）
-            // Otherwise try JSON parsing (backward compatible)
-            else
-            {
-                try
-                {
-                    dwsData = JsonSerializer.Deserialize<DwsData>(data);
-                }
-                catch
-                {
-                    _logger.LogWarning("JSON解析失败，数据格式不正确: {Data}", data);
-                }
-            }
-
+            // 使用数据解析器解析数据
+            // Use data parser to parse data
+            var dwsData = _dataParser.Parse(data, _dataTemplate);
             if (dwsData != null && OnDwsDataReceived != null)
             {
                 await OnDwsDataReceived.Invoke(dwsData);
@@ -191,7 +193,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
                 CommunicationType.Tcp,
                 CommunicationDirection.Inbound,
                 data,
-                remoteAddress: client.IP?.ToString(),
+                remoteAddress: _host,
                 isSuccess: false,
                 errorMessage: ex.Message);
         }
@@ -200,22 +202,20 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
     public void Dispose()
     {
         StopAsync().Wait();
+        _reconnectCts?.Dispose();
     }
 
-    /// <summary>
-    /// DWS数据接收插件
-    /// </summary>
     private class DwsDataPlugin : PluginBase, ITcpReceivedPlugin
     {
-        private Func<ITcpSession, string, Task>? _onDataReceived;
+        private Func<ITcpClientBase, string, Task>? _onDataReceived;
 
-        public DwsDataPlugin SetOnDataReceived(Func<ITcpSession, string, Task> handler)
+        public DwsDataPlugin SetOnDataReceived(Func<ITcpClientBase, string, Task> handler)
         {
             _onDataReceived = handler;
             return this;
         }
 
-        public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+        public async Task OnTcpReceived(ITcpClientBase client, ReceivedDataEventArgs e)
         {
             if (_onDataReceived != null)
             {
@@ -226,9 +226,6 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         }
     }
 
-    /// <summary>
-    /// TouchSocket日志适配器
-    /// </summary>
     private class TouchSocketLogger : ILog
     {
         private readonly ILogger _logger;
