@@ -101,35 +101,10 @@ try
                     }
                     
                     var db = new LiteDatabase(appSettings.LiteDb.ConnectionString);
-                    var mapper = db.Mapper;
                     
-                    // 配置实体ID映射：将业务ID字段映射为LiteDB的_id字段
-                    // Configure entity ID mapping: Map business ID fields to LiteDB's _id field
-                    // 这样可以确保通过业务ID（如ConfigId）进行查询、更新和删除操作
-                    // This ensures queries, updates, and deletes work with business IDs (like ConfigId)
-                    
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsConfig>()
-                        .Id(x => x.ConfigId);
-                    
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsDataTemplate>()
-                        .Id(x => x.TemplateId);
-                    
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SortingRule>()
-                        .Id(x => x.RuleId);
-                    
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.WcsApiConfig>()
-                        .Id(x => x.ConfigId);
-                    
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert>()
-                        .Id(x => x.AlertId);
-                    
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.PerformanceMetric>()
-                        .Id(x => x.MetricId);
-                    
-                    // 注意：Chute 使用 ChuteId (long) 作为主键，这是自增ID
-                    // Note: Chute uses ChuteId (long) as primary key, which is auto-increment
-                    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.Chute>()
-                        .Id(x => x.ChuteId, true); // true表示自增 / true means auto-increment
+                    // 配置实体ID映射
+                    // Configure entity ID mapping
+                    ConfigureLiteDbEntityMapping(db.Mapper);
                     
                     return db;
                 });
@@ -703,6 +678,42 @@ catch (Exception ex)
 finally
 {
     LogManager.Shutdown();
+}
+
+/// <summary>
+/// 配置LiteDB实体ID映射
+/// Configure LiteDB entity ID mapping
+/// </summary>
+/// <param name="mapper">LiteDB的BsonMapper实例 / LiteDB BsonMapper instance</param>
+static void ConfigureLiteDbEntityMapping(BsonMapper mapper)
+{
+    // 配置实体ID映射：将业务ID字段映射为LiteDB的_id字段
+    // Configure entity ID mapping: Map business ID fields to LiteDB's _id field
+    // 这样可以确保通过业务ID（如ConfigId）进行查询、更新和删除操作
+    // This ensures queries, updates, and deletes work with business IDs (like ConfigId)
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsConfig>()
+        .Id(x => x.ConfigId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsDataTemplate>()
+        .Id(x => x.TemplateId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SortingRule>()
+        .Id(x => x.RuleId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.WcsApiConfig>()
+        .Id(x => x.ConfigId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert>()
+        .Id(x => x.AlertId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.PerformanceMetric>()
+        .Id(x => x.MetricId);
+    
+    // 注意：Chute 使用 ChuteId (long) 作为主键，这是自增ID
+    // Note: Chute uses ChuteId (long) as primary key, which is auto-increment
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.Chute>()
+        .Id(x => x.ChuteId, true); // true表示自增 / true means auto-increment
 }
 
 // <summary>
