@@ -9,7 +9,8 @@
     
     <!-- 启用代码分析和安全分析 / Enable code analysis and security analysis -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisMode>All</AnalysisMode>
+    <!-- 使用推荐模式而非全部规则，减少噪音同时保持代码质量 / Use Recommended mode instead of All to reduce noise while maintaining quality -->
+    <AnalysisMode>Recommended</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     
     <!-- 将RS0030（使用已禁用的API）设置为错误 / Set RS0030 (use of banned API) as error -->
