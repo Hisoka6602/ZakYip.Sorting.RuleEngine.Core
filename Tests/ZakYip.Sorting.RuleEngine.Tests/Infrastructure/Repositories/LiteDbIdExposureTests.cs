@@ -33,19 +33,19 @@ public class LiteDbIdExposureTests : IDisposable
         var collection = _database.GetCollection<DwsConfig>("dws_configs");
         var config = new DwsConfig
         {
-            ConfigId = "test-001",
+            ConfigId = 1001L,
             Name = "Test Config",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8081,
-            DataTemplateId = "template-001",
+            DataTemplateId = 1L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
         
         collection.Insert(config);
-        var retrievedConfig = collection.FindById(new BsonValue("test-001"));
+        var retrievedConfig = collection.FindById(new BsonValue(1001L));
 
         // Act
         var dto = retrievedConfig.ToResponseDto();
@@ -53,16 +53,13 @@ public class LiteDbIdExposureTests : IDisposable
 
         // Assert
         Assert.NotNull(dto);
-        Assert.Equal("test-001", dto.ConfigId);
+        Assert.Equal("Test Config", dto.Name);
         
-        // 验证JSON中不包含 _id 字段
-        // Verify JSON does not contain _id field
+        // 验证JSON中不包含 _id 或 ConfigId 字段（单例模式不暴露ID）
+        // Verify JSON does not contain _id or ConfigId field (singleton pattern does not expose ID)
         Assert.DoesNotContain("\"_id\"", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"ConfigId\"", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\"Id\":", json, StringComparison.OrdinalIgnoreCase);
-        
-        // 验证JSON包含业务ID
-        // Verify JSON contains business ID
-        Assert.Contains("\"ConfigId\":\"test-001\"", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -71,12 +68,12 @@ public class LiteDbIdExposureTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = "test-002",
+            ConfigId = 1002L,
             Name = "Test Config 2",
             Mode = "Client",
             Host = "192.168.1.1",
             Port = 8082,
-            DataTemplateId = "template-002",
+            DataTemplateId = 2L,
             IsEnabled = true,
             MaxConnections = 100,
             ReceiveBufferSize = 4096,
@@ -93,11 +90,10 @@ public class LiteDbIdExposureTests : IDisposable
         var dto = config.ToResponseDto();
         var json = SystemJsonSerializer.Serialize(dto, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
 
-        // Assert - 验证DTO只包含预期的字段
-        // Verify DTO only contains expected fields
+        // Assert - 验证DTO只包含预期的字段（单例模式不包含ConfigId）
+        // Verify DTO only contains expected fields (singleton pattern does not include ConfigId)
         var expectedFields = new[]
         {
-            "ConfigId",
             "Name",
             "Mode",
             "Host",
@@ -120,10 +116,11 @@ public class LiteDbIdExposureTests : IDisposable
             Assert.Contains($"\"{field}\"", json, StringComparison.OrdinalIgnoreCase);
         }
 
-        // 验证不包含LiteDB内部字段
-        // Verify no LiteDB internal fields
+        // 验证不包含LiteDB内部字段和ConfigId（单例模式）
+        // Verify no LiteDB internal fields and ConfigId (singleton pattern)
         Assert.DoesNotContain("\"_id\"", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\"_type\"", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"ConfigId\"", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -132,7 +129,7 @@ public class LiteDbIdExposureTests : IDisposable
         // Arrange
         var template = new DwsDataTemplate
         {
-            TemplateId = "template-001",
+            TemplateId = 1L,
             Name = "Test Template",
             Template = "{Code},{Weight}",
             Delimiter = ",",
@@ -147,10 +144,11 @@ public class LiteDbIdExposureTests : IDisposable
         var dto = template.ToResponseDto();
         var json = SystemJsonSerializer.Serialize(dto);
 
-        // Assert
-        Assert.Equal("template-001", dto.TemplateId);
+        // Assert - 单例模式不暴露TemplateId
+        // Singleton pattern does not expose TemplateId
+        Assert.Equal("Test Template", dto.Name);
         Assert.DoesNotContain("\"_id\"", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"TemplateId\":\"template-001\"", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"TemplateId\"", json, StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose()

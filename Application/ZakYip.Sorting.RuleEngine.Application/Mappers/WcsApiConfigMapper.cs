@@ -14,20 +14,18 @@ public static class WcsApiConfigMapper
     /// 转换为响应DTO（单例模式，不包含ID）
     /// Convert to response DTO (Singleton pattern, no ID)
     /// </summary>
-    public static WcsApiConfigResponseDto ToResponseDto(this WcsApiConfig entity)
+    public static WcsApiConfigResponseDto ToWcsApiConfigResponseDto(this WcsApiConfig entity)
     {
         return new WcsApiConfigResponseDto
         {
-            ApiName = entity.ApiName,
+            Name = entity.ApiName,
             BaseUrl = entity.BaseUrl,
             TimeoutSeconds = entity.TimeoutSeconds,
             ApiKey = entity.ApiKey != null ? "******" : null, // 脱敏处理
             CustomHeaders = entity.CustomHeaders,
             HttpMethod = entity.HttpMethod,
-            RequestBodyTemplate = entity.RequestBodyTemplate,
             IsEnabled = entity.IsEnabled,
             Priority = entity.Priority,
-            Description = entity.Description,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt
         };
@@ -62,8 +60,8 @@ public static class WcsApiConfigMapper
     /// 批量转换为响应DTO
     /// Batch convert to response DTO
     /// </summary>
-    public static IEnumerable<WcsApiConfigResponseDto> ToResponseDtos(this IEnumerable<WcsApiConfig> entities)
+    public static IEnumerable<WcsApiConfigResponseDto> ToWcsApiConfigResponseDtos(this IEnumerable<WcsApiConfig> entities)
     {
-        return entities.Select(ToResponseDto);
+        return entities.Select(ToWcsApiConfigResponseDto);
     }
 }

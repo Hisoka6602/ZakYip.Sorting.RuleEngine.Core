@@ -24,7 +24,7 @@ public class DwsDataParserTests
         var rawData = "9811962888027,0.000,0,0,0,0,1765365164205";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template1",
+            TemplateId = 1L,
             Name = "Standard Template",
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
@@ -56,7 +56,7 @@ public class DwsDataParserTests
         var rawData = "TEST123,250.5,100.2,50.3,30.1,150.75,1765365164205";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template1",
+            TemplateId = 1L,
             Name = "Standard Template",
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
@@ -86,7 +86,7 @@ public class DwsDataParserTests
         var rawData = "ABC456,123.45,200.0";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template2",
+            TemplateId = 2L,
             Name = "Partial Template",
             Template = "{Code},{Weight},{Length}",
             Delimiter = ",",
@@ -116,7 +116,7 @@ public class DwsDataParserTests
         var jsonData = "{\"barcode\":\"JSON123\",\"weight\":99.9,\"length\":150,\"width\":80,\"height\":60,\"volume\":720}";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template3",
+            TemplateId = 3L,
             Name = "JSON Template",
             Template = "", // Not used for JSON
             IsJsonFormat = true,
@@ -145,7 +145,7 @@ public class DwsDataParserTests
         var rawData = "INVALID,DATA";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template1",
+            TemplateId = 1L,
             Name = "Standard Template",
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
@@ -169,7 +169,7 @@ public class DwsDataParserTests
         var rawData = "";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template1",
+            TemplateId = 1L,
             Name = "Standard Template",
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             Delimiter = ",",
@@ -193,7 +193,7 @@ public class DwsDataParserTests
         var rawData = "PIPE123|456.78|100|50|25|125.0|1765365164205";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template4",
+            TemplateId = 4L,
             Name = "Pipe Delimited Template",
             Template = "{Code}|{Weight}|{Length}|{Width}|{Height}|{Volume}|{Timestamp}",
             Delimiter = "|",
@@ -223,7 +223,7 @@ public class DwsDataParserTests
         var rawData = "BARCODE789,350.25,180";
         var template = new DwsDataTemplate
         {
-            TemplateId = "template5",
+            TemplateId = 5L,
             Name = "Barcode Template",
             Template = "{Barcode},{Weight},{Length}",
             Delimiter = ",",
