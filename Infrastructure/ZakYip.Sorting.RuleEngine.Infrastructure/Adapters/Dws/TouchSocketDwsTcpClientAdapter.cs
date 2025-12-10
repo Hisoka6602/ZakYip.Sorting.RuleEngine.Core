@@ -15,6 +15,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 /// </summary>
 public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
 {
+    private const string DefaultTerminator = "\n"; // 默认终止符 / Default terminator
+    
     private readonly ILogger<TouchSocketDwsTcpClientAdapter> _logger;
     private readonly ICommunicationLogRepository _communicationLogRepository;
     private readonly IDwsDataParser _dataParser;
@@ -78,7 +80,7 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
             
             await _tcpClient.SetupAsync(new TouchSocketConfig()
                 .SetRemoteIPHost(new IPHost($"{_host}:{_port}"))
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
+                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter(DefaultTerminator))
                 .ConfigureContainer(a =>
                 {
                     a.AddLogger(new TouchSocketLogger(_logger));

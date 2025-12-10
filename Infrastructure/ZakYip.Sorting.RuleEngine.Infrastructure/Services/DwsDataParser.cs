@@ -35,6 +35,10 @@ public class DwsDataParser : IDwsDataParser
         { "Timestamp", "Timestamp" }
     };
 
+    // Unix时间戳阈值常量 / Unix timestamp threshold constants
+    private const long UnixTimestampMillisecondsThreshold = 1000000000000; // ~2001年 / ~Year 2001
+    private const long UnixTimestampSecondsThreshold = 1000000000; // 2001-09-09
+
     public DwsData? Parse(string rawData, DwsDataTemplate template)
     {
         if (string.IsNullOrWhiteSpace(rawData))
@@ -161,13 +165,13 @@ public class DwsDataParser : IDwsDataParser
         // Try multiple timestamp formats
         
         // Unix timestamp (milliseconds)
-        if (long.TryParse(value, out var unixMs) && unixMs > 1000000000000)
+        if (long.TryParse(value, out var unixMs) && unixMs > UnixTimestampMillisecondsThreshold)
         {
             return DateTimeOffset.FromUnixTimeMilliseconds(unixMs).DateTime;
         }
 
         // Unix timestamp (seconds)
-        if (long.TryParse(value, out var unixSec) && unixSec > 1000000000)
+        if (long.TryParse(value, out var unixSec) && unixSec > UnixTimestampSecondsThreshold)
         {
             return DateTimeOffset.FromUnixTimeSeconds(unixSec).DateTime;
         }
