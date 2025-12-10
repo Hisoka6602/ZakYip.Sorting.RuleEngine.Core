@@ -193,7 +193,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 var jObject = JObject.Parse(responseContent);
                 // 检查多种可能的成功响应格式
                 // 格式1: { "flag": "success" }
-                if (jObject["flag"]?.ToString()?.ToLower()?.Equals("success") == true)
+                if (jObject["flag"]?.ToString()?.ToLower()?.Equals("success", StringComparison.Ordinal) == true)
                 {
                     isSuccess = true;
                 }
