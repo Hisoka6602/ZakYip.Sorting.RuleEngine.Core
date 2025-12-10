@@ -327,7 +327,8 @@ try
                     return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, autoResponseModeService, loggerFactory);
                 });
 
-                // 注册仓储
+                // 注册仓储（数据库访问层保持Scoped）
+                // Register repositories (keep database access layer as Scoped)
                 services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
                 services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
                 services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
@@ -340,6 +341,10 @@ try
                 // Register DWS-related repositories
                 services.AddScoped<IDwsConfigRepository, LiteDbDwsConfigRepository>();
                 services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
+                
+                // 注册分拣机配置仓储
+                // Register Sorter configuration repository
+                services.AddScoped<ISorterConfigRepository, LiteDbSorterConfigRepository>();
                 
                 // 注册DWS数据解析器
                 // Register DWS data parser
@@ -354,13 +359,25 @@ try
                     options.CompactionPercentage = 0.25; // 压缩百分比
                 });
 
-                // 注册应用服务
-                services.AddScoped<PerformanceMetricService>();
-                services.AddScoped<IRuleEngineService, RuleEngineService>();
-                services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
-                services.AddScoped<RuleValidationService>();
-                services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
-                services.AddScoped<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
+                // 注册应用服务（单例模式，除数据库外）
+                // Register application services (Singleton mode, except database)
+                services.AddSingleton<PerformanceMetricService>();
+                services.AddSingleton<IRuleEngineService, RuleEngineService>();
+                services.AddSingleton<IParcelProcessingService, ParcelProcessingService>();
+                services.AddSingleton<RuleValidationService>();
+                services.AddSingleton<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
+                services.AddSingleton<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
+                
+                // 注册配置热更新服务（单例）
+                // Register configuration hot-reload service (Singleton)
+                services.AddSingleton<ConfigCacheService>();
+                services.AddSingleton<IConfigReloadService, ConfigReloadService>();
+                
+                // 注册适配器管理器（单例）
+                // Register adapter managers (Singleton)
+                services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
+                services.AddSingleton<IWcsAdapterManager, WcsAdapterManager>();
+                services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
                 
                 // 注册包裹活动追踪器（用于空闲检测）
                 services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();

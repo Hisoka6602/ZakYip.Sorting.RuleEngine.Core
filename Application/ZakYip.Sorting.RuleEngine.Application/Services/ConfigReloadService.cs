@@ -17,6 +17,7 @@ public class ConfigReloadService : IConfigReloadService
     private readonly IDwsAdapterManager _dwsAdapterManager;
     private readonly IWcsAdapterManager _wcsAdapterManager;
     private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly ConfigCacheService _configCacheService;
     private readonly ILogger<ConfigReloadService> _logger;
 
     public ConfigReloadService(
@@ -26,6 +27,7 @@ public class ConfigReloadService : IConfigReloadService
         IDwsAdapterManager dwsAdapterManager,
         IWcsAdapterManager wcsAdapterManager,
         ISorterAdapterManager sorterAdapterManager,
+        ConfigCacheService configCacheService,
         ILogger<ConfigReloadService> logger)
     {
         _dwsConfigRepository = dwsConfigRepository;
@@ -34,6 +36,7 @@ public class ConfigReloadService : IConfigReloadService
         _dwsAdapterManager = dwsAdapterManager;
         _wcsAdapterManager = wcsAdapterManager;
         _sorterAdapterManager = sorterAdapterManager;
+        _configCacheService = configCacheService;
         _logger = logger;
     }
 
@@ -49,6 +52,9 @@ public class ConfigReloadService : IConfigReloadService
                 _logger.LogWarning("DWS配置不存在，跳过重新加载");
                 return;
             }
+
+            // 更新缓存
+            _configCacheService.UpdateDwsConfigCache(config);
 
             // 断开现有连接
             _logger.LogInformation("断开现有DWS连接...");
@@ -83,6 +89,9 @@ public class ConfigReloadService : IConfigReloadService
                 return;
             }
 
+            // 更新缓存
+            _configCacheService.UpdateWcsConfigCache(config);
+
             // 断开现有连接
             _logger.LogInformation("断开现有WCS连接...");
             await _wcsAdapterManager.DisconnectAsync(cancellationToken);
@@ -115,6 +124,9 @@ public class ConfigReloadService : IConfigReloadService
                 _logger.LogWarning("分拣机配置不存在，跳过重新加载");
                 return;
             }
+
+            // 更新缓存
+            _configCacheService.UpdateSorterConfigCache(config);
 
             // 断开现有连接
             _logger.LogInformation("断开现有分拣机连接...");
