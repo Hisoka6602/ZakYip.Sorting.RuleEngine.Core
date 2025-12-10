@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// </summary>
 /// <typeparam name="TEntity">实体类型 / Entity type</typeparam>
 /// <typeparam name="TKey">主键类型 / Primary key type</typeparam>
-file abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
+public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
 {
     protected readonly ILiteDatabase Database;
     protected readonly string CollectionName;

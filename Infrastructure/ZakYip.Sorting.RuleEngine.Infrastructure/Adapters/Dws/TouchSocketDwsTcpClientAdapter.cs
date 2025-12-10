@@ -165,7 +165,7 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
         }
     }
 
-    private async Task OnDataReceivedAsync(ITcpClientBase client, string data)
+    private async Task OnDataReceivedAsync(ITcpSession client, string data)
     {
         try
         {
@@ -207,15 +207,15 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable
 
     private class DwsDataPlugin : PluginBase, ITcpReceivedPlugin
     {
-        private Func<ITcpClientBase, string, Task>? _onDataReceived;
+        private Func<ITcpSession, string, Task>? _onDataReceived;
 
-        public DwsDataPlugin SetOnDataReceived(Func<ITcpClientBase, string, Task> handler)
+        public DwsDataPlugin SetOnDataReceived(Func<ITcpSession, string, Task> handler)
         {
             _onDataReceived = handler;
             return this;
         }
 
-        public async Task OnTcpReceived(ITcpClientBase client, ReceivedDataEventArgs e)
+        public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
         {
             if (_onDataReceived != null)
             {
