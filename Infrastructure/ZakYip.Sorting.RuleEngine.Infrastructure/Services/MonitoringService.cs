@@ -17,6 +17,11 @@ public class MonitoringService : IMonitoringService
     private readonly IPerformanceMetricRepository _performanceMetricRepository;
     private readonly IChuteRepository _chuteRepository;
     private readonly ILogger<MonitoringService> _logger;
+    
+    // 包裹速率告警节流 - 记录上次告警时间，至少30分钟才记录一次
+    // Parcel rate alert throttling - track last alert time, at least 30 minutes between alerts
+    private DateTime? _lastParcelRateAlertTime;
+    private static readonly TimeSpan ParcelRateAlertThrottle = TimeSpan.FromMinutes(30);
 
     // 告警阈值配置
     private const decimal ChuteUsageRateWarningThreshold = 80.0m;  // 格口使用率警告阈值 80%
@@ -187,6 +192,15 @@ public class MonitoringService : IMonitoringService
     private async Task CheckParcelProcessingRateAsync(CancellationToken cancellationToken)
     {
         var now = DateTime.Now;
+        
+        // 检查是否需要节流 - 如果距离上次告警不足30分钟，跳过
+        // Check throttling - skip if less than 30 minutes since last alert
+        if (_lastParcelRateAlertTime.HasValue && 
+            (now - _lastParcelRateAlertTime.Value) < ParcelRateAlertThrottle)
+        {
+            return;
+        }
+        
         var fiveMinutesAgo = now.AddMinutes(-5);
 
         var metrics = await _performanceMetricRepository.GetMetricsAsync(
@@ -207,6 +221,13 @@ public class MonitoringService : IMonitoringService
             };
 
             await _alertRepository.AddAlertAsync(alert, cancellationToken);
+            
+            // 记录告警时间，实现节流
+            // Record alert time for throttling
+            _lastParcelRateAlertTime = now;
+            
+            _logger.LogInformation("创建包裹速率告警，下次最早告警时间: {NextAlertTime}", 
+                now.Add(ParcelRateAlertThrottle).ToString("yyyy-MM-dd HH:mm:ss"));
         }
     }
 
