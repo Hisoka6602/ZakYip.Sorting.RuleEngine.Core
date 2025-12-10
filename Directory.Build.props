@@ -9,8 +9,7 @@
     
     <!-- 启用代码分析和安全分析 / Enable code analysis and security analysis -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <!-- 使用推荐模式而非全部规则，减少噪音同时保持代码质量 / Use Recommended mode instead of All to reduce noise while maintaining quality -->
-    <AnalysisMode>Recommended</AnalysisMode>
+    <AnalysisMode>All</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     
     <!-- 将RS0030（使用已禁用的API）设置为错误 / Set RS0030 (use of banned API) as error -->
@@ -18,48 +17,6 @@
     
     <!-- 禁止使用UTC时间的API（编译错误） / Prohibit UTC time APIs (compilation error) -->
     <!-- RS0030: 不要使用已禁止的API / Do not use banned APIs -->
-    
-    <!-- 抑制低优先级和非关键警告 / Suppress low-priority and non-critical warnings -->
-    <!-- CA1303: 不要将文字作为本地化参数传递（i18n非必需） / Do not pass literals as localized parameters (i18n not required) -->
-    <!-- CA1062: 验证公共方法的参数（可由编译器null检查） / Validate arguments of public methods (covered by compiler null checks) -->
-    <!-- CA1031: 不要捕获一般异常类型（某些场景需要） / Do not catch general exception types (required in some scenarios) -->
-    <!-- CA2016: 将CancellationToken参数转发（非所有方法支持） / Forward CancellationToken parameter (not all methods support) -->
-    <!-- CA1305: 指定IFormatProvider（文化敏感格式非必需） / Specify IFormatProvider (culture-sensitive formatting not required) -->
-    <!-- CA1304: 指定CultureInfo（文化敏感转换非必需） / Specify CultureInfo (culture-sensitive conversions not required) -->
-    <!-- CA1310: 指定StringComparison以确保正确性（部分场景已修复） / Specify StringComparison for correctness (partially fixed) -->
-    <!-- CA1307: 指定StringComparison（已在关键代码修复） / Specify StringComparison (fixed in critical code) -->
-    <!-- CA2201: 不要引发保留的异常类型（测试代码可接受） / Do not raise reserved exception types (acceptable in test code) -->
-    <!-- CA1054-CA1056: URI属性应该是System.Uri类型（现有设计） / URI properties should be System.Uri type (existing design) -->
-    <!-- CA1002: 不要公开泛型列表（现有API设计） / Do not expose generic lists (existing API design) -->
-    <!-- CA2227: 集合属性应该是只读的（现有API设计） / Collection properties should be read only (existing API design) -->
-    <!-- CA1866-CA1867: 字符串相关性能优化（非关键） / String-related performance optimizations (non-critical) -->
-    <!-- CA1860-CA1862: 集合和字符串性能优化（非关键） / Collection and string performance optimizations (non-critical) -->
-    <!-- CA1854: 字典优化建议（非关键） / Dictionary optimization suggestions (non-critical) -->
-    <!-- CA1847: 字符比较优化（非关键） / Char comparison optimization (non-critical) -->
-    <!-- CA1848: 使用LoggerMessage委托（性能优化，非关键） / Use LoggerMessage delegates (performance, non-critical) -->
-    <!-- CA2007: ConfigureAwait（库代码建议，应用代码非必需） / ConfigureAwait (library recommendation, not required for app code) -->
-    <!-- CA1707: 测试方法命名约定 / Test method naming conventions -->
-    <!-- CA1822: 方法可标记为静态（风格问题） / Methods can be static (style issue) -->
-    <!-- CA1711: 标识符后缀 / Identifier suffixes -->
-    <!-- CA1000: 泛型类型声明 / Generic type declarations -->
-    <!-- CA1805: 不必要的初始化 / Unnecessary initialization -->
-    <!-- CA1311: 指定区域性 / Specify a culture -->
-    <!-- CA1001: 可释放类型 / Disposable types -->
-    <!-- CA1063: 正确实现IDisposable / Implement IDisposable correctly -->
-    <!-- CA1816: Dispose方法应调用GC.SuppressFinalize / Dispose methods should call GC.SuppressFinalize -->
-    <!-- CA1859: 使用具体类型以提高性能 / Use concrete types for improved performance -->
-    <!-- CA5359: 不要禁用证书验证（测试/开发环境需要） / Do not disable certificate validation (required for test/dev environment) -->
-    <!-- CA5398: 避免硬编码SslProtocols（现有设计） / Avoid hardcoded SslProtocols (existing design) -->
-    <!-- CA2100: SQL注入检查（已通过参数化查询处理） / Review SQL injection (handled via parameterized queries) -->
-    <!-- CA1852: 类型可以密封（非关键优化） / Type can be sealed (non-critical optimization) -->
-    <!-- CA1052: 静态持有者类型（非关键优化） / Static holder type (non-critical optimization) -->
-    <!-- CA1849: 使用CancelAsync而非Cancel / Use CancelAsync instead of Cancel -->
-    <!-- CA5394: 使用加密安全随机数生成器（测试代码可用Random） / Use cryptographically secure RNG (Random OK for test code) -->
-    <!-- xUnit1031: 测试方法不应使用阻塞任务操作 / Test methods should not use blocking task operations -->
-    <!-- xUnit2002: 不要在值类型上使用Assert.NotNull / Do not use Assert.NotNull on value types -->
-    <!-- CA1869: 缓存并重用JsonSerializerOptions实例 / Cache and reuse JsonSerializerOptions instances -->
-    <!-- CA1823: 未使用的字段 / Unused field -->
-    <NoWarn>$(NoWarn);CA1303;CA1062;CA1031;CA2016;CA1305;CA1304;CA1310;CA1307;CA2201;CA1054;CA1055;CA1056;CA1002;CA2227;CA1866;CA1867;CA1860;CA1861;CA1862;CA1854;CA1847;CA1848;CA2007;CA1707;CA1822;CA1711;CA1000;CA1805;CA1311;CA1001;CA1063;CA1816;CA1859;CA5359;CA5398;CA2100;CA1852;CA1052;CA2000;CA1849;xUnit1031;xUnit2002;CA1869;CA1823;CA5394</NoWarn>
   </PropertyGroup>
   
   <!-- 引用BannedSymbols.txt文件，定义禁止使用的API / Reference BannedSymbols.txt to define banned APIs -->

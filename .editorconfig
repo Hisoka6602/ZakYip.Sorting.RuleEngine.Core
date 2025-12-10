@@ -1,0 +1,82 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# All files
+[*]
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# Code files
+[*.{cs,csx,vb,vbx}]
+indent_size = 4
+
+# XML project files
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_size = 2
+
+# XML config files
+[*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_size = 2
+
+# C# files
+[*.cs]
+
+# Security warnings - Keep as errors/warnings (do not suppress)
+dotnet_diagnostic.CA5359.severity = warning  # Certificate validation
+dotnet_diagnostic.CA5398.severity = warning  # SSL/TLS protocols
+dotnet_diagnostic.CA5394.severity = warning  # Insecure randomness
+dotnet_diagnostic.CA2100.severity = warning  # SQL injection
+
+# Correctness warnings - Keep as warnings (do not suppress)
+dotnet_diagnostic.CA1307.severity = warning  # StringComparison
+dotnet_diagnostic.CA1062.severity = warning  # Validate arguments
+dotnet_diagnostic.CA1031.severity = warning  # General exception types
+dotnet_diagnostic.CA1063.severity = warning  # IDisposable pattern
+dotnet_diagnostic.CA1816.severity = warning  # GC.SuppressFinalize
+
+# Performance warnings - Reduce to suggestion (non-blocking)
+dotnet_diagnostic.CA1848.severity = suggestion  # LoggerMessage delegates
+dotnet_diagnostic.CA2007.severity = suggestion  # ConfigureAwait
+dotnet_diagnostic.CA1822.severity = suggestion  # Mark members as static
+dotnet_diagnostic.CA1861.severity = suggestion  # Constant array arguments
+dotnet_diagnostic.CA1860.severity = suggestion  # Length/Count property
+dotnet_diagnostic.CA1825.severity = suggestion  # Array.Empty
+
+# Style/Naming warnings - Reduce to suggestion or silent
+dotnet_diagnostic.CA1707.severity = silent  # Underscores in identifiers (test methods)
+dotnet_diagnostic.CA1711.severity = suggestion  # Identifier suffixes
+dotnet_diagnostic.CA1052.severity = suggestion  # Static holder types
+dotnet_diagnostic.CA1852.severity = suggestion  # Seal types
+
+# Localization warnings - Reduce to suggestion (not required for this project)
+dotnet_diagnostic.CA1303.severity = suggestion  # Literal localization
+dotnet_diagnostic.CA1304.severity = suggestion  # CultureInfo
+dotnet_diagnostic.CA1305.severity = suggestion  # IFormatProvider
+dotnet_diagnostic.CA1311.severity = suggestion  # Specify culture
+
+# API design warnings - Reduce to suggestion (existing design)
+dotnet_diagnostic.CA1002.severity = suggestion  # Generic lists
+dotnet_diagnostic.CA1054.severity = suggestion  # URI parameters
+dotnet_diagnostic.CA1055.severity = suggestion  # URI return values
+dotnet_diagnostic.CA1056.severity = suggestion  # URI properties
+dotnet_diagnostic.CA2227.severity = suggestion  # Collection properties
+
+# Exception handling warnings - Keep as warning but allow in specific scenarios
+dotnet_diagnostic.CA2201.severity = suggestion  # Reserved exception types
+dotnet_diagnostic.CA2016.severity = suggestion  # CancellationToken forwarding
+
+# Documentation warnings
+dotnet_diagnostic.CS1570.severity = suggestion  # XML documentation
+
+# Test-specific warnings
+dotnet_diagnostic.CA2017.severity = suggestion  # Parameter count mismatch
+dotnet_diagnostic.CA2234.severity = suggestion  # Pass System.Uri
+dotnet_diagnostic.CA1034.severity = suggestion  # Nested types visibility
