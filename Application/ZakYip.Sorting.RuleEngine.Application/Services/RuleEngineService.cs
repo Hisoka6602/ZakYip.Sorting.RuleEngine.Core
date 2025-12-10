@@ -43,6 +43,14 @@ public class RuleEngineService : IRuleEngineService
 
     /// <summary>
     /// 评估规则并返回格口号（支持多规则匹配）
+    /// 
+    /// 匹配策略：
+    /// 1. "多选一"原则：当多条规则匹配时，选择优先级最高的一条规则
+    /// 2. 无降级策略：每条规则使用其指定的匹配方法，不会降级到其他匹配方法
+    /// 3. 数据源隔离：
+    ///    - OCR匹配（OcrMatch）：仅使用OCR识别数据
+    ///    - API响应匹配（ApiResponseMatch）：仅使用API响应内容
+    ///    - 低代码表达式（LowCodeExpression）：可混合条码、重量、体积、OCR，但不包含API响应内容
     /// </summary>
     public async Task<string?> EvaluateRulesAsync(
         ParcelInfo parcelInfo,
@@ -155,6 +163,13 @@ public class RuleEngineService : IRuleEngineService
 
     /// <summary>
     /// 评估单个规则
+    /// 
+    /// 匹配策略说明：
+    /// - 采用"多选一"策略：每个规则只使用一种匹配方法，不存在降级或混合
+    /// - OcrMatch：仅使用OCR识别数据（thirdPartyResponse.OcrData），不使用API响应内容
+    /// - ApiResponseMatch：仅使用API响应内容（thirdPartyResponse.Data），不使用OCR数据
+    /// - LowCodeExpression：可混合使用条码、重量、体积、OCR数据，但不包含API响应内容
+    /// - 数据源之间相互独立，确保匹配逻辑清晰明确
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool EvaluateRule(
@@ -168,6 +183,7 @@ public class RuleEngineService : IRuleEngineService
             var condition = rule.ConditionExpression.Trim();
 
             // 根据匹配方法类型选择不同的评估器
+            // 重要：每个case只访问其对应的数据源，确保数据源隔离
             switch (rule.MatchingMethod)
             {
                 case MatchingMethodType.BarcodeRegex:
@@ -189,6 +205,7 @@ public class RuleEngineService : IRuleEngineService
                     return false;
 
                 case MatchingMethodType.OcrMatch:
+                    // 仅使用OCR数据，不使用API响应内容（thirdPartyResponse.Data）
                     if (thirdPartyResponse?.OcrData != null)
                     {
                         return _ocrMatcher.Evaluate(condition, thirdPartyResponse.OcrData);
@@ -196,6 +213,7 @@ public class RuleEngineService : IRuleEngineService
                     return false;
 
                 case MatchingMethodType.ApiResponseMatch:
+                    // 仅使用API响应内容，不使用OCR数据（thirdPartyResponse.OcrData）
                     if (thirdPartyResponse?.Data != null)
                     {
                         return _apiResponseMatcher.Evaluate(condition, thirdPartyResponse.Data);
@@ -203,6 +221,7 @@ public class RuleEngineService : IRuleEngineService
                     return false;
 
                 case MatchingMethodType.LowCodeExpression:
+                    // 可混合条码、重量、体积、OCR数据，但不包含API响应内容
                     return _lowCodeMatcher.Evaluate(condition, parcelInfo, dwsData, thirdPartyResponse);
 
                 case MatchingMethodType.LegacyExpression:

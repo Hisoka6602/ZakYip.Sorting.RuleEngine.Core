@@ -6,31 +6,29 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services.Matchers;
 
 /// <summary>
 /// OCR匹配器 - 支持基于OCR识别结果的地址段码和电话后缀匹配
-/// OCR matcher - supports matching based on OCR recognition results for address segments and phone suffixes
 /// </summary>
 /// <remarks>
-/// This matcher evaluates expressions based on OCR (Optical Character Recognition) data extracted from parcels.
-/// It supports matching against various OCR fields including:
-/// - Three-segment postal codes (ThreeSegmentCode, FirstSegmentCode, SecondSegmentCode, ThirdSegmentCode)
-/// - Recipient and sender addresses
-/// - Phone number suffixes
+/// 此匹配器基于OCR（光学字符识别）数据评估包裹的文字识别结果。
+/// 支持匹配以下OCR字段：
+/// - 三段码相关：ThreeSegmentCode（三段码）、FirstSegmentCode（第一段）、SecondSegmentCode（第二段）、ThirdSegmentCode（第三段）
+/// - 地址信息：RecipientAddress（收件人地址）、SenderAddress（寄件人地址）
+/// - 电话后缀：RecipientPhoneSuffix（收件人电话后缀）、SenderPhoneSuffix（寄件人电话后缀）
 /// 
-/// Supports both exact string matching and regular expression pattern matching.
+/// 支持精确字符串匹配和正则表达式模式匹配。
 /// 
-/// Example expressions:
-/// - "firstSegmentCode=^64\d*$" - Match first segment starting with 64
-/// - "recipientPhoneSuffix=1234" - Exact match on phone suffix
-/// - "recipientAddress=Beijing and senderAddress=Shanghai" - Combined AND condition
+/// 表达式示例：
+/// - "firstSegmentCode=^64\d*$" - 匹配以64开头的第一段码
+/// - "recipientPhoneSuffix=1234" - 精确匹配电话后缀
+/// - "recipientAddress=北京 and senderAddress=上海" - 收件地址包含北京且寄件地址包含上海
 /// </remarks>
 public class OcrMatcher
 {
     /// <summary>
     /// 评估OCR匹配表达式
-    /// Evaluates OCR matching expression against OCR data
     /// </summary>
-    /// <param name="expression">The expression to evaluate (supports field=value format with and/or operators)</param>
-    /// <param name="ocrData">The OCR data containing recognized text information</param>
-    /// <returns>True if the expression matches the OCR data, false otherwise</returns>
+    /// <param name="expression">匹配表达式，支持field=value格式，可使用and/or运算符</param>
+    /// <param name="ocrData">包含识别文字信息的OCR数据</param>
+    /// <returns>如果表达式与OCR数据匹配返回true，否则返回false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Evaluate(string expression, OcrData? ocrData)
     {
@@ -64,11 +62,10 @@ public class OcrMatcher
 
     /// <summary>
     /// 评估单个条件表达式
-    /// Evaluates a single condition expression
     /// </summary>
-    /// <param name="condition">The condition to evaluate (field=value format)</param>
-    /// <param name="ocrData">The OCR data to match against</param>
-    /// <returns>True if the condition matches, false otherwise</returns>
+    /// <param name="condition">要评估的条件，格式为field=value</param>
+    /// <param name="ocrData">要匹配的OCR数据</param>
+    /// <returns>如果条件匹配返回true，否则返回false</returns>
     private bool EvaluateSingleCondition(string condition, OcrData ocrData)
     {
         condition = condition.Trim();
@@ -105,21 +102,20 @@ public class OcrMatcher
 
     /// <summary>
     /// 获取OCR数据中指定字段的值
-    /// Gets the value of a specified field from OCR data
     /// </summary>
-    /// <param name="fieldName">The name of the field to retrieve (case-insensitive)</param>
-    /// <param name="ocrData">The OCR data containing the field values</param>
-    /// <returns>The field value if found, null otherwise</returns>
+    /// <param name="fieldName">要获取的字段名称（不区分大小写）</param>
+    /// <param name="ocrData">包含字段值的OCR数据</param>
+    /// <returns>找到字段时返回字段值，否则返回null</returns>
     /// <remarks>
-    /// Supported field names:
-    /// - threesegmentcode: Full three-segment postal code
-    /// - firstsegmentcode: First segment of postal code
-    /// - secondsegmentcode: Second segment of postal code
-    /// - thirdsegmentcode: Third segment of postal code
-    /// - recipientaddress: Recipient's address
-    /// - senderaddress: Sender's address
-    /// - recipientphonesuffix: Last digits of recipient's phone
-    /// - senderphonesuffix: Last digits of sender's phone
+    /// 支持的字段名称：
+    /// - threesegmentcode: 完整的三段码
+    /// - firstsegmentcode: 三段码的第一段
+    /// - secondsegmentcode: 三段码的第二段
+    /// - thirdsegmentcode: 三段码的第三段
+    /// - recipientaddress: 收件人地址
+    /// - senderaddress: 寄件人地址
+    /// - recipientphonesuffix: 收件人电话后缀
+    /// - senderphonesuffix: 寄件人电话后缀
     /// </remarks>
     private string? GetFieldValue(string fieldName, OcrData ocrData)
     {

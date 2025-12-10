@@ -1,5 +1,6 @@
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Domain.ValueObjects;
 using ZakYip.Sorting.RuleEngine.Tests.Helpers;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Domain;
@@ -334,5 +335,187 @@ public class TestDataBuilderTests
         // Assert
         var uniqueIds = parcels.Select(p => p.ParcelId).Distinct().Count();
         Assert.Equal(5, uniqueIds);
+    }
+}
+
+/// <summary>
+/// 通信日志实体单元测试
+/// Unit tests for communication log entities
+/// </summary>
+public class CommunicationLogEntityTests
+{
+    [Fact]
+    public void DwsCommunicationLog_CommunicationType_CanBeSet()
+    {
+        // Arrange & Act
+        var log = new DwsCommunicationLog
+        {
+            CommunicationType = CommunicationType.Mqtt,
+            DwsAddress = "192.168.1.100:1883",
+            OriginalContent = "Test DWS Data",
+            IsSuccess = true
+        };
+
+        // Assert
+        Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
+        Assert.Equal("192.168.1.100:1883", log.DwsAddress);
+    }
+
+    [Fact]
+    public void DwsCommunicationLog_AllCommunicationTypes_CanBeAssigned()
+    {
+        // Arrange
+        var log = new DwsCommunicationLog();
+
+        // Act & Assert - Test all communication types
+        log.CommunicationType = CommunicationType.Tcp;
+        Assert.Equal(CommunicationType.Tcp, log.CommunicationType);
+
+        log.CommunicationType = CommunicationType.SignalR;
+        Assert.Equal(CommunicationType.SignalR, log.CommunicationType);
+
+        log.CommunicationType = CommunicationType.Http;
+        Assert.Equal(CommunicationType.Http, log.CommunicationType);
+
+        log.CommunicationType = CommunicationType.Mqtt;
+        Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
+    }
+
+    [Fact]
+    public void SorterCommunicationLog_CommunicationType_CanBeSet()
+    {
+        // Arrange & Act
+        var log = new SorterCommunicationLog
+        {
+            CommunicationType = CommunicationType.Tcp,
+            SorterAddress = "192.168.1.50:5000",
+            OriginalContent = "Test Sorter Data",
+            IsSuccess = true
+        };
+
+        // Assert
+        Assert.Equal(CommunicationType.Tcp, log.CommunicationType);
+        Assert.Equal("192.168.1.50:5000", log.SorterAddress);
+    }
+
+    [Fact]
+    public void ApiCommunicationLog_CommunicationType_DefaultsToHttp()
+    {
+        // Arrange & Act
+        var log = new ApiCommunicationLog
+        {
+            ParcelId = "PKG001",
+            RequestUrl = "http://api.example.com/chute",
+            IsSuccess = true
+        };
+
+        // Assert - Should default to HTTP
+        Assert.Equal(CommunicationType.Http, log.CommunicationType);
+    }
+
+    [Fact]
+    public void ApiCommunicationLog_CommunicationType_CanBeChanged()
+    {
+        // Arrange
+        var log = new ApiCommunicationLog
+        {
+            ParcelId = "PKG001"
+        };
+
+        // Act
+        log.CommunicationType = CommunicationType.SignalR;
+
+        // Assert
+        Assert.Equal(CommunicationType.SignalR, log.CommunicationType);
+    }
+
+    [Fact]
+    public void CommunicationLog_CommunicationType_CanBeSet()
+    {
+        // Arrange & Act
+        var log = new CommunicationLog
+        {
+            CommunicationType = CommunicationType.Mqtt,
+            Direction = CommunicationDirection.Inbound,
+            Message = "Test communication",
+            IsSuccess = true
+        };
+
+        // Assert
+        Assert.Equal(CommunicationType.Mqtt, log.CommunicationType);
+        Assert.Equal(CommunicationDirection.Inbound, log.Direction);
+    }
+}
+
+// Image-related tests
+public class DwsDataWithImagesTests
+{
+    [Fact]
+    public void DwsData_ShouldInitializeImagesCollection()
+    {
+        // Act
+        var dwsData = new DwsData();
+
+        // Assert
+        Assert.NotNull(dwsData.Images);
+        Assert.Empty(dwsData.Images);
+    }
+
+    [Fact]
+    public void DwsData_ShouldAllowAddingImages()
+    {
+        // Arrange
+        var dwsData = new DwsData
+        {
+            Barcode = "TEST123",
+            Weight = 100.5m,
+            Length = 200,
+            Width = 150,
+            Height = 100,
+            Volume = 3000000
+        };
+
+        var image1 = new ImageInfo { DeviceName = "Camera01", LocalPath = @"D:\images\image001.jpg" };
+        var image2 = new ImageInfo { DeviceName = "Camera02", LocalPath = @"D:\images\image002.jpg" };
+
+        // Act
+        dwsData.Images.Add(image1);
+        dwsData.Images.Add(image2);
+
+        // Assert
+        Assert.Equal(2, dwsData.Images.Count);
+        Assert.Equal("Camera01", dwsData.Images[0].DeviceName);
+        Assert.Equal(@"D:\images\image001.jpg", dwsData.Images[0].LocalPath);
+        Assert.Equal("Camera02", dwsData.Images[1].DeviceName);
+        Assert.Equal(@"D:\images\image002.jpg", dwsData.Images[1].LocalPath);
+    }
+
+    [Fact]
+    public void DwsData_WithMultipleImages_ShouldMaintainOrder()
+    {
+        // Arrange
+        var dwsData = new DwsData();
+        var images = new[]
+        {
+            new ImageInfo { DeviceName = "Camera01", LocalPath = @"D:\img1.jpg" },
+            new ImageInfo { DeviceName = "Camera02", LocalPath = @"D:\img2.jpg" },
+            new ImageInfo { DeviceName = "Camera03", LocalPath = @"D:\img3.jpg" },
+            new ImageInfo { DeviceName = "Camera04", LocalPath = @"D:\img4.jpg" },
+            new ImageInfo { DeviceName = "Camera05", LocalPath = @"D:\img5.jpg" }
+        };
+
+        // Act
+        foreach (var img in images)
+        {
+            dwsData.Images.Add(img);
+        }
+
+        // Assert
+        Assert.Equal(5, dwsData.Images.Count);
+        for (int i = 0; i < images.Length; i++)
+        {
+            Assert.Equal(images[i].DeviceName, dwsData.Images[i].DeviceName);
+            Assert.Equal(images[i].LocalPath, dwsData.Images[i].LocalPath);
+        }
     }
 }

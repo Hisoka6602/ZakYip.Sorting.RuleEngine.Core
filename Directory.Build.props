@@ -6,5 +6,21 @@
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    
+    <!-- 启用代码分析和安全分析 / Enable code analysis and security analysis -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>All</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    
+    <!-- 将RS0030（使用已禁用的API）设置为错误 / Set RS0030 (use of banned API) as error -->
+    <WarningsAsErrors>$(WarningsAsErrors);RS0030</WarningsAsErrors>
+    
+    <!-- 禁止使用UTC时间的API（编译错误） / Prohibit UTC time APIs (compilation error) -->
+    <!-- RS0030: 不要使用已禁止的API / Do not use banned APIs -->
   </PropertyGroup>
+  
+  <!-- 引用BannedSymbols.txt文件，定义禁止使用的API / Reference BannedSymbols.txt to define banned APIs -->
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
 </Project>

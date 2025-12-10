@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/jscpd.json",
+  "pattern": "**/*.cs",
+  "ignore": [
+    "**/bin/**",
+    "**/obj/**",
+    "**/Migrations/**",
+    "**/Tests/**",
+    "**/*.Designer.cs",
+    "**/TestResults/**",
+    "**/node_modules/**"
+  ],
+  "minLines": 10,
+  "minTokens": 50,
+  "reporters": [
+    "json",
+    "console"
+  ],
+  "output": "./jscpd-report",
+  "absolute": false,
+  "blame": false,
+  "gitignore": true,
+  "silent": false,
+  "format": [
+    "csharp"
+  ]
+}

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using MySqlConnector;
 using NLog;
 using NLog.Web;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
@@ -115,7 +116,7 @@ try
                             : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21，作为最低兼容版本。可通过配置使用更高版本（如8.0.33），但默认选择8.0.21以确保与大多数生产环境兼容。
                         
                         services.AddDbContext<MySqlLogDbContext>(options =>
-                            ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion),
+                            ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion, appSettings.MySql.ConnectionPool),
                             ServiceLifetime.Scoped);
                         
                         // 如果启用了分片功能，也注册ShardedLogDbContext
@@ -124,7 +125,7 @@ try
                         if (shardingEnabled)
                         {
                             services.AddDbContext<ShardedLogDbContext>(options =>
-                                ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion),
+                                ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion, appSettings.MySql.ConnectionPool),
                                 ServiceLifetime.Scoped);
                             logger.Info("分片数据库上下文已注册");
                         }
@@ -291,19 +292,30 @@ try
                     return handler;
                 });
 
+                // 注册自动应答模式服务
+                // Register auto-response mode service
+                services.AddSingleton<IAutoResponseModeService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.AutoResponseModeService>();
+
                 // 注册所有适配器到DI容器
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WcsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostProcessingCenterApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostCollectionApiClient>());
+                
+                // 注册模拟适配器（用于自动应答模式）
+                // Register mock adapter (for auto-response mode)
+                services.AddSingleton<MockWcsApiAdapter>();
+                services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<MockWcsApiAdapter>());
 
-                // 注册适配器工厂 - 根据配置选择唯一激活的适配器
+                // 注册适配器工厂 - 根据配置和自动应答模式选择激活的适配器
+                // Register adapter factory - selects active adapter based on configuration and auto-response mode
                 services.AddSingleton<IWcsApiAdapterFactory>(sp =>
                 {
                     var adapters = sp.GetServices<IWcsApiAdapter>();
+                    var autoResponseModeService = sp.GetRequiredService<IAutoResponseModeService>();
                     var loggerFactory = sp.GetRequiredService<ILogger<WcsApiAdapterFactory>>();
-                    return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, loggerFactory);
+                    return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, autoResponseModeService, loggerFactory);
                 });
 
                 // 注册仓储
@@ -568,7 +580,74 @@ try
     logger.Info("Windows服务模式已启用");
 #endif
 
-    host.Run();
+    // 在Windows平台上检查并配置防火墙（异步执行，不阻塞主线程）
+    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+    {
+        // 启动防火墙和网络配置任务（不阻塞主线程）
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                logger.Info("检测到Windows平台，开始配置防火墙和端口规则 | Windows platform detected, starting firewall and port configuration");
+                
+                // 获取配置
+                var configuration = host.Services.GetRequiredService<IConfiguration>();
+                var appSettings = configuration.GetSection("AppSettings").Get<ZakYip.Sorting.RuleEngine.Service.Configuration.AppSettings>();
+                
+                if (appSettings?.MiniApi?.Urls != null && appSettings.MiniApi.Urls.Length > 0)
+                {
+                    // 提取需要的端口
+                    var ports = ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager.ExtractPortsFromUrls(appSettings.MiniApi.Urls);
+                    
+                    if (ports.Any())
+                    {
+                        logger.Info("检测到需要开放的端口: {Ports} | Detected ports to open: {Ports}", string.Join(", ", ports));
+                        
+                        // 创建防火墙管理器并配置
+                        var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+                        var firewallLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager>();
+                        var firewallManager = new ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager(firewallLogger);
+                        
+                        var success = await firewallManager.EnsureFirewallConfiguredAsync(ports);
+                        if (success)
+                        {
+                            logger.Info("防火墙配置完成 | Firewall configuration completed");
+                        }
+                        else
+                        {
+                            logger.Warn("防火墙配置未完全成功，请检查日志 | Firewall configuration not fully successful, please check logs");
+                        }
+                        
+                        // 配置网络适配器（启用巨帧和最大传输缓存）
+                        logger.Info("开始配置网络适配器 | Starting network adapter configuration");
+                        var adapterSuccess = await firewallManager.ConfigureNetworkAdaptersAsync();
+                        if (adapterSuccess)
+                        {
+                            logger.Info("网络适配器配置完成 | Network adapter configuration completed");
+                        }
+                        else
+                        {
+                            logger.Warn("网络适配器配置未完全成功，请检查日志 | Network adapter configuration not fully successful, please check logs");
+                        }
+                    }
+                    else
+                    {
+                        logger.Warn("未能从配置的URL中提取端口信息 | Could not extract port information from configured URLs");
+                    }
+                }
+                else
+                {
+                    logger.Warn("未配置MiniApi.Urls，跳过防火墙端口配置 | MiniApi.Urls not configured, skipping firewall port configuration");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warn(ex, "配置防火墙和网络适配器时发生错误，程序将继续运行 | Error occurred while configuring firewall and network adapters, program will continue running");
+            }
+        });
+    }
+
+    await host.RunAsync();
 }
 catch (Exception ex)
 {
@@ -584,9 +663,21 @@ finally
 // 配置MySQL数据库上下文
 // Configure MySQL database context
 // </summary>
-static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string connectionString, ServerVersion serverVersion)
+static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string connectionString, ServerVersion serverVersion, ConnectionPoolSettings poolSettings)
 {
-    options.UseMySql(connectionString, serverVersion);
+    // 应用连接池配置到连接字符串
+    // Apply connection pool settings to connection string
+    var builder = new MySqlConnectionStringBuilder(connectionString)
+    {
+        Pooling = poolSettings.Pooling,
+        MinimumPoolSize = (uint)poolSettings.MinPoolSize,
+        MaximumPoolSize = (uint)poolSettings.MaxPoolSize,
+        ConnectionLifeTime = (uint)poolSettings.ConnectionLifetimeSeconds,
+        ConnectionIdleTimeout = (uint)poolSettings.ConnectionIdleTimeoutSeconds,
+        ConnectionTimeout = (uint)poolSettings.ConnectionTimeoutSeconds
+    };
+    
+    options.UseMySql(builder.ConnectionString, serverVersion);
     
     // 生产环境安全配置：禁止敏感数据日志和详细错误
     // 仅在DEBUG模式下启用详细错误，帮助开发调试

@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
@@ -9,6 +11,11 @@ public class DwsCommunicationLog
     /// 日志ID（自增主键）
     /// </summary>
     public long Id { get; set; }
+
+    /// <summary>
+    /// 通信类型（TCP/SignalR/HTTP/MQTT）
+    /// </summary>
+    public CommunicationType CommunicationType { get; set; }
 
     /// <summary>
     /// DWS地址
@@ -39,6 +46,12 @@ public class DwsCommunicationLog
     /// 体积（立方厘米）
     /// </summary>
     public decimal? Volume { get; set; }
+
+    /// <summary>
+    /// 图片信息（JSON格式存储）
+    /// Images information stored in JSON format
+    /// </summary>
+    public string? ImagesJson { get; set; }
 
     /// <summary>
     /// 通信时间

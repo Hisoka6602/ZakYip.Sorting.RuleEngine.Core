@@ -5,7 +5,7 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 /// <summary>
 /// 数据归档事件
 /// </summary>
-public record struct DataArchivedEvent : INotification
+public readonly record struct DataArchivedEvent : INotification
 {
     /// <summary>
     /// 归档的记录数

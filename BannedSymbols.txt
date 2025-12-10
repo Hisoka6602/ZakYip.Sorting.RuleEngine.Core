@@ -1,0 +1,17 @@
+## 禁止使用UTC时间相关API / Banned UTC Time-related APIs
+## This file restricts the use of UTC time methods in the codebase
+
+# DateTime.UtcNow - 使用 DateTime.Now 代替 / Use DateTime.Now instead
+P:System.DateTime.UtcNow;禁止使用DateTime.UtcNow，请使用DateTime.Now获取本地时间 / DateTime.UtcNow is prohibited, use DateTime.Now for local time
+
+# DateTime.ToUniversalTime() - 禁止转换为UTC时间 / Prohibit conversion to UTC time
+M:System.DateTime.ToUniversalTime();禁止使用ToUniversalTime()转换为UTC时间 / ToUniversalTime() conversion to UTC is prohibited
+
+# DateTimeOffset.UtcNow - 使用 DateTimeOffset.Now 代替 / Use DateTimeOffset.Now instead
+P:System.DateTimeOffset.UtcNow;禁止使用DateTimeOffset.UtcNow，请使用DateTimeOffset.Now获取本地时间 / DateTimeOffset.UtcNow is prohibited, use DateTimeOffset.Now for local time
+
+# DateTimeOffset.ToUniversalTime() - 禁止转换为UTC时间 / Prohibit conversion to UTC time
+M:System.DateTimeOffset.ToUniversalTime();禁止使用ToUniversalTime()转换为UTC时间 / ToUniversalTime() conversion to UTC is prohibited
+
+# DateTimeKind.Utc - 禁止使用UTC时间类型 / Prohibit UTC DateTimeKind
+F:System.DateTimeKind.Utc;禁止使用DateTimeKind.Utc，请使用DateTimeKind.Local / DateTimeKind.Utc is prohibited, use DateTimeKind.Local

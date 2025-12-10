@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
@@ -11,14 +13,14 @@ public class SorterCommunicationLog
     public long Id { get; set; }
 
     /// <summary>
+    /// 通信类型（TCP/SignalR/HTTP/MQTT）
+    /// </summary>
+    public CommunicationType CommunicationType { get; set; }
+
+    /// <summary>
     /// 分拣机地址
     /// </summary>
     public string SorterAddress { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 通信类型（接收/发送）
-    /// </summary>
-    public string CommunicationType { get; set; } = string.Empty;
 
     /// <summary>
     /// 原始内容

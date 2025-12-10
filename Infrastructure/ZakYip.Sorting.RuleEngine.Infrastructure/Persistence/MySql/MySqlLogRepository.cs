@@ -1,72 +1,36 @@
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 
 /// <summary>
 /// MySQL日志仓储实现
+/// MySQL log repository implementation
 /// </summary>
-public class MySqlLogRepository : ILogRepository
+public class MySqlLogRepository : BaseLogRepositoryImpl<MySqlLogDbContext, LogEntry>
 {
-    private readonly MySqlLogDbContext _context;
-    private readonly ILogger<MySqlLogRepository> _logger;
-
     public MySqlLogRepository(
         MySqlLogDbContext context,
         ILogger<MySqlLogRepository> logger)
+        : base(context, logger)
     {
-        _context = context;
-        _logger = logger;
     }
 
-    public async Task LogAsync(
-        string level,
-        string message,
-        string? details = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
+    protected override LogEntry CreateLogEntry(string level, string message, string? details)
+        => new()
         {
-            var logEntry = new LogEntry
-            {
-                Level = level,
-                Message = message,
-                Details = details,
-                CreatedAt = DateTime.Now
-            };
+            Level = level,
+            Message = message,
+            Details = details,
+            CreatedAt = DateTime.Now
+        };
 
-            await _context.LogEntries.AddAsync(logEntry, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // 记录失败不应影响主流程
-            // Log failure should not affect main flow
-            _logger.LogError(ex, "写入MySQL日志失败: {Message}", message);
-        }
-    }
+    protected override Task AddLogEntryAsync(LogEntry logEntry, CancellationToken cancellationToken)
+        => Context.LogEntries.AddAsync(logEntry, cancellationToken).AsTask();
 
-    public Task LogInfoAsync(
-        string message,
-        string? details = null,
-        CancellationToken cancellationToken = default)
-    {
-        return LogAsync("INFO", message, details, cancellationToken);
-    }
-
-    public Task LogWarningAsync(
-        string message,
-        string? details = null,
-        CancellationToken cancellationToken = default)
-    {
-        return LogAsync("WARNING", message, details, cancellationToken);
-    }
-
-    public Task LogErrorAsync(
-        string message,
-        string? details = null,
-        CancellationToken cancellationToken = default)
-    {
-        return LogAsync("ERROR", message, details, cancellationToken);
-    }
+    protected override string GetBulkUpdateImagePathsSql()
+        => @"
+            UPDATE dws_communication_logs 
+            SET ImagesJson = REPLACE(ImagesJson, @p0, @p1)
+            WHERE ImagesJson IS NOT NULL 
+            AND ImagesJson LIKE CONCAT('%', @p0, '%')";
 }

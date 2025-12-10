@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.ValueObjects;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
@@ -46,4 +48,10 @@ public class DwsData
     /// Scan timestamp
     /// </summary>
     public DateTime ScannedAt { get; set; } = DateTime.Now;
+
+    /// <summary>
+    /// 图片信息集合（一个包裹可对应N个图片）
+    /// Collection of images (a parcel can have multiple images)
+    /// </summary>
+    public List<ImageInfo> Images { get; set; } = new List<ImageInfo>();
 }

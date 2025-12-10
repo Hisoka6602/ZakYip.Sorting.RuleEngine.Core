@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
@@ -9,6 +11,11 @@ public class ApiCommunicationLog
     /// 日志ID（自增主键）
     /// </summary>
     public long Id { get; set; }
+
+    /// <summary>
+    /// 通信类型（HTTP为主，记录API调用方式）
+    /// </summary>
+    public CommunicationType CommunicationType { get; set; } = CommunicationType.Http;
 
     /// <summary>
     /// 包裹ID

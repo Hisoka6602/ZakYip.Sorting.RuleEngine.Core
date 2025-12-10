@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Services;
@@ -533,6 +534,205 @@ public class RuleEngineServiceTests
 
         // Assert - 所有结果应该一致
         Assert.All(results, r => Assert.Equal("CHUTE-CONCURRENT", r));
+    }
+
+    #endregion
+
+    #region Data Source Isolation Tests
+
+    /// <summary>
+    /// 测试OCR匹配不使用API响应内容（数据源隔离）
+    /// 验证"多选一"原则：OCR判断不使用API响应内容
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRulesAsync_OcrMatch_DoesNotUseApiResponseData()
+    {
+        // Arrange
+        var rules = new List<SortingRule>
+        {
+            new SortingRule
+            {
+                RuleId = "OCR_RULE",
+                RuleName = "OCR匹配规则",
+                MatchingMethod = MatchingMethodType.OcrMatch,
+                ConditionExpression = "firstSegmentCode=640",
+                TargetChute = "CHUTE-OCR",
+                Priority = 1,
+                IsEnabled = true
+            }
+        };
+
+        _mockRuleRepository.Setup(r => r.GetEnabledRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rules);
+
+        var parcelInfo = new ParcelInfo { ParcelId = "PKG_OCR", CartNumber = "CART001" };
+        var dwsData = new DwsData { Weight = 1000 };
+
+        // API响应包含Data但没有OcrData
+        var apiResponse = new WcsApiResponse
+        {
+            Success = true,
+            Data = "640", // API响应内容存在
+            OcrData = null // OCR数据不存在
+        };
+
+        // Act
+        var result = await _service.EvaluateRulesAsync(parcelInfo, dwsData, apiResponse);
+
+        // Assert - 因为OCR数据为null，即使API响应有数据，也不应该匹配
+        Assert.Null(result);
+    }
+
+    /// <summary>
+    /// 测试API响应匹配不使用OCR数据（数据源隔离）
+    /// 验证"多选一"原则：API响应判断不使用OCR数据
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRulesAsync_ApiResponseMatch_DoesNotUseOcrData()
+    {
+        // Arrange
+        var rules = new List<SortingRule>
+        {
+            new SortingRule
+            {
+                RuleId = "API_RULE",
+                RuleName = "API响应匹配规则",
+                MatchingMethod = MatchingMethodType.ApiResponseMatch,
+                ConditionExpression = "STRING:CHUTE-API",
+                TargetChute = "CHUTE-API",
+                Priority = 1,
+                IsEnabled = true
+            }
+        };
+
+        _mockRuleRepository.Setup(r => r.GetEnabledRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rules);
+
+        var parcelInfo = new ParcelInfo { ParcelId = "PKG_API", CartNumber = "CART001" };
+        var dwsData = new DwsData { Weight = 1000 };
+
+        // API响应包含OcrData但Data为null
+        var apiResponse = new WcsApiResponse
+        {
+            Success = true,
+            Data = null, // API响应内容不存在
+            OcrData = new OcrData
+            {
+                FirstSegmentCode = "640",
+                ThreeSegmentCode = "640-123-456"
+            } // OCR数据存在
+        };
+
+        // Act
+        var result = await _service.EvaluateRulesAsync(parcelInfo, dwsData, apiResponse);
+
+        // Assert - 因为API响应Data为null，即使OCR数据存在，也不应该匹配
+        Assert.Null(result);
+    }
+
+    /// <summary>
+    /// 测试低代码表达式不使用API响应内容（仅使用OCR数据）
+    /// 验证LowCodeExpression不混合API响应内容和OCR数据
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRulesAsync_LowCodeExpression_DoesNotUseApiResponseData()
+    {
+        // Arrange
+        var rules = new List<SortingRule>
+        {
+            new SortingRule
+            {
+                RuleId = "LOWCODE_RULE",
+                RuleName = "低代码表达式规则",
+                MatchingMethod = MatchingMethodType.LowCodeExpression,
+                ConditionExpression = "firstSegmentCode=640 and Weight>500",
+                TargetChute = "CHUTE-LOWCODE",
+                Priority = 1,
+                IsEnabled = true
+            }
+        };
+
+        _mockRuleRepository.Setup(r => r.GetEnabledRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rules);
+
+        var parcelInfo = new ParcelInfo { ParcelId = "PKG_LOWCODE", CartNumber = "CART001" };
+        var dwsData = new DwsData { Weight = 1000 };
+
+        // API响应同时包含Data和OcrData
+        var apiResponse = new WcsApiResponse
+        {
+            Success = true,
+            Data = "Some API response content", // API响应内容存在但不应被使用
+            OcrData = new OcrData
+            {
+                FirstSegmentCode = "640",
+                ThreeSegmentCode = "640-123-456"
+            }
+        };
+
+        // Act
+        var result = await _service.EvaluateRulesAsync(parcelInfo, dwsData, apiResponse);
+
+        // Assert - 应该匹配，因为OCR数据和重量都满足条件
+        // 重要：即使Data存在，低代码表达式也不应该访问它
+        Assert.Equal("CHUTE-LOWCODE", result);
+    }
+
+    /// <summary>
+    /// 测试多条规则使用不同匹配方法时的数据源隔离
+    /// 验证每条规则独立使用其指定的数据源，无降级或混合
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRulesAsync_MultipleRules_MaintainsDataSourceIsolation()
+    {
+        // Arrange - 创建使用不同匹配方法的多条规则
+        var rules = new List<SortingRule>
+        {
+            new SortingRule
+            {
+                RuleId = "OCR_RULE",
+                RuleName = "OCR匹配规则",
+                MatchingMethod = MatchingMethodType.OcrMatch,
+                ConditionExpression = "firstSegmentCode=999", // 不匹配
+                TargetChute = "CHUTE-OCR",
+                Priority = 1,
+                IsEnabled = true
+            },
+            new SortingRule
+            {
+                RuleId = "API_RULE",
+                RuleName = "API响应匹配规则",
+                MatchingMethod = MatchingMethodType.ApiResponseMatch,
+                ConditionExpression = "STRING:SUCCESS",
+                TargetChute = "CHUTE-API",
+                Priority = 2,
+                IsEnabled = true
+            }
+        };
+
+        _mockRuleRepository.Setup(r => r.GetEnabledRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rules.OrderBy(r => r.Priority));
+
+        var parcelInfo = new ParcelInfo { ParcelId = "PKG_MULTI", CartNumber = "CART001" };
+        var dwsData = new DwsData { Weight = 1000 };
+
+        var apiResponse = new WcsApiResponse
+        {
+            Success = true,
+            Data = "SUCCESS", // API响应包含"SUCCESS"
+            OcrData = new OcrData
+            {
+                FirstSegmentCode = "640" // OCR第一段码不是999
+            }
+        };
+
+        // Act
+        var result = await _service.EvaluateRulesAsync(parcelInfo, dwsData, apiResponse);
+
+        // Assert - 第一条OCR规则不匹配（因为firstSegmentCode是640不是999）
+        // 第二条API规则匹配（因为Data包含"SUCCESS"）
+        // 验证了数据源隔离：OCR规则没有降级使用API数据
+        Assert.Equal("CHUTE-API", result);
     }
 
     #endregion

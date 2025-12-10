@@ -194,7 +194,7 @@ public class ResilientLogRepository : ILogRepository
             throw new InvalidOperationException("MySQL context is not available");
         }
 
-        var logEntry = new MySql.LogEntry
+        var logEntry = new LogEntry
         {
             Level = level,
             Message = message,
@@ -218,7 +218,7 @@ public class ResilientLogRepository : ILogRepository
     {
         try
         {
-            var logEntry = new Sqlite.LogEntry
+            var logEntry = new LogEntry
             {
                 Level = level,
                 Message = message,
@@ -317,7 +317,7 @@ public class ResilientLogRepository : ILogRepository
                     return 0;
                 }
 
-                var mysqlLogs = sqliteLogs.Select(log => new MySql.LogEntry
+                var mysqlLogs = sqliteLogs.Select(log => new LogEntry
                 {
                     Level = log.Level,
                     Message = log.Message,
@@ -708,4 +708,91 @@ public class ResilientLogRepository : ILogRepository
             throw;
         }
     }
+
+    /// <summary>
+    /// 批量更新DWS通信日志中的图片路径
+    /// Bulk update image paths in DWS communication logs
+    /// </summary>
+    public async Task<int> BulkUpdateImagePathsAsync(string oldPrefix, string newPrefix, CancellationToken cancellationToken = default)
+    {
+        var totalUpdated = 0;
+
+        try
+        {
+            // Try MySQL first if circuit breaker is closed
+            if (_mysqlContext != null)
+            {
+                var success = await _circuitBreaker.ExecuteAsync(async ct =>
+                {
+                    try
+                    {
+                        var count = await UpdateImagePathsInContextAsync(_mysqlContext, oldPrefix, newPrefix, ct);
+                        totalUpdated = count;
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "MySQL图片路径批量更新失败");
+                        return false;
+                    }
+                }, cancellationToken);
+
+                if (success)
+                {
+                    _logger.LogInformation("MySQL图片路径批量更新成功，更新了 {Count} 条记录", totalUpdated);
+                }
+            }
+        }
+        catch (BrokenCircuitException)
+        {
+            _logger.LogWarning("MySQL熔断器打开，使用SQLite进行图片路径批量更新");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "MySQL图片路径批量更新失败，降级到SQLite");
+        }
+
+        // Always update SQLite as well for consistency
+        try
+        {
+            var sqliteUpdated = await UpdateImagePathsInContextAsync(_sqliteContext, oldPrefix, newPrefix, cancellationToken);
+            _logger.LogInformation("SQLite图片路径批量更新成功，更新了 {Count} 条记录", sqliteUpdated);
+
+            // If MySQL failed, use SQLite count
+            if (totalUpdated == 0)
+            {
+                totalUpdated = sqliteUpdated;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SQLite图片路径批量更新失败");
+            throw;
+        }
+
+        return totalUpdated;
+    }
+
+    /// <summary>
+    /// 在指定的DbContext中执行图片路径批量更新
+    /// Execute bulk image path update in specified DbContext
+    /// </summary>
+    private async Task<int> UpdateImagePathsInContextAsync(DbContext context, string oldPrefix, string newPrefix, CancellationToken cancellationToken)
+    {
+        // Use raw SQL for efficient bulk update with REPLACE function
+        // This handles millions of records efficiently without loading them into memory
+        var sql = @"
+            UPDATE dws_communication_logs 
+            SET ImagesJson = REPLACE(ImagesJson, @p0, @p1)
+            WHERE ImagesJson IS NOT NULL 
+            AND ImagesJson LIKE CONCAT('%', @p0, '%')";
+
+        var affectedRows = await context.Database.ExecuteSqlRawAsync(
+            sql,
+            new object[] { oldPrefix, newPrefix },
+            cancellationToken);
+
+        return affectedRows;
+    }
 }
+

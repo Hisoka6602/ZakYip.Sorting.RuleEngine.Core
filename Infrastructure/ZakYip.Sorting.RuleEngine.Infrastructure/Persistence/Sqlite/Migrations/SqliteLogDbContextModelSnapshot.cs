@@ -23,6 +23,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("CommunicationType")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("DurationMs")
                         .HasColumnType("INTEGER");
 
@@ -68,6 +71,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CommunicationType")
+                        .HasDatabaseName("IX_api_comm_logs_Type");
 
                     b.HasIndex("ParcelId")
                         .HasDatabaseName("IX_api_comm_logs_ParcelId");
@@ -265,6 +271,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                     b.Property<DateTime>("CommunicationTime")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("CommunicationType")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("DwsAddress")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -300,6 +309,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                     b.HasIndex("CommunicationTime")
                         .IsDescending()
                         .HasDatabaseName("IX_dws_comm_logs_Time_Desc");
+
+                    b.HasIndex("CommunicationType")
+                        .HasDatabaseName("IX_dws_comm_logs_Type");
 
                     b.ToTable("dws_communication_logs", (string)null);
                 });
@@ -433,10 +445,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                     b.Property<DateTime>("CommunicationTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("CommunicationType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                    b.Property<int>("CommunicationType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(1000)
@@ -472,6 +482,9 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.Migrations
                     b.HasIndex("CommunicationTime")
                         .IsDescending()
                         .HasDatabaseName("IX_sorter_comm_logs_Time_Desc");
+
+                    b.HasIndex("CommunicationType")
+                        .HasDatabaseName("IX_sorter_comm_logs_Type");
 
                     b.HasIndex("ExtractedParcelId")
                         .HasDatabaseName("IX_sorter_comm_logs_ParcelId");
