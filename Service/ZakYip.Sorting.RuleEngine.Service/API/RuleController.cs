@@ -47,7 +47,7 @@ public class RuleController : ControllerBase
     [HttpGet]
     [SwaggerOperation(
         Summary = "获取所有规则",
-        Description = "获取系统中所有分拣规则，包括启用和禁用的规则",
+        Description = "获取系统中所有分拣规则，包括启用和禁用的规则。如果没有规则，将自动创建一个默认规则。",
         OperationId = "GetAllRules",
         Tags = new[] { "Rule" }
     )]
@@ -60,6 +60,40 @@ public class RuleController : ControllerBase
         try
         {
             var rules = await _ruleRepository.GetAllAsync(cancellationToken);
+            
+            // 如果没有规则，创建一个默认规则
+            // If no rules exist, create a default rule
+            if (!rules.Any())
+            {
+                var defaultRule = new SortingRule
+                {
+                    RuleId = "DEFAULT_RULE_001",
+                    RuleName = "默认规则",
+                    Description = "系统默认创建的规则，匹配所有包裹到默认格口",
+                    Priority = 9999,
+                    MatchingMethod = Domain.Enums.MatchingMethodType.LegacyExpression,
+                    ConditionExpression = "true",
+                    TargetChute = "DEFAULT",
+                    IsEnabled = true,
+                    CreatedAt = DateTime.Now
+                };
+                
+                await _ruleRepository.AddAsync(defaultRule, cancellationToken);
+                _logger.LogInformation("创建默认规则: {RuleId}", defaultRule.RuleId);
+                
+                // 发布规则创建事件
+                await _publisher.Publish(new RuleCreatedEvent
+                {
+                    RuleId = defaultRule.RuleId,
+                    RuleName = defaultRule.RuleName,
+                    TargetChute = defaultRule.TargetChute,
+                    CreatedAt = defaultRule.CreatedAt
+                }, cancellationToken);
+                
+                // 重新获取规则列表
+                rules = await _ruleRepository.GetAllAsync(cancellationToken);
+            }
+            
             var responseDtos = rules.ToResponseDtos();
             return Ok(ApiResponse<IEnumerable<SortingRuleResponseDto>>.SuccessResult(responseDtos));
         }

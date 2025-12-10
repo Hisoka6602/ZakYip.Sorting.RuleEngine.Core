@@ -80,7 +80,8 @@ public class DataCleanupService : BackgroundService
         if (_lastCleanupTime.HasValue && 
             (DateTime.Now - _lastCleanupTime.Value).TotalHours < 1)
         {
-            _logger.LogDebug("距离上次清理不足1小时，跳过本次清理");
+            // 跳过清理不记录日志，只在实际清理时记录
+            // Skip logging when cleanup is skipped, only log when actual cleanup happens
             return;
         }
 

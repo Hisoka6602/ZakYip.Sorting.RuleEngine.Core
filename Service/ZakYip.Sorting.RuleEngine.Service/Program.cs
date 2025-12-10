@@ -385,7 +385,10 @@ try
                     .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MySqlHealthCheck>("mysql", tags: new[] { "database", "mysql" })
                     .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.SqliteHealthCheck>("sqlite", tags: new[] { "database", "sqlite" })
                     .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MemoryCacheHealthCheck>("memory_cache", tags: new[] { "cache" })
-                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.WcsApiHealthCheck>("wcs_api", tags: new[] { "external", "api" });
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.WcsApiHealthCheck>("wcs_api", tags: new[] { "external", "api" })
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.DwsConnectionHealthCheck>("dws_connection", tags: new[] { "dws", "connection" })
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.RulesConfigHealthCheck>("rules_config", tags: new[] { "configuration", "rules" })
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.ThirdPartyApiConfigHealthCheck>("third_party_api_config", tags: new[] { "configuration", "api" });
 
                 // 添加控制器和API服务
                 services.AddControllers(options =>
