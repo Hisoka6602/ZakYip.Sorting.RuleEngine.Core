@@ -27,6 +27,7 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 // 配置NLog
@@ -326,6 +327,15 @@ try
                 // IMonitoringAlertRepository 现在根据数据库配置在上面注册（MySQL或SQLite）
                 // IMonitoringAlertRepository is now registered above based on database configuration (MySQL or SQLite)
                 services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
+                
+                // 注册DWS相关仓储
+                // Register DWS-related repositories
+                services.AddScoped<IDwsConfigRepository, LiteDbDwsConfigRepository>();
+                services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
+                
+                // 注册DWS数据解析器
+                // Register DWS data parser
+                services.AddSingleton<IDwsDataParser, DwsDataParser>();
 
                 // 添加内存缓存（带可配置的绝对过期和滑动过期）
                 // 从配置读取缓存大小限制（以条目数为单位），如果未配置则使用默认值
@@ -375,7 +385,10 @@ try
                     .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MySqlHealthCheck>("mysql", tags: new[] { "database", "mysql" })
                     .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.SqliteHealthCheck>("sqlite", tags: new[] { "database", "sqlite" })
                     .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.MemoryCacheHealthCheck>("memory_cache", tags: new[] { "cache" })
-                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.WcsApiHealthCheck>("wcs_api", tags: new[] { "external", "api" });
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.WcsApiHealthCheck>("wcs_api", tags: new[] { "external", "api" })
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.DwsConnectionHealthCheck>("dws_connection", tags: new[] { "dws", "connection" })
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.RulesConfigHealthCheck>("rules_config", tags: new[] { "configuration", "rules" })
+                    .AddCheck<ZakYip.Sorting.RuleEngine.Service.HealthChecks.ThirdPartyApiConfigHealthCheck>("third_party_api_config", tags: new[] { "configuration", "api" });
 
                 // 添加控制器和API服务
                 services.AddControllers(options =>
