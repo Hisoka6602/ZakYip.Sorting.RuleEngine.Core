@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -8,7 +10,8 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
-/// WCS API配置管理控制器
+/// WCS API配置管理控制器（单例模式）
+/// WCS API configuration management controller (Singleton pattern)
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -17,211 +20,143 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 public class WcsApiConfigController : ControllerBase
 {
     private readonly IWcsApiConfigRepository _repository;
+    private readonly IConfigReloadService _reloadService;
     private readonly ILogger<WcsApiConfigController> _logger;
 
     public WcsApiConfigController(
         IWcsApiConfigRepository repository,
+        IConfigReloadService reloadService,
         ILogger<WcsApiConfigController> logger)
     {
         _repository = repository;
+        _reloadService = reloadService;
         _logger = logger;
     }
 
     /// <summary>
-    /// 获取所有API配置
+    /// 获取WCS API配置（单例）
+    /// Get WCS API configuration (singleton)
     /// </summary>
-    /// <returns>所有API配置列表</returns>
-    /// <response code="200">成功返回API配置列表</response>
-    /// <response code="500">服务器内部错误</response>
     [HttpGet]
     [SwaggerOperation(
-        Summary = "获取所有API配置",
-        Description = "获取系统中所有WCS API配置（API密钥已脱敏）",
-        OperationId = "GetAllApiConfigs",
+        Summary = "获取WCS API配置",
+        Description = "获取系统中唯一的WCS API配置（单例模式，API密钥已脱敏）",
+        OperationId = "GetWcsApiConfig",
         Tags = new[] { "WcsApiConfig" }
     )]
-    [SwaggerResponse(200, "成功返回API配置列表", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 500)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<WcsApiConfigResponseDto>>>> GetAll()
-    {
-        try
-        {
-            var configs = await _repository.GetAllAsync();
-            var dtos = configs.ToResponseDtos();
-            return Ok(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.SuccessResult(dtos));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "获取所有API配置时发生错误");
-            return StatusCode(500, ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.FailureResult("获取API配置失败", "GET_CONFIGS_FAILED"));
-        }
-    }
-
-    /// <summary>
-    /// 获取所有启用的API配置
-    /// </summary>
-    /// <returns>启用的API配置列表（按优先级排序）</returns>
-    /// <response code="200">成功返回启用的API配置列表</response>
-    /// <response code="500">服务器内部错误</response>
-    [HttpGet("enabled")]
-    [SwaggerOperation(
-        Summary = "获取启用的API配置",
-        Description = "获取系统中所有已启用的WCS API配置，按优先级排序（API密钥已脱敏）",
-        OperationId = "GetEnabledApiConfigs",
-        Tags = new[] { "WcsApiConfig" }
-    )]
-    [SwaggerResponse(200, "成功返回启用的API配置列表", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>))]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>), 500)]
-    public async Task<ActionResult<ApiResponse<IEnumerable<WcsApiConfigResponseDto>>>> GetEnabled()
-    {
-        try
-        {
-            var configs = await _repository.GetEnabledConfigsAsync();
-            var dtos = configs.ToResponseDtos();
-            return Ok(ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.SuccessResult(dtos));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "获取启用的API配置时发生错误");
-            return StatusCode(500, ApiResponse<IEnumerable<WcsApiConfigResponseDto>>.FailureResult("获取启用的API配置失败", "GET_ENABLED_CONFIGS_FAILED"));
-        }
-    }
-
-    /// <summary>
-    /// 根据ID获取API配置
-    /// </summary>
-    /// <param name="id">配置ID</param>
-    /// <returns>API配置</returns>
-    /// <response code="200">成功返回API配置</response>
-    /// <response code="404">API配置未找到</response>
-    /// <response code="500">服务器内部错误</response>
-    [HttpGet("{id}")]
-    [SwaggerOperation(
-        Summary = "根据ID获取API配置",
-        Description = "根据配置ID获取特定WCS API配置的详细信息（API密钥已脱敏）",
-        OperationId = "GetApiConfigById",
-        Tags = new[] { "WcsApiConfig" }
-    )]
-    [SwaggerResponse(200, "成功返回API配置", typeof(ApiResponse<WcsApiConfigResponseDto>))]
-    [SwaggerResponse(404, "API配置未找到", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    [SwaggerResponse(200, "成功返回WCS API配置", typeof(ApiResponse<WcsApiConfigResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<WcsApiConfigResponseDto>))]
-    [ProducesResponseType(typeof(ApiResponse<WcsApiConfigResponseDto>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<WcsApiConfigResponseDto>), 404)]
-    [ProducesResponseType(typeof(ApiResponse<WcsApiConfigResponseDto>), 500)]
-    public async Task<ActionResult<ApiResponse<WcsApiConfigResponseDto>>> GetById(
-        [SwaggerParameter("配置ID", Required = true)] string id)
+    public async Task<ActionResult<ApiResponse<WcsApiConfigResponseDto>>> Get()
     {
         try
         {
-            var config = await _repository.GetByIdAsync(id);
+            var config = await _repository.GetByIdAsync(WcsApiConfig.SINGLETON_ID);
+            
             if (config == null)
             {
-                return NotFound(ApiResponse<WcsApiConfigResponseDto>.FailureResult("API配置未找到", "CONFIG_NOT_FOUND"));
+                // 返回默认配置
+                var defaultConfig = GetDefaultConfig();
+                return Ok(ApiResponse<WcsApiConfigResponseDto>.SuccessResult(defaultConfig));
             }
+            
             var dto = config.ToResponseDto();
             return Ok(ApiResponse<WcsApiConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "获取API配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, ApiResponse<WcsApiConfigResponseDto>.FailureResult("获取API配置失败", "GET_CONFIG_FAILED"));
+            _logger.LogError(ex, "获取WCS API配置时发生错误");
+            return StatusCode(500, ApiResponse<WcsApiConfigResponseDto>.FailureResult(
+                "获取WCS API配置失败", "GET_CONFIG_FAILED"));
         }
     }
 
     /// <summary>
-    /// 创建新的API配置
+    /// 更新WCS API配置（Upsert）
+    /// Update WCS API configuration (Upsert)
     /// </summary>
-    /// <param name="config">API配置</param>
-    /// <returns>创建结果</returns>
-    [HttpPost]
-    public async Task<ActionResult> Create([FromBody] WcsApiConfig config)
+    [HttpPut]
+    [SwaggerOperation(
+        Summary = "更新WCS API配置",
+        Description = "更新WCS API配置，如果不存在则创建（单例模式，全量更新）",
+        OperationId = "UpdateWcsApiConfig",
+        Tags = new[] { "WcsApiConfig" }
+    )]
+    [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<WcsApiConfigResponseDto>))]
+    public async Task<ActionResult<ApiResponse<WcsApiConfigResponseDto>>> Update(
+        [FromBody, SwaggerRequestBody("WCS API配置更新请求", Required = true)] WcsApiConfigUpdateRequest request)
     {
         try
         {
-            var success = await _repository.AddAsync(config);
-            if (success)
-            {
-                _logger.LogInformation("成功创建API配置: {ConfigId}", config.ConfigId);
-                return CreatedAtAction(nameof(GetById), new { id = config.ConfigId }, config);
-            }
-            return BadRequest(new { message = "创建API配置失败" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "创建API配置时发生错误");
-            return StatusCode(500, new { message = "创建API配置失败", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// 更新API配置
-    /// </summary>
-    /// <param name="id">配置ID</param>
-    /// <param name="config">API配置</param>
-    /// <returns>更新结果</returns>
-    [HttpPut("{id}")]
-    public async Task<ActionResult> Update(string id, [FromBody] WcsApiConfig config)
-    {
-        try
-        {
-            if (id != config.ConfigId)
-            {
-                return BadRequest(new { message = "配置ID不匹配" });
-            }
-
-            var existing = await _repository.GetByIdAsync(id);
+            // 从请求创建实体（自动设置单例ID）
+            var config = request.ToEntity();
+            
+            // 检查现有配置
+            var existing = await _repository.GetByIdAsync(WcsApiConfig.SINGLETON_ID);
+            bool success;
+            
             if (existing == null)
             {
-                return NotFound(new { message = $"未找到ID为 {id} 的API配置" });
+                success = await _repository.AddAsync(config);
             }
-
-            var success = await _repository.UpdateAsync(config);
+            else
+            {
+                // 保留原创建时间
+                config = config with { CreatedAt = existing.CreatedAt };
+                success = await _repository.UpdateAsync(config);
+            }
+            
             if (success)
             {
-                _logger.LogInformation("成功更新API配置: {ConfigId}", config.ConfigId);
-                return Ok(new { message = "API配置更新成功" });
+                _logger.LogInformation("WCS API配置已更新");
+                
+                // 触发配置热更新
+                try
+                {
+                    await _reloadService.ReloadWcsConfigAsync();
+                    _logger.LogInformation("WCS API配置热更新已触发");
+                }
+                catch (Exception reloadEx)
+                {
+                    _logger.LogWarning(reloadEx, "配置热更新失败，但配置已保存");
+                }
+                
+                var dto = config.ToResponseDto();
+                return Ok(ApiResponse<WcsApiConfigResponseDto>.SuccessResult(dto, "配置已更新并重新加载"));
             }
-            return BadRequest(new { message = "更新API配置失败" });
+            
+            return BadRequest(ApiResponse<WcsApiConfigResponseDto>.FailureResult(
+                "更新WCS API配置失败", "UPDATE_FAILED"));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "更新API配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, new { message = "更新API配置失败", error = ex.Message });
+            _logger.LogError(ex, "更新WCS API配置时发生错误");
+            return StatusCode(500, ApiResponse<WcsApiConfigResponseDto>.FailureResult(
+                "更新WCS API配置失败", "UPDATE_FAILED"));
         }
     }
 
     /// <summary>
-    /// 删除API配置
+    /// 获取默认配置
+    /// Get default configuration
     /// </summary>
-    /// <param name="id">配置ID</param>
-    /// <returns>删除结果</returns>
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(string id)
+    private static WcsApiConfigResponseDto GetDefaultConfig()
     {
-        try
+        return new WcsApiConfigResponseDto
         {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null)
-            {
-                return NotFound(new { message = $"未找到ID为 {id} 的API配置" });
-            }
-
-            var success = await _repository.DeleteAsync(id);
-            if (success)
-            {
-                _logger.LogInformation("成功删除API配置: {ConfigId}", id);
-                return Ok(new { message = "API配置删除成功" });
-            }
-            return BadRequest(new { message = "删除API配置失败" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "删除API配置 {ConfigId} 时发生错误", id);
-            return StatusCode(500, new { message = "删除API配置失败", error = ex.Message });
-        }
+            ApiName = "默认WCS API",
+            BaseUrl = "http://localhost:8080",
+            TimeoutSeconds = 30,
+            ApiKey = null,
+            CustomHeaders = null,
+            HttpMethod = "POST",
+            RequestBodyTemplate = null,
+            IsEnabled = false,
+            Priority = 0,
+            Description = "默认的WCS API配置",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
     }
 }

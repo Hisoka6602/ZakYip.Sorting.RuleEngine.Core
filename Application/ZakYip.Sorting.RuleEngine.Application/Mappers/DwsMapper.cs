@@ -81,8 +81,8 @@ public static class DwsConfigMapper
 public static class DwsDataTemplateMapper
 {
     /// <summary>
-    /// 转换为响应DTO
-    /// Convert to response DTO
+    /// 转换为响应DTO（单例模式，不包含ID）
+    /// Convert to response DTO (Singleton pattern, no ID)
     /// </summary>
     public static DwsDataTemplateResponseDto ToResponseDto(this DwsDataTemplate entity)
     {
@@ -96,6 +96,27 @@ public static class DwsDataTemplateMapper
             Description = entity.Description,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt
+        };
+    }
+
+    /// <summary>
+    /// 从更新请求创建实体
+    /// Create entity from update request
+    /// </summary>
+    public static DwsDataTemplate ToEntity(this DwsDataTemplateUpdateRequest request)
+    {
+        var now = DateTime.Now;
+        return new DwsDataTemplate
+        {
+            TemplateId = DwsDataTemplate.SINGLETON_ID,
+            Name = request.Name,
+            Template = request.Template,
+            Delimiter = request.Delimiter,
+            IsJsonFormat = request.IsJsonFormat,
+            IsEnabled = request.IsEnabled,
+            Description = request.Description,
+            CreatedAt = now,
+            UpdatedAt = now
         };
     }
 
