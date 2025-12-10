@@ -43,9 +43,9 @@ public class ApiRequestLoggingMiddleware
     {
         // 跳过健康检查、Swagger和SignalR端点的日志记录
         var path = context.Request.Path.Value?.ToLower() ?? "";
-        if (path.Contains("/health") || 
-            path.Contains("/swagger") || 
-            path.Contains("/hubs/"))
+        if (path.Contains("/health", StringComparison.Ordinal) || 
+            path.Contains("/swagger", StringComparison.Ordinal) || 
+            path.Contains("/hubs/", StringComparison.Ordinal))
         {
             await _next(context);
             return;
