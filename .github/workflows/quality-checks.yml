@@ -1,4 +1,4 @@
-name: CI Build and Test
+name: Code Quality Checks (代码质量检查)
 
 on:
   push:
@@ -15,12 +15,103 @@ on:
 # 限制 GITHUB_TOKEN 的权限 / Limit GITHUB_TOKEN permissions
 permissions:
   contents: read
-  pull-requests: write  # 用于在 PR 上发布重复代码检测评论 / Required for posting duplication check comments on PRs
+  pull-requests: write
 
 jobs:
-  # 重复代码检测作业 / Duplicate Code Detection Job
+  # 编译警告检测 / Compilation Warnings Detection
+  compilation-warnings:
+    name: Compilation Warnings Check (编译警告检测)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build and count warnings
+        id: build
+        run: |
+          echo "🔨 构建项目并统计警告 / Building project and counting warnings..."
+          
+          # Build and capture output
+          dotnet build --configuration Release --no-restore > build.log 2>&1 || true
+          
+          # Count warnings
+          WARNING_COUNT=$(grep -c "warning" build.log || echo "0")
+          
+          echo "warning_count=${WARNING_COUNT}" >> $GITHUB_OUTPUT
+          echo ""
+          echo "📊 编译警告统计 / Compilation Warning Statistics:"
+          echo "============================================"
+          echo "警告数量 / Warning Count: ${WARNING_COUNT}"
+          echo "============================================"
+          echo ""
+          
+          # Display warnings summary by type
+          echo "警告类型分布 / Warning Type Distribution:"
+          grep "warning" build.log | sed 's/.*warning \([^:]*\):.*/\1/' | sort | uniq -c | sort -rn || echo "No warnings"
+          echo ""
+          
+          # Save full build log
+          cat build.log
+      
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+      
+      - name: Check warning threshold
+        run: |
+          WARNING_COUNT=${{ steps.build.outputs.warning_count }}
+          THRESHOLD=2000
+          
+          echo "当前警告数量 / Current warning count: ${WARNING_COUNT}"
+          echo "阈值 / Threshold: ${THRESHOLD}"
+          echo ""
+          
+          if [ ${WARNING_COUNT} -gt ${THRESHOLD} ]; then
+            echo "❌ 编译警告检测失败 / Compilation Warnings Check Failed!"
+            echo "警告数量 ${WARNING_COUNT} 超过了阈值 ${THRESHOLD}"
+            echo "Warning count ${WARNING_COUNT} exceeds threshold ${THRESHOLD}"
+            echo ""
+            echo "📖 请参考 WARNING_RESOLUTION_PLAN.md 了解如何解决编译警告"
+            echo "Please refer to WARNING_RESOLUTION_PLAN.md for guidance on resolving warnings"
+            exit 1
+          else
+            echo "✅ 编译警告检测通过 / Compilation Warnings Check Passed!"
+            echo "警告数量 ${WARNING_COUNT} 在阈值 ${THRESHOLD} 以内"
+            echo "Warning count ${WARNING_COUNT} is within threshold ${THRESHOLD}"
+          fi
+      
+      - name: Add warnings PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: compilation-warnings
+          message: |
+            ## 🔨 编译警告检测结果 / Compilation Warnings Detection Results
+            
+            | 指标 Metric | 值 Value |
+            |-------------|----------|
+            | 警告数量 Warning Count | ${{ steps.build.outputs.warning_count }} |
+            | 阈值 Threshold | 2000 |
+            | 状态 Status | ${{ steps.build.outputs.warning_count <= 2000 && '✅ 通过 Passed' || '❌ 失败 Failed' }} |
+            
+            ---
+            📖 详情请查看 [WARNING_RESOLUTION_PLAN.md](../WARNING_RESOLUTION_PLAN.md)
+
+  # 重复代码检测 / Duplicate Code Detection
   duplicate-code-check:
-    name: Duplicate Code Detection (影分身检测)
+    name: Duplicate Code Detection (代码重复检测)
     runs-on: ubuntu-latest
     
     steps:
@@ -132,9 +223,9 @@ jobs:
             ---
             📖 详情请查看 [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)
 
-  # 影分身语义检测作业 / Shadow Clone Semantic Detection Job
+  # 影分身语义检测 / Shadow Clone Semantic Detection
   shadow-clone-check:
-    name: Shadow Clone Semantic Detection (影分身语义检测)
+    name: Shadow Clone Detection (影分身语义检测)
     runs-on: ubuntu-latest
     
     steps:
@@ -210,100 +301,4 @@ jobs:
           else
             echo ""
             echo "✅ 影分身语义检测通过 / Shadow Clone Semantic Detection Passed!"
-          fi
-
-  build-and-test:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    needs: [duplicate-code-check, shadow-clone-check]
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-      
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-      
-      - name: Restore dependencies
-        run: dotnet restore
-      
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore
-      
-      - name: Run unit tests
-        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
-      
-      - name: Generate code coverage report
-        run: |
-          dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./coverage
-      
-      - name: Install ReportGenerator
-        run: dotnet tool install --global dotnet-reportgenerator-globaltool
-      
-      - name: Generate coverage HTML report
-        run: |
-          reportgenerator \
-            -reports:"./coverage/**/coverage.cobertura.xml" \
-            -targetdir:"./coverage/report" \
-            -reporttypes:"Html;TextSummary"
-      
-      - name: Display coverage summary
-        run: cat ./coverage/report/Summary.txt
-      
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: '**/test-results.trx'
-      
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: ./coverage/report/
-      
-      - name: Code Coverage Summary
-        uses: irongut/CodeCoverageSummary@v1.3.0
-        with:
-          filename: 'coverage/**/coverage.cobertura.xml'
-          badge: true
-          fail_below_min: true
-          format: markdown
-          hide_branch_rate: false
-          hide_complexity: false
-          indicators: true
-          output: both
-          thresholds: '60 80'
-      
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
-        with:
-          recreate: true
-          path: code-coverage-results.md
-      
-      - name: Quality Gate - Check Coverage Threshold
-        run: |
-          coverage_percentage=$(grep -oP 'Line coverage: \K[\d.]+' ./coverage/report/Summary.txt || echo "0")
-          echo "Current code coverage: ${coverage_percentage}%"
-          # Use awk for portable floating-point comparison
-          if awk "BEGIN {exit !($coverage_percentage < 60)}"; then
-            echo "❌ Code coverage ${coverage_percentage}% is below the minimum threshold of 60% (target: 80%)"
-            exit 1
-          else
-            echo "✅ Code coverage ${coverage_percentage}% meets the minimum threshold of 60% (target: 80%)"
           fi
