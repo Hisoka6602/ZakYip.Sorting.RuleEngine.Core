@@ -67,9 +67,7 @@ public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
     {
         try
         {
-            var collection = _database.GetCollection<MonitoringAlert>(CollectionName);
-            var alerts = collection.Find(a => 
-                a.AlertTime >= startTime && a.AlertTime <= endTime).ToList();
+            var alerts = FindAlertsByTimeRange(startTime, endTime);
             return Task.FromResult(alerts);
         }
         catch (Exception ex)
@@ -114,9 +112,7 @@ public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
     {
         try
         {
-            var collection = _database.GetCollection<MonitoringAlert>(CollectionName);
-            var alerts = collection.Find(a => 
-                a.AlertTime >= startTime && a.AlertTime <= endTime).ToList();
+            var alerts = FindAlertsByTimeRange(startTime, endTime);
 
             var statistics = alerts
                 .GroupBy(a => a.Type)
@@ -129,5 +125,15 @@ public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
             _logger.LogError(ex, "获取告警统计失败: {StartTime} - {EndTime}", startTime, endTime);
             throw;
         }
+    }
+
+    /// <summary>
+    /// 按时间范围查找告警 - 提取重复的查询逻辑
+    /// Find alerts by time range - Extracts duplicate query logic
+    /// </summary>
+    private List<MonitoringAlert> FindAlertsByTimeRange(DateTime startTime, DateTime endTime)
+    {
+        var collection = _database.GetCollection<MonitoringAlert>(CollectionName);
+        return collection.Find(a => a.AlertTime >= startTime && a.AlertTime <= endTime).ToList();
     }
 }
