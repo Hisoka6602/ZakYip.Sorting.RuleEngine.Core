@@ -131,13 +131,13 @@ public class ApiRequestLogController : ControllerBase
             query = query.OrderByDescending(log => log.RequestTime);
 
             // 获取总数
-            var totalCount = await query.CountAsync(cancellationToken);
+            var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
             // 分页
             var logs = await query
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             var result = new ApiRequestLogPagedResult
             {
@@ -188,12 +188,12 @@ public class ApiRequestLogController : ControllerBase
             if (_mysqlContext != null)
             {
                 log = await _mysqlContext.ApiRequestLogs
-                    .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+                    .FirstOrDefaultAsync(l => l.Id == id, cancellationToken).ConfigureAwait(false);
             }
             else if (_sqliteContext != null)
             {
                 log = await _sqliteContext.ApiRequestLogs
-                    .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+                    .FirstOrDefaultAsync(l => l.Id == id, cancellationToken).ConfigureAwait(false);
             }
 
             if (log == null)
@@ -261,9 +261,9 @@ public class ApiRequestLogController : ControllerBase
                 query = query.Where(log => log.RequestTime <= endTime.Value);
             }
 
-            var totalCount = await query.CountAsync(cancellationToken);
-            var successCount = await query.CountAsync(log => log.IsSuccess, cancellationToken);
-            var avgDuration = await query.AverageAsync(log => (double?)log.DurationMs, cancellationToken) ?? 0;
+            var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+            var successCount = await query.CountAsync(log => log.IsSuccess, cancellationToken).ConfigureAwait(false);
+            var avgDuration = await query.AverageAsync(log => (double?)log.DurationMs, cancellationToken).ConfigureAwait(false) ?? 0;
 
             var statistics = new ApiRequestStatistics
             {
