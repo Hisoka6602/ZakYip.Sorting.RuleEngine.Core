@@ -34,7 +34,7 @@ This document records identified technical debt in the project. Before opening a
 | 重复代码 Duplicate Code | 51 处 | 🟢 低 Low | ✅ 已超越目标 |
 | 代码重复率 Duplication Rate | 2.66% | 🟢 低 Low (✅ 低于 CI 阈值 5%，超越 SonarQube 目标 3%) | ✅ 已超越目标 |
 | 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
-| **编译警告 Compiler Warnings** | **1808 个** | **🟡 中 Medium** | **📋 已记录 (下个PR处理)** |
+| **编译警告 Compiler Warnings** | **1808 个** | **🟡 中 Medium** | **🔄 处理中 (In Progress)** |
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.66% 已超越 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.66% exceeds SonarQube target!
@@ -71,6 +71,63 @@ Detected 7 constant "shadow clones", but determined to be **false positives**:
 
 **结论 / Conclusion**: 这些常量虽然数值相同，但语义完全不同，应保持独立。
 These constants have the same numeric values but completely different semantics and should remain independent.
+
+---
+
+## 🔧 编译警告解决计划 / Compilation Warnings Resolution Plan
+
+### 当前状态 / Current Status
+- **总警告数 / Total Warnings:** 1,808个
+- **CI阈值 / CI Threshold:** 2,000个 (当前通过 / Currently passing)
+- **目标 / Target:** 逐步降低到500个以下
+
+### 警告分布 (Top 10) / Warning Distribution (Top 10)
+| 警告代码 | 数量 | 描述 | 优先级 |
+|---------|-----|------|--------|
+| CA2007 | 1,338 | ConfigureAwait未调用 | 🔴 High |
+| CA1031 | 424 | 捕获通用异常 | 🟡 Medium |
+| CA1062 | 282 | 参数未验证 | 🟡 Medium |
+| CA1307 | 266 | 字符串比较未指定文化 | 🟡 Medium |
+| CA2000 | 196 | 对象未释放 | 🟢 Low |
+| CA1305 | 118 | 未指定IFormatProvider | 🟢 Low |
+| CA2017 | 90 | Count()误用 | 🟢 Low |
+| CA1822 | 84 | 可标记为static | 🟢 Low |
+| CA5394 | 74 | 不安全随机数 | 🟡 Medium |
+| CA1063 | 64 | Dispose模式不正确 | 🟡 Medium |
+
+### 分阶段解决策略 / Phased Resolution Strategy
+
+#### Phase 1: 快速修复 (Quick Wins) - 目标减少300个警告
+- ✅ CA2017 (90个) - 使用 `.Length` / `.Count` 属性替代 `.Count()` 方法
+- ✅ CA1822 (84个) - 将不使用实例成员的方法标记为 static
+- ✅ CA1805 (24个) - 移除不必要的初始化
+- ✅ CA1825 (44个) - 使用 `Array.Empty<T>()` 替代空数组
+
+#### Phase 2: 配置和抑制 (Configuration) - 处理600个警告
+- 🔄 CA2007 (1,338个) - 在测试代码中抑制，在库代码中添加 ConfigureAwait
+  - 测试代码: 抑制（不需要ConfigureAwait）
+  - 库代码: 添加 `.ConfigureAwait(false)`
+  
+#### Phase 3: 代码改进 (Code Improvements) - 处理500个警告
+- 📋 CA1031 (424个) - 逐个审查异常处理，使用具体异常类型
+- 📋 CA1062 (282个) - 添加参数验证或使用可空引用类型
+- 📋 CA1307/CA1305 (384个) - 添加 StringComparison 和 CultureInfo
+
+#### Phase 4: 资源管理 (Resource Management) - 处理200个警告  
+- 📋 CA2000 (196个) - 使用 using 语句或确保 Dispose 调用
+- 📋 CA1063 (64个) - 正确实现 IDisposable 模式
+
+#### Phase 5: 其他优化 (Other Optimizations) - 处理剩余
+- 📋 CA5394 (74个) - 使用 RandomNumberGenerator 替代 Random
+- 📋 其他各类警告
+
+### 下一步行动 / Next Actions
+1. **本PR**: 更新文档，标记编译警告为"处理中"状态
+2. **下个PR**: Phase 1 快速修复（目标：减少300个警告）
+3. **后续PR**: 逐步执行 Phase 2-5
+
+### 参考文档 / Reference Documentation
+详细解决方案请参阅：[WARNING_RESOLUTION_PLAN.md](./WARNING_RESOLUTION_PLAN.md)
 
 ---
 
