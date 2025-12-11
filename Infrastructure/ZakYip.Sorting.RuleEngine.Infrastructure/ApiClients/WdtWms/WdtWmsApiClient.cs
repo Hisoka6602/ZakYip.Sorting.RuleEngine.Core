@@ -193,7 +193,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 var jObject = JObject.Parse(responseContent);
                 // 检查多种可能的成功响应格式
                 // 格式1: { "flag": "success" }
-                if (jObject["flag"]?.ToString()?.ToLower()?.Equals("success") == true)
+                if (jObject["flag"]?.ToString()?.Equals("success", StringComparison.OrdinalIgnoreCase) == true)
                 {
                     isSuccess = true;
                 }
@@ -514,6 +514,6 @@ public class WdtWmsApiClient : IWcsApiAdapter
         using var md5 = MD5.Create();
         var result = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
         var strResult = BitConverter.ToString(result);
-        return strResult.Replace("-", "");
+        return strResult.Replace("-", "", StringComparison.Ordinal);
     }
 }

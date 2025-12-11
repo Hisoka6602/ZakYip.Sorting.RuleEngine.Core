@@ -111,7 +111,7 @@ public class SorterConfigController : ControllerBase
                 }
                 
                 var dto = config.ToResponseDto();
-                return Ok(ApiResponse<SorterConfigResponseDto>.SuccessResult(dto, "配置已更新并重新加载"));
+                return Ok(ApiResponse<SorterConfigResponseDto>.SuccessResult(dto));
             }
             
             return BadRequest(ApiResponse<SorterConfigResponseDto>.FailureResult(

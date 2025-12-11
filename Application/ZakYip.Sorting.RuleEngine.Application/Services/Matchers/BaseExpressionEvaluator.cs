@@ -90,7 +90,7 @@ internal static class BaseExpressionEvaluator
     {
         expression = expression.Trim();
 
-        if (expression.Contains(">="))
+        if (expression.Contains(">=", StringComparison.Ordinal))
         {
             var parts = expression.Split(new[] { ">=" }, StringSplitOptions.None);
             if (parts.Length == 2 &&
@@ -100,7 +100,7 @@ internal static class BaseExpressionEvaluator
                 return left >= right;
             }
         }
-        else if (expression.Contains("<="))
+        else if (expression.Contains("<=", StringComparison.Ordinal))
         {
             var parts = expression.Split(new[] { "<=" }, StringSplitOptions.None);
             if (parts.Length == 2 &&
@@ -110,7 +110,7 @@ internal static class BaseExpressionEvaluator
                 return left <= right;
             }
         }
-        else if (expression.Contains("=="))
+        else if (expression.Contains("==", StringComparison.Ordinal))
         {
             var parts = expression.Split(new[] { "==" }, StringSplitOptions.None);
             if (parts.Length == 2 &&
@@ -131,7 +131,7 @@ internal static class BaseExpressionEvaluator
                 return left == right;
             }
         }
-        else if (expression.Contains('>') && !expression.Contains(">="))
+        else if (expression.Contains('>') && !expression.Contains(">=", StringComparison.Ordinal))
         {
             var parts = expression.Split(new[] { ">" }, StringSplitOptions.None);
             if (parts.Length == 2 &&
@@ -141,7 +141,7 @@ internal static class BaseExpressionEvaluator
                 return left > right;
             }
         }
-        else if (expression.Contains('<') && !expression.Contains("<="))
+        else if (expression.Contains('<') && !expression.Contains("<=", StringComparison.Ordinal))
         {
             var parts = expression.Split(new[] { "<" }, StringSplitOptions.None);
             if (parts.Length == 2 &&

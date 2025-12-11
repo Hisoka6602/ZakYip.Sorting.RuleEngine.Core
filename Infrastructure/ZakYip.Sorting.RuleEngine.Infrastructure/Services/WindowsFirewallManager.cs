@@ -379,7 +379,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                     foreach (var line in lines)
                     {
                         var trimmed = line.Trim();
-                        if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.Contains("Name") && !trimmed.Contains("---"))
+                        if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.Contains("Name", StringComparison.Ordinal) && !trimmed.Contains("---", StringComparison.Ordinal))
                         {
                             adapters.Add(trimmed);
                         }

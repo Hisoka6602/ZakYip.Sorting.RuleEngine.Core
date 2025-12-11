@@ -108,7 +108,7 @@ public class DwsDataTemplateController : ControllerBase
                 _logger.LogInformation("DWS数据模板已更新");
                 
                 var dto = template.ToResponseDto();
-                return Ok(ApiResponse<DwsDataTemplateResponseDto>.SuccessResult(dto, "模板已更新"));
+                return Ok(ApiResponse<DwsDataTemplateResponseDto>.SuccessResult(dto));
             }
             
             return BadRequest(ApiResponse<DwsDataTemplateResponseDto>.FailureResult(

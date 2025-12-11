@@ -123,7 +123,7 @@ public class DwsConfigController : ControllerBase
                 }
                 
                 var dto = config.ToResponseDto();
-                return Ok(ApiResponse<DwsConfigResponseDto>.SuccessResult(dto, "配置已更新并重新加载"));
+                return Ok(ApiResponse<DwsConfigResponseDto>.SuccessResult(dto));
             }
             
             return BadRequest(ApiResponse<DwsConfigResponseDto>.FailureResult(

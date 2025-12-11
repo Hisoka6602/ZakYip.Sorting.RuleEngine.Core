@@ -36,12 +36,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = "dws-test-001",
+            ConfigId = 1001L,
             Name = "Test DWS Config",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8081,
-            DataTemplateId = "template-001",
+            DataTemplateId = 1L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -55,9 +55,9 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         
         // 验证可以通过ConfigId查询到配置
         // Verify config can be queried by ConfigId
-        var retrieved = await _repository.GetByIdAsync("dws-test-001");
+        var retrieved = await _repository.GetByIdAsync(1001L);
         Assert.NotNull(retrieved);
-        Assert.Equal("dws-test-001", retrieved.ConfigId);
+        Assert.Equal(1001L, retrieved.ConfigId);
         Assert.Equal("Test DWS Config", retrieved.Name);
     }
 
@@ -67,12 +67,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = "dws-test-002",
+            ConfigId = 1002L,
             Name = "Test Config 2",
             Mode = "Client",
             Host = "192.168.1.100",
             Port = 8082,
-            DataTemplateId = "template-002",
+            DataTemplateId = 2L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -80,11 +80,11 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         await _repository.AddAsync(config);
 
         // Act
-        var result = await _repository.GetByIdAsync("dws-test-002");
+        var result = await _repository.GetByIdAsync(1002L);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("dws-test-002", result.ConfigId);
+        Assert.Equal(1002L, result.ConfigId);
         Assert.Equal("Test Config 2", result.Name);
     }
 
@@ -92,7 +92,7 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
     public async Task GetByIdAsync_ShouldReturnNull_WhenNotExists()
     {
         // Act
-        var result = await _repository.GetByIdAsync("non-existent-id");
+        var result = await _repository.GetByIdAsync(9999L);
 
         // Assert
         Assert.Null(result);
@@ -104,12 +104,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = "dws-test-003",
+            ConfigId = 1003L,
             Name = "Original Name",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8083,
-            DataTemplateId = "template-003",
+            DataTemplateId = 3L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -132,7 +132,7 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         
         // 验证更新成功
         // Verify update was successful
-        var retrieved = await _repository.GetByIdAsync("dws-test-003");
+        var retrieved = await _repository.GetByIdAsync(1003L);
         Assert.NotNull(retrieved);
         Assert.Equal("Updated Name", retrieved.Name);
         Assert.Equal(9999, retrieved.Port);
@@ -144,12 +144,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = "dws-test-004",
+            ConfigId = 1004L,
             Name = "Config to Delete",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8084,
-            DataTemplateId = "template-004",
+            DataTemplateId = 4L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -158,18 +158,18 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         
         // 验证配置存在
         // Verify config exists
-        var existsBefore = await _repository.GetByIdAsync("dws-test-004");
+        var existsBefore = await _repository.GetByIdAsync(1004L);
         Assert.NotNull(existsBefore);
 
         // Act
-        var result = await _repository.DeleteAsync("dws-test-004");
+        var result = await _repository.DeleteAsync(1004L);
 
         // Assert
         Assert.True(result);
         
         // 验证配置已删除
         // Verify config was deleted
-        var existsAfter = await _repository.GetByIdAsync("dws-test-004");
+        var existsAfter = await _repository.GetByIdAsync(1004L);
         Assert.Null(existsAfter);
     }
 
@@ -177,7 +177,7 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
     public async Task DeleteAsync_ShouldReturnFalse_WhenConfigNotExists()
     {
         // Act
-        var result = await _repository.DeleteAsync("non-existent-id");
+        var result = await _repository.DeleteAsync(9998L);
 
         // Assert
         Assert.False(result);
@@ -189,12 +189,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var enabledConfig = new DwsConfig
         {
-            ConfigId = "dws-enabled",
+            ConfigId = 1005L,
             Name = "Enabled Config",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8085,
-            DataTemplateId = "template-005",
+            DataTemplateId = 5L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -202,12 +202,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         
         var disabledConfig = new DwsConfig
         {
-            ConfigId = "dws-disabled",
+            ConfigId = 1006L,
             Name = "Disabled Config",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8086,
-            DataTemplateId = "template-006",
+            DataTemplateId = 6L,
             IsEnabled = false,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -222,7 +222,7 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Assert
         var configs = result.ToList();
         Assert.Single(configs);
-        Assert.Equal("dws-enabled", configs[0].ConfigId);
+        Assert.Equal(1005L, configs[0].ConfigId);
         Assert.True(configs[0].IsEnabled);
     }
 
@@ -232,12 +232,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config1 = new DwsConfig
         {
-            ConfigId = "dws-all-001",
+            ConfigId = 1007L,
             Name = "Config 1",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8087,
-            DataTemplateId = "template-007",
+            DataTemplateId = 7L,
             IsEnabled = true,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -245,12 +245,12 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         
         var config2 = new DwsConfig
         {
-            ConfigId = "dws-all-002",
+            ConfigId = 1008L,
             Name = "Config 2",
             Mode = "Client",
             Host = "192.168.1.1",
             Port = 8088,
-            DataTemplateId = "template-008",
+            DataTemplateId = 8L,
             IsEnabled = false,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -265,8 +265,8 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Assert
         var configs = result.ToList();
         Assert.True(configs.Count >= 2);
-        Assert.Contains(configs, c => c.ConfigId == "dws-all-001");
-        Assert.Contains(configs, c => c.ConfigId == "dws-all-002");
+        Assert.Contains(configs, c => c.ConfigId == 1007L);
+        Assert.Contains(configs, c => c.ConfigId == 1008L);
     }
 
     public void Dispose()

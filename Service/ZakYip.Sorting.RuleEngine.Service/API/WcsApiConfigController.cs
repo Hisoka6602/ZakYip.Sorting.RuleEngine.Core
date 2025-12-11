@@ -123,7 +123,7 @@ public class WcsApiConfigController : ControllerBase
                 }
                 
                 var dto = config.ToResponseDto();
-                return Ok(ApiResponse<WcsApiConfigResponseDto>.SuccessResult(dto, "配置已更新并重新加载"));
+                return Ok(ApiResponse<WcsApiConfigResponseDto>.SuccessResult(dto));
             }
             
             return BadRequest(ApiResponse<WcsApiConfigResponseDto>.FailureResult(
@@ -145,16 +145,14 @@ public class WcsApiConfigController : ControllerBase
     {
         return new WcsApiConfigResponseDto
         {
-            ApiName = "默认WCS API",
+            Name = "默认WCS API",
             BaseUrl = "http://localhost:8080",
             TimeoutSeconds = 30,
             ApiKey = null,
             CustomHeaders = null,
             HttpMethod = "POST",
-            RequestBodyTemplate = null,
             IsEnabled = false,
             Priority = 0,
-            Description = "默认的WCS API配置",
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
