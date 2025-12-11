@@ -70,65 +70,12 @@ public class ApiClientTestController : ControllerBase
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestJushuitanErpApi(
         [FromBody] ApiClientTestRequest request)
     {
-        try
-        {
-            if (_jushuitanErpApiClient == null)
-            {
-                return NotFound(ApiResponse<ApiClientTestResponse>.FailureResult(
-                    "聚水潭ERP ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
-            }
-
-            // Create DWS data for testing
-            var dwsData = new DwsData
-            {
-                Barcode = request.Barcode,
-                Weight = request.Weight,
-                Length = request.Length ?? 0,
-                Width = request.Width ?? 0,
-                Height = request.Height ?? 0,
-                Volume = ((request.Length ?? 0) * (request.Width ?? 0) * (request.Height ?? 0)) / 1000000
-            };
-
-            _logger.LogInformation("开始测试聚水潭ERP API，条码: {Barcode}", request.Barcode);
-
-            // Call the API
-            var response = await _jushuitanErpApiClient.RequestChuteAsync(
-                request.Barcode, dwsData, null, HttpContext.RequestAborted);
-
-            // Create test response
-            var testResponse = new ApiClientTestResponse
-            {
-                Success = response.Success,
-                Code = response.Code,
-                Message = response.Message,
-                Data = response.Data,
-                ParcelId = response.ParcelId,
-                RequestUrl = response.RequestUrl,
-                RequestBody = response.RequestBody,
-                ResponseBody = response.ResponseBody,
-                ErrorMessage = response.ErrorMessage,
-                RequestTime = response.RequestTime,
-                ResponseTime = response.ResponseTime,
-                DurationMs = response.DurationMs,
-                ResponseStatusCode = response.ResponseStatusCode,
-                FormattedCurl = response.FormattedCurl
-            };
-
-            // Log the test request
-            await LogApiTestRequestAsync("JushuitanErp", request, testResponse);
-
-            _logger.LogInformation(
-                "聚水潭ERP API测试完成，条码: {Barcode}, 结果: {Success}",
-                request.Barcode, response.Success);
-
-            return Ok(ApiResponse<ApiClientTestResponse>.SuccessResult(testResponse));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "测试聚水潭ERP API时发生错误");
-            return StatusCode(500, ApiResponse<ApiClientTestResponse>.FailureResult(
-                $"测试失败: {ex.Message}", "TEST_FAILED"));
-        }
+        return await TestApiClientAsync(
+            _jushuitanErpApiClient,
+            "JushuitanErp",
+            "聚水潭ERP",
+            request,
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct));
     }
 
     /// <summary>
@@ -153,65 +100,12 @@ public class ApiClientTestController : ControllerBase
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestWdtWmsApi(
         [FromBody] ApiClientTestRequest request)
     {
-        try
-        {
-            if (_wdtWmsApiClient == null)
-            {
-                return NotFound(ApiResponse<ApiClientTestResponse>.FailureResult(
-                    "旺店通WMS ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
-            }
-
-            // Create DWS data for testing
-            var dwsData = new DwsData
-            {
-                Barcode = request.Barcode,
-                Weight = request.Weight,
-                Length = request.Length ?? 0,
-                Width = request.Width ?? 0,
-                Height = request.Height ?? 0,
-                Volume = ((request.Length ?? 0) * (request.Width ?? 0) * (request.Height ?? 0)) / 1000000
-            };
-
-            _logger.LogInformation("开始测试旺店通WMS API，条码: {Barcode}", request.Barcode);
-
-            // Call the API
-            var response = await _wdtWmsApiClient.RequestChuteAsync(
-                request.Barcode, dwsData, null, HttpContext.RequestAborted);
-
-            // Create test response
-            var testResponse = new ApiClientTestResponse
-            {
-                Success = response.Success,
-                Code = response.Code,
-                Message = response.Message,
-                Data = response.Data,
-                ParcelId = response.ParcelId,
-                RequestUrl = response.RequestUrl,
-                RequestBody = response.RequestBody,
-                ResponseBody = response.ResponseBody,
-                ErrorMessage = response.ErrorMessage,
-                RequestTime = response.RequestTime,
-                ResponseTime = response.ResponseTime,
-                DurationMs = response.DurationMs,
-                ResponseStatusCode = response.ResponseStatusCode,
-                FormattedCurl = response.FormattedCurl
-            };
-
-            // Log the test request
-            await LogApiTestRequestAsync("WdtWms", request, testResponse);
-
-            _logger.LogInformation(
-                "旺店通WMS API测试完成，条码: {Barcode}, 结果: {Success}",
-                request.Barcode, response.Success);
-
-            return Ok(ApiResponse<ApiClientTestResponse>.SuccessResult(testResponse));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "测试旺店通WMS API时发生错误");
-            return StatusCode(500, ApiResponse<ApiClientTestResponse>.FailureResult(
-                $"测试失败: {ex.Message}", "TEST_FAILED"));
-        }
+        return await TestApiClientAsync(
+            _wdtWmsApiClient,
+            "WdtWms",
+            "旺店通WMS",
+            request,
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct));
     }
 
     /// <summary>
@@ -236,12 +130,32 @@ public class ApiClientTestController : ControllerBase
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestWdtErpFlagshipApi(
         [FromBody] ApiClientTestRequest request)
     {
+        return await TestApiClientAsync(
+            _wdtErpFlagshipApiClient,
+            "WdtErpFlagship",
+            "旺店通ERP旗舰版",
+            request,
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct));
+    }
+
+    /// <summary>
+    /// 通用API客户端测试逻辑
+    /// Generic API client test logic
+    /// </summary>
+    private async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestApiClientAsync<T>(
+        T? apiClient,
+        string clientName,
+        string displayName,
+        ApiClientTestRequest request,
+        Func<T, string, DwsData, OcrData?, CancellationToken, Task<WcsApiResponse>> callApiFunc)
+        where T : class
+    {
         try
         {
-            if (_wdtErpFlagshipApiClient == null)
+            if (apiClient == null)
             {
                 return NotFound(ApiResponse<ApiClientTestResponse>.FailureResult(
-                    "旺店通ERP旗舰版 ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    $"{displayName} ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
             }
 
             // Create DWS data for testing
@@ -255,11 +169,10 @@ public class ApiClientTestController : ControllerBase
                 Volume = ((request.Length ?? 0) * (request.Width ?? 0) * (request.Height ?? 0)) / 1000000
             };
 
-            _logger.LogInformation("开始测试旺店通ERP旗舰版 API，条码: {Barcode}", request.Barcode);
+            _logger.LogInformation("开始测试{DisplayName} API，条码: {Barcode}", displayName, request.Barcode);
 
             // Call the API
-            var response = await _wdtErpFlagshipApiClient.RequestChuteAsync(
-                request.Barcode, dwsData, null, HttpContext.RequestAborted);
+            var response = await callApiFunc(apiClient, request.Barcode, dwsData, null, HttpContext.RequestAborted);
 
             // Create test response
             var testResponse = new ApiClientTestResponse
@@ -281,17 +194,17 @@ public class ApiClientTestController : ControllerBase
             };
 
             // Log the test request
-            await LogApiTestRequestAsync("WdtErpFlagship", request, testResponse);
+            await LogApiTestRequestAsync(clientName, request, testResponse);
 
             _logger.LogInformation(
-                "旺店通ERP旗舰版 API测试完成，条码: {Barcode}, 结果: {Success}",
-                request.Barcode, response.Success);
+                "{DisplayName} API测试完成，条码: {Barcode}, 结果: {Success}",
+                displayName, request.Barcode, response.Success);
 
             return Ok(ApiResponse<ApiClientTestResponse>.SuccessResult(testResponse));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "测试旺店通ERP旗舰版 API时发生错误");
+            _logger.LogError(ex, "测试{DisplayName} API时发生错误", displayName);
             return StatusCode(500, ApiResponse<ApiClientTestResponse>.FailureResult(
                 $"测试失败: {ex.Message}", "TEST_FAILED"));
         }
