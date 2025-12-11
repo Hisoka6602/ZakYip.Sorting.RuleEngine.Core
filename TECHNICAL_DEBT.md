@@ -424,6 +424,12 @@ Record of technical debt resolution:
 | | | - 完善 PR 模板技术债务清单 / Enhanced PR template checklist | | |
 | | | - 创建自动化报告生成器 / Created automated report generator | | |
 | | | - 完善防线文档和指南 / Enhanced defense documentation and guides | | |
+| **2025-12-11** | **TD-DUP-020** | **重构 WcsApiClient 响应构建逻辑 / Refactored WcsApiClient response building logic** | **GitHub Copilot** | **Current PR** |
+| | | - 提取3个辅助方法消除95行重复代码 / Extracted 3 helper methods to eliminate 95 lines duplication | | |
+| | | - CreateSuccessResponse, CreateErrorResponse, CreateExceptionResponse | | |
+| **2025-12-11** | **TD-DUP-021** | **重构 DataAnalysisService GanttChart构建逻辑 / Refactored DataAnalysisService GanttChart building logic** | **GitHub Copilot** | **Current PR** |
+| | | - 创建文件作用域 GanttChartDataItemBuilder 辅助类 / Created file-scoped GanttChartDataItemBuilder helper class | | |
+| | | - 消除 QueryFromMySqlAsync 和 QueryFromSqliteAsync 中的47行重复 / Eliminated 47 lines duplication | | |
 
 ---
 
@@ -561,7 +567,8 @@ For questions about technical debt, please contact the project lead.
 
 *最后更新 / Last Updated: 2025-12-11*
 *更新者 / Updated By: GitHub Copilot Agent*
-*当前代码重复率 / Current Duplication Rate: 3.17% (61 clones) - 远超目标！/ Far exceeds target!*
+*当前代码重复率 / Current Duplication Rate: 2.90% (55 clones) - 远超目标！从 6.02% 降至 2.90%！/ Far exceeds target! Reduced from 6.02% to 2.90%!*
 *当前影分身数量 / Current Shadow Clones: 0 (15个常量误报) - 真实影分身已全部消除！/ 0 (15 constant false positives) - All real shadow clones eliminated!*
-*编译警告 / Compiler Warnings: 3051 个待修复，分4个PR完成 / 3051 remaining, split into 4 PRs*
+*编译警告 / Compiler Warnings: 3047 个待修复，分4个PR完成 / 3047 remaining, split into 4 PRs*
 *🛡️ 技术债务防线 / Technical Debt Defense: ✅ 四层防线已建立 / 4-layer defense system established*
+*🔧 代码重构 / Code Refactoring: ✅ 已完成 WcsApiClient 和 DataAnalysisService 重构 / Completed WcsApiClient and DataAnalysisService refactoring*
