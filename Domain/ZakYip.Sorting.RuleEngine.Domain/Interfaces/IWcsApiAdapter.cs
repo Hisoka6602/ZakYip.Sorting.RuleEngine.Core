@@ -47,6 +47,6 @@ public interface IWcsApiAdapter
     Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
-        string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
+        string contentType = ImageFileDefaults.DefaultContentType,
         CancellationToken cancellationToken = default);
 }

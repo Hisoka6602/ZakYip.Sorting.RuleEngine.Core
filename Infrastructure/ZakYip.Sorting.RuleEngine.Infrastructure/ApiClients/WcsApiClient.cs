@@ -43,7 +43,7 @@ public class WcsApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = DateTime.Now;
-        var requestUrl = ApiConstants.WcsEndpoints.ParcelScan;
+        var requestUrl = WcsEndpoints.ParcelScan;
         
         // 构造请求数据
         var requestData = new
@@ -63,7 +63,7 @@ public class WcsApiClient : IWcsApiAdapter
         {
             _logger.LogDebug("开始扫描包裹，条码: {Barcode}", barcode);
 
-            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
+            var content = new StringContent(json, Encoding.UTF8, ContentTypes.ApplicationJson);
 
             // 生成请求信息
             using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
@@ -141,7 +141,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
+                Code = HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
@@ -171,7 +171,7 @@ public class WcsApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = DateTime.Now;
-        var requestUrl = ApiConstants.WcsEndpoints.ChuteRequest;
+        var requestUrl = WcsEndpoints.ChuteRequest;
         
         // 构造请求数据 - 包含DWS数据
         var requestData = new
@@ -207,7 +207,7 @@ public class WcsApiClient : IWcsApiAdapter
         {
             _logger.LogDebug("开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
-            var content = new StringContent(json, Encoding.UTF8, ApiConstants.ContentTypes.ApplicationJson);
+            var content = new StringContent(json, Encoding.UTF8, ContentTypes.ApplicationJson);
 
             // 生成请求信息
             using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
@@ -287,7 +287,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
+                Code = HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
@@ -313,12 +313,12 @@ public class WcsApiClient : IWcsApiAdapter
     public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
-        string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
+        string contentType = ImageFileDefaults.DefaultContentType,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = DateTime.Now;
-        var requestUrl = ApiConstants.WcsEndpoints.ImageUpload;
+        var requestUrl = WcsEndpoints.ImageUpload;
         
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -340,11 +340,11 @@ public class WcsApiClient : IWcsApiAdapter
             // 根据内容类型确定文件扩展名
             var extension = contentType switch
             {
-                ApiConstants.ContentTypes.ImageJpeg => ".jpg",
-                ApiConstants.ContentTypes.ImagePng => ".png",
-                ApiConstants.ContentTypes.ImageGif => ".gif",
-                ApiConstants.ContentTypes.ImageBmp => ".bmp",
-                ApiConstants.ContentTypes.ImageWebp => ".webp",
+                ContentTypes.ImageJpeg => ".jpg",
+                ContentTypes.ImagePng => ".png",
+                ContentTypes.ImageGif => ".gif",
+                ContentTypes.ImageBmp => ".bmp",
+                ContentTypes.ImageWebp => ".webp",
                 _ => ".bin"
             };
             
@@ -440,7 +440,7 @@ public class WcsApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
+                Code = HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,

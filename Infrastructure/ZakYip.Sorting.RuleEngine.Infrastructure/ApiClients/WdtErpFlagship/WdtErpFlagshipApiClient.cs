@@ -198,7 +198,7 @@ public class WdtErpFlagshipApiClient : BaseErpApiClient
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
+                    Code = HttpStatusCodes.Success,
                     Message = "上传称重数据成功",
                     Data = responseContent,
                     ResponseBody = responseContent,

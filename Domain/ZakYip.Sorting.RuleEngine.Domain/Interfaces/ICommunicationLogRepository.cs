@@ -29,5 +29,5 @@ public interface ICommunicationLogRepository
         DateTime? endTime = null,
         CommunicationType? type = null,
         string? parcelId = null,
-        int maxRecords = ConfigurationDefaults.Pagination.MaxRecords);
+        int maxRecords = PaginationDefaults.MaxRecords);
 }
