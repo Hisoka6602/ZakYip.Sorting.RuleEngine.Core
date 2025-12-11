@@ -148,7 +148,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestHeaders = requestHeaders,
             RequestTime = requestTime,
             ResponseTime = DateTime.Now,
-            ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
+            ResponseStatusCode = response != null ? (int)response.StatusCode : null,
             ResponseHeaders = responseHeaders,
             DurationMs = elapsedMilliseconds,
             FormattedCurl = formattedCurl
@@ -182,7 +182,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestHeaders = requestHeaders,
             RequestTime = requestTime,
             ResponseTime = DateTime.Now,
-            ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
+            ResponseStatusCode = response != null ? (int)response.StatusCode : null,
             ResponseHeaders = responseHeaders,
             DurationMs = elapsedMilliseconds,
             FormattedCurl = formattedCurl
@@ -216,7 +216,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestHeaders = requestHeaders,
             RequestTime = requestTime,
             ResponseTime = DateTime.Now,
-            ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
+            ResponseStatusCode = response != null ? (int)response.StatusCode : null,
             ResponseHeaders = responseHeaders,
             DurationMs = elapsedMilliseconds,
             FormattedCurl = formattedCurl
