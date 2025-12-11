@@ -11,6 +11,8 @@ namespace ShadowCloneDetector;
 /// </summary>
 file class Program
 {
+    private const int MaxDisplayedDuplicates = 5; // 最多显示的重复项数量 / Maximum duplicates to display
+    
     static async Task<int> Main(string[] args)
     {
         Console.WriteLine("🔍 影分身检测工具 / Shadow Clone Detector");
@@ -28,12 +30,10 @@ file class Program
         double similarityThreshold = 0.80; // 默认相似度阈值 80%
 
         var thresholdIndex = Array.IndexOf(args, "--threshold");
-        if (thresholdIndex >= 0 && thresholdIndex + 1 < args.Length)
+        if (thresholdIndex >= 0 && thresholdIndex + 1 < args.Length &&
+            double.TryParse(args[thresholdIndex + 1], out double threshold))
         {
-            if (double.TryParse(args[thresholdIndex + 1], out double threshold))
-            {
-                similarityThreshold = threshold;
-            }
+            similarityThreshold = threshold;
         }
 
         if (!Directory.Exists(directoryPath))
@@ -98,7 +98,7 @@ file class Program
         Console.WriteLine($"\n📦 {category}");
         Console.WriteLine($"   发现 / Found: {duplicates.Count} 组重复");
 
-        foreach (var dup in duplicates.Take(5)) // 最多显示5个
+        foreach (var dup in duplicates.Take(MaxDisplayedDuplicates))
         {
             Console.WriteLine($"   ⚠️  相似度 {dup.Similarity:P0}: {dup.Name}");
             Console.WriteLine($"      📄 {dup.Location1}");
@@ -109,9 +109,9 @@ file class Program
             }
         }
 
-        if (duplicates.Count > 5)
+        if (duplicates.Count > MaxDisplayedDuplicates)
         {
-            Console.WriteLine($"   ... 还有 {duplicates.Count - 5} 组重复");
+            Console.WriteLine($"   ... 还有 {duplicates.Count - MaxDisplayedDuplicates} 组重复");
         }
     }
 }

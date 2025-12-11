@@ -162,12 +162,10 @@ jobs:
           
           cd Tools/ShadowCloneDetector
           set +e
-          dotnet run --configuration Release --no-build -- ../.. --threshold 0.80 --json > shadow-clone-report.json
-          SHADOW_EXIT_CODE=$?
+          # Run once with tee to capture both JSON output and display to console
+          dotnet run --configuration Release --no-build -- ../.. --threshold 0.80 --json 2>&1 | tee shadow-clone-report.json
+          SHADOW_EXIT_CODE=${PIPESTATUS[0]}
           set -e
-          
-          # Display console output for visibility
-          dotnet run --configuration Release --no-build -- ../.. --threshold 0.80
           
           echo "shadow_exit_code=${SHADOW_EXIT_CODE}" >> $GITHUB_OUTPUT
           

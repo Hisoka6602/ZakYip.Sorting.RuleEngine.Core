@@ -227,7 +227,7 @@ public abstract class OperationResponseBase
     /// 是否成功 / Success flag
     /// 示例: true
     /// </summary>
-    public bool Success { get; set; }
+    public required bool Success { get; init; }
     
     /// <summary>
     /// 包裹ID / Parcel ID

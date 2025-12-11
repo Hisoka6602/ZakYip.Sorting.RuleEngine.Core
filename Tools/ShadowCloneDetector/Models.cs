@@ -5,20 +5,20 @@ namespace ShadowCloneDetector;
 /// </summary>
 public class DetectionReport
 {
-    public int FilesScanned { get; set; }
-    public double SimilarityThreshold { get; set; }
+    public required int FilesScanned { get; init; }
+    public required double SimilarityThreshold { get; init; }
     public int TotalDuplicates => EnumDuplicates.Count + InterfaceDuplicates.Count + 
                                    DtoDuplicates.Count + OptionsDuplicates.Count + 
                                    ExtensionMethodDuplicates.Count + StaticClassDuplicates.Count + 
                                    ConstantDuplicates.Count;
     
-    public List<DuplicateInfo> EnumDuplicates { get; set; } = new();
-    public List<DuplicateInfo> InterfaceDuplicates { get; set; } = new();
-    public List<DuplicateInfo> DtoDuplicates { get; set; } = new();
-    public List<DuplicateInfo> OptionsDuplicates { get; set; } = new();
-    public List<DuplicateInfo> ExtensionMethodDuplicates { get; set; } = new();
-    public List<DuplicateInfo> StaticClassDuplicates { get; set; } = new();
-    public List<DuplicateInfo> ConstantDuplicates { get; set; } = new();
+    public required List<DuplicateInfo> EnumDuplicates { get; init; }
+    public required List<DuplicateInfo> InterfaceDuplicates { get; init; }
+    public required List<DuplicateInfo> DtoDuplicates { get; init; }
+    public required List<DuplicateInfo> OptionsDuplicates { get; init; }
+    public required List<DuplicateInfo> ExtensionMethodDuplicates { get; init; }
+    public required List<DuplicateInfo> StaticClassDuplicates { get; init; }
+    public required List<DuplicateInfo> ConstantDuplicates { get; init; }
 }
 
 /// <summary>

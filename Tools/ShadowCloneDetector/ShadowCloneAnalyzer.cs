@@ -41,17 +41,15 @@ internal class ShadowCloneAnalyzer
         var report = new DetectionReport
         {
             FilesScanned = csFiles.Count,
-            SimilarityThreshold = _similarityThreshold
+            SimilarityThreshold = _similarityThreshold,
+            EnumDuplicates = DetectEnumDuplicates(),
+            InterfaceDuplicates = DetectInterfaceDuplicates(),
+            DtoDuplicates = DetectDtoDuplicates(),
+            OptionsDuplicates = DetectOptionsDuplicates(),
+            ExtensionMethodDuplicates = DetectExtensionMethodDuplicates(),
+            StaticClassDuplicates = DetectStaticClassDuplicates(),
+            ConstantDuplicates = DetectConstantDuplicates()
         };
-
-        // 检测各类重复 / Detect various duplicates
-        report.EnumDuplicates = DetectEnumDuplicates();
-        report.InterfaceDuplicates = DetectInterfaceDuplicates();
-        report.DtoDuplicates = DetectDtoDuplicates();
-        report.OptionsDuplicates = DetectOptionsDuplicates();
-        report.ExtensionMethodDuplicates = DetectExtensionMethodDuplicates();
-        report.StaticClassDuplicates = DetectStaticClassDuplicates();
-        report.ConstantDuplicates = DetectConstantDuplicates();
 
         return report;
     }
@@ -173,60 +171,53 @@ internal class ShadowCloneAnalyzer
 
     private void ExtractExtensionMethods(SyntaxNode root, string filePath)
     {
-        var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        var staticClasses = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(classDecl => classDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)));
         
-        foreach (var classDecl in classDeclarations)
+        foreach (var classDecl in staticClasses)
         {
-            if (classDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
+            var extensionMethods = classDecl.Members
+                .OfType<MethodDeclarationSyntax>()
+                .Where(m => m.ParameterList.Parameters.Any(p => 
+                    p.Modifiers.Any(mod => mod.IsKind(SyntaxKind.ThisKeyword))));
+            
+            foreach (var method in extensionMethods)
             {
-                var methods = classDecl.Members
-                    .OfType<MethodDeclarationSyntax>()
-                    .Where(m => m.ParameterList.Parameters.Any(p => 
-                        p.Modifiers.Any(mod => mod.IsKind(SyntaxKind.ThisKeyword))));
-                
-                foreach (var method in methods)
+                _extensionMethods.Add(new ExtensionMethodInfo
                 {
-                    _extensionMethods.Add(new ExtensionMethodInfo
-                    {
-                        Name = method.Identifier.Text,
-                        FilePath = filePath,
-                        Signature = GetMethodSignature(method),
-                        ClassName = classDecl.Identifier.Text
-                    });
-                }
+                    Name = method.Identifier.Text,
+                    FilePath = filePath,
+                    Signature = GetMethodSignature(method),
+                    ClassName = classDecl.Identifier.Text
+                });
             }
         }
     }
 
     private void ExtractStaticClasses(SyntaxNode root, string filePath)
     {
-        var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        var staticClasses = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(classDecl => classDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)) &&
+                               !classDecl.Identifier.Text.EndsWith("Extensions", StringComparison.OrdinalIgnoreCase));
         
-        foreach (var classDecl in classDeclarations)
+        foreach (var classDecl in staticClasses)
         {
-            if (classDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
+            var methods = classDecl.Members
+                .OfType<MethodDeclarationSyntax>()
+                .Select(m => GetMethodSignature(m))
+                .ToList();
+            
+            var namespaceName = GetNamespace(classDecl);
+            
+            _staticClasses.Add(new StaticClassInfo
             {
-                var className = classDecl.Identifier.Text;
-                
-                // 排除扩展方法类 / Exclude extension method classes
-                if (className.EndsWith("Extensions", StringComparison.OrdinalIgnoreCase))
-                    continue;
-                
-                var methods = classDecl.Members
-                    .OfType<MethodDeclarationSyntax>()
-                    .Select(m => GetMethodSignature(m))
-                    .ToList();
-                
-                var namespaceName = GetNamespace(classDecl);
-                
-                _staticClasses.Add(new StaticClassInfo
-                {
-                    Name = className,
-                    FilePath = filePath,
-                    MethodSignatures = methods,
-                    Namespace = namespaceName
-                });
-            }
+                Name = classDecl.Identifier.Text,
+                FilePath = filePath,
+                MethodSignatures = methods,
+                Namespace = namespaceName
+            });
         }
     }
 
@@ -479,37 +470,39 @@ internal class ShadowCloneAnalyzer
     }
 
     // 相似度计算方法 / Similarity calculation methods
-    private double CalculateEnumSimilarity(EnumInfo enum1, EnumInfo enum2)
+    
+    /// <summary>
+    /// 计算两个集合的 Jaccard 相似度 / Calculate Jaccard similarity between two sets
+    /// </summary>
+    private static double CalculateJaccardSimilarity<T>(IEnumerable<T> set1, IEnumerable<T> set2)
     {
-        if (enum1.Members.Count == 0 && enum2.Members.Count == 0) return 0;
+        var list1 = set1.ToList();
+        var list2 = set2.ToList();
         
-        var intersection = enum1.Members.Intersect(enum2.Members).Count();
-        var union = enum1.Members.Union(enum2.Members).Count();
+        if (list1.Count == 0 && list2.Count == 0) return 0;
+        
+        var intersection = list1.Intersect(list2).Count();
+        var union = list1.Union(list2).Count();
         
         return (double)intersection / union;
+    }
+    
+    private double CalculateEnumSimilarity(EnumInfo enum1, EnumInfo enum2)
+    {
+        return CalculateJaccardSimilarity(enum1.Members, enum2.Members);
     }
 
     private double CalculateInterfaceSimilarity(InterfaceInfo interface1, InterfaceInfo interface2)
     {
-        if (interface1.MethodSignatures.Count == 0 && interface2.MethodSignatures.Count == 0) return 0;
-        
-        var intersection = interface1.MethodSignatures.Intersect(interface2.MethodSignatures).Count();
-        var union = interface1.MethodSignatures.Union(interface2.MethodSignatures).Count();
-        
-        return (double)intersection / union;
+        return CalculateJaccardSimilarity(interface1.MethodSignatures, interface2.MethodSignatures);
     }
 
     private double CalculateDtoSimilarity(DtoInfo dto1, DtoInfo dto2)
     {
-        if (dto1.Properties.Count == 0 && dto2.Properties.Count == 0) return 0;
+        var props1 = dto1.Properties.Select(p => $"{p.Type}:{p.Name}");
+        var props2 = dto2.Properties.Select(p => $"{p.Type}:{p.Name}");
         
-        var props1 = dto1.Properties.Select(p => $"{p.Type}:{p.Name}").ToList();
-        var props2 = dto2.Properties.Select(p => $"{p.Type}:{p.Name}").ToList();
-        
-        var intersection = props1.Intersect(props2).Count();
-        var union = props1.Union(props2).Count();
-        
-        return (double)intersection / union;
+        return CalculateJaccardSimilarity(props1, props2);
     }
 
     private double CalculateOptionsSimilarity(OptionsInfo options1, OptionsInfo options2)
@@ -533,12 +526,7 @@ internal class ShadowCloneAnalyzer
 
     private double CalculateStaticClassSimilarity(StaticClassInfo class1, StaticClassInfo class2)
     {
-        if (class1.MethodSignatures.Count == 0 && class2.MethodSignatures.Count == 0) return 0;
-        
-        var intersection = class1.MethodSignatures.Intersect(class2.MethodSignatures).Count();
-        var union = class1.MethodSignatures.Union(class2.MethodSignatures).Count();
-        
-        return (double)intersection / union;
+        return CalculateJaccardSimilarity(class1.MethodSignatures, class2.MethodSignatures);
     }
 
     private string GetRelativePath(string fullPath)

@@ -10,6 +10,9 @@ DETECTOR_PATH="$SCRIPT_DIR/Tools/ShadowCloneDetector"
 TARGET_DIR="${1:-.}"
 THRESHOLD="${2:-0.80}"
 
+# Convert TARGET_DIR to absolute path to avoid issues when changing directory
+TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
+
 echo "🔧 构建影分身检测工具 / Building shadow clone detector..."
 cd "$DETECTOR_PATH"
 dotnet build --configuration Release --nologo --verbosity quiet
