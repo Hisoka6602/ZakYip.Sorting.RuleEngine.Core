@@ -263,3 +263,5 @@ dotnet_diagnostic.CA1812.severity = none
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA2201.severity = none
 dotnet_diagnostic.CA1034.severity = none
+# CA2007: ConfigureAwait not needed in test code (runs in thread pool)
+dotnet_diagnostic.CA2007.severity = none
