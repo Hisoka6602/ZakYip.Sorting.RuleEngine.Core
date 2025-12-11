@@ -2,87 +2,39 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>
 /// WCS API响应实体
+/// WCS API response entity
 /// 字段与ApiCommunicationLog一致，以便持久化
+/// Fields are consistent with ApiCommunicationLog for persistence
 /// </summary>
-public class WcsApiResponse
+public class WcsApiResponse : BaseApiCommunication
 {
     /// <summary>
     /// 响应是否成功
+    /// Is response successful
     /// </summary>
     public bool Success { get; set; }
 
     /// <summary>
     /// 响应代码
+    /// Response code
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
     /// 响应消息
+    /// Response message
     /// </summary>
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
     /// 响应数据（JSON格式）
+    /// Response data (JSON format)
     /// </summary>
     public string? Data { get; set; }
 
     /// <summary>
-    /// 包裹ID
-    /// </summary>
-    public string ParcelId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 请求地址
-    /// </summary>
-    public string RequestUrl { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 请求内容
-    /// </summary>
-    public string? RequestBody { get; set; }
-
-    /// <summary>
-    /// 请求头
-    /// </summary>
-    public string? RequestHeaders { get; set; }
-
-    /// <summary>
-    /// 请求时间
-    /// </summary>
-    public DateTime RequestTime { get; set; } = DateTime.Now;
-
-    /// <summary>
-    /// 耗时（毫秒）
-    /// </summary>
-    public long DurationMs { get; set; }
-
-    /// <summary>
-    /// 响应时间
-    /// </summary>
-    public DateTime? ResponseTime { get; set; }
-
-    /// <summary>
-    /// 响应内容（同Data，保持兼容）
-    /// </summary>
-    public string? ResponseBody { get; set; }
-
-    /// <summary>
-    /// 响应状态码
-    /// </summary>
-    public int? ResponseStatusCode { get; set; }
-
-    /// <summary>
-    /// 响应头
-    /// </summary>
-    public string? ResponseHeaders { get; set; }
-
-    /// <summary>
-    /// 格式化的Curl内容
-    /// </summary>
-    public string? FormattedCurl { get; set; }
-
-    /// <summary>
     /// 错误信息
+    /// Error message
     /// </summary>
     public string? ErrorMessage { get; set; }
 
