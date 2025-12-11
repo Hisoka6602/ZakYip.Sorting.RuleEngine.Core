@@ -33,12 +33,43 @@ This document records identified technical debt in the project. Before opening a
 |--------------|-----------|-------------------|-------------|
 | 重复代码 Duplicate Code | 62 处 | 🟢 低 Low | ✅ 已超越目标 |
 | 代码重复率 Duplication Rate | 3.28% | 🟢 低 Low (✅ 低于 CI 阈值 5%，远超 SonarQube 目标 3%) | 已超越目标 |
+| 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率已远超 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate far exceeds SonarQube target!
 
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → **3.28% (62 clones)**，消除 655 行重复代码。
 > Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → **3.28% (62 clones)**, eliminated 655 duplicate lines.
+
+---
+
+## 🔄 影分身代码清理记录 / Shadow Clone Code Cleanup Log
+
+### ✅ 已消除的影分身 / Eliminated Shadow Clones (2025-12-11)
+
+| 日期 Date | 类型 Type | 描述 Description | 解决方案 Solution |
+|-----------|----------|------------------|-------------------|
+| 2025-12-11 | DTO | ParcelCreationResponse ↔ DwsDataResponse (100%相似) | 抽取 OperationResponseBase 基类 / Extracted OperationResponseBase base class |
+| 2025-12-11 | Options | CircuitBreakerSettings (Service ↔ Infrastructure, 100%相似) | 统一使用 Infrastructure.DatabaseCircuitBreakerSettings / Unified to Infrastructure.DatabaseCircuitBreakerSettings |
+| 2025-12-11 | Options | LogFileCleanupSettings (Service ↔ Infrastructure, 100%相似) | 统一使用 Infrastructure.LogFileCleanupSettings / Unified to Infrastructure.LogFileCleanupSettings |
+
+**总计消除 / Total Eliminated**: 3 组影分身 / 3 shadow clone groups
+**净减少代码行数 / Net Lines Reduced**: ~100 行 / ~100 lines
+
+### 🔍 分析的误报 / Analyzed False Positives (2025-12-11)
+
+检测到 7 组常量"影分身"，但经分析判定为**误报**：
+Detected 7 constant "shadow clones", but determined to be **false positives**:
+
+- `BatchSize(1000)` vs `MaxRecords(1000)` - 不同用途：批处理大小 vs 最大记录数
+- `BatchSize(1000)` vs `SlowQueryThresholdMs(1000)` - 不同单位：记录数 vs 毫秒
+- `StopwatchPoolSize(100)` vs `RetryInitialDelayMs(100)` - 不同语义：池大小 vs 延迟毫秒
+- `StopwatchPoolSize(100)` vs `MaxQuerySurroundingRecords(100)` - 不同语义：池大小 vs 查询记录数
+- `StopwatchPoolSize(100)` vs `MaxPercentage(100)` - 不同语义：池大小 vs 百分比
+- 其他 2 组类似情况
+
+**结论 / Conclusion**: 这些常量虽然数值相同，但语义完全不同，应保持独立。
+These constants have the same numeric values but completely different semantics and should remain independent.
 
 ---
 
@@ -302,3 +333,4 @@ For questions about technical debt, please contact the project lead.
 *最后更新 / Last Updated: 2025-12-11*
 *更新者 / Updated By: GitHub Copilot Agent*
 *当前代码重复率 / Current Duplication Rate: 3.28% (62 clones) - 远超目标！/ Far exceeds target!*
+*当前影分身数量 / Current Shadow Clones: 0 - 全部消除！/ All eliminated!*
