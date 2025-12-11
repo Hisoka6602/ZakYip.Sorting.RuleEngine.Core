@@ -370,4 +370,4 @@ FodyWeavers.xsd
 
 # jscpd duplicate code detection report
 jscpd-report/
-*.jscpd-report.json
+*.jscpd-report.json*.bak

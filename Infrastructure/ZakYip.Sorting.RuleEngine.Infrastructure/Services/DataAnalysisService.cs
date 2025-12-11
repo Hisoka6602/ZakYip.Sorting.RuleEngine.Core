@@ -642,48 +642,13 @@ public class DataAnalysisService : IDataAnalysisService
             .ToListAsync(cancellationToken);
         var chuteDict = chutes.ToDictionary(c => c.ChuteId, c => c);
 
-        // 步骤6：构建甘特图数据项
-        var result = new List<GanttChartDataItem>();
-        int sequenceNumber = 0;
-        foreach (var log in allLogs)
-        {
-            // 使用内存查找而不是逐项查询
-            dwsLogDict.TryGetValue(log.ParcelId, out var dwsLog);
-            apiLogDict.TryGetValue(log.ParcelId, out var apiLog);
-
-            string? chuteCode = null;
-            string? chuteName = null;
-            if (log.ChuteId.HasValue && chuteDict.TryGetValue(log.ChuteId.Value, out var chute))
-            {
-                chuteCode = chute.ChuteCode;
-                chuteName = chute.ChuteName;
-            }
-
-            var item = new GanttChartDataItem
-            {
-                ParcelId = log.ParcelId,
-                Barcode = dwsLog?.Barcode,
-                MatchedRuleId = log.MatchedRuleId,
-                ChuteId = log.ChuteId,
-                ChuteCode = chuteCode,
-                ChuteName = chuteName,
-                MatchingTime = log.MatchingTime,
-                IsSuccess = log.IsSuccess,
-                ErrorMessage = log.ErrorMessage,
-                DwsCommunicationTime = dwsLog?.CommunicationTime,
-                ApiRequestTime = apiLog?.RequestTime,
-                ApiDurationMs = apiLog?.DurationMs,
-                Weight = dwsLog?.Weight,
-                Volume = dwsLog?.Volume,
-                CartOccupancy = log.CartOccupancy,
-                SequenceNumber = sequenceNumber++,
-                IsTarget = log.ParcelId == target
-            };
-
-            result.Add(item);
-        }
-
-        return result;
+        // 步骤6：构建甘特图数据项（使用辅助类）
+        return GanttChartDataItemBuilder.BuildDataItems(
+            allLogs,
+            dwsLogDict,
+            apiLogDict,
+            chuteDict,
+            target);
     }
 
     /// <summary>
@@ -757,65 +722,14 @@ public class DataAnalysisService : IDataAnalysisService
         var chuteDict = chutes
             .ToDictionary(c => c.ChuteId, c => c);
 
-        // 构建甘特图数据项
-        var result = new List<GanttChartDataItem>();
-        int sequenceNumber = 0;
-        foreach (var log in allLogs)
-        {
-            // 查找DWS日志：按条码匹配包裹ID或包裹ID包含条码
-            DwsCommunicationLog? dwsLog = null;
-            if (dwsLogDict.TryGetValue(log.ParcelId, out var directDwsLog))
-            {
-                dwsLog = directDwsLog;
-            }
-            else
-            {
-                // 尝试查找条码不为空且包裹ID包含该条码的DWS日志
-                dwsLog = dwsLogs
-                    .Where(d => d.Barcode != null && log.ParcelId.Contains(d.Barcode))
-                    .OrderByDescending(d => d.CommunicationTime)
-                    .FirstOrDefault();
-            }
-
-            ApiCommunicationLog? apiLog = null;
-            if (apiLogDict.TryGetValue(log.ParcelId, out var foundApiLog))
-            {
-                apiLog = foundApiLog;
-            }
-
-            string? chuteCode = null;
-            string? chuteName = null;
-            if (log.ChuteId.HasValue && chuteDict.TryGetValue(log.ChuteId.Value, out var chute))
-            {
-                chuteCode = chute.ChuteCode;
-                chuteName = chute.ChuteName;
-            }
-
-            var item = new GanttChartDataItem
-            {
-                ParcelId = log.ParcelId,
-                Barcode = dwsLog?.Barcode,
-                MatchedRuleId = log.MatchedRuleId,
-                ChuteId = log.ChuteId,
-                ChuteCode = chuteCode,
-                ChuteName = chuteName,
-                MatchingTime = log.MatchingTime,
-                IsSuccess = log.IsSuccess,
-                ErrorMessage = log.ErrorMessage,
-                DwsCommunicationTime = dwsLog?.CommunicationTime,
-                ApiRequestTime = apiLog?.RequestTime,
-                ApiDurationMs = apiLog?.DurationMs,
-                Weight = dwsLog?.Weight,
-                Volume = dwsLog?.Volume,
-                CartOccupancy = log.CartOccupancy,
-                SequenceNumber = sequenceNumber++,
-                IsTarget = log.ParcelId == target
-            };
-
-            result.Add(item);
-        }
-
-        return result;
+        // 构建甘特图数据项（使用辅助类，支持DWS日志降级查找）
+        return GanttChartDataItemBuilder.BuildDataItemsWithFallback(
+            allLogs,
+            dwsLogs,
+            dwsLogDict,
+            apiLogDict,
+            chuteDict,
+            target);
     }
 
     private async Task<ChuteUtilizationStatisticsDto?> CalculateChuteStatisticsAsync(
@@ -941,4 +855,130 @@ public class DataAnalysisService : IDataAnalysisService
     }
 
     #endregion
+}
+
+/// <summary>
+/// 甘特图数据项构建辅助类 / Gantt Chart Data Item Builder Helper
+/// </summary>
+file static class GanttChartDataItemBuilder
+{
+    /// <summary>
+    /// 从匹配日志构建甘特图数据项列表
+    /// Build Gantt chart data items from matching logs
+    /// </summary>
+    public static List<GanttChartDataItem> BuildDataItems(
+        List<MatchingLog> allLogs,
+        Dictionary<string, DwsCommunicationLog> dwsLogDict,
+        Dictionary<string, ApiCommunicationLog> apiLogDict,
+        Dictionary<long, Domain.Entities.Chute> chuteDict,
+        string target)
+    {
+        var result = new List<GanttChartDataItem>(allLogs.Count);
+        int sequenceNumber = 0;
+        
+        foreach (var log in allLogs)
+        {
+            // 查找 DWS 和 API 日志
+            dwsLogDict.TryGetValue(log.ParcelId, out var dwsLog);
+            apiLogDict.TryGetValue(log.ParcelId, out var apiLog);
+
+            // 查找格口信息
+            string? chuteCode = null;
+            string? chuteName = null;
+            if (log.ChuteId.HasValue && chuteDict.TryGetValue(log.ChuteId.Value, out var chute))
+            {
+                chuteCode = chute.ChuteCode;
+                chuteName = chute.ChuteName;
+            }
+
+            var item = new GanttChartDataItem
+            {
+                ParcelId = log.ParcelId,
+                Barcode = dwsLog?.Barcode,
+                MatchedRuleId = log.MatchedRuleId,
+                ChuteId = log.ChuteId,
+                ChuteCode = chuteCode,
+                ChuteName = chuteName,
+                MatchingTime = log.MatchingTime,
+                IsSuccess = log.IsSuccess,
+                ErrorMessage = log.ErrorMessage,
+                DwsCommunicationTime = dwsLog?.CommunicationTime,
+                ApiRequestTime = apiLog?.RequestTime,
+                ApiDurationMs = apiLog?.DurationMs,
+                Weight = dwsLog?.Weight,
+                Volume = dwsLog?.Volume,
+                CartOccupancy = log.CartOccupancy,
+                SequenceNumber = sequenceNumber++,
+                IsTarget = log.ParcelId == target
+            };
+
+            result.Add(item);
+        }
+
+        return result;
+    }
+    
+    /// <summary>
+    /// 从匹配日志构建甘特图数据项列表（SQLite版本，支持更复杂的DWS日志查找）
+    /// Build Gantt chart data items from matching logs (SQLite version with complex DWS log lookup)
+    /// </summary>
+    public static List<GanttChartDataItem> BuildDataItemsWithFallback(
+        List<MatchingLog> allLogs,
+        List<DwsCommunicationLog> dwsLogs,
+        Dictionary<string, DwsCommunicationLog> dwsLogDict,
+        Dictionary<string, ApiCommunicationLog> apiLogDict,
+        Dictionary<long, Domain.Entities.Chute> chuteDict,
+        string target)
+    {
+        var result = new List<GanttChartDataItem>(allLogs.Count);
+        int sequenceNumber = 0;
+        
+        foreach (var log in allLogs)
+        {
+            // 查找DWS日志：优先精确匹配，然后尝试模糊匹配
+            // Find DWS log: prefer exact match, then try fuzzy match
+            dwsLogDict.TryGetValue(log.ParcelId, out var directDwsLog);
+            DwsCommunicationLog? dwsLog = directDwsLog
+                ?? dwsLogs
+                    .Where(d => d.Barcode != null && log.ParcelId.Contains(d.Barcode))
+                    .OrderByDescending(d => d.CommunicationTime)
+                    .FirstOrDefault();
+
+            apiLogDict.TryGetValue(log.ParcelId, out var apiLog);
+
+            // 查找格口信息
+            string? chuteCode = null;
+            string? chuteName = null;
+            if (log.ChuteId.HasValue && chuteDict.TryGetValue(log.ChuteId.Value, out var chute))
+            {
+                chuteCode = chute.ChuteCode;
+                chuteName = chute.ChuteName;
+            }
+
+            var item = new GanttChartDataItem
+            {
+                ParcelId = log.ParcelId,
+                Barcode = dwsLog?.Barcode,
+                MatchedRuleId = log.MatchedRuleId,
+                ChuteId = log.ChuteId,
+                ChuteCode = chuteCode,
+                ChuteName = chuteName,
+                MatchingTime = log.MatchingTime,
+                IsSuccess = log.IsSuccess,
+                ErrorMessage = log.ErrorMessage,
+                DwsCommunicationTime = dwsLog?.CommunicationTime,
+                ApiRequestTime = apiLog?.RequestTime,
+                ApiDurationMs = apiLog?.DurationMs,
+                Weight = dwsLog?.Weight,
+                Volume = dwsLog?.Volume,
+                CartOccupancy = log.CartOccupancy,
+                SequenceNumber = sequenceNumber++,
+                IsTarget = log.ParcelId == target
+            };
+
+            result.Add(item);
+        }
+
+        return result;
+    }
 }
