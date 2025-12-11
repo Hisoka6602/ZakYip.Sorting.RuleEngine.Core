@@ -50,7 +50,7 @@ public class SorterConfigController : ControllerBase
     {
         try
         {
-            var config = await _repository.GetByIdAsync(SorterConfig.SINGLETON_ID);
+            var config = await _repository.GetByIdAsync(SorterConfig.SINGLETON_ID).ConfigureAwait(false);
             
             if (config == null)
             {
@@ -93,7 +93,7 @@ public class SorterConfigController : ControllerBase
             var config = request.ToEntity();
             
             // Upsert操作：如果存在则更新，否则插入
-            var success = await _repository.UpsertAsync(config);
+            var success = await _repository.UpsertAsync(config).ConfigureAwait(false);
             
             if (success)
             {
@@ -102,7 +102,7 @@ public class SorterConfigController : ControllerBase
                 // 触发配置热更新
                 try
                 {
-                    await _reloadService.ReloadSorterConfigAsync();
+                    await _reloadService.ReloadSorterConfigAsync().ConfigureAwait(false);
                     _logger.LogInformation("分拣机配置热更新已触发");
                 }
                 catch (Exception reloadEx)
