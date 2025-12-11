@@ -86,7 +86,18 @@ The following are the major duplicate code areas identified in the project (sort
 | TD-DUP-014 | `MonitoringAlertDto.cs` ↔ `MonitoringAlert.cs` | 56 行 | DTO与实体类重复 / Duplicate between DTO and entity |
 | TD-DUP-015 | `LogController.cs` (内部重复) | 55 行 | 日志控制器重复代码 / Duplicate code in log controller |
 
-#### 🟢 低优先级 / Low Priority (<50 lines)
+### 🎯 接口定义重复 / Interface Definition Duplicates
+
+#### ✅ 已解决 / Resolved
+
+| 相似接口 Similar Interfaces | 描述 Description | 解决方案 Solution | 解决日期 Date |
+|---------------------------|------------------|-------------------|--------------|
+| `IWcsAdapterManager` ↔ `ISorterAdapterManager` ↔ `IDwsAdapterManager` | 三个适配器管理器接口有相同的连接管理方法 / Three adapter manager interfaces have identical connection management methods | ✅ 已抽取 `IAdapterManager<TConfig>` 泛型基接口 / Extracted `IAdapterManager<TConfig>` generic base interface | 2025-12-11 |
+| `IDwsConfigRepository` ↔ `IWcsApiConfigRepository` | 两个配置仓储接口有相同的CRUD操作 / Two config repository interfaces have identical CRUD operations | ✅ 已抽取 `IConfigRepository<TConfig>` 泛型基接口 / Extracted `IConfigRepository<TConfig>` generic base interface | 2025-12-11 |
+
+---
+
+### 🟢 低优先级 / Low Priority (<50 lines)
 
 | ID | 文件 Files | 重复行数 Lines | 描述 Description |
 |----|-----------|---------------|------------------|
@@ -196,6 +207,7 @@ Record of technical debt resolution:
 | 2025-12-11 | TD-DUP-013 | 抽取 BaseApiCommunication 基类消除 ApiCommunicationLog 与 WcsApiResponse 重复（57行）/ Extract BaseApiCommunication base class to eliminate ApiCommunicationLog/WcsApiResponse duplication (57 lines) | GitHub Copilot | Current PR |
 | 2025-12-11 | TD-DUP-014 | 抽取 BaseMonitoringAlert 基类消除 MonitoringAlert 与 MonitoringAlertDto 重复（56行）/ Extract BaseMonitoringAlert base class to eliminate MonitoringAlert/MonitoringAlertDto duplication (56 lines) | GitHub Copilot | Current PR |
 | 2025-12-11 | TD-DUP-019 | 抽取 HttpClientConfigurationHelper 文件作用域类消除 Program.cs 内部重复（38行）/ Extract HttpClientConfigurationHelper file-scoped class to eliminate Program.cs internal duplication (38 lines) | GitHub Copilot | Current PR |
+| 2025-12-11 | 接口重复 | 抽取 IAdapterManager<TConfig> 和 IConfigRepository<TConfig> 泛型接口消除功能相似但命名不同的接口定义 / Extract IAdapterManager<TConfig> and IConfigRepository<TConfig> generic interfaces to eliminate functionally similar but differently named interface definitions | GitHub Copilot | Current PR |
 
 ---
 
