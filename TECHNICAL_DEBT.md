@@ -208,6 +208,8 @@ Record of technical debt resolution:
 | 2025-12-11 | TD-DUP-014 | 抽取 BaseMonitoringAlert 基类消除 MonitoringAlert 与 MonitoringAlertDto 重复（56行）/ Extract BaseMonitoringAlert base class to eliminate MonitoringAlert/MonitoringAlertDto duplication (56 lines) | GitHub Copilot | Current PR |
 | 2025-12-11 | TD-DUP-019 | 抽取 HttpClientConfigurationHelper 文件作用域类消除 Program.cs 内部重复（38行）/ Extract HttpClientConfigurationHelper file-scoped class to eliminate Program.cs internal duplication (38 lines) | GitHub Copilot | Current PR |
 | 2025-12-11 | 接口重复 | 抽取 IAdapterManager<TConfig> 和 IConfigRepository<TConfig> 泛型接口消除功能相似但命名不同的接口定义 / Extract IAdapterManager<TConfig> and IConfigRepository<TConfig> generic interfaces to eliminate functionally similar but differently named interface definitions | GitHub Copilot | Current PR |
+| 2025-12-11 | Program.cs 日志配置 | 抽取 DatabaseConfigurationHelper.ConfigureSecureLogging 方法消除数据库日志配置重复 / Extract DatabaseConfigurationHelper.ConfigureSecureLogging to eliminate database logging configuration duplication | GitHub Copilot | Current PR |
+| 2025-12-11 | LiteDb 仓储内部重复 | 抽取 BuildTimeRangeQuery 和 FindAlertsByTimeRange 辅助方法消除 LiteDb 仓储内部查询重复 / Extract BuildTimeRangeQuery and FindAlertsByTimeRange helpers to eliminate LiteDb repository internal query duplication | GitHub Copilot | Current PR |
 
 ---
 
@@ -260,3 +262,4 @@ For questions about technical debt, please contact the project lead.
 
 *最后更新 / Last Updated: 2025-12-11*
 *更新者 / Updated By: GitHub Copilot Agent*
+*当前代码重复率 / Current Duplication Rate: 3.28% (62 clones) - 远超目标！/ Far exceeds target!*
