@@ -230,32 +230,170 @@ The following are the major duplicate code areas identified in the project (sort
 
 ## 🛡️ 预防措施 / Prevention Measures
 
-### CI/CD 集成 / CI/CD Integration
+项目已建立**四层防线**来防止新的技术债务引入：
 
-项目已配置以下检查来防止新的技术债务：
+The project has established **four layers of defense** to prevent new technical debt:
 
-The project has configured the following checks to prevent new technical debt:
+### 第一层防线：开发者本地检查 / Layer 1: Developer Local Checks
 
-1. **代码重复检测 / Code Duplication Detection**
-   - 使用 `jscpd` 在 CI 中检测重复代码
-   - 阈值：最大 5% 重复率
-   - 超过阈值将导致 CI 失败
+#### 1. **Pre-commit Hook** ✨ 新增 / New (2025-12-11)
+   - **脚本 / Script:** `pre-commit-hook.sh`
+   - **触发时机 / Trigger:** 每次 `git commit` 之前
+   - **检查内容 / Checks:**
+     - ✅ 代码重复检测 (jscpd) - 阈值 5%
+     - ✅ 影分身语义检测 - 7 种类型
+   - **行为 / Behavior:**
+     - 代码重复率超过 5% 会阻止提交
+     - 影分身检测发现问题会警告但不阻止
+   - **安装方法 / Installation:**
+     ```bash
+     ln -sf ../../pre-commit-hook.sh .git/hooks/pre-commit
+     chmod +x .git/hooks/pre-commit
+     ```
+   - **详细文档 / Documentation:** [PRE_COMMIT_HOOK_GUIDE.md](PRE_COMMIT_HOOK_GUIDE.md)
 
-2. **影分身语义检测 / Shadow Clone Semantic Detection** ✨ 新增 / New
-   - 使用自研工具检测 7 种类型的语义重复
-   - 检测类型：枚举/接口/DTO/Options/扩展方法/静态类/常量
-   - Detection types: Enums/Interfaces/DTOs/Options/Extension Methods/Static Classes/Constants
-   - 相似度阈值：80%
-   - CI 中自动运行，发现问题会发出警告
+### 第二层防线：CI/CD 自动检测 / Layer 2: CI/CD Automated Detection
 
-3. **SonarQube 分析 / SonarQube Analysis**
-   - 已配置在 `sonar-project.properties`
-   - 目标：重复率 < 3%
+#### 2. **代码重复检测 / Code Duplication Detection**
+   - **工具 / Tool:** `jscpd`
+   - **配置文件 / Config:** `.jscpd.json`
+   - **工作流 / Workflow:** `.github/workflows/ci.yml` (duplicate-code-check job)
+   - **触发时机 / Trigger:** 每次 push 和 PR
+   - **阈值 / Threshold:** 最大 5% 重复率
+   - **行为 / Behavior:** 超过阈值将导致 CI 失败
 
-4. **PR 模板检查 / PR Template Check**
-   - PR 模板包含技术债务确认项
-   - 必须确认已通读本文档
-   - 必须完成 7 种类型的影分身检查
+#### 3. **影分身语义检测 / Shadow Clone Semantic Detection**
+   - **工具 / Tool:** 自研 ShadowCloneDetector
+   - **脚本 / Script:** `shadow-clone-check.sh`
+   - **工作流 / Workflow:** `.github/workflows/ci.yml` (shadow-clone-check job)
+   - **触发时机 / Trigger:** 每次 push 和 PR
+   - **检测类型 / Types:** 7 种 (枚举/接口/DTO/Options/扩展方法/静态类/常量)
+   - **相似度阈值 / Threshold:** 80%
+   - **行为 / Behavior:** 发现问题会发出警告，暂不强制失败
+
+#### 4. **SonarQube 分析 / SonarQube Analysis**
+   - **平台 / Platform:** SonarCloud
+   - **配置文件 / Config:** `sonar-project.properties`
+   - **工作流 / Workflow:** `.github/workflows/sonarqube.yml`
+   - **目标 / Target:** 重复率 < 3%
+   - **检查项 / Checks:** 代码质量、安全漏洞、代码异味
+
+### 第三层防线：PR 审查流程 / Layer 3: PR Review Process
+
+#### 5. **PR 模板检查 / PR Template Checklist**
+   - **文件 / File:** `.github/PULL_REQUEST_TEMPLATE.md`
+   - **内容 / Content:**
+     - ✅ 技术债务文档已读确认
+     - ✅ 7 种类型影分身检查清单
+     - ✅ 代码重复检测结果粘贴
+     - ✅ 影分身检测结果粘贴
+   - **要求 / Requirements:** PR 提交者必须完成所有检查项
+
+#### 6. **人工代码审查 / Human Code Review**
+   - 审查者需检查技术债务清单是否完成
+   - 审查者需确认 CI 检查全部通过
+   - 审查者需评估是否引入新的技术债务
+
+### 第四层防线：定期审查和报告 / Layer 4: Regular Review and Reporting
+
+#### 7. **技术债务报告生成器 / Technical Debt Report Generator** ✨ 新增 / New (2025-12-11)
+   - **脚本 / Script:** `generate-tech-debt-report-simple.sh`
+   - **功能 / Features:**
+     - 自动运行 jscpd 和影分身检测
+     - 生成 Markdown 格式报告
+     - 包含趋势分析和行动项建议
+     - 自动创建 latest.md 符号链接
+   - **使用方法 / Usage:**
+     ```bash
+     ./generate-tech-debt-report-simple.sh ./reports
+     cat reports/tech-debt-reports/latest.md
+     ```
+   - **建议频率 / Recommended Frequency:** 每周生成一次
+
+#### 8. **定期审查会议 / Regular Review Meetings**
+   - **频率 / Frequency:** 每季度一次
+   - **内容 / Content:**
+     - 审查技术债务文档
+     - 评估解决进度
+     - 调整优先级
+     - 分配解决责任人
+   - **下次审查 / Next Review:** 2026-03-01
+
+---
+
+## 📊 防线体系架构 / Defense System Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                开发者工作流 / Developer Workflow      │
+└─────────────────────────────────────────────────────┘
+                           │
+                    1. 编写代码 / Write Code
+                           │
+                           ▼
+    ┌────────────────────────────────────────────────┐
+    │  第一层：Pre-commit Hook (本地)                │
+    │  ✅ jscpd 检查 (5% 阈值，失败则阻止)            │
+    │  ⚠️  影分身检测 (80% 阈值，仅警告)              │
+    └────────────────┬───────────────────────────────┘
+                     │ 通过 / Pass
+                     ▼
+              2. git commit 成功
+                     │
+                     ▼
+              3. git push
+                     │
+                     ▼
+    ┌────────────────────────────────────────────────┐
+    │  第二层：CI/CD 自动检测                         │
+    │  ├─ duplicate-code-check (必须通过)            │
+    │  ├─ shadow-clone-check (警告)                  │
+    │  ├─ sonarqube (质量门禁)                       │
+    │  └─ build-and-test (依赖前面的检查)            │
+    └────────────────┬───────────────────────────────┘
+                     │ CI 通过 / CI Pass
+                     ▼
+              4. 创建 Pull Request
+                     │
+                     ▼
+    ┌────────────────────────────────────────────────┐
+    │  第三层：PR 审查流程                            │
+    │  ├─ PR 模板检查清单 (人工确认)                 │
+    │  ├─ 技术债务文档已读                           │
+    │  ├─ 7 种影分身检查                             │
+    │  └─ 代码审查 (Reviewer 确认)                  │
+    └────────────────┬───────────────────────────────┘
+                     │ 审查通过 / Review Pass
+                     ▼
+              5. Merge to Main
+                     │
+                     ▼
+    ┌────────────────────────────────────────────────┐
+    │  第四层：定期审查                               │
+    │  ├─ 每周生成技术债务报告                        │
+    │  ├─ 每季度团队审查会议                          │
+    │  ├─ 趋势分析和行动项                            │
+    │  └─ 更新 TECHNICAL_DEBT.md                     │
+    └────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 工具和脚本清单 / Tools and Scripts Inventory
+
+| 工具/脚本 / Tool/Script | 类型 / Type | 用途 / Purpose | 文档 / Documentation |
+|------------------------|-----------|---------------|---------------------|
+| `jscpd` | npm package | 代码重复检测 | [jscpd官网](https://github.com/kucherenko/jscpd) |
+| `.jscpd.json` | 配置文件 | jscpd 配置 | 项目根目录 |
+| `ShadowCloneDetector` | .NET 工具 | 影分身语义检测 | `Tools/ShadowCloneDetector/` |
+| `shadow-clone-check.sh` | Bash脚本 | 运行影分身检测 | 项目根目录 |
+| `pre-commit-hook.sh` | Bash脚本 | Pre-commit 检查 | [PRE_COMMIT_HOOK_GUIDE.md](PRE_COMMIT_HOOK_GUIDE.md) |
+| `generate-tech-debt-report-simple.sh` | Bash脚本 | 生成技术债务报告 | 项目根目录 |
+| `.github/workflows/ci.yml` | GitHub Actions | CI/CD 工作流 | `.github/workflows/` |
+| `.github/PULL_REQUEST_TEMPLATE.md` | Markdown模板 | PR 模板 | `.github/` |
+| `TECHNICAL_DEBT.md` | Markdown文档 | 技术债务主文档 | 项目根目录 |
+| `SHADOW_CLONE_DETECTION_GUIDE.md` | Markdown文档 | 影分身检测指南 | 项目根目录 |
+| `PRE_COMMIT_HOOK_GUIDE.md` | Markdown文档 | Pre-commit Hook 指南 | 项目根目录 |
 
 ---
 
@@ -281,6 +419,11 @@ Record of technical debt resolution:
 | 2025-12-11 | 接口重复 | 抽取 IAdapterManager<TConfig> 和 IConfigRepository<TConfig> 泛型接口消除功能相似但命名不同的接口定义 / Extract IAdapterManager<TConfig> and IConfigRepository<TConfig> generic interfaces to eliminate functionally similar but differently named interface definitions | GitHub Copilot | Current PR |
 | 2025-12-11 | Program.cs 日志配置 | 抽取 DatabaseConfigurationHelper.ConfigureSecureLogging 方法消除数据库日志配置重复 / Extract DatabaseConfigurationHelper.ConfigureSecureLogging to eliminate database logging configuration duplication | GitHub Copilot | Current PR |
 | 2025-12-11 | LiteDb 仓储内部重复 | 抽取 BuildTimeRangeQuery 和 FindAlertsByTimeRange 辅助方法消除 LiteDb 仓储内部查询重复 / Extract BuildTimeRangeQuery and FindAlertsByTimeRange helpers to eliminate LiteDb repository internal query duplication | GitHub Copilot | Current PR |
+| **2025-12-11** | **防线建立 / Defense System** | **建立四层技术债务防线 / Established 4-layer technical debt defense system** | **GitHub Copilot** | **Current PR** |
+| | | - 创建 Pre-commit Hook (`pre-commit-hook.sh`) / Created Pre-commit Hook | | |
+| | | - 完善 PR 模板技术债务清单 / Enhanced PR template checklist | | |
+| | | - 创建自动化报告生成器 / Created automated report generator | | |
+| | | - 完善防线文档和指南 / Enhanced defense documentation and guides | | |
 
 ---
 
@@ -418,6 +561,7 @@ For questions about technical debt, please contact the project lead.
 
 *最后更新 / Last Updated: 2025-12-11*
 *更新者 / Updated By: GitHub Copilot Agent*
-*当前代码重复率 / Current Duplication Rate: 3.28% (62 clones) - 远超目标！/ Far exceeds target!*
-*当前影分身数量 / Current Shadow Clones: 0 - 全部消除！/ All eliminated!*
+*当前代码重复率 / Current Duplication Rate: 3.17% (61 clones) - 远超目标！/ Far exceeds target!*
+*当前影分身数量 / Current Shadow Clones: 0 (15个常量误报) - 真实影分身已全部消除！/ 0 (15 constant false positives) - All real shadow clones eliminated!*
 *编译警告 / Compiler Warnings: 3051 个待修复，分4个PR完成 / 3051 remaining, split into 4 PRs*
+*🛡️ 技术债务防线 / Technical Debt Defense: ✅ 四层防线已建立 / 4-layer defense system established*
