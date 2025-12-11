@@ -326,9 +326,9 @@ public class ResilientLogRepository : ILogRepository
                 }).ToList();
 
                 return await SyncBatchWithTransactionAsync(
-                    sqliteLogs,
-                    async logs => await _mysqlContext!.LogEntries.AddRangeAsync(mysqlLogs, CancellationToken.None),
-                    logs => _sqliteContext.LogEntries.RemoveRange(logs),
+                    mysqlLogs,
+                    async logs => await _mysqlContext!.LogEntries.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.LogEntries.RemoveRange(sqliteLogs),
                     "LogEntry");
             });
     }

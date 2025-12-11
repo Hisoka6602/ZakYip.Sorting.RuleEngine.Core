@@ -22,14 +22,14 @@ This document records identified technical debt in the project. Before opening a
 
 | 类别 Category | 数量 Count | 严重程度 Severity | 状态 Status |
 |--------------|-----------|-------------------|-------------|
-| 重复代码 Duplicate Code | 65 处 | 🟢 低 Low | ✅ 已超越目标 |
-| 代码重复率 Duplication Rate | 3.40% | 🟢 低 Low (✅ 低于 CI 阈值 5%，超越 SonarQube 目标 3%) | 已超越目标 |
+| 重复代码 Duplicate Code | 62 处 | 🟢 低 Low | ✅ 已超越目标 |
+| 代码重复率 Duplication Rate | 3.28% | 🟢 低 Low (✅ 低于 CI 阈值 5%，远超 SonarQube 目标 3%) | 已超越目标 |
 
-> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率已超越 SonarQube 目标！
-> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate exceeds SonarQube target!
+> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率已远超 SonarQube 目标！
+> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate far exceeds SonarQube target!
 
-> **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → **3.40% (65 clones)**，消除 601 行重复代码。
-> Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → **3.40% (65 clones)**, eliminated 601 duplicate lines.
+> **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → **3.28% (62 clones)**，消除 655 行重复代码。
+> Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → **3.28% (62 clones)**, eliminated 655 duplicate lines.
 
 ---
 
