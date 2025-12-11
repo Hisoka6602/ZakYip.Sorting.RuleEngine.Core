@@ -132,10 +132,92 @@ jobs:
             ---
             📖 详情请查看 [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)
 
+  # 影分身语义检测作业 / Shadow Clone Semantic Detection Job
+  shadow-clone-check:
+    name: Shadow Clone Semantic Detection (影分身语义检测)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Build shadow clone detector
+        run: |
+          echo "🔧 构建影分身检测工具 / Building shadow clone detector..."
+          cd Tools/ShadowCloneDetector
+          dotnet build --configuration Release --nologo
+      
+      - name: Run shadow clone detection
+        id: shadow_clone
+        run: |
+          echo "🔍 运行影分身语义检测 / Running shadow clone semantic detection..."
+          echo "检测类型 / Detection types: 枚举/接口/DTO/Options/扩展方法/静态类/常量"
+          echo "Enums/Interfaces/DTOs/Options/Extension Methods/Static Classes/Constants"
+          echo ""
+          
+          cd Tools/ShadowCloneDetector
+          set +e
+          dotnet run --configuration Release --no-build -- ../.. --threshold 0.80 --json > shadow-clone-report.json
+          SHADOW_EXIT_CODE=$?
+          set -e
+          
+          # Display console output for visibility
+          dotnet run --configuration Release --no-build -- ../.. --threshold 0.80
+          
+          echo "shadow_exit_code=${SHADOW_EXIT_CODE}" >> $GITHUB_OUTPUT
+          
+          if [ $SHADOW_EXIT_CODE -eq 0 ]; then
+            echo ""
+            echo "✅ 影分身语义检测通过 / Shadow clone semantic detection passed"
+          else
+            echo ""
+            echo "⚠️  发现影分身代码 / Shadow clone code detected"
+          fi
+      
+      - name: Upload shadow clone report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-clone-report
+          path: Tools/ShadowCloneDetector/shadow-clone-report.json
+      
+      - name: Check shadow clone detection results
+        run: |
+          SHADOW_EXIT_CODE=${{ steps.shadow_clone.outputs.shadow_exit_code }}
+          
+          if [ "$SHADOW_EXIT_CODE" != "0" ]; then
+            echo ""
+            echo "❌ 影分身语义检测失败 / Shadow Clone Semantic Detection Failed!"
+            echo "发现了以下类型的重复代码 / Found the following types of duplicate code:"
+            echo "  - 枚举语义重复 / Enum semantic duplicates"
+            echo "  - 接口方法签名重叠 / Interface method signature overlaps"
+            echo "  - DTO 字段结构相同 / DTO field structure duplicates"
+            echo "  - Options/配置类重复 / Options/Config class duplicates"
+            echo "  - 扩展方法签名相同 / Extension method signature duplicates"
+            echo "  - 静态类功能重复 / Static class functionality duplicates"
+            echo "  - 常量值相同 / Constant value duplicates"
+            echo ""
+            echo "📖 请参考上面的检测结果详情进行修复"
+            echo "📖 Please refer to the detection results above for fixes"
+            echo ""
+            echo "⚠️  警告：发现影分身代码，建议修复后再合并"
+            echo "⚠️  Warning: Shadow clone code detected, recommend fixing before merging"
+            # 暂时只警告，不强制失败 / Only warn for now, don't enforce failure
+            # exit 1
+          else
+            echo ""
+            echo "✅ 影分身语义检测通过 / Shadow Clone Semantic Detection Passed!"
+          fi
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    needs: duplicate-code-check
+    needs: [duplicate-code-check, shadow-clone-check]
     
     steps:
       - name: Checkout repository
