@@ -56,7 +56,7 @@ public class ChuteStatisticsController : ControllerBase
             _logger.LogInformation("查询格口利用率统计");
             var statistics = await _dataAnalysisService.GetChuteUtilizationStatisticsAsync(
                 query,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             return Ok(statistics);
         }
         catch (Exception ex)
