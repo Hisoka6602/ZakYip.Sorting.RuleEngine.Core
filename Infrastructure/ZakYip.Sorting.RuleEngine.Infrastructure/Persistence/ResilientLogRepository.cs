@@ -325,40 +325,11 @@ public class ResilientLogRepository : ILogRepository
                     CreatedAt = log.CreatedAt
                 }).ToList();
 
-                // 使用事务确保MySQL插入和SQLite删除的原子性
-                // Use transaction to ensure atomicity of MySQL insert and SQLite delete
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    // 使用重试策略同步到MySQL
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.LogEntries.AddRangeAsync(mysqlLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    // 提交MySQL事务
-                    await mysqlTransaction.CommitAsync();
-
-                    // MySQL成功后，从SQLite删除已同步的数据
-                    _sqliteContext.LogEntries.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    // 提交SQLite事务
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    // 发生异常时回滚两个事务
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步LogEntry数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async _ => await _mysqlContext!.LogEntries.AddRangeAsync(mysqlLogs, CancellationToken.None),
+                    logs => _sqliteContext.LogEntries.RemoveRange(logs),
+                    "LogEntry");
             });
     }
 
@@ -378,40 +349,11 @@ public class ResilientLogRepository : ILogRepository
                     .Take(take)
                     .ToListAsync();
 
-                if (sqliteLogs.Count == 0)
-                {
-                    return 0;
-                }
-
-                // 使用事务确保MySQL插入和SQLite删除的原子性
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    // 使用重试策略同步到MySQL
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.CommunicationLogs.AddRangeAsync(sqliteLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    await mysqlTransaction.CommitAsync();
-
-                    _sqliteContext.CommunicationLogs.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步CommunicationLog数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async logs => await _mysqlContext!.CommunicationLogs.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.CommunicationLogs.RemoveRange(logs),
+                    "CommunicationLog");
             });
     }
 
@@ -431,35 +373,11 @@ public class ResilientLogRepository : ILogRepository
                     .Take(take)
                     .ToListAsync();
 
-                if (sqliteLogs.Count == 0) return 0;
-
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.SorterCommunicationLogs.AddRangeAsync(sqliteLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    await mysqlTransaction.CommitAsync();
-
-                    _sqliteContext.SorterCommunicationLogs.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步SorterCommunicationLog数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async logs => await _mysqlContext!.SorterCommunicationLogs.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.SorterCommunicationLogs.RemoveRange(logs),
+                    "SorterCommunicationLog");
             });
     }
 
@@ -479,35 +397,11 @@ public class ResilientLogRepository : ILogRepository
                     .Take(take)
                     .ToListAsync();
 
-                if (sqliteLogs.Count == 0) return 0;
-
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.DwsCommunicationLogs.AddRangeAsync(sqliteLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    await mysqlTransaction.CommitAsync();
-
-                    _sqliteContext.DwsCommunicationLogs.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步DwsCommunicationLog数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async logs => await _mysqlContext!.DwsCommunicationLogs.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.DwsCommunicationLogs.RemoveRange(logs),
+                    "DwsCommunicationLog");
             });
     }
 
@@ -527,35 +421,11 @@ public class ResilientLogRepository : ILogRepository
                     .Take(take)
                     .ToListAsync();
 
-                if (sqliteLogs.Count == 0) return 0;
-
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.ApiCommunicationLogs.AddRangeAsync(sqliteLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    await mysqlTransaction.CommitAsync();
-
-                    _sqliteContext.ApiCommunicationLogs.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步ApiCommunicationLog数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async logs => await _mysqlContext!.ApiCommunicationLogs.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.ApiCommunicationLogs.RemoveRange(logs),
+                    "ApiCommunicationLog");
             });
     }
 
@@ -575,35 +445,11 @@ public class ResilientLogRepository : ILogRepository
                     .Take(take)
                     .ToListAsync();
 
-                if (sqliteLogs.Count == 0) return 0;
-
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.MatchingLogs.AddRangeAsync(sqliteLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    await mysqlTransaction.CommitAsync();
-
-                    _sqliteContext.MatchingLogs.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步MatchingLog数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async logs => await _mysqlContext!.MatchingLogs.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.MatchingLogs.RemoveRange(logs),
+                    "MatchingLog");
             });
     }
 
@@ -623,36 +469,63 @@ public class ResilientLogRepository : ILogRepository
                     .Take(take)
                     .ToListAsync();
 
-                if (sqliteLogs.Count == 0) return 0;
-
-                await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
-                await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
-                
-                try
-                {
-                    await _retryPolicy.ExecuteAsync(async ct =>
-                    {
-                        await _mysqlContext!.ApiRequestLogs.AddRangeAsync(sqliteLogs, ct);
-                        await _mysqlContext.SaveChangesAsync(ct);
-                    }, CancellationToken.None);
-
-                    await mysqlTransaction.CommitAsync();
-
-                    _sqliteContext.ApiRequestLogs.RemoveRange(sqliteLogs);
-                    await _sqliteContext.SaveChangesAsync();
-                    
-                    await sqliteTransaction.CommitAsync();
-
-                    return sqliteLogs.Count;
-                }
-                catch (Exception ex)
-                {
-                    await mysqlTransaction.RollbackAsync();
-                    await sqliteTransaction.RollbackAsync();
-                    _logger.LogError(ex, "同步ApiRequestLog数据时发生错误，事务已回滚");
-                    throw;
-                }
+                return await SyncBatchWithTransactionAsync(
+                    sqliteLogs,
+                    async logs => await _mysqlContext!.ApiRequestLogs.AddRangeAsync(logs, CancellationToken.None),
+                    logs => _sqliteContext.ApiRequestLogs.RemoveRange(logs),
+                    "ApiRequestLog");
             });
+    }
+
+    /// <summary>
+    /// 使用事务同步单批数据的通用方法
+    /// Generic method to sync a single batch of data with transaction
+    /// </summary>
+    /// <typeparam name="T">实体类型 / Entity type</typeparam>
+    /// <param name="logs">要同步的日志列表 / List of logs to sync</param>
+    /// <param name="addToMySqlAsync">添加到MySQL的函数 / Function to add to MySQL</param>
+    /// <param name="removeFromSqlite">从SQLite移除的函数 / Function to remove from SQLite</param>
+    /// <param name="tableName">表名（用于日志记录）/ Table name for logging</param>
+    /// <returns>已同步的记录数 / Number of synced records</returns>
+    private async Task<int> SyncBatchWithTransactionAsync<T>(
+        List<T> logs,
+        Func<List<T>, Task> addToMySqlAsync,
+        Action<List<T>> removeFromSqlite,
+        string tableName) where T : class
+    {
+        if (logs.Count == 0) return 0;
+
+        // 使用事务确保MySQL插入和SQLite删除的原子性
+        // Use transaction to ensure atomicity of MySQL insert and SQLite delete
+        await using var mysqlTransaction = await _mysqlContext!.Database.BeginTransactionAsync();
+        await using var sqliteTransaction = await _sqliteContext.Database.BeginTransactionAsync();
+        
+        try
+        {
+            // 使用重试策略同步到MySQL
+            // Use retry policy to sync to MySQL
+            await _retryPolicy.ExecuteAsync(async ct =>
+            {
+                await addToMySqlAsync(logs);
+                await _mysqlContext!.SaveChangesAsync(ct);
+            }, CancellationToken.None);
+
+            await mysqlTransaction.CommitAsync();
+
+            removeFromSqlite(logs);
+            await _sqliteContext.SaveChangesAsync();
+            
+            await sqliteTransaction.CommitAsync();
+
+            return logs.Count;
+        }
+        catch (Exception ex)
+        {
+            await mysqlTransaction.RollbackAsync();
+            await sqliteTransaction.RollbackAsync();
+            _logger.LogError(ex, "同步{TableName}数据时发生错误，事务已回滚", tableName);
+            throw;
+        }
     }
 
     /// <summary>
