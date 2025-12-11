@@ -217,100 +217,91 @@ public class ParcelCreationRequest
 }
 
 /// <summary>
-/// 包裹创建响应
+/// 通用操作响应基类 / Base class for operation responses
+/// 消除影分身：ParcelCreationResponse 和 DwsDataResponse 结构完全相同
+/// Shadow clone elimination: ParcelCreationResponse and DwsDataResponse have identical structure
 /// </summary>
-[SwaggerSchema(Description = "包裹创建响应")]
-public class ParcelCreationResponse
+public abstract class OperationResponseBase
 {
     /// <summary>
-    /// 是否成功
+    /// 是否成功 / Success flag
     /// 示例: true
     /// </summary>
     public bool Success { get; set; }
     
     /// <summary>
-    /// 包裹ID
+    /// 包裹ID / Parcel ID
     /// 示例: PKG20231101001
     /// </summary>
-    public required string ParcelId { get; set; }
+    public required string ParcelId { get; init; }
     
     /// <summary>
-    /// 消息
-    /// 示例: 包裹处理空间已创建，等待DWS数据
+    /// 消息 / Message
     /// </summary>
-    public required string Message { get; set; }
+    public required string Message { get; init; }
 }
 
 /// <summary>
-/// DWS数据请求
+/// 包裹创建响应 / Parcel creation response
+/// </summary>
+[SwaggerSchema(Description = "包裹创建响应")]
+public sealed class ParcelCreationResponse : OperationResponseBase
+{
+}
+
+/// <summary>
+/// DWS数据请求 / DWS data request
 /// </summary>
 [SwaggerSchema(Description = "DWS数据请求")]
 public class DwsDataRequest
 {
     /// <summary>
-    /// 包裹ID
+    /// 包裹ID / Parcel ID
     /// 示例: PKG20231101001
     /// </summary>
     public required string ParcelId { get; set; }
     
     /// <summary>
-    /// 条码
+    /// 条码 / Barcode
     /// 示例: 1234567890123
     /// </summary>
     public string? Barcode { get; set; }
     
     /// <summary>
-    /// 重量（克）
+    /// 重量（克） / Weight (grams)
     /// 示例: 2500.5
     /// </summary>
     public decimal Weight { get; set; }
     
     /// <summary>
-    /// 长度（毫米）
+    /// 长度（毫米） / Length (mm)
     /// 示例: 300
     /// </summary>
     public decimal Length { get; set; }
     
     /// <summary>
-    /// 宽度（毫米）
+    /// 宽度（毫米） / Width (mm)
     /// 示例: 200
     /// </summary>
     public decimal Width { get; set; }
     
     /// <summary>
-    /// 高度（毫米）
+    /// 高度（毫米） / Height (mm)
     /// 示例: 150
     /// </summary>
     public decimal Height { get; set; }
     
     /// <summary>
-    /// 体积（立方厘米）
+    /// 体积（立方厘米） / Volume (cubic cm)
     /// 示例: 9000
     /// </summary>
     public decimal Volume { get; set; }
 }
 
 /// <summary>
-/// DWS数据响应
+/// DWS数据响应 / DWS data response
 /// </summary>
 [SwaggerSchema(Description = "DWS数据响应")]
-public class DwsDataResponse
+public sealed class DwsDataResponse : OperationResponseBase
 {
-    /// <summary>
-    /// 是否成功
-    /// 示例: true
-    /// </summary>
-    public bool Success { get; set; }
-    
-    /// <summary>
-    /// 包裹ID
-    /// 示例: PKG20231101001
-    /// </summary>
-    public required string ParcelId { get; set; }
-    
-    /// <summary>
-    /// 消息
-    /// 示例: DWS数据已接收，开始处理
-    /// </summary>
-    public required string Message { get; set; }
 }
