@@ -1,0 +1,479 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# All files
+[*]
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# Code files
+[*.{cs,csx,vb,vbx}]
+indent_size = 4
+
+# C# files
+[*.cs]
+
+# New line preferences
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# Indentation preferences
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+# Code style rules
+csharp_prefer_braces = true:warning
+
+# Modifier preferences
+csharp_prefer_static_local_function = true:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+
+# Expression preferences
+csharp_prefer_simple_default_expression = true:suggestion
+
+# Pattern matching preferences
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+
+# Null-checking preferences
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_operators = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_style_expression_bodied_indexers = when_on_single_line:suggestion
+csharp_style_expression_bodied_accessors = when_on_single_line:suggestion
+
+# .NET Code Quality Rules
+# ========================
+
+# CA2007: Do not directly await a Task (ConfigureAwait)
+# 对于应用程序代码，不需要 ConfigureAwait(false)
+# For application code, ConfigureAwait(false) is not needed
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1848: Use LoggerMessage delegates for improved performance
+# 性能优化建议，但不是必须的
+# Performance optimization suggestion, but not mandatory
+dotnet_diagnostic.CA1848.severity = suggestion
+
+# CA1031: Do not catch general exception types
+# 在某些场景下需要捕获所有异常，如顶层异常处理
+# Need to catch all exceptions in some scenarios, like top-level exception handling
+dotnet_diagnostic.CA1031.severity = suggestion
+
+# CA1062: Validate arguments of public methods
+# 现代 C# 已启用可空引用类型，可以减少此警告
+# Modern C# has nullable reference types enabled, can reduce this warning
+dotnet_diagnostic.CA1062.severity = suggestion
+
+# CA1307: Specify StringComparison for clarity
+# 字符串比较应指定 StringComparison
+# String comparison should specify StringComparison
+dotnet_diagnostic.CA1307.severity = suggestion
+
+# CA1305: Specify IFormatProvider
+# 格式化时应指定 IFormatProvider
+# Should specify IFormatProvider when formatting
+dotnet_diagnostic.CA1305.severity = suggestion
+
+# CA1303: Do not pass literals as localized parameters
+# 不在本地化范围内
+# Not in localization scope
+dotnet_diagnostic.CA1303.severity = none
+
+# CA1304: Specify CultureInfo
+# 文化相关操作应指定 CultureInfo
+# Culture-related operations should specify CultureInfo
+dotnet_diagnostic.CA1304.severity = suggestion
+
+# CA1311: Specify a culture or use an invariant version
+# 文化相关方法建议
+# Culture-related method suggestion
+dotnet_diagnostic.CA1311.severity = suggestion
+
+# CA2000: Dispose objects before losing scope
+# 保持为警告，这是重要的资源管理问题
+# Keep as warning, this is an important resource management issue
+dotnet_diagnostic.CA2000.severity = warning
+
+# CA2016: Forward the CancellationToken parameter
+# 建议转发 CancellationToken
+# Suggest forwarding CancellationToken
+dotnet_diagnostic.CA2016.severity = suggestion
+
+# CA2017: Parameter count mismatch in logging
+# 日志参数计数不匹配 - 需要修复但不阻止构建
+# Logging parameter count mismatch - needs fixing but should not block build
+dotnet_diagnostic.CA2017.severity = suggestion
+
+# CA1822: Mark members as static
+# 可标记为静态的成员
+# Members that can be marked as static
+dotnet_diagnostic.CA1822.severity = suggestion
+
+# CA1861: Avoid constant arrays as arguments
+# 避免常量数组作为参数
+# Avoid constant arrays as arguments
+dotnet_diagnostic.CA1861.severity = suggestion
+
+# CA1825: Avoid zero-length array allocations
+# 避免零长度数组分配
+# Avoid zero-length array allocations
+dotnet_diagnostic.CA1825.severity = suggestion
+
+# CA1860: Avoid using 'Enumerable.Any()' extension method
+# 性能建议
+# Performance suggestion
+dotnet_diagnostic.CA1860.severity = suggestion
+
+# CA1849: Call async methods when in an async method
+# 在异步方法中调用异步方法 - 建议但不强制
+# Call async methods when in an async method - suggest but do not enforce
+dotnet_diagnostic.CA1849.severity = suggestion
+
+# CA1850: Prefer static HashData method over ComputeHash
+# 性能建议
+# Performance suggestion
+dotnet_diagnostic.CA1850.severity = suggestion
+
+# CA1851: Possible multiple enumerations of IEnumerable collection
+# 可能的多次枚举
+# Possible multiple enumerations
+dotnet_diagnostic.CA1851.severity = suggestion
+
+# CA1852: Seal internal types
+# 密封内部类型
+# Seal internal types
+dotnet_diagnostic.CA1852.severity = suggestion
+
+# CA1859: Use concrete types when possible for improved performance
+# 性能建议
+# Performance suggestion
+dotnet_diagnostic.CA1859.severity = suggestion
+
+# CA1862: Use StringComparison overload
+# 使用 StringComparison 重载
+# Use StringComparison overload
+dotnet_diagnostic.CA1862.severity = suggestion
+
+# CA1863: Use CompositeFormat
+# 使用 CompositeFormat
+# Use CompositeFormat
+dotnet_diagnostic.CA1863.severity = suggestion
+
+# CA5394: Do not use insecure randomness
+# 不要使用不安全的随机数 - 测试和模拟器中可接受
+# Do not use insecure randomness - acceptable in tests and simulators
+dotnet_diagnostic.CA5394.severity = suggestion
+
+# CA5398: Avoid hardcoded SslProtocols values
+# 避免硬编码 SslProtocols 值 - 在配置中是可接受的
+# Avoid hardcoded SslProtocols values - acceptable in configuration
+dotnet_diagnostic.CA5398.severity = suggestion
+
+# CA5351: Do not use broken cryptographic algorithms
+# 不要使用已损坏的加密算法 - 在非安全上下文中是建议
+# Do not use broken cryptographic algorithms - suggestion in non-security context
+dotnet_diagnostic.CA5351.severity = suggestion
+
+# CA5359: Do not disable certificate validation
+# 不要禁用证书验证 - 在开发/测试环境中是建议
+# Do not disable certificate validation - suggestion in dev/test environment
+dotnet_diagnostic.CA5359.severity = suggestion
+
+# CA1063: Implement IDisposable correctly
+# 正确实现 IDisposable - 在测试代码中使用建议级别
+# Implement IDisposable correctly - use suggestion level in test code
+dotnet_diagnostic.CA1063.severity = suggestion
+
+# CA1001: Types that own disposable fields should be disposable
+# 拥有可释放字段的类型应该是可释放的 - 在测试代码中使用建议级别
+# Types that own disposable fields should be disposable - use suggestion level in test code
+dotnet_diagnostic.CA1001.severity = suggestion
+
+# CA1816: Call GC.SuppressFinalize correctly
+# 正确调用 GC.SuppressFinalize - 在测试代码中使用建议级别
+# Call GC.SuppressFinalize correctly - use suggestion level in test code
+dotnet_diagnostic.CA1816.severity = suggestion
+
+# CA2213: Disposable fields should be disposed
+# 可释放字段应该被释放 - 建议而非强制
+# Disposable fields should be disposed - suggestion rather than enforcement
+dotnet_diagnostic.CA2213.severity = suggestion
+
+# CA2214: Do not call overridable methods in constructors
+# 不要在构造函数中调用可重写的方法 - 建议而非强制
+# Do not call overridable methods in constructors - suggestion rather than enforcement
+dotnet_diagnostic.CA2214.severity = suggestion
+
+# CA2234: Pass System.Uri objects instead of strings
+# 传递 System.Uri 对象而不是字符串
+# Pass System.Uri objects instead of strings
+dotnet_diagnostic.CA2234.severity = suggestion
+
+# CA2227: Collection properties should be read only
+# 集合属性应该是只读的
+# Collection properties should be read only
+dotnet_diagnostic.CA2227.severity = suggestion
+
+# CA1002: Do not expose generic lists
+# 不要暴露泛型列表
+# Do not expose generic lists
+dotnet_diagnostic.CA1002.severity = suggestion
+
+# CA1711: Identifiers should not have incorrect suffix
+# 标识符不应该有不正确的后缀
+# Identifiers should not have incorrect suffix
+dotnet_diagnostic.CA1711.severity = suggestion
+
+# CA1716: Identifiers should not match keywords
+# 标识符不应该与关键字匹配
+# Identifiers should not match keywords
+dotnet_diagnostic.CA1716.severity = suggestion
+
+# CA1720: Identifiers should not contain type names
+# 标识符不应该包含类型名称
+# Identifiers should not contain type names
+dotnet_diagnostic.CA1720.severity = suggestion
+
+# CA1000: Do not declare static members on generic types
+# 不要在泛型类型上声明静态成员
+# Do not declare static members on generic types
+dotnet_diagnostic.CA1000.severity = suggestion
+
+# CA1003: Use generic event handler instances
+# 使用泛型事件处理程序实例
+# Use generic event handler instances
+dotnet_diagnostic.CA1003.severity = suggestion
+
+# CA1008: Enums should have zero value
+# 枚举应该有零值
+# Enums should have zero value
+dotnet_diagnostic.CA1008.severity = suggestion
+
+# CA1024: Use properties where appropriate
+# 在适当的地方使用属性
+# Use properties where appropriate
+dotnet_diagnostic.CA1024.severity = suggestion
+
+# CA1051: Do not declare visible instance fields
+# 不要声明可见的实例字段
+# Do not declare visible instance fields
+dotnet_diagnostic.CA1051.severity = suggestion
+
+# CA1052: Static holder types should be static
+# 静态持有者类型应该是静态的
+# Static holder types should be static
+dotnet_diagnostic.CA1052.severity = suggestion
+
+# CA1054: URI parameters should not be strings
+# URI 参数不应该是字符串
+# URI parameters should not be strings
+dotnet_diagnostic.CA1054.severity = suggestion
+
+# CA1055: URI return values should not be strings
+# URI 返回值不应该是字符串
+# URI return values should not be strings
+dotnet_diagnostic.CA1055.severity = suggestion
+
+# CA1056: URI properties should not be strings
+# URI 属性不应该是字符串
+# URI properties should not be strings
+dotnet_diagnostic.CA1056.severity = suggestion
+
+# CA1805: Do not initialize unnecessarily
+# 不要不必要地初始化
+# Do not initialize unnecessarily
+dotnet_diagnostic.CA1805.severity = suggestion
+
+# CA1812: Avoid uninstantiated internal classes
+# 避免未实例化的内部类
+# Avoid uninstantiated internal classes
+dotnet_diagnostic.CA1812.severity = suggestion
+
+# CA1819: Properties should not return arrays
+# 属性不应该返回数组
+# Properties should not return arrays
+dotnet_diagnostic.CA1819.severity = suggestion
+
+# CA1823: Avoid unused private fields
+# 避免未使用的私有字段 - 建议而非强制（某些字段用于反射或序列化）
+# Avoid unused private fields - suggestion rather than enforcement (some fields for reflection/serialization)
+dotnet_diagnostic.CA1823.severity = suggestion
+
+# CA1845: Use span-based 'string.Concat'
+# 使用基于 span 的 'string.Concat'
+# Use span-based 'string.Concat'
+dotnet_diagnostic.CA1845.severity = suggestion
+
+# CA1847: Use string.Contains(char) instead of string.Contains(string)
+# 使用 string.Contains(char) 而不是 string.Contains(string)
+# Use string.Contains(char) instead of string.Contains(string)
+dotnet_diagnostic.CA1847.severity = suggestion
+
+# CA1854: Prefer Dictionary TryGetValue over ContainsKey
+# 优先使用 Dictionary TryGetValue 而不是 ContainsKey
+# Prefer Dictionary TryGetValue over ContainsKey
+dotnet_diagnostic.CA1854.severity = suggestion
+
+# CA1866: Use 'string.Method(char)' instead of 'string.Method(string)' for string with single char
+# 对于单字符字符串使用 'string.Method(char)' 而不是 'string.Method(string)'
+# Use 'string.Method(char)' instead of 'string.Method(string)' for string with single char
+dotnet_diagnostic.CA1866.severity = suggestion
+
+# CA1869: Cache JsonSerializerOptions
+# 缓存 JsonSerializerOptions
+# Cache JsonSerializerOptions
+dotnet_diagnostic.CA1869.severity = suggestion
+
+# CA2008: Do not create tasks without passing a TaskScheduler
+# 不要在不传递 TaskScheduler 的情况下创建任务
+# Do not create tasks without passing a TaskScheduler
+dotnet_diagnostic.CA2008.severity = suggestion
+
+# CA2100: Review SQL queries for security vulnerabilities
+# 审查 SQL 查询的安全漏洞 - 使用 ORM 时可以放宽
+# Review SQL queries for security vulnerabilities - can relax when using ORM
+dotnet_diagnostic.CA2100.severity = suggestion
+
+# CA2201: Do not raise reserved exception types
+# 不要引发保留的异常类型 - 建议而非强制
+# Do not raise reserved exception types - suggestion rather than enforcement
+dotnet_diagnostic.CA2201.severity = suggestion
+
+# CA2254: Template should be a static expression
+# 模板应该是静态表达式 - 建议而非强制
+# Template should be a static expression - suggestion rather than enforcement
+dotnet_diagnostic.CA2254.severity = suggestion
+
+# CA1309: Use ordinal StringComparison
+# 使用序数 StringComparison
+# Use ordinal StringComparison
+dotnet_diagnostic.CA1309.severity = suggestion
+
+# CA1310: Specify StringComparison for correctness
+# 为正确性指定 StringComparison
+# Specify StringComparison for correctness
+dotnet_diagnostic.CA1310.severity = suggestion
+
+# CA1416: Validate platform compatibility
+# 验证平台兼容性 - 建议而非强制
+# Validate platform compatibility - suggestion rather than enforcement
+dotnet_diagnostic.CA1416.severity = suggestion
+
+# CA1510: Use ArgumentNullException throw helper
+# 使用 ArgumentNullException throw helper
+# Use ArgumentNullException throw helper
+dotnet_diagnostic.CA1510.severity = suggestion
+
+# Nullable reference types warnings
+# 可空引用类型警告
+dotnet_diagnostic.CS8600.severity = warning
+dotnet_diagnostic.CS8601.severity = warning
+dotnet_diagnostic.CS8602.severity = warning
+dotnet_diagnostic.CS8603.severity = warning
+dotnet_diagnostic.CS8604.severity = warning
+dotnet_diagnostic.CS8619.severity = warning
+dotnet_diagnostic.CS8620.severity = warning
+dotnet_diagnostic.CS8625.severity = warning
+
+# XML documentation warnings
+# XML 文档警告
+dotnet_diagnostic.CS1570.severity = suggestion
+dotnet_diagnostic.CS1587.severity = suggestion
+
+# Unused variable warnings
+# 未使用变量警告 - 建议而非强制
+dotnet_diagnostic.CS0219.severity = suggestion
+
+# Member hides inherited member warnings
+# 成员隐藏继承成员警告
+dotnet_diagnostic.CS0108.severity = suggestion
+
+# Test files - more relaxed rules
+# 测试文件 - 更宽松的规则
+[Tests/**/*.cs]
+
+# CA1707: Identifiers should not contain underscores
+# 测试方法使用下划线是常见的约定
+# Using underscores in test method names is a common convention
+dotnet_diagnostic.CA1707.severity = none
+
+# CA2201: Do not raise reserved exception types
+# 测试中可以使用通用异常类型
+# Tests can use general exception types
+dotnet_diagnostic.CA2201.severity = none
+
+# CA2000: Dispose objects before losing scope
+# 测试代码中的资源管理可以更宽松
+# Resource management in test code can be more lenient
+dotnet_diagnostic.CA2000.severity = suggestion
+
+# xUnit test warnings
+dotnet_diagnostic.xUnit1031.severity = suggestion
+dotnet_diagnostic.xUnit2002.severity = suggestion
+
+# Domain entities - specific rules
+# 领域实体 - 特定规则
+[Domain/**/*.cs]
+
+# CA1707: Allow underscores in constants for singleton IDs
+# 允许常量中的下划线用于单例 ID
+# Allow underscores in constants for singleton IDs
+dotnet_diagnostic.CA1707.severity = none
+
+# Benchmarks - performance-focused rules
+# 基准测试 - 性能相关规则
+[**/Benchmarks/**/*.cs]
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA2007.severity = none
+
+# Console test applications - less strict
+# 控制台测试应用 - 不太严格
+[**/ConsoleTest/**/*.cs]
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA1848.severity = none
+
+# Naming Conventions
+# 命名约定
+[*.cs]
+
+# Styles
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_prefix.required_prefix = _
+dotnet_naming_style.underscore_prefix.capitalization = camel_case
+
+# Interfaces must start with I
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = warning
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
+dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
+dotnet_naming_symbols.interface.applicable_kinds = interface
+dotnet_naming_style.begins_with_i.required_prefix = I
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+# Private fields should start with underscore
+dotnet_naming_rule.private_field_should_be_underscore_prefix.severity = suggestion
+dotnet_naming_rule.private_field_should_be_underscore_prefix.symbols = private_field
+dotnet_naming_rule.private_field_should_be_underscore_prefix.style = underscore_prefix
+dotnet_naming_symbols.private_field.applicable_kinds = field
+dotnet_naming_symbols.private_field.applicable_accessibilities = private
+
+# Async methods should end with Async
+dotnet_naming_rule.async_method_should_be_ends_with_async.severity = suggestion
+dotnet_naming_rule.async_method_should_be_ends_with_async.symbols = async_method
+dotnet_naming_rule.async_method_should_be_ends_with_async.style = ends_with_async
+dotnet_naming_symbols.async_method.applicable_kinds = method
+dotnet_naming_symbols.async_method.required_modifiers = async
+dotnet_naming_style.ends_with_async.required_suffix = Async
+dotnet_naming_style.ends_with_async.capitalization = pascal_case
