@@ -16,11 +16,12 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 /// Jushuituan ERP API client implementation
 /// 参考: https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e
 /// </summary>
-public class JushuitanErpApiClient : IWcsApiAdapter
+public class JushuitanErpApiClient : BaseErpApiClient
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<JushuitanErpApiClient> _logger;
     public JushuitanErpApiParameters Parameters { get; set; }
+
+    protected override string ClientTypeName => "聚水潭ERP";
+    protected override string FeatureNotSupportedText => "Jushuituan ERP";
 
     public JushuitanErpApiClient(
         HttpClient httpClient,
@@ -28,9 +29,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         string appKey = "",
         string appSecret = "",
         string accessToken = "")
+        : base(httpClient, logger)
     {
-        _httpClient = httpClient;
-        _logger = logger;
         Parameters = new JushuitanErpApiParameters
         {
             AppKey = appKey,
@@ -39,47 +39,14 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         };
     }
 
-    /// <summary>
-    /// 扫描包裹（聚水潭ERP不支持此功能）
-    /// Scan parcel - Not supported in Jushuituan ERP
-    /// 注意：根据要求，JushuitanErpApiClient不应该实现ScanParcelAsync
-    /// </summary>
-    public async Task<WcsApiResponse> ScanParcelAsync(
-        string barcode,
-        CancellationToken cancellationToken = default)
-    {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        var requestTime = DateTime.Now;
-        
-        _logger.LogWarning("聚水潭ERP不支持扫描包裹功能，条码: {Barcode}", barcode);
-        
-        await Task.CompletedTask;
-        stopwatch.Stop();
-        
-        return new WcsApiResponse
-        {
-            Success = true,
-            Code = ApiConstants.HttpStatusCodes.Success,
-            Message = "聚水潭ERP不支持扫描包裹功能",
-            Data = "{\"info\":\"Feature not supported\"}",
-            ParcelId = barcode,
-            RequestUrl = "N/A",
-            RequestBody = "N/A",
-            RequestHeaders = "{}",
-            RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
-            DurationMs = stopwatch.ElapsedMilliseconds,
-            FormattedCurl = "# Feature not supported by Jushuituan ERP"
-        };
-    }
+
 
     /// <summary>
     /// 请求格口（上传数据）
     /// Request a chute/gate number for the parcel
     /// 对应参考代码中的 UploadData 方法
     /// </summary>
-    public async Task<WcsApiResponse> RequestChuteAsync(
+    public override async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
         DwsData dwsData,
         OcrData? ocrData = null,
@@ -97,7 +64,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug(
+            Logger.LogDebug(
                 "聚水潭ERP - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}",
                 parcelId, dwsData.Barcode);
 
@@ -132,7 +99,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             var sign = GenerateSign(requestData, Parameters.AppSecret);
             requestData.Add("sign", sign);
 
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
+            HttpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
             var content = new FormUrlEncodedContent(requestData);
 
             // 生成请求信息
@@ -147,7 +114,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
                 bizJson);
             requestHeaders = ApiRequestHelper.FormatHeaders(headers);
 
-            response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken);
+            response = await HttpClient.PostAsync(Parameters.Url, content, cancellationToken);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
@@ -172,7 +139,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             if (response.IsSuccessStatusCode && isSuccess)
             {
-                _logger.LogInformation(
+                Logger.LogInformation(
                     "聚水潭ERP - 请求格口成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
                     parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
 
@@ -197,7 +164,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             }
             else
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "聚水潭ERP - 请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
                     parcelId, dwsData.Barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
 
@@ -225,74 +192,29 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         catch (HttpRequestException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            Logger.LogError(ex, "聚水潭ERP - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString(),
-                ErrorMessage = ex.Message,
-                ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
-                RequestHeaders = requestHeaders,
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
-                ResponseHeaders = responseHeaders,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
-            };
+            return CreateHttpExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
+                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
         catch (TaskCanceledException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            Logger.LogError(ex, "聚水潭ERP - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = "接口访问返回超时",
-                Data = ex.ToString(),
-                ErrorMessage = "接口访问返回超时",
-                ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
-                RequestHeaders = requestHeaders,
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
-                ResponseHeaders = responseHeaders,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
-            };
+            return CreateTimeoutResponse(ex, parcelId, Parameters.Url, requestHeaders, 
+                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            Logger.LogError(ex, "聚水潭ERP - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString(),
-                ErrorMessage = ex.Message,
-                ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
-                RequestHeaders = requestHeaders,
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
-                ResponseHeaders = responseHeaders,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
-            };
+            return CreateExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
+                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
     }
 
@@ -300,7 +222,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     /// 上传图片（聚水潭ERP暂不支持，返回成功响应）
     /// Upload image to wcs API
     /// </summary>
-    public async Task<WcsApiResponse> UploadImageAsync(
+    public override async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
         string contentType = "image/jpeg",
@@ -312,7 +234,7 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug(
+            Logger.LogDebug(
                 "聚水潭ERP - 上传图片请求（当前版本不支持），条码: {Barcode}",
                 barcode);
 
@@ -340,24 +262,10 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "聚水潭ERP - 上传图片异常，条码: {Barcode}", barcode);
+            Logger.LogError(ex, "聚水潭ERP - 上传图片异常，条码: {Barcode}", barcode);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString(),
-                ErrorMessage = ex.Message,
-                ParcelId = barcode,
-                RequestUrl = "N/A",
-                RequestBody = $"[image upload request: size={imageData.Length} bytes]",
-                RequestHeaders = "{}",
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = "# Feature not supported by Jushuituan ERP"
-            };
+            return CreateExceptionResponse(ex, barcode, "N/A", "{}", null, null, 
+                requestTime, stopwatch.ElapsedMilliseconds, "# Feature not supported by Jushuituan ERP");
         }
     }
 

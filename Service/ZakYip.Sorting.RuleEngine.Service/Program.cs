@@ -245,30 +245,7 @@ try
                     client.BaseAddress = new Uri(appSettings.PostProcessingCenterApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.PostProcessingCenterApi.TimeoutSeconds);
                 })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    // Use SocketsHttpHandler for better SSL/TLS control and connection management
-                    var handler = new SocketsHttpHandler
-                    {
-                        // Enable all SSL/TLS protocols to maximize compatibility
-                        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
-                        {
-                            // Allow all SSL/TLS versions for maximum compatibility with postal API servers
-                            EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
-                                                 System.Security.Authentication.SslProtocols.Tls13,
-                            // Bypass certificate validation (as configured in original code)
-                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
-                        },
-                        // Set connection lifetime to avoid connection reuse issues
-                        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-                        // Limit connection idle time to prevent stale connections
-                        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-                        // Disable HTTP/2 to ensure HTTP/1.1 is used for better SOAP compatibility
-                        // Some SOAP servers may not support HTTP/2 properly
-                        MaxConnectionsPerServer = 10
-                    };
-                    return handler;
-                });
+                .ConfigurePrimaryHttpMessageHandler(() => HttpClientConfigurationHelper.CreatePostalApiHandler());
 
                 // 注册邮政分揽投机构API适配器
                 services.AddHttpClient<PostCollectionApiClient>((sp, client) =>
@@ -276,30 +253,7 @@ try
                     client.BaseAddress = new Uri(appSettings.PostCollectionApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.PostCollectionApi.TimeoutSeconds);
                 })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    // Use SocketsHttpHandler for better SSL/TLS control and connection management
-                    var handler = new SocketsHttpHandler
-                    {
-                        // Enable all SSL/TLS protocols to maximize compatibility
-                        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
-                        {
-                            // Allow all SSL/TLS versions for maximum compatibility with postal API servers
-                            EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
-                                                 System.Security.Authentication.SslProtocols.Tls13,
-                            // Bypass certificate validation (as configured in original code)
-                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
-                        },
-                        // Set connection lifetime to avoid connection reuse issues
-                        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-                        // Limit connection idle time to prevent stale connections
-                        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-                        // Disable HTTP/2 to ensure HTTP/1.1 is used for better SOAP compatibility
-                        // Some SOAP servers may not support HTTP/2 properly
-                        MaxConnectionsPerServer = 10
-                    };
-                    return handler;
-                });
+                .ConfigurePrimaryHttpMessageHandler(() => HttpClientConfigurationHelper.CreatePostalApiHandler());
 
                 // 注册自动应答模式服务
                 // Register auto-response mode service
@@ -760,20 +714,8 @@ static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string conn
     
     options.UseMySql(builder.ConnectionString, serverVersion);
     
-    // 生产环境安全配置：禁止敏感数据日志和详细错误
-    // 仅在DEBUG模式下启用详细错误，帮助开发调试
-#if DEBUG
-    options.EnableDetailedErrors();
-    options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
-#else
-    // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
-    options.EnableSensitiveDataLogging(false);
-#endif
-    
-    // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
-    options.LogTo(
-        message => System.Diagnostics.Debug.WriteLine(message),
-        Microsoft.Extensions.Logging.LogLevel.Warning);
+    // 配置安全日志选项 / Configure secure logging options
+    DatabaseConfigurationHelper.ConfigureSecureLogging(options);
 }
 
 // <summary>
@@ -791,19 +733,8 @@ static void ConfigureSqliteLogging(IServiceCollection services, AppSettings appS
     {
         options.UseSqlite(appSettings.Sqlite.ConnectionString);
         
-        // 生产环境安全配置：禁止敏感数据日志和详细错误
-#if DEBUG
-        options.EnableDetailedErrors();
-        options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
-#else
-        // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
-        options.EnableSensitiveDataLogging(false);
-#endif
-        
-        // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
-        options.LogTo(
-            message => System.Diagnostics.Debug.WriteLine(message),
-            Microsoft.Extensions.Logging.LogLevel.Warning);
+        // 配置安全日志选项 / Configure secure logging options
+        DatabaseConfigurationHelper.ConfigureSecureLogging(options);
     });
     
     services.AddScoped<ILogRepository, SqliteLogRepository>();
@@ -954,5 +885,69 @@ static void InitializeDatabases(IServiceProvider services, AppSettings appSettin
         {
             logger.Error(ex, "SQLite数据库迁移失败: {Message}", ex.Message);
         }
+    }
+}
+
+/// <summary>
+/// HTTP客户端配置辅助类 - 提取重复的HTTP处理器配置
+/// HTTP Client Configuration Helper - Extracts duplicate HTTP handler configuration
+/// </summary>
+file static class HttpClientConfigurationHelper
+{
+    /// <summary>
+    /// 创建配置好的SocketsHttpHandler，用于邮政API等SOAP服务
+    /// Creates a configured SocketsHttpHandler for postal APIs and other SOAP services
+    /// </summary>
+    public static SocketsHttpHandler CreatePostalApiHandler()
+    {
+        return new SocketsHttpHandler
+        {
+            // Enable all SSL/TLS protocols to maximize compatibility
+            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            {
+                // Allow all SSL/TLS versions for maximum compatibility with postal API servers
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                                     System.Security.Authentication.SslProtocols.Tls13,
+                // Bypass certificate validation (as configured in original code)
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+            },
+            // Set connection lifetime to avoid connection reuse issues
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            // Limit connection idle time to prevent stale connections
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            // Disable HTTP/2 to ensure HTTP/1.1 is used for better SOAP compatibility
+            // Some SOAP servers may not support HTTP/2 properly
+            MaxConnectionsPerServer = 10
+        };
+    }
+}
+
+/// <summary>
+/// 数据库配置辅助类 - 提取重复的数据库日志配置
+/// Database Configuration Helper - Extracts duplicate database logging configuration
+/// </summary>
+file static class DatabaseConfigurationHelper
+{
+    /// <summary>
+    /// 配置数据库上下文的安全日志选项
+    /// Configure secure logging options for database context
+    /// </summary>
+    /// <param name="options">数据库上下文选项 / Database context options</param>
+    public static void ConfigureSecureLogging(DbContextOptionsBuilder options)
+    {
+        // 生产环境安全配置：禁止敏感数据日志和详细错误
+        // 仅在DEBUG模式下启用详细错误，帮助开发调试
+#if DEBUG
+        options.EnableDetailedErrors();
+        options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
+#else
+        // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
+        options.EnableSensitiveDataLogging(false);
+#endif
+        
+        // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
+        options.LogTo(
+            message => System.Diagnostics.Debug.WriteLine(message),
+            Microsoft.Extensions.Logging.LogLevel.Warning);
     }
 }

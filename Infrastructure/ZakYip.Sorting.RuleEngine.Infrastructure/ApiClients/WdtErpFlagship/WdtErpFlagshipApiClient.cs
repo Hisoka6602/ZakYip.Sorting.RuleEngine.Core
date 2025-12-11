@@ -17,11 +17,12 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
 /// WDT (Wang Dian Tong) ERP Flagship API client implementation
 /// 参考: https://gist.github.com/Hisoka6602/7d6a8ab67247306ae51ebe7a865cdaee
 /// </summary>
-public class WdtErpFlagshipApiClient : IWcsApiAdapter
+public class WdtErpFlagshipApiClient : BaseErpApiClient
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<WdtErpFlagshipApiClient> _logger;
     public WdtErpFlagshipApiParameters Parameters { get; set; }
+
+    protected override string ClientTypeName => "旺店通ERP旗舰版";
+    protected override string FeatureNotSupportedText => "WDT ERP Flagship";
 
     public WdtErpFlagshipApiClient(
         HttpClient httpClient,
@@ -29,9 +30,8 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         string key = "",
         string appsecret = "",
         string sid = "")
+        : base(httpClient, logger)
     {
-        _httpClient = httpClient;
-        _logger = logger;
         Parameters = new WdtErpFlagshipApiParameters
         {
             Key = key,
@@ -40,46 +40,14 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         };
     }
 
-    /// <summary>
-    /// 扫描包裹（旺店通ERP旗舰版不支持此功能）
-    /// Scan parcel - Not supported in WDT ERP Flagship
-    /// </summary>
-    public async Task<WcsApiResponse> ScanParcelAsync(
-        string barcode,
-        CancellationToken cancellationToken = default)
-    {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        var requestTime = DateTime.Now;
-        
-        _logger.LogWarning("旺店通ERP旗舰版不支持扫描包裹功能，条码: {Barcode}", barcode);
-        
-        await Task.CompletedTask;
-        stopwatch.Stop();
-        
-        return new WcsApiResponse
-        {
-            Success = true,
-            Code = ApiConstants.HttpStatusCodes.Success,
-            Message = "旺店通ERP旗舰版不支持扫描包裹功能",
-            Data = "{\"info\":\"Feature not supported\"}",
-            ParcelId = barcode,
-            RequestUrl = "N/A",
-            RequestBody = "N/A",
-            RequestHeaders = "{}",
-            RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
-            DurationMs = stopwatch.ElapsedMilliseconds,
-            FormattedCurl = "# Feature not supported by WDT ERP Flagship"
-        };
-    }
+
 
     /// <summary>
     /// 请求格口（上传称重数据）
     /// Request a chute/gate number for the parcel
     /// 对应参考代码中的 UploadData 方法
     /// </summary>
-    public async Task<WcsApiResponse> RequestChuteAsync(
+    public override async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
         DwsData dwsData,
         OcrData? ocrData = null,
@@ -97,7 +65,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug("WDT ERP Flagship - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
+            Logger.LogDebug("WDT ERP Flagship - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
             // 重量保留3位小数
             var roundedWeight = Math.Round(Convert.ToDecimal(dwsData.Weight), 3);
@@ -171,7 +139,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             var param = string.Join("&", dictionary.OrderBy(o => o.Key).Select(s => $"{s.Key}={s.Value}"));
             var requestUrl = $"{Parameters.Url}?{param}";
 
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
+            HttpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
 
             // 准备请求体
             var dataStream = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(requestBody)));
@@ -190,7 +158,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 JsonConvert.SerializeObject(requestBody));
             requestHeaders = ApiRequestHelper.FormatHeaders(reqHeaders);
 
-            response = await _httpClient.PostAsync(requestUrl, content, cancellationToken);
+            response = await HttpClient.PostAsync(requestUrl, content, cancellationToken);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             responseContent = Regex.Unescape(responseContent);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
@@ -223,7 +191,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
 
             if (response.IsSuccessStatusCode && isSuccess)
             {
-                _logger.LogInformation(
+                Logger.LogInformation(
                     "WDT ERP Flagship - 上传称重数据成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
                     parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
 
@@ -248,7 +216,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             }
             else
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "WDT ERP Flagship - 请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 错误: {Error}, 耗时: {Duration}ms",
                     parcelId, dwsData.Barcode, response.StatusCode, exceptionMsg, stopwatch.ElapsedMilliseconds);
 
@@ -276,110 +244,29 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         catch (HttpRequestException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "WDT ERP Flagship - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            Logger.LogError(ex, "WDT ERP Flagship - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = "接口访问异常",
-                Data = ex.ToString(),
-                ErrorMessage = ex.Message,
-                ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
-                RequestHeaders = requestHeaders,
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
-                ResponseHeaders = responseHeaders,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
-            };
+            return CreateHttpExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
+                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
         catch (TaskCanceledException ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "WDT ERP Flagship - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            Logger.LogError(ex, "WDT ERP Flagship - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = "接口访问返回超时",
-                Data = ex.ToString(),
-                ErrorMessage = "接口访问返回超时",
-                ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
-                RequestHeaders = requestHeaders,
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
-                ResponseHeaders = responseHeaders,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
-            };
+            return CreateTimeoutResponse(ex, parcelId, Parameters.Url, requestHeaders, 
+                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "WDT ERP Flagship - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            Logger.LogError(ex, "WDT ERP Flagship - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
-            return new WcsApiResponse
-            {
-                Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
-                Message = ex.Message,
-                Data = ex.ToString(),
-                ErrorMessage = ex.Message,
-                ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
-                RequestHeaders = requestHeaders,
-                RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
-                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
-                ResponseHeaders = responseHeaders,
-                DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
-            };
+            return CreateExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
+                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
-    }
-
-    /// <summary>
-    /// 上传图片（旺店通ERP旗舰版不支持此功能）
-    /// Upload image - Not supported in WDT ERP Flagship
-    /// </summary>
-    public async Task<WcsApiResponse> UploadImageAsync(
-        string barcode,
-        byte[] imageData,
-        string contentType = "image/jpeg",
-        CancellationToken cancellationToken = default)
-    {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        var requestTime = DateTime.Now;
-        
-        _logger.LogWarning("旺店通ERP旗舰版不支持上传图片功能，条码: {Barcode}", barcode);
-        
-        await Task.CompletedTask;
-        stopwatch.Stop();
-        
-        return new WcsApiResponse
-        {
-            Success = true,
-            Code = ApiConstants.HttpStatusCodes.Success,
-            Message = "旺店通ERP旗舰版不支持上传图片功能",
-            Data = "{\"info\":\"Feature not supported\"}",
-            ParcelId = barcode,
-            RequestUrl = "N/A",
-            RequestBody = "N/A",
-            RequestHeaders = "{}",
-            RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
-            DurationMs = stopwatch.ElapsedMilliseconds,
-            FormattedCurl = "# Feature not supported by WDT ERP Flagship"
-        };
     }
 }

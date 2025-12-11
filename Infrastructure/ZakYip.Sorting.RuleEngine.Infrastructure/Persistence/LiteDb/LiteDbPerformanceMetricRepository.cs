@@ -52,14 +52,7 @@ public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
         string? operationName = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _collection.Query()
-            .Where(m => m.RecordedAt >= startTime && m.RecordedAt <= endTime);
-
-        if (!string.IsNullOrEmpty(operationName))
-        {
-            query = query.Where(m => m.OperationName == operationName);
-        }
-
+        var query = BuildTimeRangeQuery(startTime, endTime, operationName);
         var metrics = query.ToEnumerable();
         return Task.FromResult(metrics);
     }
@@ -73,14 +66,7 @@ public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
         string? operationName = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _collection.Query()
-            .Where(m => m.RecordedAt >= startTime && m.RecordedAt <= endTime);
-
-        if (!string.IsNullOrEmpty(operationName))
-        {
-            query = query.Where(m => m.OperationName == operationName);
-        }
-
+        var query = BuildTimeRangeQuery(startTime, endTime, operationName);
         var metrics = query.ToList();
 
         if (!metrics.Any())
@@ -129,5 +115,25 @@ public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
         index = Math.Max(0, Math.Min(sortedValues.Count - 1, index));
         
         return sortedValues[index];
+    }
+
+    /// <summary>
+    /// 构建时间范围查询
+    /// Build time range query with optional operation name filter
+    /// </summary>
+    private ILiteQueryable<PerformanceMetric> BuildTimeRangeQuery(
+        DateTime startTime,
+        DateTime endTime,
+        string? operationName = null)
+    {
+        var query = _collection.Query()
+            .Where(m => m.RecordedAt >= startTime && m.RecordedAt <= endTime);
+
+        if (!string.IsNullOrEmpty(operationName))
+        {
+            query = query.Where(m => m.OperationName == operationName);
+        }
+
+        return query;
     }
 }
