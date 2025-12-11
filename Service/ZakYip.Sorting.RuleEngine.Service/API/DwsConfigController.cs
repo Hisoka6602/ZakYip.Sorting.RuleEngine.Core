@@ -50,7 +50,7 @@ public class DwsConfigController : ControllerBase
     {
         try
         {
-            var config = await _repository.GetByIdAsync(DwsConfig.SINGLETON_ID);
+            var config = await _repository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
             
             if (config == null)
             {
@@ -93,18 +93,18 @@ public class DwsConfigController : ControllerBase
             var config = request.ToEntity();
             
             // 检查现有配置
-            var existing = await _repository.GetByIdAsync(DwsConfig.SINGLETON_ID);
+            var existing = await _repository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
             bool success;
             
             if (existing == null)
             {
-                success = await _repository.AddAsync(config);
+                success = await _repository.AddAsync(config).ConfigureAwait(false);
             }
             else
             {
                 // 保留原创建时间
                 config = config with { CreatedAt = existing.CreatedAt };
-                success = await _repository.UpdateAsync(config);
+                success = await _repository.UpdateAsync(config).ConfigureAwait(false);
             }
             
             if (success)
@@ -114,7 +114,7 @@ public class DwsConfigController : ControllerBase
                 // 触发配置热更新
                 try
                 {
-                    await _reloadService.ReloadDwsConfigAsync();
+                    await _reloadService.ReloadDwsConfigAsync().ConfigureAwait(false);
                     _logger.LogInformation("DWS配置热更新已触发");
                 }
                 catch (Exception reloadEx)

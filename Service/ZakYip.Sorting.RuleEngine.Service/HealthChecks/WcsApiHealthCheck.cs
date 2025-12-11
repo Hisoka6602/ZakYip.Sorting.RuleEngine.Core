@@ -39,7 +39,7 @@ public class WcsApiHealthCheck : IHealthCheck
 
             // 尝试发送HEAD请求检查可用性
             using var request = new HttpRequestMessage(HttpMethod.Head, apiBaseUrl);
-            using var response = await client.SendAsync(request, cts.Token);
+            using var response = await client.SendAsync(request, cts.Token).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
             {

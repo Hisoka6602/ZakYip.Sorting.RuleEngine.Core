@@ -61,7 +61,7 @@ public class DataAnalysisController : ControllerBase
             _logger.LogInformation("获取格口使用热力图: {StartDate} - {EndDate}", 
                 query.StartDate, query.EndDate);
 
-            var heatmapData = await _dataAnalysisService.GetChuteHeatmapAsync(query, cancellationToken);
+            var heatmapData = await _dataAnalysisService.GetChuteHeatmapAsync(query, cancellationToken).ConfigureAwait(false);
             return Ok(heatmapData);
         }
         catch (Exception ex)

@@ -46,7 +46,7 @@ public class DwsDataTemplateController : ControllerBase
     {
         try
         {
-            var template = await _repository.GetByIdAsync(DwsDataTemplate.SINGLETON_ID);
+            var template = await _repository.GetByIdAsync(DwsDataTemplate.SINGLETON_ID).ConfigureAwait(false);
             
             if (template == null)
             {
@@ -89,18 +89,18 @@ public class DwsDataTemplateController : ControllerBase
             var template = request.ToEntity();
             
             // 检查现有模板
-            var existing = await _repository.GetByIdAsync(DwsDataTemplate.SINGLETON_ID);
+            var existing = await _repository.GetByIdAsync(DwsDataTemplate.SINGLETON_ID).ConfigureAwait(false);
             bool success;
             
             if (existing == null)
             {
-                success = await _repository.AddAsync(template);
+                success = await _repository.AddAsync(template).ConfigureAwait(false);
             }
             else
             {
                 // 保留原创建时间
                 template = template with { CreatedAt = existing.CreatedAt };
-                success = await _repository.UpdateAsync(template);
+                success = await _repository.UpdateAsync(template).ConfigureAwait(false);
             }
             
             if (success)

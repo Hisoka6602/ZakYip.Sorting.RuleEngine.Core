@@ -68,7 +68,7 @@ public class ImageController : ControllerBase
             var updatedCount = await _imagePathService.BulkUpdateImagePathsAsync(
                 request.OldPrefix, 
                 request.NewPrefix, 
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             return Ok(new BulkUpdateImagePathsResponse
             {

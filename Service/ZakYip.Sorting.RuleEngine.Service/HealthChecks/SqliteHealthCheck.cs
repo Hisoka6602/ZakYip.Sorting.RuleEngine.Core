@@ -27,7 +27,7 @@ public class SqliteHealthCheck : IHealthCheck
             }
 
             // 尝试执行简单查询
-            await _context.Database.CanConnectAsync(cancellationToken);
+            await _context.Database.CanConnectAsync(cancellationToken).ConfigureAwait(false);
             
             return HealthCheckResult.Healthy("SQLite数据库连接正常");
         }

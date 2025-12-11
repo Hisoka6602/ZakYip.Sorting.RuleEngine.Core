@@ -70,7 +70,7 @@ public class SortingMachineController : ControllerBase
                 request.ParcelId,
                 request.CartNumber,
                 request.Barcode,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (success)
             {
@@ -160,7 +160,7 @@ public class SortingMachineController : ControllerBase
             var success = await _orchestrationService.ReceiveDwsDataAsync(
                 request.ParcelId,
                 dwsData,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (success)
             {

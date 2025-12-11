@@ -27,7 +27,7 @@ public class RulesConfigHealthCheck : IHealthCheck
         try
         {
             // Fetch all rules once and filter in memory for efficiency
-            var allRules = await _ruleRepository.GetAllAsync(cancellationToken);
+            var allRules = await _ruleRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
             var rules = allRules.Where(r => r.IsEnabled).ToList();
             var enabledCount = rules.Count;
             var totalCount = allRules.Count();

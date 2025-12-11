@@ -34,6 +34,7 @@ This document records identified technical debt in the project. Before opening a
 | 重复代码 Duplicate Code | 62 处 | 🟢 低 Low | ✅ 已超越目标 |
 | 代码重复率 Duplication Rate | 3.28% | 🟢 低 Low (✅ 低于 CI 阈值 5%，远超 SonarQube 目标 3%) | 已超越目标 |
 | 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
+| **编译警告 Compiler Warnings** | **3051 个** | **🟡 中 Medium** | **🔄 进行中 (分4个PR)** |
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率已远超 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate far exceeds SonarQube target!
@@ -323,6 +324,91 @@ This document should be reviewed quarterly to assess:
 
 ---
 
+## 📝 新增技术债务 / New Technical Debt
+
+### 2025-12-11: 编译警告系统性修复 / Compiler Warnings Systematic Resolution
+
+**类别 / Category**: 代码质量 / Code Quality
+**严重程度 / Severity**: 🟡 中 Medium
+**状态 / Status**: 🔄 进行中 / In Progress
+
+#### 背景 / Background
+
+项目存在 3102 个编译警告（主要是代码分析警告），需要系统性修复。这些警告虽不影响功能，但降低了代码质量标准和可维护性。
+
+The project has 3102 compiler warnings (mainly code analysis warnings) that need systematic resolution. While these warnings don't affect functionality, they lower code quality standards and maintainability.
+
+#### 警告分布 / Warning Distribution
+
+| 警告类型 / Warning Type | 数量 / Count | 说明 / Description |
+|------------------------|--------------|-------------------|
+| CA2007 | ~1200 | ConfigureAwait - 需在所有 await 添加 .ConfigureAwait(false) |
+| CA1848 | ~1350 | LoggerMessage - 需转换为 LoggerMessage 模式 |
+| CA1707 | ~500 | 测试方法命名 - 需移除下划线 |
+| CA1031 | 392 | 通用异常类型 - 需使用具体异常 |
+| CA1062 | 272 | 参数验证 - 需添加空值检查 |
+| 其他 | ~388 | 20+ 其他类型的低频警告 |
+| **总计** | **3102** | |
+
+#### 解决方案 / Solution
+
+由于工作量巨大（预计 20-27 小时），将分为 **4 个独立 PR** 完成：
+
+Due to the massive scope (estimated 20-27 hours), this will be completed in **4 separate PRs**:
+
+1. **PR #1: CA2007 ConfigureAwait** (当前 PR / Current PR)
+   - 状态: 🔄 进行中 / In Progress
+   - 进度: 51/1200 完成 (1.64%)
+   - 预计: 6-8 小时
+   - 范围: 修复所有 await 语句添加 ConfigureAwait(false)
+
+2. **PR #2: CA1848 LoggerMessage 模式**
+   - 状态: ⏳ 待开始 / Pending
+   - 预计: 8-10 小时
+   - 范围: 创建 LoggerMessage 扩展并转换所有日志调用
+
+3. **PR #3: CA1707 测试方法命名**
+   - 状态: ⏳ 待开始 / Pending
+   - 预计: 2-3 小时
+   - 范围: 批量重命名测试方法移除下划线
+
+4. **PR #4: 其他警告类型**
+   - 状态: ⏳ 待开始 / Pending
+   - 预计: 4-6 小时
+   - 范围: CA1031, CA1062, CA1861, CA1305, CA2017, CA1822 等
+
+#### 详细计划 / Detailed Plan
+
+参见 `WARNINGS_RESOLUTION_PLAN.md` 文档。
+
+See `WARNINGS_RESOLUTION_PLAN.md` document for details.
+
+#### 预期收益 / Expected Benefits
+
+- ✅ 提升代码质量和可维护性 / Improve code quality and maintainability
+- ✅ 遵循 .NET 最佳实践 / Follow .NET best practices
+- ✅ 减少潜在的异步死锁风险 / Reduce potential async deadlock risks
+- ✅ 改善日志性能 / Improve logging performance
+- ✅ 增强参数验证 / Enhance parameter validation
+
+#### 里程碑 / Milestones
+
+- [ ] 2025-12 Week 3: PR #1 (CA2007) 完成
+- [ ] 2025-12 Week 4: PR #2 (CA1848) 完成
+- [ ] 2026-01 Week 1: PR #3 (CA1707) 完成
+- [ ] 2026-01 Week 2: PR #4 (其他) 完成
+
+#### 负责人 / Owner
+
+GitHub Copilot Agent + Project Maintainers
+
+#### 相关链接 / Related Links
+
+- PR #1: (当前 PR / This PR)
+- 详细计划: `WARNINGS_RESOLUTION_PLAN.md`
+
+---
+
 ## 📞 联系方式 / Contact
 
 如有关于技术债务的问题，请联系项目负责人。
@@ -334,3 +420,4 @@ For questions about technical debt, please contact the project lead.
 *更新者 / Updated By: GitHub Copilot Agent*
 *当前代码重复率 / Current Duplication Rate: 3.28% (62 clones) - 远超目标！/ Far exceeds target!*
 *当前影分身数量 / Current Shadow Clones: 0 - 全部消除！/ All eliminated!*
+*编译警告 / Compiler Warnings: 3051 个待修复，分4个PR完成 / 3051 remaining, split into 4 PRs*

@@ -67,7 +67,7 @@ public class ParcelController : ControllerBase
         {
             _logger.LogInformation("收到包裹处理请求: {ParcelId}", request.ParcelId);
 
-            var response = await _parcelProcessingService.ProcessParcelAsync(request, cancellationToken);
+            var response = await _parcelProcessingService.ProcessParcelAsync(request, cancellationToken).ConfigureAwait(false);
 
             if (response.Success)
             {
@@ -143,7 +143,7 @@ public class ParcelController : ControllerBase
         {
             _logger.LogInformation("收到批量包裹处理请求，数量: {Count}", requests.Count());
 
-            var responses = await _parcelProcessingService.ProcessParcelsAsync(requests, cancellationToken);
+            var responses = await _parcelProcessingService.ProcessParcelsAsync(requests, cancellationToken).ConfigureAwait(false);
 
             return Ok(responses);
         }

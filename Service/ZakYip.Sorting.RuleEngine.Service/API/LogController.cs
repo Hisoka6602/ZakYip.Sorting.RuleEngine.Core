@@ -89,12 +89,12 @@ public class LogController : ControllerBase
             if (!string.IsNullOrWhiteSpace(parcelId))
                 logs = logs.Where(x => x.ParcelId == parcelId);
 
-            var total = await logs.CountAsync(cancellationToken);
+            var total = await logs.CountAsync(cancellationToken).ConfigureAwait(false);
             var entities = await logs
                 .OrderByDescending(x => x.MatchingTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             var dtos = entities.Select(e => new MatchingLogResponseDto
             {
@@ -173,12 +173,12 @@ public class LogController : ControllerBase
             if (endTime.HasValue)
                 logs = logs.Where(x => x.CommunicationTime <= endTime.Value);
 
-            var total = await logs.CountAsync(cancellationToken);
+            var total = await logs.CountAsync(cancellationToken).ConfigureAwait(false);
             var data = await logs
                 .OrderByDescending(x => x.CommunicationTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             return Ok(PagedResponse<DwsCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
@@ -242,12 +242,12 @@ public class LogController : ControllerBase
             if (endTime.HasValue)
                 logs = logs.Where(x => x.RequestTime <= endTime.Value);
 
-            var total = await logs.CountAsync(cancellationToken);
+            var total = await logs.CountAsync(cancellationToken).ConfigureAwait(false);
             var data = await logs
                 .OrderByDescending(x => x.RequestTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             return Ok(PagedResponse<ApiCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
@@ -311,12 +311,12 @@ public class LogController : ControllerBase
             if (endTime.HasValue)
                 logs = logs.Where(x => x.CommunicationTime <= endTime.Value);
 
-            var total = await logs.CountAsync(cancellationToken);
+            var total = await logs.CountAsync(cancellationToken).ConfigureAwait(false);
             var data = await logs
                 .OrderByDescending(x => x.CommunicationTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             return Ok(PagedResponse<SorterCommunicationLog>.SuccessResult(data, total, page, pageSize));
         }
@@ -355,7 +355,7 @@ public class LogController : ControllerBase
             var data = await logs
                 .OrderByDescending(x => x.MatchingTime)
                 .Take(10000) // 限制最多导出10000条
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             var csv = new StringBuilder();
             csv.AppendLine("Id,ParcelId,MatchedRuleId,ChuteId,MatchingTime,IsSuccess,ErrorMessage");

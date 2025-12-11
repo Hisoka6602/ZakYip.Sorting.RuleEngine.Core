@@ -50,7 +50,7 @@ public class MonitoringController : ControllerBase
         try
         {
             _logger.LogDebug("获取实时监控数据");
-            var data = await _monitoringService.GetRealtimeMonitoringDataAsync(cancellationToken);
+            var data = await _monitoringService.GetRealtimeMonitoringDataAsync(cancellationToken).ConfigureAwait(false);
             return Ok(data);
         }
         catch (Exception ex)
@@ -83,7 +83,7 @@ public class MonitoringController : ControllerBase
         try
         {
             _logger.LogDebug("获取活跃告警列表");
-            var alerts = await _monitoringService.GetActiveAlertsAsync(cancellationToken);
+            var alerts = await _monitoringService.GetActiveAlertsAsync(cancellationToken).ConfigureAwait(false);
             return Ok(alerts);
         }
         catch (Exception ex)
@@ -128,7 +128,7 @@ public class MonitoringController : ControllerBase
 
             _logger.LogInformation("获取告警历史: {StartTime} - {EndTime}", startTime, endTime);
             var alerts = await _monitoringService.GetAlertHistoryAsync(
-                startTime, endTime, cancellationToken);
+                startTime, endTime, cancellationToken).ConfigureAwait(false);
             
             return Ok(alerts);
         }
@@ -166,7 +166,7 @@ public class MonitoringController : ControllerBase
         try
         {
             _logger.LogInformation("解决告警: {AlertId}", alertId);
-            await _monitoringService.ResolveAlertAsync(alertId, cancellationToken);
+            await _monitoringService.ResolveAlertAsync(alertId, cancellationToken).ConfigureAwait(false);
             return Ok(new { message = "告警已解决", alertId });
         }
         catch (Exception ex)
@@ -199,7 +199,7 @@ public class MonitoringController : ControllerBase
         try
         {
             _logger.LogInformation("手动触发告警检查");
-            await _monitoringService.CheckAndGenerateAlertsAsync(cancellationToken);
+            await _monitoringService.CheckAndGenerateAlertsAsync(cancellationToken).ConfigureAwait(false);
             return Ok(new { message = "告警检查已完成" });
         }
         catch (Exception ex)
