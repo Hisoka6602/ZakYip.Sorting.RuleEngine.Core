@@ -204,7 +204,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 {
                     var jObject = JObject.Parse(responseContent);
                     // 检查status字段，值为"0"表示成功
-                    if (jObject["status"]?.ToString()?.ToUpper()?.Equals("0", StringComparison.Ordinal) == true)
+                    if (jObject["status"]?.ToString()?.Equals("0") == true)
                     {
                         isSuccess = true;
                     }

@@ -1,5 +1,4 @@
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
-using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Mappers;
@@ -10,27 +9,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.Mappers;
 /// </summary>
 public static class WcsApiConfigMapper
 {
-    /// <summary>
-    /// 转换为响应DTO（单例模式，不包含ID）
-    /// Convert to response DTO (Singleton pattern, no ID)
-    /// </summary>
-    public static WcsApiConfigResponseDto ToWcsApiConfigResponseDto(this WcsApiConfig entity)
-    {
-        return new WcsApiConfigResponseDto
-        {
-            Name = entity.ApiName,
-            BaseUrl = entity.BaseUrl,
-            TimeoutSeconds = entity.TimeoutSeconds,
-            ApiKey = entity.ApiKey != null ? "******" : null, // 脱敏处理
-            CustomHeaders = entity.CustomHeaders,
-            HttpMethod = entity.HttpMethod,
-            IsEnabled = entity.IsEnabled,
-            Priority = entity.Priority,
-            CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt
-        };
-    }
-
     /// <summary>
     /// 从更新请求创建实体
     /// Create entity from update request
@@ -54,14 +32,5 @@ public static class WcsApiConfigMapper
             CreatedAt = now,
             UpdatedAt = now
         };
-    }
-
-    /// <summary>
-    /// 批量转换为响应DTO
-    /// Batch convert to response DTO
-    /// </summary>
-    public static IEnumerable<WcsApiConfigResponseDto> ToWcsApiConfigResponseDtos(this IEnumerable<WcsApiConfig> entities)
-    {
-        return entities.Select(ToWcsApiConfigResponseDto);
     }
 }

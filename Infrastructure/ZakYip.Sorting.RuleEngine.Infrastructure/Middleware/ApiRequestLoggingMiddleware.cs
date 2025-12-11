@@ -42,10 +42,10 @@ public class ApiRequestLoggingMiddleware
         SqliteLogDbContext? sqliteContext)
     {
         // 跳过健康检查、Swagger和SignalR端点的日志记录
-        var path = context.Request.Path.Value?.ToLower() ?? "";
-        if (path.Contains("/health", StringComparison.Ordinal) || 
-            path.Contains("/swagger", StringComparison.Ordinal) || 
-            path.Contains("/hubs/", StringComparison.Ordinal))
+        var path = context.Request.Path.Value ?? "";
+        if (path.Contains("/health", StringComparison.OrdinalIgnoreCase) || 
+            path.Contains("/swagger", StringComparison.OrdinalIgnoreCase) || 
+            path.Contains("/hubs/", StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;
