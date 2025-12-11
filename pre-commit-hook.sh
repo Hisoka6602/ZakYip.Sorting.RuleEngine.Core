@@ -12,6 +12,15 @@
 
 set -e
 
+# 清理函数 / Cleanup function
+cleanup() {
+    # 可以在这里添加清理逻辑 / Add cleanup logic here if needed
+    :
+}
+
+# 设置错误处理 / Set error handling
+trap cleanup EXIT
+
 echo "🔍 运行 Git Pre-commit 代码质量检查 / Running Git Pre-commit Code Quality Checks..."
 echo "=========================================="
 echo ""
@@ -23,11 +32,28 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 检查 jscpd 是否安装 / Check if jscpd is installed
+# 注意：为了安全，建议在项目中使用本地安装的 jscpd（package.json）
+# Note: For security, it's recommended to use locally installed jscpd (package.json)
 if ! command -v jscpd &> /dev/null; then
-    echo -e "${YELLOW}⚠️  jscpd 未安装，正在安装... / jscpd not installed, installing...${NC}"
-    npm install -g jscpd
+    echo -e "${YELLOW}⚠️  jscpd 未安装 / jscpd not installed${NC}"
+    echo -e "${YELLOW}⚠️  推荐在项目中添加 jscpd 为开发依赖 / Recommended to add jscpd as dev dependency${NC}"
+    echo ""
+    echo "📝 建议执行 / Suggested command:"
+    echo "   npm install --save-dev jscpd"
+    echo ""
+    echo "⚠️  临时安装全局版本可能存在安全风险 / Global installation may pose security risks"
+    echo "   是否继续安装全局版本？/ Continue with global installation? (y/N)"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo -e "${RED}❌ 已取消提交 / Commit cancelled${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}⚠️  正在安装全局 jscpd... / Installing global jscpd...${NC}"
+    npm install -g jscpd@^4.0.0
     if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ jscpd 安装失败，请手动安装: npm install -g jscpd${NC}"
+        echo -e "${RED}❌ jscpd 安装失败 / jscpd installation failed${NC}"
+        echo -e "${RED}请手动安装: npm install -g jscpd / Please install manually: npm install -g jscpd${NC}"
         exit 1
     fi
 fi
@@ -43,16 +69,27 @@ JSCPD_REPORT=$(jscpd . --pattern "**/*.cs" \
     --min-tokens 50 2>&1 || true)
 
 # 提取重复率 / Extract duplication rate
-DUPLICATION_RATE=$(echo "$JSCPD_REPORT" | grep -oP 'Duplicated lines.*?\(\K[0-9.]+' || echo "0")
+DUPLICATION_RATE=$(echo "$JSCPD_REPORT" | grep -oP 'Duplicated lines.*?\(\K[0-9.]+' || echo "")
 THRESHOLD=5
+
+# 验证重复率是否为有效数字 / Validate duplication rate is a valid number
+if ! [[ "$DUPLICATION_RATE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    echo -e "${RED}❌ 未能正确提取代码重复率 / Failed to extract code duplication rate${NC}"
+    echo -e "${RED}请检查 jscpd 输出格式 / Please check jscpd output format${NC}"
+    echo ""
+    echo "jscpd 输出 / jscpd output:"
+    echo "$JSCPD_REPORT"
+    exit 1
+fi
 
 echo ""
 echo "重复代码比例 / Duplication Rate: ${DUPLICATION_RATE}%"
 echo "阈值 / Threshold: ${THRESHOLD}%"
 echo ""
 
-# 使用 bc 进行浮点数比较 / Use bc for floating point comparison
+# 检查 bc 是否可用，否则使用 awk / Check if bc is available, otherwise use awk
 if command -v bc &> /dev/null; then
+    # 使用 bc 进行浮点数比较 / Use bc for floating point comparison
     if (( $(echo "$DUPLICATION_RATE > $THRESHOLD" | bc -l) )); then
         echo -e "${RED}❌ 代码重复率 ${DUPLICATION_RATE}% 超过阈值 ${THRESHOLD}%${NC}"
         echo -e "${RED}Code duplication rate ${DUPLICATION_RATE}% exceeds threshold ${THRESHOLD}%${NC}"

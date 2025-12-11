@@ -314,7 +314,13 @@ For questions or suggestions, please:
 EOF
 
 # 替换时间戳占位符 / Replace timestamp placeholder
-sed -i "s/{TIMESTAMP}/$(date '+%Y-%m-%d %H:%M:%S')/g" "$REPORT_FILE"
+# macOS (BSD sed) requires a backup extension for -i; Linux (GNU sed) does not.
+if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i .bak "s/{TIMESTAMP}/$(date '+%Y-%m-%d %H:%M:%S')/g" "$REPORT_FILE"
+    rm -f "$REPORT_FILE.bak"
+else
+    sed -i "s/{TIMESTAMP}/$(date '+%Y-%m-%d %H:%M:%S')/g" "$REPORT_FILE"
+fi
 
 echo ""
 echo "=========================================="

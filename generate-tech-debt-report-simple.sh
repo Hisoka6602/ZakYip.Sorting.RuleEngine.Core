@@ -43,7 +43,13 @@ else
 fi
 
 # Replace timestamp
-sed -i "s/{TIMESTAMP}/$(date '+%Y-%m-%d %H:%M:%S')/g" "$REPORT_FILE"
+# macOS (BSD sed) requires a backup extension for -i; Linux (GNU sed) does not.
+if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i .bak "s/{TIMESTAMP}/$(date '+%Y-%m-%d %H:%M:%S')/g" "$REPORT_FILE"
+    rm -f "$REPORT_FILE.bak"
+else
+    sed -i "s/{TIMESTAMP}/$(date '+%Y-%m-%d %H:%M:%S')/g" "$REPORT_FILE"
+fi
 
 # Create symlink to latest
 ln -sf "tech-debt-report-$TIMESTAMP.md" "$REPORT_DIR/latest.md"

@@ -139,9 +139,15 @@ public class ApiClientTestController : ControllerBase
     }
 
     /// <summary>
-    /// 通用API客户端测试逻辑
-    /// Generic API client test logic
+    /// 通用API客户端测试逻辑 / Generic API client test logic
     /// </summary>
+    /// <typeparam name="T">API客户端类型 / API client type</typeparam>
+    /// <param name="apiClient">API客户端实例 / API client instance</param>
+    /// <param name="clientName">客户端名称（用于日志）/ Client name (for logging)</param>
+    /// <param name="displayName">显示名称（用于错误消息）/ Display name (for error messages)</param>
+    /// <param name="request">测试请求参数 / Test request parameters</param>
+    /// <param name="callApiFunc">调用API的委托函数 / Delegate function to call the API</param>
+    /// <returns>测试结果 / Test result</returns>
     private async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestApiClientAsync<T>(
         T? apiClient,
         string clientName,

@@ -936,19 +936,13 @@ file static class GanttChartDataItemBuilder
         foreach (var log in allLogs)
         {
             // 查找DWS日志：优先精确匹配，然后尝试模糊匹配
-            DwsCommunicationLog? dwsLog = null;
-            if (dwsLogDict.TryGetValue(log.ParcelId, out var directDwsLog))
-            {
-                dwsLog = directDwsLog;
-            }
-            else
-            {
-                // 尝试查找条码不为空且包裹ID包含该条码的DWS日志
-                dwsLog = dwsLogs
+            // Find DWS log: prefer exact match, then try fuzzy match
+            dwsLogDict.TryGetValue(log.ParcelId, out var directDwsLog);
+            DwsCommunicationLog? dwsLog = directDwsLog
+                ?? dwsLogs
                     .Where(d => d.Barcode != null && log.ParcelId.Contains(d.Barcode))
                     .OrderByDescending(d => d.CommunicationTime)
                     .FirstOrDefault();
-            }
 
             apiLogDict.TryGetValue(log.ParcelId, out var apiLog);
 
