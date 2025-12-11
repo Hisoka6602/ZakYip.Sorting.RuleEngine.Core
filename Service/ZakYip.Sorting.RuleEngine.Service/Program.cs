@@ -714,20 +714,8 @@ static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string conn
     
     options.UseMySql(builder.ConnectionString, serverVersion);
     
-    // 生产环境安全配置：禁止敏感数据日志和详细错误
-    // 仅在DEBUG模式下启用详细错误，帮助开发调试
-#if DEBUG
-    options.EnableDetailedErrors();
-    options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
-#else
-    // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
-    options.EnableSensitiveDataLogging(false);
-#endif
-    
-    // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
-    options.LogTo(
-        message => System.Diagnostics.Debug.WriteLine(message),
-        Microsoft.Extensions.Logging.LogLevel.Warning);
+    // 配置安全日志选项 / Configure secure logging options
+    DatabaseConfigurationHelper.ConfigureSecureLogging(options);
 }
 
 // <summary>
@@ -745,19 +733,8 @@ static void ConfigureSqliteLogging(IServiceCollection services, AppSettings appS
     {
         options.UseSqlite(appSettings.Sqlite.ConnectionString);
         
-        // 生产环境安全配置：禁止敏感数据日志和详细错误
-#if DEBUG
-        options.EnableDetailedErrors();
-        options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
-#else
-        // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
-        options.EnableSensitiveDataLogging(false);
-#endif
-        
-        // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
-        options.LogTo(
-            message => System.Diagnostics.Debug.WriteLine(message),
-            Microsoft.Extensions.Logging.LogLevel.Warning);
+        // 配置安全日志选项 / Configure secure logging options
+        DatabaseConfigurationHelper.ConfigureSecureLogging(options);
     });
     
     services.AddScoped<ILogRepository, SqliteLogRepository>();
@@ -942,5 +919,35 @@ file static class HttpClientConfigurationHelper
             // Some SOAP servers may not support HTTP/2 properly
             MaxConnectionsPerServer = 10
         };
+    }
+}
+
+/// <summary>
+/// 数据库配置辅助类 - 提取重复的数据库日志配置
+/// Database Configuration Helper - Extracts duplicate database logging configuration
+/// </summary>
+file static class DatabaseConfigurationHelper
+{
+    /// <summary>
+    /// 配置数据库上下文的安全日志选项
+    /// Configure secure logging options for database context
+    /// </summary>
+    /// <param name="options">数据库上下文选项 / Database context options</param>
+    public static void ConfigureSecureLogging(DbContextOptionsBuilder options)
+    {
+        // 生产环境安全配置：禁止敏感数据日志和详细错误
+        // 仅在DEBUG模式下启用详细错误，帮助开发调试
+#if DEBUG
+        options.EnableDetailedErrors();
+        options.EnableSensitiveDataLogging(); // 仅开发环境显示SQL参数
+#else
+        // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
+        options.EnableSensitiveDataLogging(false);
+#endif
+        
+        // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
+        options.LogTo(
+            message => System.Diagnostics.Debug.WriteLine(message),
+            Microsoft.Extensions.Logging.LogLevel.Warning);
     }
 }
