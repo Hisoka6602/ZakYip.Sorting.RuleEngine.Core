@@ -79,7 +79,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
+                    Code = HttpStatusCodes.Success,
                     Message = "NoRead barcode skipped",
                     Data = "NoRead barcode skipped",
                     RequestTime = requestTime,
@@ -155,7 +155,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
+                Code = HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
@@ -274,7 +274,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
             return new WcsApiResponse
             {
                 Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
+                Code = HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
@@ -325,7 +325,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
     public async Task<WcsApiResponse> UploadImageAsync(
         string barcode,
         byte[] imageData,
-        string contentType = ConfigurationDefaults.ImageFile.DefaultContentType,
+        string contentType = ImageFileDefaults.DefaultContentType,
         CancellationToken cancellationToken = default)
     {
         Logger.LogDebug("上传图片功能（{ClientType}）当前未实现，条码: {Barcode}", ClientTypeName, barcode);
@@ -335,7 +335,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
         return new WcsApiResponse
         {
             Success = true,
-            Code = ApiConstants.HttpStatusCodes.Success,
+            Code = HttpStatusCodes.Success,
             Message = $"{ClientTypeName}图片上传功能未实现",
             Data = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,

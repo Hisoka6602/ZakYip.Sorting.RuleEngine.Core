@@ -46,5 +46,5 @@ public class ChuteStatisticsQueryDto
     /// <summary>
     /// 每页数量
     /// </summary>
-    public int PageSize { get; set; } = ConfigurationDefaults.Pagination.DefaultPageSize;
+    public int PageSize { get; set; } = PaginationDefaults.DefaultPageSize;
 }

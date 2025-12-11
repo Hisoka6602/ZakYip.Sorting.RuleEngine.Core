@@ -34,7 +34,7 @@ public class ParcelProcessingService : IParcelProcessingService
         
         // 创建Stopwatch对象池以提高性能
         var policy = new DefaultPooledObjectPolicy<Stopwatch>();
-        _stopwatchPool = new DefaultObjectPool<Stopwatch>(policy, ConfigurationDefaults.ObjectPool.StopwatchPoolSize);
+        _stopwatchPool = new DefaultObjectPool<Stopwatch>(policy, ObjectPoolDefaults.StopwatchPoolSize);
     }
 
     /// <summary>

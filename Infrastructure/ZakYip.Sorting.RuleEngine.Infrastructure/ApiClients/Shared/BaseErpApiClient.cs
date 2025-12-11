@@ -61,7 +61,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
         return new WcsApiResponse
         {
             Success = true,
-            Code = ApiConstants.HttpStatusCodes.Success,
+            Code = HttpStatusCodes.Success,
             Message = $"{ClientTypeName}不支持扫描包裹功能",
             Data = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
@@ -97,7 +97,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
         return new WcsApiResponse
         {
             Success = true,
-            Code = ApiConstants.HttpStatusCodes.Success,
+            Code = HttpStatusCodes.Success,
             Message = $"{ClientTypeName}不支持上传图片功能",
             Data = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
@@ -139,7 +139,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
         return new WcsApiResponse
         {
             Success = false,
-            Code = ApiConstants.HttpStatusCodes.Error,
+            Code = HttpStatusCodes.Error,
             Message = ex.Message,
             Data = ex.ToString(),
             ErrorMessage = ex.Message,
@@ -173,7 +173,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
         return new WcsApiResponse
         {
             Success = false,
-            Code = ApiConstants.HttpStatusCodes.Error,
+            Code = HttpStatusCodes.Error,
             Message = "接口访问返回超时",
             Data = ex.ToString(),
             ErrorMessage = "接口访问返回超时",
@@ -207,7 +207,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
         return new WcsApiResponse
         {
             Success = false,
-            Code = ApiConstants.HttpStatusCodes.Error,
+            Code = HttpStatusCodes.Error,
             Message = "接口访问异常",
             Data = ex.ToString(),
             ErrorMessage = ex.Message,

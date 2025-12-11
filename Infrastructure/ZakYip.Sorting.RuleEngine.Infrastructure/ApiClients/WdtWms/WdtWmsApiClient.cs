@@ -116,7 +116,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                 return new WcsApiResponse
                 {
                     Success = false,
-                    Code = ApiConstants.HttpStatusCodes.Error,
+                    Code = HttpStatusCodes.Error,
                     Message = "包装码不能为空",
                     Data = string.Empty,
                     ErrorMessage = "包装码不能为空",
@@ -187,7 +187,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
+                    Code = HttpStatusCodes.Success,
                     Message = "查询包裹成功",
                     Data = responseContent,
                     ResponseBody = responseContent,
@@ -345,7 +345,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
+                    Code = HttpStatusCodes.Success,
                     Message = "上传图片成功",
                     Data = responseContent,
                     ResponseBody = responseContent,
@@ -396,7 +396,7 @@ public class WdtWmsApiClient : BaseErpApiClient
             return new WcsApiResponse
             {
                 Success = false,
-                Code = ApiConstants.HttpStatusCodes.Error,
+                Code = HttpStatusCodes.Error,
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
