@@ -146,7 +146,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
                 return new WcsApiResponse
                 {
                     Success = true,
-                    Code = ApiConstants.HttpStatusCodes.Success,
+                    Code = HttpStatusCodes.Success,
                     Message = "请求格口成功",
                     Data = responseContent,
                     ResponseBody = responseContent,
@@ -246,7 +246,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
             return new WcsApiResponse
             {
                 Success = true,
-                Code = ApiConstants.HttpStatusCodes.Success,
+                Code = HttpStatusCodes.Success,
                 Message = "聚水潭ERP暂不支持图片上传功能",
                 Data = "{\"info\":\"Feature not supported\"}",
                 ParcelId = barcode,
