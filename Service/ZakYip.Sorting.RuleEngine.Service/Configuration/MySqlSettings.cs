@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
+
 namespace ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 /// <summary>
@@ -16,10 +18,11 @@ public class MySqlSettings
     public string? ServerVersion { get; set; }
     
     /// <summary>
-    /// 熔断器配置
-    /// Circuit breaker configuration
+    /// 熔断器配置 / Circuit breaker configuration
+    /// 使用基础设施层的 DatabaseCircuitBreakerSettings 消除影分身
+    /// Using Infrastructure layer's DatabaseCircuitBreakerSettings to eliminate shadow clone
     /// </summary>
-    public CircuitBreakerSettings CircuitBreaker { get; set; } = new();
+    public DatabaseCircuitBreakerSettings CircuitBreaker { get; set; } = new();
     
     /// <summary>
     /// 连接池配置

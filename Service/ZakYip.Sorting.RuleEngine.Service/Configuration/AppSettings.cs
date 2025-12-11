@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
+
 namespace ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 /// <summary>
@@ -74,8 +76,9 @@ public class AppSettings
     public CacheSettings Cache { get; set; } = new();
     
     /// <summary>
-    /// 日志文件清理配置
-    /// Log file cleanup configuration
+    /// 日志文件清理配置 / Log file cleanup configuration
+    /// 使用基础设施层的 LogFileCleanupSettings 消除影分身
+    /// Using Infrastructure layer's LogFileCleanupSettings to eliminate shadow clone
     /// </summary>
     public LogFileCleanupSettings? LogFileCleanup { get; set; }
 }
