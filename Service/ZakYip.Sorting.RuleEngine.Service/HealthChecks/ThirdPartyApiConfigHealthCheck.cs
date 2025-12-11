@@ -27,7 +27,7 @@ public class ThirdPartyApiConfigHealthCheck : IHealthCheck
         try
         {
             // Fetch all configs once and filter in memory for efficiency
-            var allConfigs = await _wcsApiConfigRepository.GetAllAsync();
+            var allConfigs = await _wcsApiConfigRepository.GetAllAsync().ConfigureAwait(false);
             var configs = allConfigs.Where(c => c.IsEnabled).ToList();
             var enabledCount = configs.Count;
             var totalCount = allConfigs.Count();
