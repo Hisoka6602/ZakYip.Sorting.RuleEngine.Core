@@ -34,7 +34,7 @@ This document records identified technical debt in the project. Before opening a
 | 重复代码 Duplicate Code | 51 处 | 🟢 低 Low | ✅ 已超越目标 |
 | 代码重复率 Duplication Rate | 2.66% | 🟢 低 Low (✅ 低于 CI 阈值 5%，超越 SonarQube 目标 3%) | ✅ 已超越目标 |
 | 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
-| **编译警告 Compiler Warnings** | **1,646 个** | **🟡 中 Medium** | **🔄 Phase 2 进行中 (8.3%)** |
+| **编译警告 Compiler Warnings** | **1,590 个** | **🟡 中 Medium** | **🔄 Phase 2 进行中 (10.5%)** |
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.66% 已超越 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.66% exceeds SonarQube target!
@@ -42,8 +42,8 @@ This document records identified technical debt in the project. Before opening a
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**，消除 151 行重复代码。
 > Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**, eliminated 151 duplicate lines.
 
-> **编译警告进展 / Compiler Warnings Progress:** 从 3,616 → **1,646 (-54.5%)**，Phase 1 完成，Phase 2 进行中！
-> Compiler warnings reduced from 3,616 → **1,646 (-54.5%)**, Phase 1 complete, Phase 2 in progress!
+> **编译警告进展 / Compiler Warnings Progress:** 从 3,616 → **1,590 (-56.0%)**，Phase 1 完成，Phase 2 持续进展！
+> Compiler warnings reduced from 3,616 → **1,590 (-56.0%)**, Phase 1 complete, Phase 2 progressing!
 
 ---
 
@@ -128,31 +128,32 @@ These constants have the same numeric values but completely different semantics 
 
 #### 🔄 Phase 2: CA2007 ConfigureAwait (当前阶段 / Current Phase - 进行中)
 **目标:** 处理库代码中的 1,104 个 CA2007 警告
-**当前进度 / Current Progress:** 92/1,104 (8.3%)
+**当前进度 / Current Progress:** 116/1,104 (10.5%)
 - [x] 测试代码抑制 (234) - ✅ 已完成
 - [x] Application 层修复 (21 文件, 88 警告) - ✅ 已完成  
-- [ ] Infrastructure 层 (~500 警告) - ⏳ 待处理
-- [ ] Core/Domain 层 (~400 警告) - ⏳ 待处理
-- [ ] Service 层 (~100 警告) - ⏳ 待处理
+- [x] Service 层修复 (10 文件, 24 警告) - ✅ 已完成
+- [ ] Infrastructure 层 (~902 警告) - ⏳ 建议使用 IDE 工具
+- [ ] Core/Domain 层 (少量警告) - ⏳ 待处理
 
-**已修复文件 / Fixed Files (21):**
-- ✅ 所有 Event Handlers (12 files)
-- ✅ Application Services (9 files)
+**已修复文件 / Fixed Files (31):**
+- ✅ Application 层: Event Handlers (12 files), Services (9 files)
+- ✅ Service 层: API Controllers (6 files), SignalR Hubs (3 files), Program.cs (1 file)
 
 **当前挑战 / Current Challenge:**
-- Infrastructure 层代码更复杂（void 返回、非 async 调用）
-- 自动化脚本在复杂场景下引入错误
-- 剩余 1,014 个警告需要更精细处理
+- Infrastructure 层代码最复杂（DateTime/Chute[] 返回、void 方法、非 async 调用）
+- 自动化脚本在 Infrastructure 层遇到边缘情况
+- 剩余 902 个警告（82% 在 Infrastructure 层）
 
 **推荐方案 / Recommended Approach:**
-1. 使用 Visual Studio 或 Rider 的 Code Cleanup 功能批量修复剩余警告
+1. **强烈推荐:** 使用 Visual Studio 或 Rider 的 Code Cleanup 功能批量修复剩余 Infrastructure 层 CA2007
 2. 使用 Roslyn analyzer 的"Fix All"功能
-3. 或继续分批手动修复（已完成 Application，剩余 Infrastructure → Core → Service）
+3. Infrastructure 层手动修复风险高，IDE 工具更安全可靠
 
 **策略 / Strategy:**
 - 测试代码: 已通过 `.editorconfig` 抑制 ✅
-- Application 层: 已手动修复 ✅
-- Infrastructure/Core/Service: 建议使用 IDE 工具 ⏳
+- Application 层: 已手动修复 (21 files) ✅
+- Service 层: 已手动修复 (10 files) ✅
+- Infrastructure 层: **强烈建议使用 IDE 工具** (902 warnings) ⚠️
 - 说明: 库代码中的 ConfigureAwait 对于防止死锁至关重要
 
 #### Phase 3: 异常处理和参数验证 (计划中 / Planned)
