@@ -74,6 +74,8 @@ public class DwsSimulator : IDisposable
     /// </summary>
     public async Task<SimulatorResult> SendDwsDataAsync(DwsData dwsData)
     {
+        ArgumentNullException.ThrowIfNull(dwsData);
+
         if (!_isConnected || _tcpClient == null)
         {
             return new SimulatorResult

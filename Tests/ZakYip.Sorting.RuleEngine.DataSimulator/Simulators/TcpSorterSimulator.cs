@@ -73,6 +73,8 @@ public class TcpSorterSimulator : ISorterSimulator
     /// </summary>
     public async Task<SimulatorResult> SendParcelAsync(ParcelData parcel)
     {
+        ArgumentNullException.ThrowIfNull(parcel);
+
         if (!_isConnected || _tcpClient == null)
         {
             return new SimulatorResult
@@ -234,7 +236,7 @@ public class TcpSorterSimulator : ISorterSimulator
         };
     }
 
-    private double CalculatePercentile(List<SimulatorResult> results, int percentile)
+    private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
         if (!results.Any()) return 0;
 

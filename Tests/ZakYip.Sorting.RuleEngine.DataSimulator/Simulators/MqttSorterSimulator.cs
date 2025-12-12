@@ -97,6 +97,8 @@ public class MqttSorterSimulator : ISorterSimulator
     /// </summary>
     public async Task<SimulatorResult> SendParcelAsync(ParcelData parcel)
     {
+        ArgumentNullException.ThrowIfNull(parcel);
+
         if (!_isConnected || _mqttClient == null)
         {
             return new SimulatorResult
@@ -265,7 +267,7 @@ public class MqttSorterSimulator : ISorterSimulator
         };
     }
 
-    private double CalculatePercentile(List<SimulatorResult> results, int percentile)
+    private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
         if (!results.Any()) return 0;
 
