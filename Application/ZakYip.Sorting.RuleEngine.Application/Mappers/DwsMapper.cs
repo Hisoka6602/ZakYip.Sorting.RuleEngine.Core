@@ -16,6 +16,8 @@ public static class DwsConfigMapper
     /// </summary>
     public static DwsConfigResponseDto ToResponseDto(this DwsConfig entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+        
         return new DwsConfigResponseDto
         {
             Name = entity.Name,
@@ -42,6 +44,8 @@ public static class DwsConfigMapper
     /// </summary>
     public static DwsConfig ToEntity(this DwsConfigUpdateRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         var now = DateTime.Now;
         return new DwsConfig
         {
@@ -86,6 +90,8 @@ public static class DwsDataTemplateMapper
     /// </summary>
     public static DwsDataTemplateResponseDto ToResponseDto(this DwsDataTemplate entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+        
         return new DwsDataTemplateResponseDto
         {
             Name = entity.Name,
@@ -105,6 +111,8 @@ public static class DwsDataTemplateMapper
     /// </summary>
     public static DwsDataTemplate ToEntity(this DwsDataTemplateUpdateRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         var now = DateTime.Now;
         return new DwsDataTemplate
         {

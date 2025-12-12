@@ -15,6 +15,8 @@ public static class WcsApiConfigMapper
     /// </summary>
     public static WcsApiConfig ToEntity(this WcsApiConfigUpdateRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         var now = DateTime.Now;
         return new WcsApiConfig
         {

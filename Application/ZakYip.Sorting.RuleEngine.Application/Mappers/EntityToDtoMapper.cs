@@ -13,6 +13,8 @@ public static class EntityToDtoMapper
     /// </summary>
     public static SortingRuleResponseDto ToResponseDto(this SortingRule entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+        
         return new SortingRuleResponseDto
         {
             RuleId = entity.RuleId,
@@ -41,6 +43,8 @@ public static class EntityToDtoMapper
     /// </summary>
     public static ChuteResponseDto ToResponseDto(this Chute entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+        
         return new ChuteResponseDto
         {
             ChuteId = entity.ChuteId,
@@ -66,6 +70,8 @@ public static class EntityToDtoMapper
     /// </summary>
     public static WcsApiConfigResponseDto ToResponseDto(this WcsApiConfig entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+        
         return new WcsApiConfigResponseDto
         {
             Name = entity.ApiName,

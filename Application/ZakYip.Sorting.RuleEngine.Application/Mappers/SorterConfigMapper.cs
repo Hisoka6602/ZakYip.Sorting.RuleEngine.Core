@@ -16,6 +16,8 @@ public static class SorterConfigMapper
     /// </summary>
     public static SorterConfigResponseDto ToResponseDto(this SorterConfig entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+        
         return new SorterConfigResponseDto
         {
             Name = entity.Name,
@@ -39,6 +41,8 @@ public static class SorterConfigMapper
     /// </summary>
     public static SorterConfig ToEntity(this SorterConfigUpdateRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         var now = DateTime.Now;
         return new SorterConfig
         {
