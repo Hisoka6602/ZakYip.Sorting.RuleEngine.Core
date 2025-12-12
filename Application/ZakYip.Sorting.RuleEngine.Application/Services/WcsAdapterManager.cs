@@ -67,7 +67,7 @@ public class WcsAdapterManager : IWcsAdapterManager
             _isConnected = false;
             _logger.LogInformation("WCS连接已断开");
             
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
