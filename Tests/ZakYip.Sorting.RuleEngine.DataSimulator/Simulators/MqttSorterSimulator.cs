@@ -260,7 +260,7 @@ public class MqttSorterSimulator : ISorterSimulator
             TotalSent = results.Count,
             SuccessCount = successCount,
             FailureCount = failureCount,
-            AverageLatencyMs = results.Any() ? results.Average(r => r.ElapsedMs) : 0,
+            AverageLatencyMs = results.Count > 0 ? results.Average(r => r.ElapsedMs) : 0,
             P50LatencyMs = CalculatePercentile(results, 50),
             P95LatencyMs = CalculatePercentile(results, 95),
             P99LatencyMs = CalculatePercentile(results, 99)
@@ -269,7 +269,7 @@ public class MqttSorterSimulator : ISorterSimulator
 
     private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
-        if (!results.Any()) return 0;
+        if (results.Count == 0) return 0;
 
         var sorted = results.OrderBy(r => r.ElapsedMs).ToList();
         var index = (int)Math.Ceiling(percentile / 100.0 * sorted.Count) - 1;
