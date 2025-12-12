@@ -29,6 +29,6 @@ public class DataArchivedEventHandler : INotificationHandler<DataArchivedEvent>
 
         await _logRepository.LogInfoAsync(
             $"数据归档已完成",
-            $"归档记录数: {notification.RecordCount}, 时间范围: {notification.StartDate:yyyy-MM-dd} - {notification.EndDate:yyyy-MM-dd}, 耗时: {notification.DurationMs}ms");
+            $"归档记录数: {notification.RecordCount}, 时间范围: {notification.StartDate:yyyy-MM-dd} - {notification.EndDate:yyyy-MM-dd}, 耗时: {notification.DurationMs}ms").ConfigureAwait(false);
     }
 }

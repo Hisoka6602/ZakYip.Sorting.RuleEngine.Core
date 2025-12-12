@@ -61,7 +61,7 @@ public class PerformanceMetricService
                 Metadata = metadata
             };
 
-            await RecordMetricAsync(metric, cancellationToken);
+            await RecordMetricAsync(metric, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -74,7 +74,7 @@ public class PerformanceMetricService
         {
             if (_repository != null)
             {
-                await _repository.RecordMetricAsync(metric, cancellationToken);
+                await _repository.RecordMetricAsync(metric, cancellationToken).ConfigureAwait(false);
             }
 
             // 同时记录到日志

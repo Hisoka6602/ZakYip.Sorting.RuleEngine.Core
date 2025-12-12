@@ -85,20 +85,20 @@ public class ParcelProcessingService : IParcelProcessingService
                         request.ParcelId,
                         dwsData,
                         null, // 此上下文中OCR数据不可用
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "WCS API调用失败，继续使用规则引擎: {ParcelId}", request.ParcelId);
                     await _logRepository.LogWarningAsync(
                         $"WCS API调用失败: {request.ParcelId}",
-                        ex.ToString());
+                        ex.ToString()).ConfigureAwait(false);
                 }
             }
 
             // 使用规则引擎计算格口号
             var chuteNumber = await _ruleEngineService.EvaluateRulesAsync(
-                parcelInfo, dwsData, thirdPartyResponse, cancellationToken);
+                parcelInfo, dwsData, thirdPartyResponse, cancellationToken).ConfigureAwait(false);
 
             // 更新包裹状态
             parcelInfo.ChuteNumber = chuteNumber;
@@ -113,7 +113,7 @@ public class ParcelProcessingService : IParcelProcessingService
 
             await _logRepository.LogInfoAsync(
                 $"包裹处理成功: {request.ParcelId}",
-                $"格口号: {chuteNumber}, 耗时: {stopwatch.ElapsedMilliseconds}ms");
+                $"格口号: {chuteNumber}, 耗时: {stopwatch.ElapsedMilliseconds}ms").ConfigureAwait(false);
 
             return new ParcelProcessResponse
             {
@@ -130,7 +130,7 @@ public class ParcelProcessingService : IParcelProcessingService
 
             await _logRepository.LogErrorAsync(
                 $"包裹处理失败: {request.ParcelId}",
-                ex.ToString());
+                ex.ToString()).ConfigureAwait(false);
 
             return new ParcelProcessResponse
             {

@@ -36,7 +36,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 
         await _logRepository.LogInfoAsync(
             $"DWS数据已接收: {notification.ParcelId}",
-            $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³");
+            $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³").ConfigureAwait(false);
 
         // 主动请求格口（主动调用，不发布事件）
         var apiStartTime = DateTime.Now;
@@ -46,7 +46,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 notification.ParcelId,
                 notification.DwsData,
                 null, // OcrData not available in this event
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             var apiDuration = DateTime.Now - apiStartTime;
 
@@ -55,7 +55,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             {
                 await _logRepository.LogInfoAsync(
                     $"WCS API响应已接收: {notification.ParcelId}",
-                    $"成功: {response.Success}, 消息: {response.Message}");
+                    $"成功: {response.Success}, 消息: {response.Message}").ConfigureAwait(false);
                 
                 // 发布WCS API调用事件，包含完整的API响应数据
                 await _publisher.Publish(new WcsApiCalledEvent
@@ -78,7 +78,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             _logger.LogWarning(ex, "WCS API调用失败，将继续使用规则引擎: ParcelId={ParcelId}", notification.ParcelId);
             await _logRepository.LogWarningAsync(
                 $"WCS API调用失败: {notification.ParcelId}",
-                ex.Message);
+                ex.Message).ConfigureAwait(false);
             
             // 发布WCS API调用失败事件
             await _publisher.Publish(new WcsApiCalledEvent

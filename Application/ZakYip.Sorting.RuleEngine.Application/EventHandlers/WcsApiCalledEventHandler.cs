@@ -28,8 +28,7 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
     public async Task Handle(WcsApiCalledEvent notification, CancellationToken cancellationToken)
     {
         // 持久化API通信日志
-        await PersistApiCommunicationLogAsync(notification, cancellationToken);
-
+        await PersistApiCommunicationLogAsync(notification, cancellationToken).ConfigureAwait(false);
         // 记录日志消息
         if (notification.IsSuccess)
         {
@@ -39,7 +38,7 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
 
             await _logRepository.LogInfoAsync(
                 $"WCS API调用成功: {notification.ParcelId}",
-                $"API地址: {notification.ApiUrl}, 状态码: {notification.StatusCode}, 耗时: {notification.DurationMs}ms");
+                $"API地址: {notification.ApiUrl}, 状态码: {notification.StatusCode}, 耗时: {notification.DurationMs}ms").ConfigureAwait(false);
         }
         else
         {
@@ -49,7 +48,7 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
 
             await _logRepository.LogWarningAsync(
                 $"WCS API调用失败: {notification.ParcelId}",
-                $"API地址: {notification.ApiUrl}, 错误: {notification.ErrorMessage}, 耗时: {notification.DurationMs}ms");
+                $"API地址: {notification.ApiUrl}, 错误: {notification.ErrorMessage}, 耗时: {notification.DurationMs}ms").ConfigureAwait(false);
         }
     }
 

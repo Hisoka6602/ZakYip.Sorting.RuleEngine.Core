@@ -29,7 +29,7 @@ public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchComp
 
         await _logRepository.LogInfoAsync(
             $"规则匹配已完成: {notification.ParcelId}",
-            $"格口号: {notification.ChuteNumber}, 小车号: {notification.CartNumber}, 占用小车数: {notification.CartCount}");
+            $"格口号: {notification.ChuteNumber}, 小车号: {notification.CartNumber}, 占用小车数: {notification.CartCount}").ConfigureAwait(false);
 
         // 发送结果给分拣程序
         // Send result to sorting machine (will be implemented by ISorterAdapter)

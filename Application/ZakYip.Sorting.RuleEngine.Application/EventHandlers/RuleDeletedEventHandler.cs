@@ -29,6 +29,6 @@ public class RuleDeletedEventHandler : INotificationHandler<RuleDeletedEvent>
 
         await _logRepository.LogInfoAsync(
             $"规则已删除: {notification.RuleId}",
-            $"规则名称: {notification.RuleName}");
+            $"规则名称: {notification.RuleName}").ConfigureAwait(false);
     }
 }
