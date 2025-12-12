@@ -38,6 +38,14 @@ public class ParcelProcessingServiceTests
     }
 
     [Fact]
+    public async Task ProcessParcelAsync_Should_ThrowArgumentNullException_When_RequestIsNull()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => _service.ProcessParcelAsync(null!));
+    }
+
+    [Fact]
     public async Task ProcessParcelAsync_ValidRequest_ReturnsSuccessResponse()
     {
         // Arrange

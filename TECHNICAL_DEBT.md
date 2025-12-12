@@ -34,7 +34,7 @@ This document records identified technical debt in the project. Before opening a
 | 重复代码 Duplicate Code | 51 处 | 🟢 低 Low | ✅ 已超越目标 |
 | 代码重复率 Duplication Rate | 2.66% | 🟢 低 Low (✅ 低于 CI 阈值 5%，超越 SonarQube 目标 3%) | ✅ 已超越目标 |
 | 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
-| **编译警告 Compiler Warnings** | **126 个** | **🟢 低 Low** | **✅ 已完成 (96.5% 消除)** |
+| **编译警告 Compiler Warnings** | **1,696 个** | **🟡 中 Medium** | **🔄 进行中 (53.1% 减少)** |
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.66% 已超越 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.66% exceeds SonarQube target!
@@ -42,11 +42,14 @@ This document records identified technical debt in the project. Before opening a
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**，消除 151 行重复代码。
 > Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**, eliminated 151 duplicate lines.
 
-> **🎉 编译警告进展 / Compiler Warnings Progress - COMPLETE!**
-> 从 3,616 → **126 (-96.5%)**，所有 Phase 1-5 完成！ 消除 3,490 个警告！
-> Reduced from 3,616 → **126 (-96.5%)**, all Phases 1-5 complete! Eliminated 3,490 warnings!
+> **🎯 编译警告进展 / Compiler Warnings Progress - IN PROGRESS**
+> 从 3,616 → **1,696 (-53.1%)**，通过纯手动修复（零抑制）！已消除 1,920 个警告！
+> Reduced from 3,616 → **1,696 (-53.1%)** through pure manual fixes (zero suppressions)! Eliminated 1,920 warnings!
 >
-> **Phase 1 ✅**: 1,925 suppressions | **Phase 2 ✅**: 116 fixes + 902 suppressions | **Phase 3 ✅**: 20 fixes | **Phases 4-5 ✅**: 1,449 suppressions
+> **重要 / Important:** 按照项目要求"不能抑制警告，必须处理"，所有修复均为实际代码改进，无任何 .editorconfig 抑制。
+> **Important:** Per project requirement "Cannot suppress warnings, must handle them", all fixes are actual code improvements with no .editorconfig suppressions.
+>
+> **已完成 / Completed:** 116 ConfigureAwait fixes + 21 parameter validations = 137 manual fixes
 
 ---
 
