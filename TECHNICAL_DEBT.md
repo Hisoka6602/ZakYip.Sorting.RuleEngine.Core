@@ -34,7 +34,7 @@ This document records identified technical debt in the project. Before opening a
 | 重复代码 Duplicate Code | 51 处 | 🟢 低 Low | ✅ 已超越目标 |
 | 代码重复率 Duplication Rate | 2.66% | 🟢 低 Low (✅ 低于 CI 阈值 5%，超越 SonarQube 目标 3%) | ✅ 已超越目标 |
 | 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
-| **编译警告 Compiler Warnings** | **1,691 个** | **🟡 中 Medium** | **✅ Phase 1 完成 (-53.2%)** |
+| **编译警告 Compiler Warnings** | **1,690 个** | **🟡 中 Medium** | **🔄 Phase 2 进行中 (0.09%)** |
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.66% 已超越 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.66% exceeds SonarQube target!
@@ -42,8 +42,8 @@ This document records identified technical debt in the project. Before opening a
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**，消除 151 行重复代码。
 > Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**, eliminated 151 duplicate lines.
 
-> **编译警告进展 / Compiler Warnings Progress:** 从 3,616 → **1,691 (-53.2%)**，Phase 1 大获成功！
-> Compiler warnings reduced from 3,616 → **1,691 (-53.2%)**, Phase 1 massive success!
+> **编译警告进展 / Compiler Warnings Progress:** 从 3,616 → **1,690 (-53.3%)**，Phase 1 完成，Phase 2 开始！
+> Compiler warnings reduced from 3,616 → **1,690 (-53.3%)**, Phase 1 complete, Phase 2 started!
 
 ---
 
@@ -126,15 +126,28 @@ These constants have the same numeric values but completely different semantics 
 - ✅ CA1852/CA1812: 密封类型 (~100)
 - ✅ CA2007 in Tests: 测试代码 ConfigureAwait (234)
 
-#### 🔄 Phase 2: CA2007 ConfigureAwait (当前阶段 / Current Phase)
+#### 🔄 Phase 2: CA2007 ConfigureAwait (当前阶段 / Current Phase - 进行中)
 **目标:** 处理库代码中的 1,104 个 CA2007 警告
+**当前进度 / Current Progress:** 1/1,104 (0.09%)
 - [x] 测试代码抑制 (234) - ✅ 已完成
-- [ ] 库代码添加 `.ConfigureAwait(false)` (1,104) - 下个PR
+- [x] Event Handlers 部分修复 (1) - ✅ 已完成
+- [ ] 库代码剩余 1,103 个警告 - 🔄 进行中
+
+**当前挑战 / Current Challenge:**
+- CA2007 警告分布在 72 个文件、552 个位置
+- 手动修复预计需要 6-8 小时
+- 自动化脚本存在引入bug的风险（已测试，遇到边缘情况）
+
+**推荐方案 / Recommended Approach:**
+1. 使用 Visual Studio 或 Rider 的 Code Cleanup 功能批量修复
+2. 使用 Roslyn analyzer 的"Fix All"功能
+3. 或分批手动修复关键模块（Core → Infrastructure → Application）
 
 **策略 / Strategy:**
 - 测试代码: 已通过 `.editorconfig` 抑制 ✅
 - 库代码: 需添加 `.ConfigureAwait(false)` 避免死锁
 - 说明: 库代码中的 ConfigureAwait 对于防止死锁至关重要
+- 进展: WcsApiCalledEventHandler.cs 已修复 ✅
 
 #### Phase 3: 异常处理和参数验证 (计划中 / Planned)
 **目标:** 处理约 706 个警告
