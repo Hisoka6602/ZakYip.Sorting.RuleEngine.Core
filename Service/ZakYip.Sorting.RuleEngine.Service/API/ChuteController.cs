@@ -58,7 +58,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var chutes = await _cacheService.GetAllChutesAsync(_chuteRepository, cancellationToken);
+            var chutes = await _cacheService.GetAllChutesAsync(_chuteRepository, cancellationToken).ConfigureAwait(false);
             var dtos = chutes.ToResponseDtos();
             return Ok(ApiResponse<IEnumerable<ChuteResponseDto>>.SuccessResult(dtos));
         }
@@ -97,7 +97,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var chute = await _chuteRepository.GetByIdAsync(id, cancellationToken);
+            var chute = await _chuteRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
             if (chute == null)
             {
                 return NotFound(ApiResponse<ChuteResponseDto>.FailureResult("格口不存在", "CHUTE_NOT_FOUND"));
@@ -140,7 +140,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var chute = await _chuteRepository.GetByCodeAsync(code, cancellationToken);
+            var chute = await _chuteRepository.GetByCodeAsync(code, cancellationToken).ConfigureAwait(false);
             if (chute == null)
             {
                 return NotFound(ApiResponse<ChuteResponseDto>.FailureResult("格口不存在", "CHUTE_NOT_FOUND"));
@@ -177,7 +177,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var chutes = await _cacheService.GetEnabledChutesAsync(_chuteRepository, cancellationToken);
+            var chutes = await _cacheService.GetEnabledChutesAsync(_chuteRepository, cancellationToken).ConfigureAwait(false);
             var dtos = chutes.ToResponseDtos();
             return Ok(ApiResponse<IEnumerable<ChuteResponseDto>>.SuccessResult(dtos));
         }
@@ -234,14 +234,14 @@ public class ChuteController : ControllerBase
             // 检查编号是否已存在
             if (!string.IsNullOrWhiteSpace(chute.ChuteCode))
             {
-                var existing = await _chuteRepository.GetByCodeAsync(chute.ChuteCode, cancellationToken);
+                var existing = await _chuteRepository.GetByCodeAsync(chute.ChuteCode, cancellationToken).ConfigureAwait(false);
                 if (existing != null)
                 {
                     return Conflict(new { error = "格口编号已存在", chuteCode = chute.ChuteCode });
                 }
             }
 
-            var created = await _chuteRepository.AddAsync(chute, cancellationToken);
+            var created = await _chuteRepository.AddAsync(chute, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("创建格口成功，ID: {ChuteId}，名称: {ChuteName}", created.ChuteId, created.ChuteName);
             
             // 发布格口创建事件
@@ -255,7 +255,7 @@ public class ChuteController : ControllerBase
             }, cancellationToken);
             
             // 重新加载缓存
-            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken).ConfigureAwait(false);
             
             // 发布缓存失效事件
             await _publisher.Publish(new ConfigurationCacheInvalidatedEvent
@@ -316,7 +316,7 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var existing = await _chuteRepository.GetByIdAsync(id, cancellationToken);
+            var existing = await _chuteRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
             if (existing == null)
             {
                 return NotFound(new { error = "格口不存在", chuteId = id });
@@ -330,7 +330,7 @@ public class ChuteController : ControllerBase
             // 检查编号是否与其他格口冲突
             if (!string.IsNullOrWhiteSpace(chute.ChuteCode))
             {
-                var duplicate = await _chuteRepository.GetByCodeAsync(chute.ChuteCode, cancellationToken);
+                var duplicate = await _chuteRepository.GetByCodeAsync(chute.ChuteCode, cancellationToken).ConfigureAwait(false);
                 if (duplicate != null && duplicate.ChuteId != id)
                 {
                     return Conflict(new { error = "格口编号已被其他格口使用", chuteCode = chute.ChuteCode });
@@ -339,7 +339,7 @@ public class ChuteController : ControllerBase
 
             chute.ChuteId = id;
             chute.CreatedAt = existing.CreatedAt; // 保留创建时间
-            await _chuteRepository.UpdateAsync(chute, cancellationToken);
+            await _chuteRepository.UpdateAsync(chute, cancellationToken).ConfigureAwait(false);
             
             // 发布格口更新事件
             await _publisher.Publish(new ChuteUpdatedEvent
@@ -352,7 +352,7 @@ public class ChuteController : ControllerBase
             }, cancellationToken);
             
             // 重新加载缓存
-            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken).ConfigureAwait(false);
             
             // 发布缓存失效事件
             await _publisher.Publish(new ConfigurationCacheInvalidatedEvent
@@ -397,13 +397,13 @@ public class ChuteController : ControllerBase
     {
         try
         {
-            var existing = await _chuteRepository.GetByIdAsync(id, cancellationToken);
+            var existing = await _chuteRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
             if (existing == null)
             {
                 return NotFound(new { error = "格口不存在", chuteId = id });
             }
 
-            await _chuteRepository.DeleteAsync(id, cancellationToken);
+            await _chuteRepository.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("删除格口成功，ID: {ChuteId}", id);
             
             // 发布格口删除事件
@@ -416,7 +416,7 @@ public class ChuteController : ControllerBase
             }, cancellationToken);
             
             // 重新加载缓存
-            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken);
+            await _cacheService.ReloadChuteCacheAsync(_chuteRepository, cancellationToken).ConfigureAwait(false);
             
             // 发布缓存失效事件
             await _publisher.Publish(new ConfigurationCacheInvalidatedEvent

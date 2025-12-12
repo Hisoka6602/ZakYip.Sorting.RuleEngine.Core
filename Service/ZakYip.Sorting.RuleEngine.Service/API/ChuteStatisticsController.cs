@@ -92,7 +92,7 @@ public class ChuteStatisticsController : ControllerBase
                 chuteId,
                 startTime,
                 endTime,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (statistics == null)
             {
@@ -130,7 +130,7 @@ public class ChuteStatisticsController : ControllerBase
             var overview = await _dataAnalysisService.GetSortingEfficiencyOverviewAsync(
                 startTime,
                 endTime,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             return Ok(overview);
         }
         catch (Exception ex)
@@ -173,7 +173,7 @@ public class ChuteStatisticsController : ControllerBase
                 chuteId,
                 startTime,
                 endTime,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             return Ok(statistics);
         }

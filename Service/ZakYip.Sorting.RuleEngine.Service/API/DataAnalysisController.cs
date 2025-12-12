@@ -110,7 +110,7 @@ public class DataAnalysisController : ControllerBase
             _logger.LogInformation("获取分拣效率分析报表: {StartTime} - {EndTime}", start, end);
 
             var report = await _dataAnalysisService.GetSortingEfficiencyReportAsync(
-                start, end, cancellationToken);
+                start, end, cancellationToken).ConfigureAwait(false);
             
             return Ok(report);
         }

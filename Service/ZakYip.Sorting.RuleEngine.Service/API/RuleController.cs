@@ -59,7 +59,7 @@ public class RuleController : ControllerBase
     {
         try
         {
-            var rules = await _ruleRepository.GetAllAsync(cancellationToken);
+            var rules = await _ruleRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
             
             // 如果没有规则，创建一个默认规则
             // If no rules exist, create a default rule
@@ -78,7 +78,7 @@ public class RuleController : ControllerBase
                     CreatedAt = DateTime.Now
                 };
                 
-                await _ruleRepository.AddAsync(defaultRule, cancellationToken);
+                await _ruleRepository.AddAsync(defaultRule, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("创建默认规则: {RuleId}", defaultRule.RuleId);
                 
                 // 发布规则创建事件
@@ -91,7 +91,7 @@ public class RuleController : ControllerBase
                 }, cancellationToken);
                 
                 // 重新获取规则列表
-                rules = await _ruleRepository.GetAllAsync(cancellationToken);
+                rules = await _ruleRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
             }
             
             var responseDtos = rules.ToResponseDtos();
@@ -127,7 +127,7 @@ public class RuleController : ControllerBase
     {
         try
         {
-            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
+            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
             var responseDtos = rules.ToResponseDtos();
             return Ok(ApiResponse<IEnumerable<SortingRuleResponseDto>>.SuccessResult(responseDtos));
         }
@@ -167,7 +167,7 @@ public class RuleController : ControllerBase
     {
         try
         {
-            var rule = await _ruleRepository.GetByIdAsync(ruleId, cancellationToken);
+            var rule = await _ruleRepository.GetByIdAsync(ruleId, cancellationToken).ConfigureAwait(false);
             if (rule == null)
             {
                 return NotFound(ApiResponse<SortingRuleResponseDto>.FailureResult("规则未找到", "RULE_NOT_FOUND"));
@@ -232,7 +232,7 @@ public class RuleController : ControllerBase
 
             _logger.LogInformation("添加规则: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
 
-            var addedRule = await _ruleRepository.AddAsync(rule, cancellationToken);
+            var addedRule = await _ruleRepository.AddAsync(rule, cancellationToken).ConfigureAwait(false);
             
             // 发布规则创建事件
             await _publisher.Publish(new RuleCreatedEvent
@@ -311,7 +311,7 @@ public class RuleController : ControllerBase
 
             _logger.LogInformation("更新规则: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
 
-            var updatedRule = await _ruleRepository.UpdateAsync(rule, cancellationToken);
+            var updatedRule = await _ruleRepository.UpdateAsync(rule, cancellationToken).ConfigureAwait(false);
             
             // 发布规则更新事件
             await _publisher.Publish(new RuleUpdatedEvent
@@ -360,11 +360,11 @@ public class RuleController : ControllerBase
         try
         {
             // 先获取规则信息用于事件发布
-            var rule = await _ruleRepository.GetByIdAsync(ruleId, cancellationToken);
+            var rule = await _ruleRepository.GetByIdAsync(ruleId, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("删除规则: {RuleId}", ruleId);
 
-            var result = await _ruleRepository.DeleteAsync(ruleId, cancellationToken);
+            var result = await _ruleRepository.DeleteAsync(ruleId, cancellationToken).ConfigureAwait(false);
             if (result)
             {
                 // 发布规则删除事件
