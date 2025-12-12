@@ -249,5 +249,7 @@ public class TcpSorterSimulator : ISorterSimulator
     public void Dispose()
     {
         Disconnect();
+        _tcpClient?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
