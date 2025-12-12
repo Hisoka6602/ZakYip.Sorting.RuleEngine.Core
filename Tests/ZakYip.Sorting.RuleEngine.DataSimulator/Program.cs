@@ -161,7 +161,7 @@ class Program
         if (_sorterSimulator == null)
         {
             _sorterSimulator = CreateSorterSimulator();
-            var connected = await _sorterSimulator.ConnectAsync();
+            var connected = await _sorterSimulator.ConnectAsync().ConfigureAwait(false);
             if (!connected)
             {
                 AnsiConsole.MarkupLine("[red]无法连接到分拣机[/]");
@@ -186,7 +186,7 @@ class Program
             .Spinner(Spinner.Known.Dots)
             .StartAsync("发送中...", async ctx =>
             {
-                var result = await _sorterSimulator.SendParcelAsync(parcel);
+                var result = await _sorterSimulator.SendParcelAsync(parcel).ConfigureAwait(false);
                 
                 AnsiConsole.WriteLine();
                 if (result.Success)
