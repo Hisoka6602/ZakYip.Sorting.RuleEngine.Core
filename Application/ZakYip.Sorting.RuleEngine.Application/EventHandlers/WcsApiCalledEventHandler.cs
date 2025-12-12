@@ -65,7 +65,7 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
                 ? MapWcsApiResponseToLog(notification.ApiResponse)
                 : CreateBasicLogFromEvent(notification);
 
-            await _apiCommunicationLogRepository.SaveAsync(apiLog, cancellationToken);
+            await _apiCommunicationLogRepository.SaveAsync(apiLog, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
