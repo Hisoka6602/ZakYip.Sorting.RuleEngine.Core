@@ -44,6 +44,8 @@ public class ParcelProcessingService : IParcelProcessingService
         ParcelProcessRequest request,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        
         var stopwatch = _stopwatchPool.Get();
         stopwatch.Restart();
 
