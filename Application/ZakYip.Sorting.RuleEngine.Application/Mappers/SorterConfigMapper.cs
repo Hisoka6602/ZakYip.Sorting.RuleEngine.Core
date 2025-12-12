@@ -46,7 +46,7 @@ public static class SorterConfigMapper
         var now = DateTime.Now;
         return new SorterConfig
         {
-            ConfigId = SorterConfig.SINGLETON_ID,
+            ConfigId = SorterConfig.SingletonId,
             Name = request.Name,
             Protocol = request.Protocol,
             Host = request.Host,

@@ -10,13 +10,13 @@ public record class DwsDataTemplate
     /// 单例模板ID（固定为1）
     /// Singleton template ID (Fixed as 1)
     /// </summary>
-    public const long SINGLETON_ID = 1L;
+    public const long SingletonId = 1L;
     
     /// <summary>
     /// 模板ID（主键）- 内部使用
     /// Template ID (Primary Key) - Internal use only
     /// </summary>
-    public long TemplateId { get; init; } = SINGLETON_ID;
+    public long TemplateId { get; init; } = SingletonId;
 
     /// <summary>
     /// 模板名称

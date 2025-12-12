@@ -49,7 +49,7 @@ public static class DwsConfigMapper
         var now = DateTime.Now;
         return new DwsConfig
         {
-            ConfigId = DwsConfig.SINGLETON_ID,
+            ConfigId = DwsConfig.SingletonId,
             Name = request.Name,
             Mode = request.Mode,
             Host = request.Host,
@@ -116,7 +116,7 @@ public static class DwsDataTemplateMapper
         var now = DateTime.Now;
         return new DwsDataTemplate
         {
-            TemplateId = DwsDataTemplate.SINGLETON_ID,
+            TemplateId = DwsDataTemplate.SingletonId,
             Name = request.Name,
             Template = request.Template,
             Delimiter = request.Delimiter,

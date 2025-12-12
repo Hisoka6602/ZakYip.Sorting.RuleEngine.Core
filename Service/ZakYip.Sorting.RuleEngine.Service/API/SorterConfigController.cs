@@ -50,7 +50,7 @@ public class SorterConfigController : ControllerBase
     {
         try
         {
-            var config = await _repository.GetByIdAsync(SorterConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await _repository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
             
             if (config == null)
             {

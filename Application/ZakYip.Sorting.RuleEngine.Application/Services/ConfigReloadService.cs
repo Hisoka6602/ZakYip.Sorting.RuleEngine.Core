@@ -46,7 +46,7 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _dwsConfigRepository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await _dwsConfigRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("DWS配置不存在，跳过重新加载");
@@ -82,7 +82,7 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _wcsConfigRepository.GetByIdAsync(WcsApiConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await _wcsConfigRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("WCS配置不存在，跳过重新加载");
@@ -118,7 +118,7 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _sorterConfigRepository.GetByIdAsync(SorterConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await _sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("分拣机配置不存在，跳过重新加载");

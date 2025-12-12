@@ -50,7 +50,7 @@ public class DwsConfigController : ControllerBase
     {
         try
         {
-            var config = await _repository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await _repository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
             
             if (config == null)
             {
@@ -93,7 +93,7 @@ public class DwsConfigController : ControllerBase
             var config = request.ToEntity();
             
             // 检查现有配置
-            var existing = await _repository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
+            var existing = await _repository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
             bool success;
             
             if (existing == null)

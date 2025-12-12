@@ -10,13 +10,13 @@ public record class DwsConfig
     /// 单例配置ID（固定为1）
     /// Singleton configuration ID (Fixed as 1)
     /// </summary>
-    public const long SINGLETON_ID = 1L;
+    public const long SingletonId = 1L;
     
     /// <summary>
     /// 配置ID（主键）- 内部使用
     /// Configuration ID (Primary Key) - Internal use only
     /// </summary>
-    public long ConfigId { get; init; } = SINGLETON_ID;
+    public long ConfigId { get; init; } = SingletonId;
 
     /// <summary>
     /// 配置名称

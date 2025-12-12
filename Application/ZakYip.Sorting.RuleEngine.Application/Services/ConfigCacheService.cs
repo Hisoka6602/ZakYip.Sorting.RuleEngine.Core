@@ -49,7 +49,7 @@ public class ConfigCacheService
             entry.Priority = CacheItemPriority.NeverRemove;
             
             _logger.LogInformation("从数据库加载DWS配置到缓存");
-            var config = await repository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await repository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
             
             if (config != null)
             {
@@ -78,7 +78,7 @@ public class ConfigCacheService
             entry.Priority = CacheItemPriority.NeverRemove;
             
             _logger.LogInformation("从数据库加载WCS配置到缓存");
-            var config = await repository.GetByIdAsync(WcsApiConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await repository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
             
             if (config != null)
             {
@@ -107,7 +107,7 @@ public class ConfigCacheService
             entry.Priority = CacheItemPriority.NeverRemove;
             
             _logger.LogInformation("从数据库加载分拣机配置到缓存");
-            var config = await repository.GetByIdAsync(SorterConfig.SINGLETON_ID).ConfigureAwait(false);
+            var config = await repository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
             
             if (config != null)
             {

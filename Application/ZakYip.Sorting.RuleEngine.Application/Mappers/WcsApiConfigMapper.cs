@@ -20,7 +20,7 @@ public static class WcsApiConfigMapper
         var now = DateTime.Now;
         return new WcsApiConfig
         {
-            ConfigId = WcsApiConfig.SINGLETON_ID,
+            ConfigId = WcsApiConfig.SingletonId,
             ApiName = request.ApiName,
             BaseUrl = request.BaseUrl,
             TimeoutSeconds = request.TimeoutSeconds,
