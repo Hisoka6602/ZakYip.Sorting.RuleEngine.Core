@@ -218,48 +218,5 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
 #### Code Analysis Rules ####
 
-# CA1707: Identifiers should not contain underscores
-# Suppress for test methods which commonly use underscores for readability
-dotnet_diagnostic.CA1707.severity = none
-
-# CA1848: Use the LoggerMessage delegates
-# Suppress - will evaluate on case-by-case basis for hot paths
-dotnet_diagnostic.CA1848.severity = none
-
-# CA1303: Do not pass literals as localized parameters
-# Suppress - application is not localized
-dotnet_diagnostic.CA1303.severity = none
-
-# CA2007: Consider calling ConfigureAwait on awaited task
-# Keep as warning - important for library code
-dotnet_diagnostic.CA2007.severity = warning
-
-# CA1031: Do not catch general exception types
-# Keep as warning - should be reviewed case by case
-dotnet_diagnostic.CA1031.severity = warning
-
-# CA1062: Validate public method arguments
-# Keep as warning - important for API surface
-dotnet_diagnostic.CA1062.severity = warning
-
-# CA2000: Dispose objects before losing scope
-# Keep as warning - important for resource management
-dotnet_diagnostic.CA2000.severity = warning
-
-# CA1861: Avoid constant arrays as arguments
-# Suppress - minor optimization, reduces readability
-dotnet_diagnostic.CA1861.severity = none
-
-# CA1852: Type can be sealed
-# Suppress - allows flexibility for future inheritance
-dotnet_diagnostic.CA1852.severity = none
-
-# CA1812: Internal class is never instantiated
-# Suppress - may be instantiated via reflection or DI
-dotnet_diagnostic.CA1812.severity = none
-
-# Test files - additional suppressions
-[*Tests/**/*.cs]
-dotnet_diagnostic.CA1707.severity = none
-dotnet_diagnostic.CA2201.severity = none
-dotnet_diagnostic.CA1034.severity = none
+# All warnings enabled - manually fixing all issues per project requirement
+# "不能抑制警告，必须处理" (Cannot suppress warnings, must handle them)
