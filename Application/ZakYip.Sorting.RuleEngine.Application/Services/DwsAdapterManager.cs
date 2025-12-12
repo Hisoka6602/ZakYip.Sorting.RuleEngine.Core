@@ -38,12 +38,12 @@ public class DwsAdapterManager : IDwsAdapterManager
             // if (config.Mode == "Server")
             // {
             //     _adapter = new DwsServerAdapter(config);
-            //     await _adapter.StartAsync(cancellationToken);
+            //     await _adapter.StartAsync(cancellationToken).ConfigureAwait(false);
             // }
             // else
             // {
             //     _adapter = new DwsClientAdapter(config);
-            //     await _adapter.ConnectAsync(cancellationToken);
+            //     await _adapter.ConnectAsync(cancellationToken).ConfigureAwait(false);
             // }
 
             _isConnected = true;
@@ -72,7 +72,7 @@ public class DwsAdapterManager : IDwsAdapterManager
             _logger.LogInformation("开始断开DWS连接");
 
             // TODO: 实际的DWS断开逻辑
-            // await _adapter?.DisconnectAsync(cancellationToken);
+            // await _adapter?.DisconnectAsync(cancellationToken).ConfigureAwait(false);
             // _adapter?.Dispose();
 
             _isConnected = false;

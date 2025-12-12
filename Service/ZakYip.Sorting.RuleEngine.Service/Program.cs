@@ -521,7 +521,7 @@ try
                                     tags = e.Value.Tags
                                 })
                             };
-                            await context.Response.WriteAsJsonAsync(result);
+                            await context.Response.WriteAsJsonAsync(result).ConfigureAwait(false);
                         }
                     });
 
@@ -600,7 +600,7 @@ try
                         var firewallLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager>();
                         var firewallManager = new ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager(firewallLogger);
                         
-                        var success = await firewallManager.EnsureFirewallConfiguredAsync(ports);
+                        var success = await firewallManager.EnsureFirewallConfiguredAsync(ports).ConfigureAwait(false);
                         if (success)
                         {
                             logger.Info("防火墙配置完成 | Firewall configuration completed");
@@ -612,7 +612,7 @@ try
                         
                         // 配置网络适配器（启用巨帧和最大传输缓存）
                         logger.Info("开始配置网络适配器 | Starting network adapter configuration");
-                        var adapterSuccess = await firewallManager.ConfigureNetworkAdaptersAsync();
+                        var adapterSuccess = await firewallManager.ConfigureNetworkAdaptersAsync().ConfigureAwait(false);
                         if (adapterSuccess)
                         {
                             logger.Info("网络适配器配置完成 | Network adapter configuration completed");
@@ -639,7 +639,7 @@ try
         });
     }
 
-    await host.RunAsync();
+    await host.RunAsync().ConfigureAwait(false);
 }
 catch (Exception ex)
 {

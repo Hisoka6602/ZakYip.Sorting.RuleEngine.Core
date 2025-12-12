@@ -75,7 +75,7 @@ public class ApiClientTestController : ControllerBase
             "JushuitanErp",
             "聚水潭ERP",
             request,
-            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct));
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class ApiClientTestController : ControllerBase
             "WdtWms",
             "旺店通WMS",
             request,
-            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct));
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public class ApiClientTestController : ControllerBase
             "WdtErpFlagship",
             "旺店通ERP旗舰版",
             request,
-            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct));
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -200,7 +200,7 @@ public class ApiClientTestController : ControllerBase
             };
 
             // Log the test request
-            await LogApiTestRequestAsync(clientName, request, testResponse);
+            await LogApiTestRequestAsync(clientName, request, testResponse).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "{DisplayName} API测试完成，条码: {Barcode}, 结果: {Success}",
@@ -253,14 +253,14 @@ public class ApiClientTestController : ControllerBase
             // Try to save to MySQL first, then SQLite if MySQL is not available
             if (_mysqlContext != null)
             {
-                await _mysqlContext.ApiRequestLogs.AddAsync(requestLog);
-                await _mysqlContext.SaveChangesAsync();
+                await _mysqlContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
+                await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
                 _logger.LogDebug("API测试日志已保存到MySQL，ApiClient: {ApiClientName}", apiClientName);
             }
             else if (_sqliteContext != null)
             {
-                await _sqliteContext.ApiRequestLogs.AddAsync(requestLog);
-                await _sqliteContext.SaveChangesAsync();
+                await _sqliteContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
+                await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
                 _logger.LogDebug("API测试日志已保存到SQLite，ApiClient: {ApiClientName}", apiClientName);
             }
             else

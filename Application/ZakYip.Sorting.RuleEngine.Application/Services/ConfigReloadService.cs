@@ -46,7 +46,7 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _dwsConfigRepository.GetByIdAsync(DwsConfig.SINGLETON_ID);
+            var config = await _dwsConfigRepository.GetByIdAsync(DwsConfig.SINGLETON_ID).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("DWS配置不存在，跳过重新加载");
@@ -58,13 +58,13 @@ public class ConfigReloadService : IConfigReloadService
 
             // 断开现有连接
             _logger.LogInformation("断开现有DWS连接...");
-            await _dwsAdapterManager.DisconnectAsync(cancellationToken);
+            await _dwsAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
 
             // 如果配置已启用，使用新配置重新连接
             if (config.IsEnabled)
             {
                 _logger.LogInformation("使用新配置重新连接DWS: {Host}:{Port}", config.Host, config.Port);
-                await _dwsAdapterManager.ConnectAsync(config, cancellationToken);
+                await _dwsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
             }
 
             _logger.LogInformation("DWS配置重新加载完成");
@@ -82,7 +82,7 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _wcsConfigRepository.GetByIdAsync(WcsApiConfig.SINGLETON_ID);
+            var config = await _wcsConfigRepository.GetByIdAsync(WcsApiConfig.SINGLETON_ID).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("WCS配置不存在，跳过重新加载");
@@ -94,13 +94,13 @@ public class ConfigReloadService : IConfigReloadService
 
             // 断开现有连接
             _logger.LogInformation("断开现有WCS连接...");
-            await _wcsAdapterManager.DisconnectAsync(cancellationToken);
+            await _wcsAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
 
             // 如果配置已启用，使用新配置重新连接
             if (config.IsEnabled)
             {
                 _logger.LogInformation("使用新配置重新连接WCS: {BaseUrl}", config.BaseUrl);
-                await _wcsAdapterManager.ConnectAsync(config, cancellationToken);
+                await _wcsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
             }
 
             _logger.LogInformation("WCS配置重新加载完成");
@@ -118,7 +118,7 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _sorterConfigRepository.GetByIdAsync(SorterConfig.SINGLETON_ID);
+            var config = await _sorterConfigRepository.GetByIdAsync(SorterConfig.SINGLETON_ID).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("分拣机配置不存在，跳过重新加载");
@@ -130,14 +130,14 @@ public class ConfigReloadService : IConfigReloadService
 
             // 断开现有连接
             _logger.LogInformation("断开现有分拣机连接...");
-            await _sorterAdapterManager.DisconnectAsync(cancellationToken);
+            await _sorterAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
 
             // 如果配置已启用，使用新配置重新连接
             if (config.IsEnabled)
             {
                 _logger.LogInformation("使用新配置重新连接分拣机: {Protocol}://{Host}:{Port}", 
                     config.Protocol, config.Host, config.Port);
-                await _sorterAdapterManager.ConnectAsync(config, cancellationToken);
+                await _sorterAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
             }
 
             _logger.LogInformation("分拣机配置重新加载完成");

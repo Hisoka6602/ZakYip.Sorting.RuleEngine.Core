@@ -65,7 +65,7 @@ public class RuleEngineService : IRuleEngineService
                 try
                 {
                     // 获取启用的规则（使用缓存提高性能）
-                    var rules = await GetCachedRulesAsync(cancellationToken);
+                    var rules = await GetCachedRulesAsync(cancellationToken).ConfigureAwait(false);
 
                     // 收集所有匹配的规则
                     var matchedRules = new List<SortingRule>();
@@ -117,7 +117,7 @@ public class RuleEngineService : IRuleEngineService
             return cachedRules;
         }
 
-        await _cacheLock.WaitAsync(cancellationToken);
+        await _cacheLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // 双重检查
@@ -127,7 +127,7 @@ public class RuleEngineService : IRuleEngineService
             }
 
             // 从数据库加载规则
-            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken);
+            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
 
             // 配置滑动过期缓存选项
             var cacheOptions = new MemoryCacheEntryOptions()

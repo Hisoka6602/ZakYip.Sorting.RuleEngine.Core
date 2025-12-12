@@ -30,7 +30,7 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
         // 记录包裹创建事件到数据库
         await _logRepository.LogInfoAsync(
             $"包裹已创建: {notification.ParcelId}",
-            $"小车号: {notification.CartNumber}, 序号: {notification.SequenceNumber}");
+            $"小车号: {notification.CartNumber}, 序号: {notification.SequenceNumber}").ConfigureAwait(false);
 
         // 此处可以开辟缓存空间等待DWS数据
         // Space can be allocated in cache to wait for DWS data

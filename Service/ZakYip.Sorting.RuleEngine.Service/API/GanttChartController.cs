@@ -62,7 +62,7 @@ public class GanttChartController : ControllerBase
                 target,
                 beforeCount,
                 afterCount,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (!response.Success)
             {
@@ -121,7 +121,7 @@ public class GanttChartController : ControllerBase
                 request.Target,
                 request.BeforeCount,
                 request.AfterCount,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (!response.Success)
             {

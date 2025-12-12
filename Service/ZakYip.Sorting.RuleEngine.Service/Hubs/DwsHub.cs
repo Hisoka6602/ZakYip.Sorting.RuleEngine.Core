@@ -52,7 +52,7 @@ public class DwsHub : Hub
             var success = await _orchestrationService.ReceiveDwsDataAsync(
                 parcelId,
                 dwsData,
-                Context.ConnectionAborted);
+                Context.ConnectionAborted).ConfigureAwait(false);
 
             if (success)
             {
@@ -107,7 +107,7 @@ public class DwsHub : Hub
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("DWS SignalR连接已建立: {ConnectionId}", Context.ConnectionId);
-        await base.OnConnectedAsync();
+        await base.OnConnectedAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -123,6 +123,6 @@ public class DwsHub : Hub
         {
             _logger.LogInformation("DWS SignalR连接已断开: {ConnectionId}", Context.ConnectionId);
         }
-        await base.OnDisconnectedAsync(exception);
+        await base.OnDisconnectedAsync(exception).ConfigureAwait(false);
     }
 }

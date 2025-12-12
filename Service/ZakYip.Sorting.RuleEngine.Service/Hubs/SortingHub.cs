@@ -36,7 +36,7 @@ public class SortingHub : Hub
                 parcelId,
                 cartNumber,
                 barcode,
-                Context.ConnectionAborted);
+                Context.ConnectionAborted).ConfigureAwait(false);
 
             if (success)
             {
@@ -80,7 +80,7 @@ public class SortingHub : Hub
                 "SignalR发送格口号 - ParcelId: {ParcelId}, Chute: {Chute}, ConnectionId: {ConnectionId}",
                 parcelId, chuteNumber, Context.ConnectionId);
 
-            await Clients.Caller.SendAsync("ReceiveChuteNumber", parcelId, chuteNumber, cartNumber, cartCount);
+            await Clients.Caller.SendAsync("ReceiveChuteNumber", parcelId, chuteNumber, cartNumber, cartCount).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -110,7 +110,7 @@ public class SortingHub : Hub
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("分拣机SignalR连接已建立: {ConnectionId}", Context.ConnectionId);
-        await base.OnConnectedAsync();
+        await base.OnConnectedAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -126,7 +126,7 @@ public class SortingHub : Hub
         {
             _logger.LogInformation("分拣机SignalR连接已断开: {ConnectionId}", Context.ConnectionId);
         }
-        await base.OnDisconnectedAsync(exception);
+        await base.OnDisconnectedAsync(exception).ConfigureAwait(false);
     }
 }
 

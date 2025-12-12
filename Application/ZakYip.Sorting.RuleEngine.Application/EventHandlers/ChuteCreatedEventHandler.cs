@@ -29,6 +29,6 @@ public class ChuteCreatedEventHandler : INotificationHandler<ChuteCreatedEvent>
 
         await _logRepository.LogInfoAsync(
             $"格口已创建: {notification.ChuteId}",
-            $"格口名称: {notification.ChuteName}, 格口编号: {notification.ChuteCode ?? "无"}, 已启用: {notification.IsEnabled}");
+            $"格口名称: {notification.ChuteName}, 格口编号: {notification.ChuteCode ?? "无"}, 已启用: {notification.IsEnabled}").ConfigureAwait(false);
     }
 }

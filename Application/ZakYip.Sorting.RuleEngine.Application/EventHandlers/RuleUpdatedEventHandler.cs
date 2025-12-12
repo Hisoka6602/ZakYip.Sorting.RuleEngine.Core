@@ -29,6 +29,6 @@ public class RuleUpdatedEventHandler : INotificationHandler<RuleUpdatedEvent>
 
         await _logRepository.LogInfoAsync(
             $"规则已更新: {notification.RuleId}",
-            $"规则名称: {notification.RuleName}, 目标格口: {notification.TargetChute}, 优先级: {notification.Priority}, 已启用: {notification.IsEnabled}");
+            $"规则名称: {notification.RuleName}, 目标格口: {notification.TargetChute}, 优先级: {notification.Priority}, 已启用: {notification.IsEnabled}").ConfigureAwait(false);
     }
 }

@@ -42,7 +42,7 @@ public class ImagePathService
 
         try
         {
-            var updatedCount = await _logRepository.BulkUpdateImagePathsAsync(oldPrefix, newPrefix, cancellationToken);
+            var updatedCount = await _logRepository.BulkUpdateImagePathsAsync(oldPrefix, newPrefix, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Successfully updated {Count} image paths", updatedCount);
             return updatedCount;
         }

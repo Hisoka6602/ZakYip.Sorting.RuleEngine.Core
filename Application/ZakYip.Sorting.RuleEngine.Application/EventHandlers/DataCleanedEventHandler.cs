@@ -29,6 +29,6 @@ public class DataCleanedEventHandler : INotificationHandler<DataCleanedEvent>
 
         await _logRepository.LogInfoAsync(
             $"数据清理已完成: {notification.TableName}",
-            $"清理记录数: {notification.RecordCount}, 截止日期: {notification.CutoffDate:yyyy-MM-dd}, 耗时: {notification.DurationMs}ms");
+            $"清理记录数: {notification.RecordCount}, 截止日期: {notification.CutoffDate:yyyy-MM-dd}, 耗时: {notification.DurationMs}ms").ConfigureAwait(false);
     }
 }

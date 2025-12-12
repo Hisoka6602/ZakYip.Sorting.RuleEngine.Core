@@ -37,15 +37,15 @@ public class SorterAdapterManager : ISorterAdapterManager
             // {
             //     case "TCP":
             //         _adapter = new TcpSorterAdapter(config);
-            //         await _adapter.ConnectAsync(cancellationToken);
+            //         await _adapter.ConnectAsync(cancellationToken).ConfigureAwait(false);
             //         break;
             //     case "HTTP":
             //         _adapter = new HttpSorterAdapter(config);
-            //         await _adapter.ConnectAsync(cancellationToken);
+            //         await _adapter.ConnectAsync(cancellationToken).ConfigureAwait(false);
             //         break;
             //     case "SignalR":
             //         _adapter = new SignalRSorterAdapter(config);
-            //         await _adapter.ConnectAsync(cancellationToken);
+            //         await _adapter.ConnectAsync(cancellationToken).ConfigureAwait(false);
             //         break;
             //     default:
             //         throw new NotSupportedException($"不支持的协议类型: {config.Protocol}");
@@ -77,7 +77,7 @@ public class SorterAdapterManager : ISorterAdapterManager
             _logger.LogInformation("开始断开分拣机连接");
 
             // TODO: 实际的分拣机断开逻辑
-            // await _adapter?.DisconnectAsync(cancellationToken);
+            // await _adapter?.DisconnectAsync(cancellationToken).ConfigureAwait(false);
             // _adapter?.Dispose();
 
             _isConnected = false;
@@ -107,7 +107,7 @@ public class SorterAdapterManager : ISorterAdapterManager
                 parcelId, chuteNumber);
 
             // TODO: 实际的发送逻辑
-            // return await _adapter.SendChuteNumberAsync(parcelId, chuteNumber, cancellationToken);
+            // return await _adapter.SendChuteNumberAsync(parcelId, chuteNumber, cancellationToken).ConfigureAwait(false);
 
             await Task.CompletedTask;
             return true;

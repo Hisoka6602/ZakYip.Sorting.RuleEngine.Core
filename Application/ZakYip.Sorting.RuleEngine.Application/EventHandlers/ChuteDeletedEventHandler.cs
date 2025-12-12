@@ -47,6 +47,6 @@ public class ChuteDeletedEventHandler : INotificationHandler<ChuteDeletedEvent>
 
         await _logRepository.LogInfoAsync(
             $"格口已删除: {notification.ChuteId}",
-            $"格口名称: {notification.ChuteName}, 格口编号: {notification.ChuteCode ?? "无"}");
+            $"格口名称: {notification.ChuteName}, 格口编号: {notification.ChuteCode ?? "无"}").ConfigureAwait(false);
     }
 }

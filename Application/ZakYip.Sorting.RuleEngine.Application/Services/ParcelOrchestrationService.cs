@@ -86,7 +86,7 @@ public class ParcelOrchestrationService
             WorkType = WorkItemType.Create
         };
         
-        await _parcelChannel.Writer.WriteAsync(workItem, cancellationToken);
+        await _parcelChannel.Writer.WriteAsync(workItem, cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("包裹已加入处理队列: {ParcelId}, Sequence={Sequence}", parcelId, sequence);
         return true;
@@ -114,7 +114,7 @@ public class ParcelOrchestrationService
             WorkType = WorkItemType.ProcessDws
         };
         
-        await _parcelChannel.Writer.WriteAsync(workItem, cancellationToken);
+        await _parcelChannel.Writer.WriteAsync(workItem, cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("DWS数据已加入处理队列: {ParcelId}", parcelId);
         return true;
@@ -129,7 +129,7 @@ public class ParcelOrchestrationService
         {
             try
             {
-                await ProcessWorkItemAsync(workItem, cancellationToken);
+                await ProcessWorkItemAsync(workItem, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -195,7 +195,7 @@ public class ParcelOrchestrationService
                         parcelInfo,
                         context.DwsData,
                         context.WcsApiResponse,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     if (chuteNumber != null)
                     {

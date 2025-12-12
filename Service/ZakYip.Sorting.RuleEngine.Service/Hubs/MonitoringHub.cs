@@ -29,7 +29,7 @@ public class MonitoringHub : Hub
         try
         {
             _logger.LogDebug("SignalR请求实时监控数据 - ConnectionId: {ConnectionId}", Context.ConnectionId);
-            return await _monitoringService.GetRealtimeMonitoringDataAsync(Context.ConnectionAborted);
+            return await _monitoringService.GetRealtimeMonitoringDataAsync(Context.ConnectionAborted).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -46,7 +46,7 @@ public class MonitoringHub : Hub
         try
         {
             _logger.LogDebug("SignalR请求活跃告警 - ConnectionId: {ConnectionId}", Context.ConnectionId);
-            return await _monitoringService.GetActiveAlertsAsync(Context.ConnectionAborted);
+            return await _monitoringService.GetActiveAlertsAsync(Context.ConnectionAborted).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -65,10 +65,10 @@ public class MonitoringHub : Hub
             _logger.LogInformation("SignalR请求解决告警 - AlertId: {AlertId}, ConnectionId: {ConnectionId}", 
                 alertId, Context.ConnectionId);
             
-            await _monitoringService.ResolveAlertAsync(alertId, Context.ConnectionAborted);
+            await _monitoringService.ResolveAlertAsync(alertId, Context.ConnectionAborted).ConfigureAwait(false);
             
             // 通知所有客户端告警已解决
-            await Clients.All.SendAsync("AlertResolved", alertId);
+            await Clients.All.SendAsync("AlertResolved", alertId).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -84,7 +84,7 @@ public class MonitoringHub : Hub
     {
         try
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, "MonitoringSubscribers");
+            await Groups.AddToGroupAsync(Context.ConnectionId, "MonitoringSubscribers").ConfigureAwait(false);
             _logger.LogInformation("客户端已订阅监控更新 - ConnectionId: {ConnectionId}", Context.ConnectionId);
         }
         catch (Exception ex)
@@ -101,7 +101,7 @@ public class MonitoringHub : Hub
     {
         try
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, "MonitoringSubscribers");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, "MonitoringSubscribers").ConfigureAwait(false);
             _logger.LogInformation("客户端已取消订阅监控更新 - ConnectionId: {ConnectionId}", Context.ConnectionId);
         }
         catch (Exception ex)
@@ -117,7 +117,7 @@ public class MonitoringHub : Hub
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("监控SignalR连接已建立: {ConnectionId}", Context.ConnectionId);
-        await base.OnConnectedAsync();
+        await base.OnConnectedAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -133,6 +133,6 @@ public class MonitoringHub : Hub
         {
             _logger.LogInformation("监控SignalR连接已断开: {ConnectionId}", Context.ConnectionId);
         }
-        await base.OnDisconnectedAsync(exception);
+        await base.OnDisconnectedAsync(exception).ConfigureAwait(false);
     }
 }
