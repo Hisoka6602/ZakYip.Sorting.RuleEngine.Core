@@ -101,7 +101,7 @@ public class DwsSimulator : IDisposable
             var json = JsonSerializer.Serialize(data) + "\n";
             var bytes = Encoding.UTF8.GetBytes(json);
 
-            await _tcpClient.SendAsync(bytes);
+            await _tcpClient.SendAsync(bytes).ConfigureAwait(false);
             sw.Stop();
 
             return new SimulatorResult
@@ -135,12 +135,12 @@ public class DwsSimulator : IDisposable
         for (int i = 0; i < count; i++)
         {
             var dwsData = _generator.GenerateDwsData();
-            var result = await SendDwsDataAsync(dwsData);
+            var result = await SendDwsDataAsync(dwsData).ConfigureAwait(false);
             results.Add(result);
 
             if (delayMs > 0 && i < count - 1)
             {
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs).ConfigureAwait(false);
             }
         }
 

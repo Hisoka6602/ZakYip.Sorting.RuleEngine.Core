@@ -37,9 +37,9 @@ public class TcpSorterSimulator : ISorterSimulator
             
             await _tcpClient.SetupAsync(new TouchSocketConfig()
                 .SetRemoteIPHost(new IPHost($"{_config.Host}:{_config.Port}"))
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
+                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))).ConfigureAwait(false);
 
-            await _tcpClient.ConnectAsync();
+            await _tcpClient.ConnectAsync().ConfigureAwait(false);
             _isConnected = true;
             
             Console.WriteLine($"✓ 已连接到分拣机TCP服务器: {_config.Host}:{_config.Port}");
@@ -97,7 +97,7 @@ public class TcpSorterSimulator : ISorterSimulator
             var json = JsonSerializer.Serialize(data) + "\n";
             var bytes = Encoding.UTF8.GetBytes(json);
 
-            await _tcpClient.SendAsync(bytes);
+            await _tcpClient.SendAsync(bytes).ConfigureAwait(false);
             sw.Stop();
 
             return new SimulatorResult
@@ -131,12 +131,12 @@ public class TcpSorterSimulator : ISorterSimulator
         for (int i = 0; i < count; i++)
         {
             var parcel = _generator.GenerateParcel();
-            var result = await SendParcelAsync(parcel);
+            var result = await SendParcelAsync(parcel).ConfigureAwait(false);
             results.Add(result);
 
             if (delayMs > 0 && i < count - 1)
             {
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs).ConfigureAwait(false);
             }
         }
 
