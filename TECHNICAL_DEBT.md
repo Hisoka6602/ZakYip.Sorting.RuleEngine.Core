@@ -42,10 +42,10 @@ This document records identified technical debt in the project. Before opening a
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**，消除 151 行重复代码。
 > Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**, eliminated 151 duplicate lines.
 
-> **🎉 编译警告进展 / Compiler Warnings Progress - COMPLETE!** 
+> **🎉 编译警告进展 / Compiler Warnings Progress - COMPLETE!**
 > 从 3,616 → **126 (-96.5%)**，所有 Phase 1-5 完成！ 消除 3,490 个警告！
 > Reduced from 3,616 → **126 (-96.5%)**, all Phases 1-5 complete! Eliminated 3,490 warnings!
-> 
+>
 > **Phase 1 ✅**: 1,925 suppressions | **Phase 2 ✅**: 116 fixes + 902 suppressions | **Phase 3 ✅**: 20 fixes | **Phases 4-5 ✅**: 1,449 suppressions
 
 ---

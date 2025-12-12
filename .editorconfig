@@ -466,10 +466,6 @@ dotnet_diagnostic.CA1849.severity = suggestion
 # Suppress - dynamic logging acceptable
 dotnet_diagnostic.CA2254.severity = none
 
-# CA2213: Disposable fields should be disposed
-# Keep as warning
-dotnet_diagnostic.CA2213.severity = warning
-
 # CA1866: Use char overload
 # Suppress - string overloads more readable
 dotnet_diagnostic.CA1866.severity = none
