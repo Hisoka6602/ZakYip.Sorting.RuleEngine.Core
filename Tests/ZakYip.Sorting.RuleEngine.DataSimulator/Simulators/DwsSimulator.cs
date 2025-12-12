@@ -240,7 +240,7 @@ public class DwsSimulator : IDisposable
         };
     }
 
-    private double CalculatePercentile(List<SimulatorResult> results, int percentile)
+    private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
         if (results.Count == 0) return 0;
 
@@ -253,5 +253,7 @@ public class DwsSimulator : IDisposable
     public void Dispose()
     {
         Disconnect();
+        _tcpClient?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
