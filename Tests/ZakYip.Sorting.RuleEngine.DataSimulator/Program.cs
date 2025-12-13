@@ -41,7 +41,7 @@ class Program
 
             try
             {
-                await ExecuteMenuChoice(choice);
+                await ExecuteMenuChoice(choice).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -124,25 +124,25 @@ class Program
         switch (choice)
         {
             case "1":
-                await SendSingleParcelAsync();
+                await SendSingleParcelAsync().ConfigureAwait(false);
                 break;
             case "2":
-                await SendBatchParcelsAsync();
+                await SendBatchParcelsAsync().ConfigureAwait(false);
                 break;
             case "3":
-                await RunSorterStressTestAsync();
+                await RunSorterStressTestAsync().ConfigureAwait(false);
                 break;
             case "4":
-                await SendSingleDwsAsync();
+                await SendSingleDwsAsync().ConfigureAwait(false);
                 break;
             case "5":
-                await SendBatchDwsAsync();
+                await SendBatchDwsAsync().ConfigureAwait(false);
                 break;
             case "6":
-                await RunDwsStressTestAsync();
+                await RunDwsStressTestAsync().ConfigureAwait(false);
                 break;
             case "7":
-                await RunCompleteFlowAsync();
+                await RunCompleteFlowAsync().ConfigureAwait(false);
                 break;
             case "8":
                 DisplayConfiguration();
@@ -161,7 +161,7 @@ class Program
         if (_sorterSimulator == null)
         {
             _sorterSimulator = CreateSorterSimulator();
-            var connected = await _sorterSimulator.ConnectAsync();
+            var connected = await _sorterSimulator.ConnectAsync().ConfigureAwait(false);
             if (!connected)
             {
                 AnsiConsole.MarkupLine("[red]无法连接到分拣机[/]");
@@ -186,7 +186,7 @@ class Program
             .Spinner(Spinner.Known.Dots)
             .StartAsync("发送中...", async ctx =>
             {
-                var result = await _sorterSimulator.SendParcelAsync(parcel);
+                var result = await _sorterSimulator.SendParcelAsync(parcel).ConfigureAwait(false);
                 
                 AnsiConsole.WriteLine();
                 if (result.Success)

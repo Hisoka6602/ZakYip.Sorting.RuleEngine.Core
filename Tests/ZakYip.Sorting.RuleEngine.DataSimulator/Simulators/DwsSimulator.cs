@@ -74,6 +74,8 @@ public class DwsSimulator : IDisposable
     /// </summary>
     public async Task<SimulatorResult> SendDwsDataAsync(DwsData dwsData)
     {
+        ArgumentNullException.ThrowIfNull(dwsData);
+
         if (!_isConnected || _tcpClient == null)
         {
             return new SimulatorResult
@@ -101,7 +103,7 @@ public class DwsSimulator : IDisposable
             var json = JsonSerializer.Serialize(data) + "\n";
             var bytes = Encoding.UTF8.GetBytes(json);
 
-            await _tcpClient.SendAsync(bytes);
+            await _tcpClient.SendAsync(bytes).ConfigureAwait(false);
             sw.Stop();
 
             return new SimulatorResult
@@ -135,12 +137,12 @@ public class DwsSimulator : IDisposable
         for (int i = 0; i < count; i++)
         {
             var dwsData = _generator.GenerateDwsData();
-            var result = await SendDwsDataAsync(dwsData);
+            var result = await SendDwsDataAsync(dwsData).ConfigureAwait(false);
             results.Add(result);
 
             if (delayMs > 0 && i < count - 1)
             {
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs).ConfigureAwait(false);
             }
         }
 
@@ -231,16 +233,16 @@ public class DwsSimulator : IDisposable
             TotalSent = results.Count,
             SuccessCount = successCount,
             FailureCount = failureCount,
-            AverageLatencyMs = results.Any() ? results.Average(r => r.ElapsedMs) : 0,
+            AverageLatencyMs = results.Count > 0 ? results.Average(r => r.ElapsedMs) : 0,
             P50LatencyMs = CalculatePercentile(results, 50),
             P95LatencyMs = CalculatePercentile(results, 95),
             P99LatencyMs = CalculatePercentile(results, 99)
         };
     }
 
-    private double CalculatePercentile(List<SimulatorResult> results, int percentile)
+    private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
-        if (!results.Any()) return 0;
+        if (results.Count == 0) return 0;
 
         var sorted = results.OrderBy(r => r.ElapsedMs).ToList();
         var index = (int)Math.Ceiling(percentile / 100.0 * sorted.Count) - 1;
@@ -251,5 +253,7 @@ public class DwsSimulator : IDisposable
     public void Dispose()
     {
         Disconnect();
+        _tcpClient?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

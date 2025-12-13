@@ -37,9 +37,9 @@ public class TcpSorterSimulator : ISorterSimulator
             
             await _tcpClient.SetupAsync(new TouchSocketConfig()
                 .SetRemoteIPHost(new IPHost($"{_config.Host}:{_config.Port}"))
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
+                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))).ConfigureAwait(false);
 
-            await _tcpClient.ConnectAsync();
+            await _tcpClient.ConnectAsync().ConfigureAwait(false);
             _isConnected = true;
             
             Console.WriteLine($"✓ 已连接到分拣机TCP服务器: {_config.Host}:{_config.Port}");
@@ -73,6 +73,8 @@ public class TcpSorterSimulator : ISorterSimulator
     /// </summary>
     public async Task<SimulatorResult> SendParcelAsync(ParcelData parcel)
     {
+        ArgumentNullException.ThrowIfNull(parcel);
+
         if (!_isConnected || _tcpClient == null)
         {
             return new SimulatorResult
@@ -97,7 +99,7 @@ public class TcpSorterSimulator : ISorterSimulator
             var json = JsonSerializer.Serialize(data) + "\n";
             var bytes = Encoding.UTF8.GetBytes(json);
 
-            await _tcpClient.SendAsync(bytes);
+            await _tcpClient.SendAsync(bytes).ConfigureAwait(false);
             sw.Stop();
 
             return new SimulatorResult
@@ -131,12 +133,12 @@ public class TcpSorterSimulator : ISorterSimulator
         for (int i = 0; i < count; i++)
         {
             var parcel = _generator.GenerateParcel();
-            var result = await SendParcelAsync(parcel);
+            var result = await SendParcelAsync(parcel).ConfigureAwait(false);
             results.Add(result);
 
             if (delayMs > 0 && i < count - 1)
             {
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs).ConfigureAwait(false);
             }
         }
 
@@ -227,16 +229,16 @@ public class TcpSorterSimulator : ISorterSimulator
             TotalSent = results.Count,
             SuccessCount = successCount,
             FailureCount = failureCount,
-            AverageLatencyMs = results.Any() ? results.Average(r => r.ElapsedMs) : 0,
+            AverageLatencyMs = results.Count > 0 ? results.Average(r => r.ElapsedMs) : 0,
             P50LatencyMs = CalculatePercentile(results, 50),
             P95LatencyMs = CalculatePercentile(results, 95),
             P99LatencyMs = CalculatePercentile(results, 99)
         };
     }
 
-    private double CalculatePercentile(List<SimulatorResult> results, int percentile)
+    private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
-        if (!results.Any()) return 0;
+        if (results.Count == 0) return 0;
 
         var sorted = results.OrderBy(r => r.ElapsedMs).ToList();
         var index = (int)Math.Ceiling(percentile / 100.0 * sorted.Count) - 1;
@@ -247,5 +249,7 @@ public class TcpSorterSimulator : ISorterSimulator
     public void Dispose()
     {
         Disconnect();
+        _tcpClient?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

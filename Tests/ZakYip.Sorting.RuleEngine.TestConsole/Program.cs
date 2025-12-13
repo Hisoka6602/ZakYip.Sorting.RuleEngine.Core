@@ -20,11 +20,11 @@ class Program
 
         if (mode == 1)
         {
-            await RunSorterSimulatorAsync();
+            await RunSorterSimulatorAsync().ConfigureAwait(false);
         }
         else
         {
-            await RunDwsSimulatorAsync();
+            await RunDwsSimulatorAsync().ConfigureAwait(false);
         }
     }
 
@@ -88,8 +88,8 @@ class Program
                 var json = JsonSerializer.Serialize(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await httpClient.PostAsync("/api/sortingmachine/create-parcel", content);
-                var result = await response.Content.ReadAsStringAsync();
+                var response = await httpClient.PostAsync("/api/sortingmachine/create-parcel", content).ConfigureAwait(false);
+                var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -140,9 +140,9 @@ class Program
         {
             await tcpClient.SetupAsync(new TouchSocketConfig()
                 .SetRemoteIPHost(new IPHost($"{host}:{port}"))
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
+                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))).ConfigureAwait(false);
 
-            await tcpClient.ConnectAsync();
+            await tcpClient.ConnectAsync().ConfigureAwait(false);
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"✓ 已连接到DWS服务器: {host}:{port}");
             Console.ResetColor();
@@ -211,7 +211,7 @@ class Program
                 var json = JsonSerializer.Serialize(dwsData) + "\n";
                 var data = Encoding.UTF8.GetBytes(json);
 
-                await tcpClient.SendAsync(data);
+                await tcpClient.SendAsync(data).ConfigureAwait(false);
 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"✓ DWS数据发送成功");

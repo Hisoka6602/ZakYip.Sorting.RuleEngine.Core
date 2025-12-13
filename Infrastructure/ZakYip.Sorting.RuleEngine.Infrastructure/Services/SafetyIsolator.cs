@@ -153,13 +153,13 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                 {
                     await _resiliencePipeline.ExecuteAsync(async (CancellationToken ct) => 
                     {
-                        await action();
+                        await action().ConfigureAwait(false);
                         return ValueTask.CompletedTask;
-                    }, CancellationToken.None);
+                    }, CancellationToken.None).ConfigureAwait(false);
                 }
                 else if (action != null)
                 {
-                    await action();
+                    await action().ConfigureAwait(false);
                 }
                 return true;
             }
@@ -187,10 +187,10 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
                 {
                     return await _resiliencePipeline.ExecuteAsync(async (CancellationToken ct) => 
                     {
-                        return await func();
-                    }, CancellationToken.None);
+                        return await func().ConfigureAwait(false);
+                    }, CancellationToken.None).ConfigureAwait(false);
                 }
-                return func != null ? await func() : defaultValue;
+                return func != null ? await func().ConfigureAwait(false) : defaultValue;
             }
             catch (Exception ex)
             {
@@ -212,7 +212,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         {
             try
             {
-                var result = func != null ? await func() : defaultValue;
+                var result = func != null ? await func().ConfigureAwait(false) : defaultValue;
                 return (true, result);
             }
             catch (Exception ex)
@@ -234,7 +234,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
             {
                 if (action != null)
                 {
-                    await action();
+                    await action().ConfigureAwait(false);
                 }
                 return true;
             }
@@ -256,7 +256,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services
         {
             try
             {
-                return func != null ? await func() : defaultValue;
+                return func != null ? await func().ConfigureAwait(false) : defaultValue;
             }
             catch
             {

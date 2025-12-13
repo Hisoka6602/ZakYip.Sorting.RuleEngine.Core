@@ -48,7 +48,7 @@ public class MqttSorterSimulator : ISorterSimulator
 
             var options = optionsBuilder.Build();
 
-            var result = await _mqttClient.ConnectAsync(options, CancellationToken.None);
+            var result = await _mqttClient.ConnectAsync(options, CancellationToken.None).ConfigureAwait(false);
             _isConnected = result.ResultCode == MqttClientConnectResultCode.Success;
 
             if (_isConnected)
@@ -80,7 +80,7 @@ public class MqttSorterSimulator : ISorterSimulator
         {
             if (_mqttClient != null && _isConnected)
             {
-                await _mqttClient.DisconnectAsync();
+                await _mqttClient.DisconnectAsync().ConfigureAwait(false);
                 _isConnected = false;
                 Console.WriteLine("✓ 已断开MQTT代理连接");
             }
@@ -97,6 +97,8 @@ public class MqttSorterSimulator : ISorterSimulator
     /// </summary>
     public async Task<SimulatorResult> SendParcelAsync(ParcelData parcel)
     {
+        ArgumentNullException.ThrowIfNull(parcel);
+
         if (!_isConnected || _mqttClient == null)
         {
             return new SimulatorResult
@@ -128,7 +130,7 @@ public class MqttSorterSimulator : ISorterSimulator
                 .WithRetainFlag(false)
                 .Build();
 
-            await _mqttClient.PublishAsync(message, CancellationToken.None);
+            await _mqttClient.PublishAsync(message, CancellationToken.None).ConfigureAwait(false);
             sw.Stop();
 
             return new SimulatorResult
@@ -162,12 +164,12 @@ public class MqttSorterSimulator : ISorterSimulator
         for (int i = 0; i < count; i++)
         {
             var parcel = _generator.GenerateParcel();
-            var result = await SendParcelAsync(parcel);
+            var result = await SendParcelAsync(parcel).ConfigureAwait(false);
             results.Add(result);
 
             if (delayMs > 0 && i < count - 1)
             {
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs).ConfigureAwait(false);
             }
         }
 
@@ -258,16 +260,16 @@ public class MqttSorterSimulator : ISorterSimulator
             TotalSent = results.Count,
             SuccessCount = successCount,
             FailureCount = failureCount,
-            AverageLatencyMs = results.Any() ? results.Average(r => r.ElapsedMs) : 0,
+            AverageLatencyMs = results.Count > 0 ? results.Average(r => r.ElapsedMs) : 0,
             P50LatencyMs = CalculatePercentile(results, 50),
             P95LatencyMs = CalculatePercentile(results, 95),
             P99LatencyMs = CalculatePercentile(results, 99)
         };
     }
 
-    private double CalculatePercentile(List<SimulatorResult> results, int percentile)
+    private static double CalculatePercentile(List<SimulatorResult> results, int percentile)
     {
-        if (!results.Any()) return 0;
+        if (results.Count == 0) return 0;
 
         var sorted = results.OrderBy(r => r.ElapsedMs).ToList();
         var index = (int)Math.Ceiling(percentile / 100.0 * sorted.Count) - 1;
