@@ -515,6 +515,99 @@ Following these coding standards will help us:
 
 **⚠️ IMPORTANT: Before each PR submission, make sure you have read <a>TECHNICAL_DEBT.md</a>**
 
+**⚠️ 技术债务文件唯一性：项目中只能有一个技术债务文件 TECHNICAL_DEBT.md**
+
+**⚠️ Technical Debt File Uniqueness: Only ONE technical debt file TECHNICAL_DEBT.md is allowed in the project**
+
+---
+
+## 11. 技术债务文件管理规范 / Technical Debt File Management
+
+### 唯一文件原则 / Single File Principle
+
+**规则 / Rules**:
+- ✅ 项目中**只能有一个**技术债务文档：`TECHNICAL_DEBT.md`（位于项目根目录）
+- ❌ **严格禁止**创建其他技术债务相关文件（如 TECH_DEBT_XXX.md, TD_XXX.md 等）
+- ❌ **严格禁止**在子目录创建独立的技术债务文档
+- ✅ 历史性的技术债务文档必须添加 `archive_` 前缀并加上日期，例如：`archive_TECH_DEBT_DEFENSE_SUMMARY_2025-12-11.md`
+
+**原因 / Reasons**:
+- 避免混淆 - 后续 PR 提交者不知道应该读取哪个文件
+- 统一管理 - 所有技术债务集中在一个地方便于追踪
+- 防止遗漏 - 确保所有团队成员查看相同的技术债务清单
+- 维护简单 - 只需要维护和更新一个文件
+
+**违规示例 / Violation Examples**:
+```
+❌ TECHNICAL_DEBT.md + TECH_DEBT_DEFENSE_SUMMARY.md (两个文件)
+❌ TECHNICAL_DEBT.md + docs/TECHNICAL_DEBT_API.md (多个文件)
+❌ TECHNICAL_DEBT.md + TD_2025_Q4.md (按时间分文件)
+❌ TECHNICAL_DEBT.md + Infrastructure/TD.md (子目录独立文件)
+```
+
+**正确做法 / Correct Approach**:
+```
+✅ TECHNICAL_DEBT.md (唯一的技术债务文件)
+✅ archive_TECH_DEBT_DEFENSE_SUMMARY_2025-12-11.md (历史归档文件)
+✅ archive_TD_REFACTORING_2025-11-15.md (历史归档文件)
+```
+
+**技术债务内容组织 / Technical Debt Content Organization**:
+
+所有技术债务都应该记录在 `TECHNICAL_DEBT.md` 的不同章节中：
+
+```markdown
+## 📊 当前技术债务概览 / Current Technical Debt Overview
+(总览表格 / Overview table)
+
+## 🔄 影分身代码清理记录 / Shadow Clone Code Cleanup Log
+(影分身代码相关 / Shadow clone related)
+
+## 🔧 编译警告解决计划 / Compilation Warnings Resolution Plan
+(编译警告相关 / Compiler warnings related)
+
+## 🔄 重复代码债务 / Duplicate Code Debt
+(重复代码相关 / Duplicate code related)
+
+## 📝 新增技术债务 / New Technical Debt
+(新发现的技术债务 / Newly identified debt)
+```
+
+### 更新和维护 / Update and Maintenance
+
+**每次 PR 的责任 / Responsibilities for Each PR**:
+1. ✅ 提交 PR 前必须通读 `TECHNICAL_DEBT.md`
+2. ✅ 如果解决了技术债务，必须更新 `TECHNICAL_DEBT.md` 相应章节
+3. ✅ 如果引入了新的技术债务，必须在 `TECHNICAL_DEBT.md` 的 "新增技术债务" 章节记录
+4. ❌ 不得创建新的技术债务文件
+
+**文档更新格式 / Documentation Update Format**:
+```markdown
+### YYYY-MM-DD: 技术债务标题 / Technical Debt Title
+
+**类别 / Category**: (代码质量/性能/安全等)
+**严重程度 / Severity**: 🔴 高 / 🟡 中 / 🟢 低
+**状态 / Status**: 📋 待修复 / 🔄 进行中 / ✅ 已完成
+
+#### 背景 / Background
+(问题描述)
+
+#### 修复方案 / Fix Solution
+(详细修复步骤和代码示例)
+
+#### 预估工作量 / Estimated Effort
+(时间预估和优先级)
+```
+
+### 检查清单 / Checklist
+
+**PR 提交前检查 / Pre-PR Submission Check**:
+- [ ] 已通读唯一的技术债务文件 `TECHNICAL_DEBT.md`
+- [ ] 确认项目中只有一个 `TECHNICAL_DEBT.md` 文件
+- [ ] 如果发现其他技术债务文件，已将其归档（添加 `archive_` 前缀和日期）
+- [ ] 已更新 `TECHNICAL_DEBT.md` 相关章节（如果适用）
+- [ ] 未创建新的技术债务文件
+
 ---
 
 ## 12. PR 完整性约束 / PR Integrity Constraints
@@ -925,6 +1018,12 @@ public record UserDto
 ## 19. 代码审查清单 / Code Review Checklist
 
 在提交代码前，请检查 / Before submitting code, please check:
+
+### 技术债务管理 / Technical Debt Management
+- [ ] 已通读唯一的技术债务文件 `TECHNICAL_DEBT.md` / Read the single technical debt file `TECHNICAL_DEBT.md`
+- [ ] 确认项目中只有一个 `TECHNICAL_DEBT.md` 文件 / Confirmed only ONE `TECHNICAL_DEBT.md` file exists
+- [ ] 未创建其他技术债务文件（如 TECH_DEBT_XXX.md）/ No other tech debt files created
+- [ ] 已将历史技术债务文件归档（archive_ 前缀 + 日期）/ Archived historical tech debt files (archive_ prefix + date)
 
 ### PR 完整性 / PR Integrity
 - [ ] PR 可独立编译、测试通过 / PR can compile independently and tests pass
