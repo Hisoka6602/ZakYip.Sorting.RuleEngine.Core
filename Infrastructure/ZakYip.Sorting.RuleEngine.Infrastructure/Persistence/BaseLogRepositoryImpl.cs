@@ -16,11 +16,16 @@ public abstract class BaseLogRepositoryImpl<TContext, TLogEntry> : ILogRepositor
 {
     protected readonly TContext Context;
     protected readonly ILogger Logger;
+    protected readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
-    protected BaseLogRepositoryImpl(TContext context, ILogger logger)
+    protected BaseLogRepositoryImpl(
+        TContext context, 
+        ILogger logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         Context = context;
         Logger = logger;
+        _clock = clock;
     }
 
     public virtual async Task LogAsync(

@@ -51,16 +51,16 @@ public class DownstreamTcpJsonServer : IDisposable
         string host,
         int port,
         ILogger<DownstreamTcpJsonServer> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         MySqlLogDbContext? mysqlContext = null,
-        SqliteLogDbContext? sqliteContext = null,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        SqliteLogDbContext? sqliteContext = null)
     {
-_host = host;
+        _host = host;
         _port = port;
         _logger = logger;
+        _clock = clock;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
-        _clock = clock;
     }
 
     /// <summary>

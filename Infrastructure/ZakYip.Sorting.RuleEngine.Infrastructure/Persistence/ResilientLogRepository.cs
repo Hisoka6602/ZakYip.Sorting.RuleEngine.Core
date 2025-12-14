@@ -24,6 +24,7 @@ public class ResilientLogRepository : ILogRepository
     private readonly ResiliencePipeline<bool> _circuitBreaker;
     private readonly IDatabaseDialect _sqliteDialect;
     private readonly ResiliencePipeline _retryPolicy;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     /// <summary>
     /// 批量同步的批次大小（每批处理的记录数）
@@ -35,13 +36,15 @@ public class ResilientLogRepository : ILogRepository
         IOptions<DatabaseCircuitBreakerSettings> circuitBreakerSettings,
         MySqlLogDbContext? mysqlContext,
         SqliteLogDbContext sqliteContext,
-        SqliteDialect sqliteDialect)
+        SqliteDialect sqliteDialect,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _logger = logger;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
         _circuitBreakerSettings = circuitBreakerSettings.Value;
         _sqliteDialect = sqliteDialect;
+        _clock = clock;
 
         // 配置数据同步重试策略
         // Configure data synchronization retry policy
@@ -199,7 +202,7 @@ public class ResilientLogRepository : ILogRepository
             Level = level,
             Message = message,
             Details = details,
-            CreatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow
         };
 
         await _mysqlContext.LogEntries.AddAsync(logEntry, cancellationToken);
@@ -223,7 +226,7 @@ public class ResilientLogRepository : ILogRepository
                 Level = level,
                 Message = message,
                 Details = details,
-                CreatedAt = DateTime.Now
+                CreatedAt = _clock.LocalNow
             };
 
             await _sqliteContext.LogEntries.AddAsync(logEntry, cancellationToken);

@@ -19,6 +19,7 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
 {
     private readonly ILogger<MqttSorterAdapter> _logger;
     private readonly ICommunicationLogRepository _communicationLogRepository;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly string _brokerHost;
     private readonly int _brokerPort;
     private readonly string _publishTopic;
@@ -41,6 +42,7 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
     /// <param name="publishTopic">发布主题 / Publish topic</param>
     /// <param name="logger">日志记录器 / Logger</param>
     /// <param name="communicationLogRepository">通信日志仓储 / Communication log repository</param>
+    /// <param name="clock">系统时钟 / System clock</param>
     /// <param name="clientId">客户端ID（可选） / Client ID (optional)</param>
     /// <param name="username">用户名（可选） / Username (optional)</param>
     /// <param name="password">密码（可选） / Password (optional)</param>
@@ -50,6 +52,7 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
         string publishTopic,
         ILogger<MqttSorterAdapter> logger,
         ICommunicationLogRepository communicationLogRepository,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         string? clientId = null,
         string? username = null,
         string? password = null)
@@ -59,6 +62,7 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
         _publishTopic = publishTopic;
         _logger = logger;
         _communicationLogRepository = communicationLogRepository;
+        _clock = clock;
         _clientId = clientId ?? $"sorter-{Guid.NewGuid()}";
         _username = username;
         _password = password;
@@ -93,7 +97,7 @@ public class MqttSorterAdapter : ISorterAdapter, IDisposable
             {
                 ParcelId = parcelId,
                 ChuteNumber = chuteNumber,
-                Timestamp = DateTime.Now
+                Timestamp = _clock.LocalNow
             };
             var jsonMessage = JsonSerializer.Serialize(message);
             var payload = Encoding.UTF8.GetBytes(jsonMessage);

@@ -22,6 +22,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
     protected readonly HttpClient HttpClient;
     protected readonly ILogger Logger;
     protected readonly PostalSoapRequestBuilder SoapRequestBuilder;
+    protected readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     
     // 使用线程安全的实例级序列号，避免静态字段的并发问题
     // Use thread-safe instance-level sequence number to avoid static field concurrency issues
@@ -44,10 +45,12 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
 
     protected BasePostalApiClient(
         HttpClient httpClient,
-        ILogger logger)
+        ILogger logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         HttpClient = httpClient;
         Logger = logger;
+        _clock = clock;
         SoapRequestBuilder = new PostalSoapRequestBuilder();
     }
 

@@ -25,8 +25,9 @@ public class PostProcessingCenterApiClient : BasePostalApiClient
 
     public PostProcessingCenterApiClient(
         HttpClient httpClient,
-        ILogger<PostProcessingCenterApiClient> logger)
-        : base(httpClient, logger)
+        ILogger<PostProcessingCenterApiClient> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        : base(httpClient, logger, clock)
     {
     }
 }

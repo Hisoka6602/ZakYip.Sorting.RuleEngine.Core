@@ -10,8 +10,9 @@ public class MySqlLogRepository : BaseLogRepositoryImpl<MySqlLogDbContext, LogEn
 {
     public MySqlLogRepository(
         MySqlLogDbContext context,
-        ILogger<MySqlLogRepository> logger)
-        : base(context, logger)
+        ILogger<MySqlLogRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        : base(context, logger, clock)
     {
     }
 

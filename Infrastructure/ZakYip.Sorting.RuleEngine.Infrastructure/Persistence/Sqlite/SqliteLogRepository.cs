@@ -10,8 +10,9 @@ public class SqliteLogRepository : BaseLogRepositoryImpl<SqliteLogDbContext, Log
 {
     public SqliteLogRepository(
         SqliteLogDbContext context,
-        ILogger<SqliteLogRepository> logger)
-        : base(context, logger)
+        ILogger<SqliteLogRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        : base(context, logger, clock)
     {
     }
 
