@@ -36,23 +36,24 @@ public class SorterAdapterManager : ISorterAdapterManager
         try
         {
             _logger.LogInformation(
-                "开始连接下游分拣机: Protocol={Protocol}, Host={Host}, Port={Port}",
-                config.Protocol, config.Host, config.Port);
+                "开始连接下游分拣机: Protocol={Protocol}, ConnectionMode={ConnectionMode}, Host={Host}, Port={Port}",
+                config.Protocol, config.ConnectionMode, config.Host, config.Port);
 
             lock (_lock)
             {
                 // 保存配置
                 _currentConfig = config;
 
-                // 根据协议类型创建相应的适配器
-                // Create adapter based on protocol type
+                // 根据协议类型和连接模式创建相应的适配器
+                // Create adapter based on protocol type and connection mode
                 _currentAdapter = CreateAdapterForProtocol(config);
 
                 _isConnected = true;
             }
 
-            _logger.LogInformation("下游分拣机适配器已创建: {Protocol}, AdapterName={AdapterName}", 
-                config.Protocol, _currentAdapter.AdapterName);
+            _logger.LogInformation(
+                "下游分拣机适配器已创建: Protocol={Protocol}, ConnectionMode={ConnectionMode}, AdapterName={AdapterName}", 
+                config.Protocol, config.ConnectionMode, _currentAdapter.AdapterName);
             
             await Task.CompletedTask;
         }
@@ -65,12 +66,23 @@ public class SorterAdapterManager : ISorterAdapterManager
     }
 
     /// <summary>
-    /// 根据协议类型创建适配器
-    /// Create adapter based on protocol type
+    /// 根据协议类型和连接模式创建适配器
+    /// Create adapter based on protocol type and connection mode
     /// </summary>
     private ISorterAdapter CreateAdapterForProtocol(SorterConfig config)
     {
         var protocol = config.Protocol.ToUpperInvariant();
+        var connectionMode = config.ConnectionMode.ToUpperInvariant();
+        
+        // 验证连接模式
+        // Validate connection mode
+        if (connectionMode != "SERVER" && connectionMode != "CLIENT")
+        {
+            throw new ArgumentException(
+                $"不支持的连接模式: {config.ConnectionMode}。仅支持 Server 或 Client。" +
+                $" / Unsupported connection mode: {config.ConnectionMode}. Only Server or Client are supported.",
+                nameof(config.ConnectionMode));
+        }
         
         return protocol switch
         {
@@ -82,11 +94,12 @@ public class SorterAdapterManager : ISorterAdapterManager
     }
 
     /// <summary>
-    /// 创建 TCP 适配器
-    /// Create TCP adapter
+    /// 创建 TCP 适配器（支持 Server 和 Client 模式）
+    /// Create TCP adapter (supports both Server and Client modes)
     /// </summary>
     private ISorterAdapter CreateTcpAdapter(SorterConfig config)
     {
+        var connectionMode = config.ConnectionMode.ToUpperInvariant();
         var logger = _loggerFactory.CreateLogger("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter.TcpSorterAdapter");
         
         // 使用反射创建 TcpSorterAdapter，避免直接引用 Infrastructure 层
@@ -98,11 +111,25 @@ public class SorterAdapterManager : ISorterAdapterManager
             throw new InvalidOperationException("无法加载 TcpSorterAdapter 类型 / Cannot load TcpSorterAdapter type");
         }
 
+        // Client 模式：主动连接到下游（当前 TcpSorterAdapter 默认行为）
+        // Client mode: actively connect to downstream (current TcpSorterAdapter default behavior)
         var adapter = Activator.CreateInstance(adapterType, config.Host, config.Port, logger) as ISorterAdapter;
         
         if (adapter == null)
         {
             throw new InvalidOperationException("无法创建 TcpSorterAdapter 实例 / Cannot create TcpSorterAdapter instance");
+        }
+
+        if (connectionMode == "SERVER")
+        {
+            _logger.LogWarning(
+                "TCP Server 模式需要完整实现。当前使用 Client 模式作为临时方案。" +
+                " / TCP Server mode requires full implementation. Currently using Client mode as a temporary solution.");
+            // TODO: 实现 TCP Server 模式
+            // TODO: Implement TCP Server mode
+            // 需要创建一个监听指定端口的 TCP Server
+            // 接受来自下游的连接
+            // 处理 JSON 消息的接收和发送
         }
 
         return adapter;
