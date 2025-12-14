@@ -17,6 +17,7 @@ public class MonitoringService : IMonitoringService
     private readonly IPerformanceMetricRepository _performanceMetricRepository;
     private readonly IChuteRepository _chuteRepository;
     private readonly ILogger<MonitoringService> _logger;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     
     // 包裹速率告警节流 - 记录上次告警时间，至少30分钟才记录一次
     // Parcel rate alert throttling - track last alert time, at least 30 minutes between alerts
@@ -34,19 +35,21 @@ public class MonitoringService : IMonitoringService
         IMonitoringAlertRepository alertRepository,
         IPerformanceMetricRepository performanceMetricRepository,
         IChuteRepository chuteRepository,
-        ILogger<MonitoringService> logger)
+        ILogger<MonitoringService> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _alertRepository = alertRepository;
         _performanceMetricRepository = performanceMetricRepository;
         _chuteRepository = chuteRepository;
         _logger = logger;
+        _clock = clock;
     }
 
     public async Task<RealtimeMonitoringDto> GetRealtimeMonitoringDataAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var now = DateTime.Now;
+            var now = _clock.LocalNow;
             var oneMinuteAgo = now.AddMinutes(-1);
             var fiveMinutesAgo = now.AddMinutes(-5);
             var oneHourAgo = now.AddHours(-1);
@@ -191,7 +194,7 @@ public class MonitoringService : IMonitoringService
 
     private async Task CheckParcelProcessingRateAsync(CancellationToken cancellationToken)
     {
-        var now = DateTime.Now;
+        var now = _clock.LocalNow;
         
         // 检查是否需要节流 - 如果距离上次告警不足30分钟，跳过
         // Check throttling - skip if less than 30 minutes since last alert
@@ -233,7 +236,7 @@ public class MonitoringService : IMonitoringService
 
     private async Task CheckChuteUsageRateAsync(CancellationToken cancellationToken)
     {
-        var now = DateTime.Now;
+        var now = _clock.LocalNow;
         var oneHourAgo = now.AddHours(-1);
 
         var chutes = await _chuteRepository.GetAllAsync(cancellationToken);
@@ -283,7 +286,7 @@ public class MonitoringService : IMonitoringService
 
     private async Task CheckErrorRateAsync(CancellationToken cancellationToken)
     {
-        var now = DateTime.Now;
+        var now = _clock.LocalNow;
         var fiveMinutesAgo = now.AddMinutes(-5);
 
         var metrics = await _performanceMetricRepository.GetMetricsAsync(

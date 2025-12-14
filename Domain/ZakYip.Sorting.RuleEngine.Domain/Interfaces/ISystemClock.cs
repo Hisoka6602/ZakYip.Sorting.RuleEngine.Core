@@ -1,4 +1,4 @@
-namespace ZakYip.Sorting.RuleEngine.Core.Interfaces;
+namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
 /// 系统时钟抽象接口，用于获取当前时间

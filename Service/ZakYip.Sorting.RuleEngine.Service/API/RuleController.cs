@@ -23,14 +23,14 @@ public class RuleController : ControllerBase
     private readonly ILogger<RuleController> _logger;
     private readonly RuleValidationService _validationService;
     private readonly IPublisher _publisher;
-    private readonly ZakYip.Sorting.RuleEngine.Core.Interfaces.ISystemClock _clock;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     public RuleController(
         IRuleRepository ruleRepository,
         ILogger<RuleController> logger,
         RuleValidationService validationService,
         IPublisher publisher,
-        ZakYip.Sorting.RuleEngine.Core.Interfaces.ISystemClock clock)
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _ruleRepository = ruleRepository;
         _logger = logger;
@@ -245,7 +245,7 @@ public class RuleController : ControllerBase
                 TargetChute = addedRule.TargetChute,
                 Priority = addedRule.Priority,
                 IsEnabled = addedRule.IsEnabled,
-                CreatedAt = DateTime.Now
+                CreatedAt = _clock.LocalNow
             }, cancellationToken);
             
             return CreatedAtAction(nameof(GetRuleById), new { ruleId = addedRule.RuleId }, addedRule);
@@ -324,7 +324,7 @@ public class RuleController : ControllerBase
                 TargetChute = updatedRule.TargetChute,
                 Priority = updatedRule.Priority,
                 IsEnabled = updatedRule.IsEnabled,
-                UpdatedAt = DateTime.Now
+                UpdatedAt = _clock.LocalNow
             }, cancellationToken);
             
             return Ok(updatedRule);
@@ -377,7 +377,7 @@ public class RuleController : ControllerBase
                     {
                         RuleId = rule.RuleId,
                         RuleName = rule.RuleName,
-                        DeletedAt = DateTime.Now
+                        DeletedAt = _clock.LocalNow
                     }, cancellationToken);
                 }
                 
