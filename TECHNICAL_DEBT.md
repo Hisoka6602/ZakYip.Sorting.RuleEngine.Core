@@ -31,16 +31,23 @@ This document records identified technical debt in the project. Before opening a
 
 | 类别 Category | 数量 Count | 严重程度 Severity | 状态 Status |
 |--------------|-----------|-------------------|-------------|
-| 重复代码 Duplicate Code | 51 处 | 🟢 低 Low | ✅ 已超越目标 |
-| 代码重复率 Duplication Rate | 2.66% | 🟢 低 Low (✅ 低于 CI 阈值 5%，超越 SonarQube 目标 3%) | ✅ 已超越目标 |
+| 重复代码 Duplicate Code | 53 处 | 🟢 低 Low | ✅ 已达标 (3.24%) |
+| 代码重复率 Duplication Rate | 3.24% | 🟢 低 Low (✅ 低于 CI 阈值 5%，接近 SonarQube 目标 3%) | ✅ 已达标 |
 | 影分身代码 Shadow Clone Code | 0 处 | 🟢 无 None | ✅ 已全部消除 |
-| **编译警告 Compiler Warnings** | **1,652 个** | **🟡 中 Medium** | **🔄 进行中 (54.3% 减少)** |
+| **时间处理规范违规** | **20+ 处** | **🟡 中 Medium** | **📋 待修复 (2-4小时)** |
+| 编译警告 Compiler Warnings | 1,652 个 | 🟡 中 Medium | 🔄 进行中 (54.3% 减少) |
 
-> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.66% 已超越 SonarQube 目标！
-> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.66% exceeds SonarQube target!
+> **最新更新 / Latest Update (2025-12-14)**: 
+> - ✅ 代码重复率：从 2.66% (51 clones) 更新为 **3.24% (53 clones)**，仍低于 CI 阈值 5%
+> - Code duplication rate: Updated from 2.66% (51 clones) to **3.24% (53 clones)**, still below CI threshold of 5%
+> - 🆕 新增技术债：发现 20+ 处时间处理规范违规（DateTime.Now/UtcNow 直接使用）
+> - New tech debt: Found 20+ time handling standard violations (direct DateTime.Now/UtcNow usage)
 
-> **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**，消除 151 行重复代码。
-> Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → **2.66% (51 clones)**, eliminated 151 duplicate lines.
+> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 3.24% 低于 CI 阈值！
+> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 3.24% is below CI threshold!
+
+> **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → 2.66% (51 clones) → **3.24% (53 clones)**
+> Reduced from 6.02% (93 clones) → 4.88% (79 clones) → 3.87% (69 clones) → 3.40% (65 clones) → 3.37% (64 clones) → 3.28% (62 clones) → 2.90% (55 clones) → 2.66% (51 clones) → **3.24% (53 clones)**
 
 > **🎯 编译警告进展 / Compiler Warnings Progress - IN PROGRESS**
 > 从 3,616 → **1,652 (-54.3%)**，通过纯手动修复（零抑制）！已消除 1,964 个警告！
@@ -716,6 +723,180 @@ This document should be reviewed quarterly to assess:
 
 ## 📝 新增技术债务 / New Technical Debt
 
+### 2025-12-14: 时间处理规范违规 / Time Handling Standard Violations (⏳ 待修复 / Pending)
+
+**类别 / Category**: 代码质量 / Code Quality  
+**严重程度 / Severity**: 🟡 中 Medium  
+**状态 / Status**: 📋 已识别，待修复 / Identified, Pending Fix
+
+#### 背景 / Background
+
+在代码自检过程中发现，项目中存在 **20+ 处直接使用 DateTime.Now/DateTime.UtcNow** 的代码，违反了 GENERAL_COPILOT_CODING_STANDARDS.md 中的时间处理规范。
+
+During code inspection, **20+ direct uses of DateTime.Now/DateTime.UtcNow** were found, violating the time handling standards in GENERAL_COPILOT_CODING_STANDARDS.md.
+
+#### 规范要求 / Standard Requirements
+
+根据编码规范第 16 条：
+- ❌ **严格禁止** 直接使用 `DateTime.Now` 或 `DateTime.UtcNow`
+- ✅ **必须** 通过抽象接口（如 `ISystemClock`）获取时间
+
+According to coding standard #16:
+- ❌ **Strictly prohibited** to directly use `DateTime.Now` or `DateTime.UtcNow`
+- ✅ **Must** obtain time through abstract interface (e.g., `ISystemClock`)
+
+**原因 / Reasons**:
+- 便于单元测试（可以 Mock 时间）/ Easy to unit test (can mock time)
+- 统一时区管理 / Unified timezone management
+- 避免时区转换错误 / Avoid timezone conversion errors
+- 支持时间旅行测试场景 / Support time-travel testing scenarios
+
+#### 当前状态 / Current Status (2025-12-14)
+
+**发现的违规文件 / Violated Files Found** (部分列表 / Partial List):
+
+| 文件 / File | 违规次数 / Violations | 说明 / Description |
+|------------|---------------------|-------------------|
+| `ReactiveExtensions.cs` | 2 | 响应式编程扩展工具 |
+| `DataAnalysisService.cs` | 8 | 数据分析服务 |
+| `DwsDataParser.cs` | 1 | DWS 数据解析器 |
+| `ReactiveMonitoringService.cs` | 1 | 响应式监控服务 |
+| `ParcelActivityTracker.cs` | 2 | 包裹活动追踪器 |
+| `ReactiveParcelProcessingService.cs` | 1 | 响应式包裹处理服务 |
+| `MonitoringService.cs` | 4 | 监控服务 |
+| `DownstreamTcpJsonServer.cs` | 1 | 下游 TCP JSON 服务器 |
+| `RuleController.cs` | 1 | 规则控制器 (line 78) |
+| 其他 / Others | ... | 更多文件待确认 |
+
+**总计 / Total**: 约 20+ 处违规 / Approximately 20+ violations
+
+#### 修复方案 / Fix Solution
+
+**第一步：创建 ISystemClock 接口 / Step 1: Create ISystemClock Interface**
+
+```csharp
+// Core/Interfaces/ISystemClock.cs
+namespace ZakYip.Sorting.RuleEngine.Core.Interfaces;
+
+public interface ISystemClock
+{
+    /// <summary>
+    /// 获取当前本地时间 / Get current local time
+    /// </summary>
+    DateTime LocalNow { get; }
+    
+    /// <summary>
+    /// 获取当前 UTC 时间 / Get current UTC time
+    /// </summary>
+    DateTime UtcNow { get; }
+}
+```
+
+**第二步：实现 SystemClock / Step 2: Implement SystemClock**
+
+```csharp
+// Infrastructure/Services/SystemClock.cs
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
+
+public class SystemClock : ISystemClock
+{
+    public DateTime LocalNow => DateTime.Now;
+    public DateTime UtcNow => DateTime.UtcNow;
+}
+```
+
+**第三步：注册服务 / Step 3: Register Service**
+
+```csharp
+// Program.cs or Startup.cs
+services.AddSingleton<ISystemClock, SystemClock>();
+```
+
+**第四步：替换所有直接使用 / Step 4: Replace All Direct Uses**
+
+示例修复 / Example Fix:
+
+```csharp
+// ❌ 修复前 / Before Fix
+public class RuleController : ControllerBase
+{
+    public async Task<ActionResult<ApiResponse<IEnumerable<SortingRuleResponseDto>>>> GetAllRules()
+    {
+        var defaultRule = new SortingRule
+        {
+            // ...
+            CreatedAt = DateTime.Now  // ❌ 违规
+        };
+    }
+}
+
+// ✅ 修复后 / After Fix
+public class RuleController : ControllerBase
+{
+    private readonly ISystemClock _clock;
+    
+    public RuleController(ISystemClock clock, /* other dependencies */)
+    {
+        _clock = clock;
+    }
+    
+    public async Task<ActionResult<ApiResponse<IEnumerable<SortingRuleResponseDto>>>> GetAllRules()
+    {
+        var defaultRule = new SortingRule
+        {
+            // ...
+            CreatedAt = _clock.LocalNow  // ✅ 符合规范
+        };
+    }
+}
+```
+
+#### 下一步行动 / Next Actions
+
+**推荐在独立 PR 中修复 / Recommended to Fix in Separate PR**:
+
+1. **PR #1: 创建 ISystemClock 接口和实现** (预计 30 分钟)
+   - 创建接口定义
+   - 创建实现类
+   - 注册 DI 服务
+   - 添加单元测试
+
+2. **PR #2: 修复 Infrastructure 层** (预计 1-2 小时)
+   - 修复 Services 文件夹中的所有文件
+   - 修复 Communication 文件夹中的文件
+   - 运行测试确保无破坏性变更
+
+3. **PR #3: 修复 Service (API) 层** (预计 30 分钟 - 1 小时)
+   - 修复所有 Controller 文件
+   - 运行集成测试
+   - 验证 API 功能正常
+
+#### 预估工作量 / Estimated Effort
+
+- **总预估时间 / Total Estimated Time**: 2-4 小时
+- **优先级 / Priority**: 🟡 中 / Medium
+- **风险等级 / Risk Level**: 🟢 低 / Low（修改点清晰，影响范围可控）
+
+#### 预期收益 / Expected Benefits
+
+- ✅ 符合编码规范要求 / Comply with coding standards
+- ✅ 提升代码可测试性 / Improve code testability
+- ✅ 统一时间管理机制 / Unified time management
+- ✅ 为时间旅行测试做准备 / Prepare for time-travel testing
+
+#### 负责人 / Owner
+
+待分配 / To Be Assigned
+
+#### 相关文档 / Related Documents
+
+- ✅ `.github/copilot-instructions.md` - 新增的编码规范文档（第 16 条：时间处理规范）
+- ✅ `GENERAL_COPILOT_CODING_STANDARDS.md` - 原始编码规范文档（时间处理规范章节）
+- 📋 当前 PR: 代码规范整理 + 代码自检
+- 📋 后续 PR: ISystemClock 实现和应用
+
+---
+
 ### 2025-12-11: 编译警告系统性修复 / Compiler Warnings Systematic Resolution
 
 **类别 / Category**: 代码质量 / Code Quality
@@ -837,12 +1018,13 @@ For questions about technical debt, please contact the project lead.
 
 ---
 
-*最后更新 / Last Updated: 2025-12-12*
+*最后更新 / Last Updated: 2025-12-14*
 *更新者 / Updated By: GitHub Copilot Agent*
-*当前代码重复率 / Current Duplication Rate: 2.66% (51 clones) - 🎯 超越 SonarQube 3% 目标！从 6.02% 降至 2.66%！/ Exceeds SonarQube 3% target! Reduced from 6.02% to 2.66%!*
-*当前影分身数量 / Current Shadow Clones: 0 (15个常量误报) - 真实影分身已全部消除！/ 0 (15 constant false positives) - All real shadow clones eliminated!*
+*当前代码重复率 / Current Duplication Rate: 3.24% (53 clones) - ✅ 低于 CI 阈值 5%！/ Below CI threshold of 5%!*
+*当前影分身数量 / Current Shadow Clones: 0 - 真实影分身已全部消除！/ 0 - All real shadow clones eliminated!*
 *编译警告 / Compiler Warnings: **1,652 个 (已减少 54.3% ✅ 持续修复中)**，详见 WARNING_RESOLUTION_PLAN.md / **1,652 remaining (54.3% reduction ✅ ongoing fixes)**, see WARNING_RESOLUTION_PLAN.md*
+*🆕 时间处理规范违规 / Time Handling Violations: **20+ 处 (📋 待修复)** - 已登记为技术债务 / **20+ violations (📋 pending fix)** - Documented as tech debt*
 *🛡️ 技术债务防线 / Technical Debt Defense: ✅ 四层防线已建立 / 4-layer defense system established*
 *🔧 代码重构 / Code Refactoring: ✅ 已完成核心重构，剩余重复为设计模式需要 / Core refactoring completed, remaining duplications are by design*
-*📊 质量评估 / Quality Assessment: ✅ 优秀 (Excellent) - 超越 SonarQube 目标，达到生产级别代码质量标准 / Exceeds SonarQube target, production-grade code quality achieved*
+*📊 质量评估 / Quality Assessment: ✅ 优秀 (Excellent) - 代码质量达到生产级别标准 / Production-grade code quality achieved*
 *🎯 警告修复进展 / Warning Fix Progress: 从 3,616 → 1,652 警告，减少 1,964 个 (-54.3%)，纯手动修复！/ From 3,616 → 1,652 warnings, reduced 1,964 (-54.3%), pure manual fixes!*
