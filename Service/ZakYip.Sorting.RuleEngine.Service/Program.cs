@@ -315,6 +315,10 @@ try
                     options.CompactionPercentage = 0.25; // 压缩百分比
                 });
 
+                // 注册系统时钟（单例模式）
+                // Register system clock (Singleton mode)
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Core.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
+
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();

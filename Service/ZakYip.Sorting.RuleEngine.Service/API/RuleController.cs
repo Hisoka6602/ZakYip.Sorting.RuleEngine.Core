@@ -23,17 +23,20 @@ public class RuleController : ControllerBase
     private readonly ILogger<RuleController> _logger;
     private readonly RuleValidationService _validationService;
     private readonly IPublisher _publisher;
+    private readonly ZakYip.Sorting.RuleEngine.Core.Interfaces.ISystemClock _clock;
 
     public RuleController(
         IRuleRepository ruleRepository,
         ILogger<RuleController> logger,
         RuleValidationService validationService,
-        IPublisher publisher)
+        IPublisher publisher,
+        ZakYip.Sorting.RuleEngine.Core.Interfaces.ISystemClock clock)
     {
         _ruleRepository = ruleRepository;
         _logger = logger;
         _validationService = validationService;
         _publisher = publisher;
+        _clock = clock;
     }
 
     /// <summary>
@@ -75,7 +78,7 @@ public class RuleController : ControllerBase
                     ConditionExpression = "true",
                     TargetChute = "DEFAULT",
                     IsEnabled = true,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = _clock.LocalNow
                 };
                 
                 await _ruleRepository.AddAsync(defaultRule, cancellationToken).ConfigureAwait(false);
