@@ -2,8 +2,12 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 
@@ -14,6 +18,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 public class TcpSorterAdapter : ISorterAdapter, IDisposable
 {
     private readonly ILogger<TcpSorterAdapter> _logger;
+    private readonly MySqlLogDbContext? _mysqlContext;
+    private readonly SqliteLogDbContext? _sqliteContext;
     private readonly string _host;
     private readonly int _port;
     private TcpClient? _client;
@@ -22,11 +28,18 @@ public class TcpSorterAdapter : ISorterAdapter, IDisposable
     public string AdapterName => "TouchSocket-TCP-Client";
     public string ProtocolType => "TCP";
 
-    public TcpSorterAdapter(string host, int port, ILogger<TcpSorterAdapter> logger)
+    public TcpSorterAdapter(
+        string host, 
+        int port, 
+        ILogger<TcpSorterAdapter> logger,
+        MySqlLogDbContext? mysqlContext = null,
+        SqliteLogDbContext? sqliteContext = null)
     {
         _host = host;
         _port = port;
         _logger = logger;
+        _mysqlContext = mysqlContext;
+        _sqliteContext = sqliteContext;
     }
 
     /// <summary>
@@ -60,11 +73,40 @@ public class TcpSorterAdapter : ISorterAdapter, IDisposable
             await _client.SendAsync(data).ConfigureAwait(false);
 
             _logger.LogInformation("TouchSocket TCP发送成功，包裹ID: {ParcelId}, 格口: {Chute}", parcelId, chuteNumber);
+            
+            // 保存通信日志到数据库（异步非阻塞）
+            // Save communication log to database (async non-blocking)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SaveCommunicationLogAsync(parcelId, chuteNumber, json, true, null).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "保存分拣机通信日志失败");
+                }
+            });
+            
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "TouchSocket TCP发送失败，包裹ID: {ParcelId}", parcelId);
+            
+            // 保存失败日志到数据库
+            // Save failure log to database
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SaveCommunicationLogAsync(parcelId, chuteNumber, string.Empty, false, ex.Message).ConfigureAwait(false);
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "保存失败日志失败");
+                }
+            });
             
             // 连接失败时断开重连
             try
@@ -75,6 +117,42 @@ public class TcpSorterAdapter : ISorterAdapter, IDisposable
             catch { }
             
             return false;
+        }
+    }
+    
+    /// <summary>
+    /// 保存通信日志到数据库
+    /// Save communication log to database
+    /// </summary>
+    private async Task SaveCommunicationLogAsync(
+        string parcelId,
+        string chuteNumber,
+        string originalContent,
+        bool isSuccess,
+        string? errorMessage)
+    {
+        var log = new SorterCommunicationLog
+        {
+            CommunicationType = CommunicationType.Tcp,
+            SorterAddress = $"{_host}:{_port}",
+            OriginalContent = originalContent,
+            FormattedContent = $"ParcelId: {parcelId}, ChuteNumber: {chuteNumber}",
+            ExtractedParcelId = parcelId,
+            ExtractedCartNumber = null,
+            CommunicationTime = DateTime.Now,
+            IsSuccess = isSuccess,
+            ErrorMessage = errorMessage
+        };
+
+        if (_mysqlContext != null)
+        {
+            await _mysqlContext.SorterCommunicationLogs.AddAsync(log).ConfigureAwait(false);
+            await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+        else if (_sqliteContext != null)
+        {
+            await _sqliteContext.SorterCommunicationLogs.AddAsync(log).ConfigureAwait(false);
+            await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 

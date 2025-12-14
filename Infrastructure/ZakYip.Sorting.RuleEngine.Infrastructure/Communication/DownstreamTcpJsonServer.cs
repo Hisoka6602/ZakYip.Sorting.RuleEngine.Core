@@ -4,6 +4,10 @@ using Microsoft.Extensions.Logging;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 
@@ -17,6 +21,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 public class DownstreamTcpJsonServer : IDisposable
 {
     private readonly ILogger<DownstreamTcpJsonServer> _logger;
+    private readonly MySqlLogDbContext? _mysqlContext;
+    private readonly SqliteLogDbContext? _sqliteContext;
     private readonly string _host;
     private readonly int _port;
     private TcpService? _tcpService;
@@ -43,11 +49,15 @@ public class DownstreamTcpJsonServer : IDisposable
     public DownstreamTcpJsonServer(
         string host,
         int port,
-        ILogger<DownstreamTcpJsonServer> logger)
+        ILogger<DownstreamTcpJsonServer> logger,
+        MySqlLogDbContext? mysqlContext = null,
+        SqliteLogDbContext? sqliteContext = null)
     {
         _host = host;
         _port = port;
         _logger = logger;
+        _mysqlContext = mysqlContext;
+        _sqliteContext = sqliteContext;
     }
 
     /// <summary>
@@ -151,6 +161,26 @@ public class DownstreamTcpJsonServer : IDisposable
                     if (detectionNotification != null && OnParcelDetected != null)
                     {
                         await OnParcelDetected(detectionNotification);
+                        
+                        // 保存通信日志到数据库
+                        // Save communication log to database
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await SaveCommunicationLogAsync(
+                                    detectionNotification.ParcelId.ToString(),
+                                    clientId,
+                                    jsonLine,
+                                    "ParcelDetected - 接收包裹检测通知",
+                                    true,
+                                    null).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "保存通信日志失败");
+                            }
+                        });
                     }
                     break;
 
@@ -159,6 +189,26 @@ public class DownstreamTcpJsonServer : IDisposable
                     if (completedNotification != null && OnSortingCompleted != null)
                     {
                         await OnSortingCompleted(completedNotification);
+                        
+                        // 保存通信日志到数据库
+                        // Save communication log to database
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await SaveCommunicationLogAsync(
+                                    completedNotification.ParcelId.ToString(),
+                                    clientId,
+                                    jsonLine,
+                                    $"SortingCompleted - 落格完成通知 (Status: {completedNotification.FinalStatus})",
+                                    true,
+                                    null).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "保存通信日志失败");
+                            }
+                        });
                     }
                     break;
 
@@ -204,6 +254,26 @@ public class DownstreamTcpJsonServer : IDisposable
                     "已发送格口分配到客户端 {ClientId}: ParcelId={ParcelId}, ChuteId={ChuteId}",
                     kvp.Key, notification.ParcelId, notification.ChuteId);
                 
+                // 保存通信日志到数据库
+                // Save communication log to database
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SaveCommunicationLogAsync(
+                            notification.ParcelId.ToString(),
+                            kvp.Key,
+                            json,
+                            $"ChuteAssignment - 发送格口分配 (ChuteId: {notification.ChuteId})",
+                            true,
+                            null).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "保存通信日志失败");
+                    }
+                });
+                
                 successCount++;
             }
             catch (Exception ex)
@@ -240,6 +310,43 @@ public class DownstreamTcpJsonServer : IDisposable
         _connectedClients.Clear();
 
         _logger.LogInformation("下游 TouchSocket TCP Server 已停止");
+    }
+
+    /// <summary>
+    /// 保存通信日志到数据库
+    /// Save communication log to database
+    /// </summary>
+    private async Task SaveCommunicationLogAsync(
+        string parcelId,
+        string clientId,
+        string originalContent,
+        string formattedContent,
+        bool isSuccess,
+        string? errorMessage)
+    {
+        var log = new SorterCommunicationLog
+        {
+            CommunicationType = CommunicationType.Tcp,
+            SorterAddress = clientId,
+            OriginalContent = originalContent,
+            FormattedContent = formattedContent,
+            ExtractedParcelId = parcelId,
+            ExtractedCartNumber = null,
+            CommunicationTime = DateTime.Now,
+            IsSuccess = isSuccess,
+            ErrorMessage = errorMessage
+        };
+
+        if (_mysqlContext != null)
+        {
+            await _mysqlContext.SorterCommunicationLogs.AddAsync(log).ConfigureAwait(false);
+            await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+        else if (_sqliteContext != null)
+        {
+            await _sqliteContext.SorterCommunicationLogs.AddAsync(log).ConfigureAwait(false);
+            await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     public void Dispose()
