@@ -723,52 +723,59 @@ This document should be reviewed quarterly to assess:
 
 ## 📝 新增技术债务 / New Technical Debt
 
-### 2025-12-14: 时间处理规范违规 / Time Handling Standard Violations (⏳ 待修复 / Pending)
+### 2025-12-14: 时间处理规范违规 / Time Handling Standard Violations (🔄 部分完成 / Partially Complete)
 
 **类别 / Category**: 代码质量 / Code Quality  
 **严重程度 / Severity**: 🟡 中 Medium  
-**状态 / Status**: 📋 已识别，待修复 / Identified, Pending Fix
+**状态 / Status**: 🔄 部分完成，118 处待修复 / Partially complete, 118 violations remaining
 
 #### 背景 / Background
 
-在代码自检过程中发现，项目中存在 **20+ 处直接使用 DateTime.Now/DateTime.UtcNow** 的代码，违反了 GENERAL_COPILOT_CODING_STANDARDS.md 中的时间处理规范。
+在代码自检过程中发现，项目中存在 **138 处直接使用 DateTime.Now/DateTime.UtcNow** 的代码，违反了 GENERAL_COPILOT_CODING_STANDARDS.md 中的时间处理规范。
 
-During code inspection, **20+ direct uses of DateTime.Now/DateTime.UtcNow** were found, violating the time handling standards in GENERAL_COPILOT_CODING_STANDARDS.md.
+During code inspection, **138 direct uses of DateTime.Now/DateTime.UtcNow** were found, violating the time handling standards in GENERAL_COPILOT_CODING_STANDARDS.md.
 
-#### 规范要求 / Standard Requirements
+#### 当前状态 / Current Status (2025-12-14 更新 / Updated)
 
-根据编码规范第 16 条：
-- ❌ **严格禁止** 直接使用 `DateTime.Now` 或 `DateTime.UtcNow`
-- ✅ **必须** 通过抽象接口（如 `ISystemClock`）获取时间
+**✅ 已完成基础设施 / Infrastructure Complete**:
+- [x] ISystemClock 接口已创建 (Domain/Interfaces/)
+- [x] SystemClock 实现已创建 (Infrastructure/Services/)
+- [x] DI 注册已完成 (Program.cs, Singleton)
+- [x] MockSystemClock 测试辅助类已创建
 
-According to coding standard #16:
-- ❌ **Strictly prohibited** to directly use `DateTime.Now` or `DateTime.UtcNow`
-- ✅ **Must** obtain time through abstract interface (e.g., `ISystemClock`)
+**✅ 已修复核心服务 (16/138 = 11.6%) / Core Services Fixed**:
+- [x] RuleController.cs (1处)
+- [x] MonitoringService.cs (4处)
+- [x] DataAnalysisService.cs (8处)
+- [x] DwsDataParser.cs (1处)
+- [x] ParcelActivityTracker.cs (2处)
 
-**原因 / Reasons**:
-- 便于单元测试（可以 Mock 时间）/ Easy to unit test (can mock time)
-- 统一时区管理 / Unified timezone management
-- 避免时区转换错误 / Avoid timezone conversion errors
-- 支持时间旅行测试场景 / Support time-travel testing scenarios
+**⚠️ 剩余待修复 (118/138 = 85.5%) / Remaining Violations**:
 
-#### 当前状态 / Current Status (2025-12-14)
+| 类别 / Category | 文件数 / Files | 违规数 / Violations | 优先级 / Priority |
+|----------------|---------------|-------------------|------------------|
+| **API Clients** | 7 | 42 | 🔴 高 / High |
+| **API Controllers** | 9 | 19 | 🔴 高 / High |
+| **Background Services** | 4 | 18 | 🟡 中 / Medium |
+| **Persistence Layer** | 13 | 19 | 🟡 中 / Medium |
+| **Middleware** | 1 | 2 | 🟡 中 / Medium |
+| **Adapters** | 2 | 4 | 🟢 低 / Low |
+| **Communication** | 1 | 1 | 🟢 低 / Low |
+| **其他 / Others** | 6 | 13 | 🟢 低 / Low |
+| **总计 / Total** | **43** | **118** | |
 
-**发现的违规文件 / Violated Files Found** (部分列表 / Partial List):
+**详细文件清单 / Detailed File List** (Top 10 by violations):
 
-| 文件 / File | 违规次数 / Violations | 说明 / Description |
-|------------|---------------------|-------------------|
-| `ReactiveExtensions.cs` | 2 | 响应式编程扩展工具 |
-| `DataAnalysisService.cs` | 8 | 数据分析服务 |
-| `DwsDataParser.cs` | 1 | DWS 数据解析器 |
-| `ReactiveMonitoringService.cs` | 1 | 响应式监控服务 |
-| `ParcelActivityTracker.cs` | 2 | 包裹活动追踪器 |
-| `ReactiveParcelProcessingService.cs` | 1 | 响应式包裹处理服务 |
-| `MonitoringService.cs` | 4 | 监控服务 |
-| `DownstreamTcpJsonServer.cs` | 1 | 下游 TCP JSON 服务器 |
-| `RuleController.cs` | 1 | 规则控制器 (line 78) |
-| 其他 / Others | ... | 更多文件待确认 |
-
-**总计 / Total**: 约 20+ 处违规 / Approximately 20+ violations
+1. BasePostalApiClient.cs - 14 处
+2. WdtWmsApiClient.cs - 10 处  
+3. WcsApiClient.cs - 8 处
+4. BaseErpApiClient.cs - 7 处
+5. ChuteController.cs - 6 处
+6. DataCleanupService.cs - 6 处
+7. DataArchiveService.cs - 6 处
+8. MockWcsApiAdapter.cs - 6 处
+9. JushuitanErpApiClient.cs - 5 处
+10. AutoResponseModeController.cs - 3 处
 
 #### 修复方案 / Fix Solution
 

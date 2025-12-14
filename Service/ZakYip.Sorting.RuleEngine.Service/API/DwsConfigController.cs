@@ -19,6 +19,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("DWS配置管理接口")]
 public class DwsConfigController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IDwsConfigRepository _repository;
     private readonly IConfigReloadService _reloadService;
     private readonly ILogger<DwsConfigController> _logger;
@@ -26,11 +27,13 @@ public class DwsConfigController : ControllerBase
     public DwsConfigController(
         IDwsConfigRepository repository,
         IConfigReloadService reloadService,
-        ILogger<DwsConfigController> logger)
+        ILogger<DwsConfigController> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _repository = repository;
+_repository = repository;
         _reloadService = reloadService;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -158,8 +161,8 @@ public class DwsConfigController : ControllerBase
             AutoReconnect = true,
             ReconnectIntervalSeconds = 5,
             Description = "默认的DWS通信配置",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }

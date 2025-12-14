@@ -23,17 +23,20 @@ public class ChuteController : ControllerBase
     private readonly ConfigurationCacheService _cacheService;
     private readonly ILogger<ChuteController> _logger;
     private readonly IPublisher _publisher;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     public ChuteController(
         IChuteRepository chuteRepository,
         ConfigurationCacheService cacheService,
         ILogger<ChuteController> logger,
-        IPublisher publisher)
+        IPublisher publisher,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _chuteRepository = chuteRepository;
         _cacheService = cacheService;
         _logger = logger;
         _publisher = publisher;
+        _clock = clock;
     }
 
     /// <summary>
@@ -251,7 +254,7 @@ public class ChuteController : ControllerBase
                 ChuteName = created.ChuteName,
                 ChuteCode = created.ChuteCode,
                 IsEnabled = created.IsEnabled,
-                CreatedAt = DateTime.Now
+                CreatedAt = _clock.LocalNow
             }, cancellationToken);
             
             // 重新加载缓存
@@ -262,7 +265,7 @@ public class ChuteController : ControllerBase
             {
                 CacheType = "Chute",
                 Reason = "新增格口",
-                InvalidatedAt = DateTime.Now
+                InvalidatedAt = _clock.LocalNow
             }, cancellationToken);
             
             return CreatedAtAction(nameof(GetById), new { id = created.ChuteId }, created);
@@ -348,7 +351,7 @@ public class ChuteController : ControllerBase
                 ChuteName = chute.ChuteName,
                 ChuteCode = chute.ChuteCode,
                 IsEnabled = chute.IsEnabled,
-                UpdatedAt = DateTime.Now
+                UpdatedAt = _clock.LocalNow
             }, cancellationToken);
             
             // 重新加载缓存
@@ -359,7 +362,7 @@ public class ChuteController : ControllerBase
             {
                 CacheType = "Chute",
                 Reason = "更新格口",
-                InvalidatedAt = DateTime.Now
+                InvalidatedAt = _clock.LocalNow
             }, cancellationToken);
             
             _logger.LogInformation("更新格口成功，ID: {ChuteId}", id);
@@ -412,7 +415,7 @@ public class ChuteController : ControllerBase
                 ChuteId = existing.ChuteId,
                 ChuteName = existing.ChuteName,
                 ChuteCode = existing.ChuteCode,
-                DeletedAt = DateTime.Now
+                DeletedAt = _clock.LocalNow
             }, cancellationToken);
             
             // 重新加载缓存
@@ -423,7 +426,7 @@ public class ChuteController : ControllerBase
             {
                 CacheType = "Chute",
                 Reason = "删除格口",
-                InvalidatedAt = DateTime.Now
+                InvalidatedAt = _clock.LocalNow
             }, cancellationToken);
             
             return NoContent();

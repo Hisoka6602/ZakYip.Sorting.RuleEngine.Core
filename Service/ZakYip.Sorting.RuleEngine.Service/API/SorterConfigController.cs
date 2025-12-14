@@ -19,6 +19,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("分拣机配置管理接口")]
 public class SorterConfigController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ISorterConfigRepository _repository;
     private readonly IConfigReloadService _reloadService;
     private readonly ILogger<SorterConfigController> _logger;
@@ -26,11 +27,13 @@ public class SorterConfigController : ControllerBase
     public SorterConfigController(
         ISorterConfigRepository repository,
         IConfigReloadService reloadService,
-        ILogger<SorterConfigController> logger)
+        ILogger<SorterConfigController> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _repository = repository;
+_repository = repository;
         _reloadService = reloadService;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -144,8 +147,8 @@ public class SorterConfigController : ControllerBase
             ReconnectIntervalSeconds = 5,
             HeartbeatIntervalSeconds = 10,
             Description = "默认的分拣机通信配置 - Client模式主动连接到下游分拣机",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }

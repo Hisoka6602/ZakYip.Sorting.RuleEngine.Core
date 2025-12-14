@@ -20,6 +20,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("日志查询接口，提供各类日志的查询和导出功能")]
 public class LogController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
     private readonly ILogger<LogController> _logger;
@@ -29,12 +30,14 @@ public class LogController : ControllerBase
         ILogger<LogController> logger,
         IOptions<AppSettings> appSettings,
         MySqlLogDbContext? mysqlContext = null,
-        SqliteLogDbContext? sqliteContext = null)
+        SqliteLogDbContext? sqliteContext = null,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
         _useMySql = appSettings.Value.MySql.Enabled;
+        _clock = clock;
     }
 
     /// <summary>
@@ -366,7 +369,7 @@ public class LogController : ControllerBase
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-            return File(bytes, "text/csv", $"matching_logs_{DateTime.Now:yyyyMMddHHmmss}.csv");
+            return File(bytes, "text/csv", $"matching_logs_{_clock.LocalNow:yyyyMMddHHmmss}.csv");
         }
         catch (Exception ex)
         {

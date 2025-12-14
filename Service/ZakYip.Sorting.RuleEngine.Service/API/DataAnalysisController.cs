@@ -16,15 +16,18 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("数据分析接口，提供格口使用热力图和分拣效率分析报表")]
 public class DataAnalysisController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IDataAnalysisService _dataAnalysisService;
     private readonly ILogger<DataAnalysisController> _logger;
 
     public DataAnalysisController(
         IDataAnalysisService dataAnalysisService,
-        ILogger<DataAnalysisController> logger)
+        ILogger<DataAnalysisController> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _dataAnalysisService = dataAnalysisService;
+_dataAnalysisService = dataAnalysisService;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -99,8 +102,8 @@ public class DataAnalysisController : ControllerBase
     {
         try
         {
-            var start = startTime ?? DateTime.Now.AddDays(-7);
-            var end = endTime ?? DateTime.Now;
+            var start = startTime ?? _clock.LocalNow.AddDays(-7);
+            var end = endTime ?? _clock.LocalNow;
 
             if (start > end)
             {

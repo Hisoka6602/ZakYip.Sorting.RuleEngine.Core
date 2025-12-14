@@ -18,15 +18,18 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("DWS数据模板管理接口")]
 public class DwsDataTemplateController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IDwsDataTemplateRepository _repository;
     private readonly ILogger<DwsDataTemplateController> _logger;
 
     public DwsDataTemplateController(
         IDwsDataTemplateRepository repository,
-        ILogger<DwsDataTemplateController> logger)
+        ILogger<DwsDataTemplateController> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _repository = repository;
+_repository = repository;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -136,8 +139,8 @@ public class DwsDataTemplateController : ControllerBase
             IsJsonFormat = false,
             IsEnabled = false,
             Description = "默认的DWS数据解析模板",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }
