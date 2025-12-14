@@ -32,7 +32,8 @@ public class MonitoringServiceTests
             _mockAlertRepository.Object,
             _mockPerformanceMetricRepository.Object,
             _mockChuteRepository.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            new Mocks.MockSystemClock());
     }
 
     /// <summary>

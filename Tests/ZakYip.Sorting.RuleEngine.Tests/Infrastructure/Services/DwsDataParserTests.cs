@@ -14,7 +14,7 @@ public class DwsDataParserTests
 
     public DwsDataParserTests()
     {
-        _parser = new DwsDataParser();
+        _parser = new DwsDataParser(new Mocks.MockSystemClock());
     }
 
     [Fact]

@@ -50,6 +50,8 @@ public class DependencyInjectionTests
         // Add logging
         services.AddLogging();
         
+        services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
+        
         // Register repositories
         services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
         services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
@@ -64,7 +66,8 @@ public class DependencyInjectionTests
                 sp.GetRequiredService<IPerformanceMetricRepository>(),
                 null, // MySqlLogDbContext (optional)
                 null, // SqliteLogDbContext (optional)
-                sp.GetRequiredService<ILogger<DataAnalysisService>>()
+                sp.GetRequiredService<ILogger<DataAnalysisService>>(),
+                sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>()
             ));
         
         var serviceProvider = services.BuildServiceProvider();
