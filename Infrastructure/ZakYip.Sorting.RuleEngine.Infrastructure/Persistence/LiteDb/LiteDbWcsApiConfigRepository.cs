@@ -9,18 +9,22 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// </summary>
 public class LiteDbWcsApiConfigRepository : IWcsApiConfigRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILiteDatabase _database;
     private const string CollectionName = "third_party_api_configs";
 
-    public LiteDbWcsApiConfigRepository(ILiteDatabase database)
+    public LiteDbWcsApiConfigRepository(
+        ILiteDatabase database,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _database = database;
+_database = database;
         
         // 创建索引以提高查询性能
         var collection = _database.GetCollection<WcsApiConfig>(CollectionName);
         collection.EnsureIndex(x => x.ConfigId, unique: true);
         collection.EnsureIndex(x => x.IsEnabled);
         collection.EnsureIndex(x => x.Priority);
+        _clock = clock;
     }
 
     public Task<IEnumerable<WcsApiConfig>> GetEnabledConfigsAsync()
@@ -57,7 +61,7 @@ public class LiteDbWcsApiConfigRepository : IWcsApiConfigRepository
     public Task<bool> UpdateAsync(WcsApiConfig config)
     {
         var collection = _database.GetCollection<WcsApiConfig>(CollectionName);
-        var updatedConfig = config with { UpdatedAt = DateTime.Now };
+        var updatedConfig = config with { UpdatedAt = _clock.LocalNow };
         var result = collection.Update(updatedConfig);
         return Task.FromResult(result);
     }

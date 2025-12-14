@@ -17,6 +17,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 /// </summary>
 public class TcpSorterAdapter : ISorterAdapter, IDisposable
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<TcpSorterAdapter> _logger;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
@@ -33,13 +34,15 @@ public class TcpSorterAdapter : ISorterAdapter, IDisposable
         int port, 
         ILogger<TcpSorterAdapter> logger,
         MySqlLogDbContext? mysqlContext = null,
-        SqliteLogDbContext? sqliteContext = null)
+        SqliteLogDbContext? sqliteContext = null,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _host = host;
+_host = host;
         _port = port;
         _logger = logger;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
+        _clock = clock;
     }
 
     /// <summary>
@@ -139,7 +142,7 @@ public class TcpSorterAdapter : ISorterAdapter, IDisposable
             FormattedContent = $"ParcelId: {parcelId}, ChuteNumber: {chuteNumber}",
             ExtractedParcelId = parcelId,
             ExtractedCartNumber = null,
-            CommunicationTime = DateTime.Now,
+            CommunicationTime = _clock.LocalNow,
             IsSuccess = isSuccess,
             ErrorMessage = errorMessage
         };

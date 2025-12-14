@@ -16,6 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Middleware;
 /// </summary>
 public class ApiRequestLoggingMiddleware
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly RequestDelegate _next;
     private readonly ILogger<ApiRequestLoggingMiddleware> _logger;
 
@@ -24,10 +25,13 @@ public class ApiRequestLoggingMiddleware
     /// </summary>
     /// <param name="next">下一个中间件</param>
     /// <param name="logger">日志记录器</param>
-    public ApiRequestLoggingMiddleware(RequestDelegate next, ILogger<ApiRequestLoggingMiddleware> logger)
+    public ApiRequestLoggingMiddleware(
+        RequestDelegate next, ILogger<ApiRequestLoggingMiddleware> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _next = next;
+_next = next;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -53,7 +57,7 @@ public class ApiRequestLoggingMiddleware
 
         var requestLog = new ApiRequestLog
         {
-            RequestTime = DateTime.Now,
+            RequestTime = _clock.LocalNow,
             RequestIp = GetClientIp(context),
             RequestMethod = context.Request.Method,
             RequestPath = context.Request.Path,
@@ -108,7 +112,7 @@ public class ApiRequestLoggingMiddleware
         {
             stopwatch.Stop();
             requestLog.DurationMs = stopwatch.ElapsedMilliseconds;
-            requestLog.ResponseTime = DateTime.Now;
+            requestLog.ResponseTime = _clock.LocalNow;
             requestLog.ResponseStatusCode = context.Response.StatusCode;
 
             // 步骤6：记录响应头

@@ -10,16 +10,19 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// </summary>
 public class LiteDbRuleRepository : IRuleRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILiteDatabase _database;
     private readonly ILogger<LiteDbRuleRepository> _logger;
     private const string CollectionName = "sorting_rules";
 
     public LiteDbRuleRepository(
         ILiteDatabase database,
-        ILogger<LiteDbRuleRepository> logger)
+        ILogger<LiteDbRuleRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _database = database;
+_database = database;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -71,7 +74,7 @@ public class LiteDbRuleRepository : IRuleRepository
         try
         {
             var collection = GetCollection();
-            rule.CreatedAt = DateTime.Now;
+            rule.CreatedAt = _clock.LocalNow;
             collection.Insert(rule);
             
             _logger.LogInformation("添加规则成功: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);
@@ -89,7 +92,7 @@ public class LiteDbRuleRepository : IRuleRepository
         try
         {
             var collection = GetCollection();
-            rule.UpdatedAt = DateTime.Now;
+            rule.UpdatedAt = _clock.LocalNow;
             collection.Update(rule);
             
             _logger.LogInformation("更新规则成功: {RuleId} - {RuleName}", rule.RuleId, rule.RuleName);

@@ -13,12 +13,16 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// </summary>
 public class MockWcsApiAdapter : IWcsApiAdapter
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<MockWcsApiAdapter> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public MockWcsApiAdapter(ILogger<MockWcsApiAdapter> logger)
+    public MockWcsApiAdapter(
+        ILogger<MockWcsApiAdapter> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -40,8 +44,8 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             Data = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions),
             ParcelId = barcode,
             RequestUrl = "/api/mock/scan",
-            RequestTime = DateTime.Now,
-            ResponseTime = DateTime.Now,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
             DurationMs = 10
         };
 
@@ -83,8 +87,8 @@ public class MockWcsApiAdapter : IWcsApiAdapter
                 parcelId, 
                 barcode = dwsData.Barcode 
             }, JsonOptions),
-            RequestTime = DateTime.Now,
-            ResponseTime = DateTime.Now,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
             ResponseStatusCode = 200,
             DurationMs = 10
         };
@@ -114,8 +118,8 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             Data = JsonSerializer.Serialize(new { uploaded = true, size = imageData.Length }, JsonOptions),
             ParcelId = barcode,
             RequestUrl = "/api/mock/upload-image",
-            RequestTime = DateTime.Now,
-            ResponseTime = DateTime.Now,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
             DurationMs = 10
         };
 

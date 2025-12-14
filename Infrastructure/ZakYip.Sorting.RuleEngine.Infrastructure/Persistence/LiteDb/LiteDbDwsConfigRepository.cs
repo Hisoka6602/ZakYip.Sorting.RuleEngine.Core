@@ -28,7 +28,7 @@ public class LiteDbDwsConfigRepository : BaseLiteDbRepository<DwsConfig, long>, 
     protected override long GetEntityId(DwsConfig entity) => entity.ConfigId;
 
     protected override DwsConfig UpdateTimestamp(DwsConfig entity) =>
-        entity with { UpdatedAt = DateTime.Now };
+        entity with { UpdatedAt = _clock.LocalNow };
 
     public Task<IEnumerable<DwsConfig>> GetEnabledConfigsAsync()
     {

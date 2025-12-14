@@ -21,7 +21,7 @@ public class MySqlLogRepository : BaseLogRepositoryImpl<MySqlLogDbContext, LogEn
             Level = level,
             Message = message,
             Details = details,
-            CreatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow
         };
 
     protected override Task AddLogEntryAsync(LogEntry logEntry, CancellationToken cancellationToken)

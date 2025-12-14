@@ -493,7 +493,7 @@ try
                     endpoints.MapGet("/health", () => Results.Ok(new
                     {
                         status = "healthy",
-                        timestamp = DateTime.Now
+                        timestamp = _clock.LocalNow
                     }))
                     .WithName("HealthCheck");
 
@@ -515,7 +515,7 @@ try
                             var result = new
                             {
                                 status = report.Status.ToString(),
-                                timestamp = DateTime.Now,
+                                timestamp = _clock.LocalNow,
                                 duration = report.TotalDuration.TotalMilliseconds,
                                 checks = report.Entries.Select(e => new
                                 {

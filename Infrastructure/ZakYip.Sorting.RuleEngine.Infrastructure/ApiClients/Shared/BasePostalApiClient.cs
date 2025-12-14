@@ -68,7 +68,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         
         try
         {
@@ -83,7 +83,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                     Message = "NoRead barcode skipped",
                     Data = "NoRead barcode skipped",
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     DurationMs = 0
                 };
             }
@@ -96,7 +96,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                 DeviceId = DeviceId,
                 Barcode = barcode,
                 EmployeeNumber = EmployeeNumber,
-                ScanTime = DateTime.Now
+                ScanTime = _clock.LocalNow
             };
 
             var soapRequest = SoapRequestBuilder.BuildScanRequest(scanParameters);
@@ -123,7 +123,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                     RequestBody = soapRequest,
                     ResponseBody = responseContent,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode
                 };
             }
@@ -143,7 +143,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                     ResponseBody = responseContent,
                     ErrorMessage = $"Scan Error: {response.StatusCode}",
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode
                 };
             }
@@ -160,7 +160,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 RequestTime = requestTime,
-                ResponseTime = DateTime.Now
+                ResponseTime = _clock.LocalNow
             };
         }
     }
@@ -177,7 +177,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         
         try
         {
@@ -188,7 +188,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
             await ScanParcelAsync(dwsData.Barcode, cancellationToken);
 
             var seqNum = GetNextSequenceNumber();
-            var yearMonth = DateTime.Now.ToString("yyyyMM");
+            var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造SOAP请求 - getLTGKCX方法（查询格口）
@@ -197,7 +197,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                 SequenceId = sequenceId,
                 DeviceId = DeviceId,
                 Barcode = dwsData.Barcode,
-                ScanTime = DateTime.Now,
+                ScanTime = _clock.LocalNow,
                 EmployeeNumber = EmployeeNumber,
                 OrganizationNumber = OrganizationNumber,
                 CompanyName = CompanyName,
@@ -235,7 +235,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                     ParcelId = parcelId,
                     RequestBody = soapRequest,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     OcrData = ocrData
@@ -258,7 +258,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                     ParcelId = parcelId,
                     RequestBody = soapRequest,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     OcrData = ocrData
@@ -280,7 +280,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
                 RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
+                ResponseTime = _clock.LocalNow,
                 DurationMs = stopwatch.ElapsedMilliseconds,
                 OcrData = ocrData
             };
@@ -339,8 +339,8 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
             Message = $"{ClientTypeName}图片上传功能未实现",
             Data = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,
-            RequestTime = DateTime.Now,
-            ResponseTime = DateTime.Now,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
             DurationMs = 0
         };
     }

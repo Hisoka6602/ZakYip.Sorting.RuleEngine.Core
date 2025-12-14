@@ -10,6 +10,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 /// </summary>
 public class ReactiveParcelProcessingService : IDisposable
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<ReactiveParcelProcessingService> _logger;
     private readonly Subject<ParcelCreatedEvent> _parcelCreatedSubject;
     private readonly Subject<DwsDataReceivedEvent> _dwsDataReceivedSubject;
@@ -34,15 +35,18 @@ public class ReactiveParcelProcessingService : IDisposable
     /// </summary>
     public IObservable<ParcelProcessedEvent> ParcelProcessed => _parcelProcessedSubject.AsObservable();
 
-    public ReactiveParcelProcessingService(ILogger<ReactiveParcelProcessingService> logger)
+    public ReactiveParcelProcessingService(
+        ILogger<ReactiveParcelProcessingService> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _parcelCreatedSubject = new Subject<ParcelCreatedEvent>();
         _dwsDataReceivedSubject = new Subject<DwsDataReceivedEvent>();
         _parcelProcessedSubject = new Subject<ParcelProcessedEvent>();
         _subscriptions = new List<IDisposable>();
 
         InitializeStreams();
+        _clock = clock;
     }
 
     private void InitializeStreams()
@@ -203,7 +207,7 @@ public class ReactiveParcelProcessingService : IDisposable
                 ParcelProcessed.Buffer(windowDuration),
                 (created, dwsReceived, processed) => new ParcelProcessingMetrics
                 {
-                    Timestamp = DateTime.Now,
+                    Timestamp = _clock.LocalNow,
                     ParcelsCreated = created.Count,
                     DwsDataReceived = dwsReceived.Count,
                     ParcelsProcessed = processed.Count,

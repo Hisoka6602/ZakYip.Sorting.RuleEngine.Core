@@ -10,13 +10,17 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// </summary>
 public class LiteDbSorterConfigRepository : ISorterConfigRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILiteDatabase _database;
     private const string CollectionName = "sorter_config";
 
-    public LiteDbSorterConfigRepository(ILiteDatabase database)
+    public LiteDbSorterConfigRepository(
+        ILiteDatabase database,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _database = database;
+_database = database;
         EnsureIndexes();
+        _clock = clock;
     }
 
     private void EnsureIndexes()
@@ -37,7 +41,7 @@ public class LiteDbSorterConfigRepository : ISorterConfigRepository
         var collection = _database.GetCollection<SorterConfig>(CollectionName);
         
         // 更新时间戳
-        var configWithTimestamp = config with { UpdatedAt = DateTime.Now };
+        var configWithTimestamp = config with { UpdatedAt = _clock.LocalNow };
         
         // Upsert操作：如果存在则更新，否则插入
         var result = collection.Upsert(configWithTimestamp);

@@ -10,5 +10,5 @@ public class LogEntry
     public required string Level { get; init; } = string.Empty;
     public required string Message { get; init; } = string.Empty;
     public string? Details { get; init; }
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
+    public DateTime CreatedAt { get; init; } = _clock.LocalNow;
 }

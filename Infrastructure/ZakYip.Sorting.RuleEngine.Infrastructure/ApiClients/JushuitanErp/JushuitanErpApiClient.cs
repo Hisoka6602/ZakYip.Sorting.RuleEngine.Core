@@ -26,10 +26,11 @@ public class JushuitanErpApiClient : BaseErpApiClient
     public JushuitanErpApiClient(
         HttpClient httpClient,
         ILogger<JushuitanErpApiClient> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         string appKey = "",
         string appSecret = "",
         string accessToken = "")
-        : base(httpClient, logger)
+        : base(httpClient, logger, clock)
     {
         Parameters = new JushuitanErpApiParameters
         {
@@ -54,7 +55,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
 
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -155,7 +156,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
                     RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -181,7 +182,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
                     RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -230,7 +231,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         
         try
         {
@@ -254,7 +255,7 @@ public class JushuitanErpApiClient : BaseErpApiClient
                 RequestBody = $"[image upload request: size={imageData.Length} bytes]",
                 RequestHeaders = "{}",
                 RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
+                ResponseTime = _clock.LocalNow,
                 DurationMs = stopwatch.ElapsedMilliseconds,
                 FormattedCurl = "# Feature not supported by Jushuituan ERP"
             };

@@ -9,17 +9,21 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// </summary>
 public class LiteDbChuteRepository : IChuteRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILiteDatabase _database;
     private readonly ILiteCollection<Chute> _collection;
 
-    public LiteDbChuteRepository(ILiteDatabase database)
+    public LiteDbChuteRepository(
+        ILiteDatabase database,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _database = database;
+_database = database;
         _collection = _database.GetCollection<Chute>("chutes");
         
         // 创建索引
         _collection.EnsureIndex(x => x.ChuteCode);
         _collection.EnsureIndex(x => x.IsEnabled);
+        _clock = clock;
     }
 
     public Task<IEnumerable<Chute>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -42,7 +46,7 @@ public class LiteDbChuteRepository : IChuteRepository
 
     public Task<Chute> AddAsync(Chute chute, CancellationToken cancellationToken = default)
     {
-        chute.CreatedAt = DateTime.Now;
+        chute.CreatedAt = _clock.LocalNow;
         chute.UpdatedAt = null;
         
         var id = _collection.Insert(chute);
@@ -53,7 +57,7 @@ public class LiteDbChuteRepository : IChuteRepository
 
     public Task UpdateAsync(Chute chute, CancellationToken cancellationToken = default)
     {
-        chute.UpdatedAt = DateTime.Now;
+        chute.UpdatedAt = _clock.LocalNow;
         _collection.Update(chute);
         return Task.CompletedTask;
     }

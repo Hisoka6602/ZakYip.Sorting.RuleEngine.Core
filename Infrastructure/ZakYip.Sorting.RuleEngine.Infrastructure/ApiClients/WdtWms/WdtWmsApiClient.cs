@@ -27,10 +27,11 @@ public class WdtWmsApiClient : BaseErpApiClient
     public WdtWmsApiClient(
         HttpClient httpClient,
         ILogger<WdtWmsApiClient> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         string appKey = "",
         string appSecret = "",
         string sid = "")
-        : base(httpClient, logger)
+        : base(httpClient, logger, clock)
     {
         Parameters = new WdtWmsApiParameters
         {
@@ -55,7 +56,7 @@ public class WdtWmsApiClient : BaseErpApiClient
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
 
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -67,7 +68,7 @@ public class WdtWmsApiClient : BaseErpApiClient
         {
             Logger.LogDebug("WDT WMS - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
 
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            var timestamp = _clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss");
             
             var data = new
             {
@@ -125,7 +126,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                     RequestBody = JsonConvert.SerializeObject(data),
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = formattedCurl
                 };
@@ -196,7 +197,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                     RequestBody = JsonConvert.SerializeObject(data),
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -222,7 +223,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                     RequestBody = JsonConvert.SerializeObject(data),
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -271,7 +272,7 @@ public class WdtWmsApiClient : BaseErpApiClient
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -285,7 +286,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                 "WDT WMS - 开始上传图片，条码: {Barcode}, 大小: {Size} bytes",
                 barcode, imageData.Length);
 
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            var timestamp = _clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss");
 
             // 对于文件上传，WDT通常使用multipart/form-data
             using var formContent = new MultipartFormDataContent();
@@ -354,7 +355,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                     RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -380,7 +381,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                     RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -405,7 +406,7 @@ public class WdtWmsApiClient : BaseErpApiClient
                 RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
                 RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
-                ResponseTime = DateTime.Now,
+                ResponseTime = _clock.LocalNow,
                 ResponseStatusCode = response != null ? (int)response.StatusCode : null,
                 ResponseHeaders = responseHeaders,
                 DurationMs = stopwatch.ElapsedMilliseconds,

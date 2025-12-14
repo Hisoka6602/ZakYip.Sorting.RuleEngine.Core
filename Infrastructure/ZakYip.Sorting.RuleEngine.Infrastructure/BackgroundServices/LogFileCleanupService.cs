@@ -10,6 +10,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 /// </summary>
 public class LogFileCleanupService : BackgroundService
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<LogFileCleanupService> _logger;
     private readonly LogFileCleanupSettings _settings;
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1); // 每小时检查一次
@@ -17,10 +18,12 @@ public class LogFileCleanupService : BackgroundService
 
     public LogFileCleanupService(
         ILogger<LogFileCleanupService> logger,
-        IOptions<LogFileCleanupSettings> settings)
+        IOptions<LogFileCleanupSettings> settings,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _settings = settings.Value;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -74,7 +77,7 @@ public class LogFileCleanupService : BackgroundService
 
         Console.WriteLine($"开始清理日志文件，目录: {logDirectory}，保留天数: {retentionDays}天");
 
-        var cutoffDate = DateTime.Now.AddDays(-retentionDays);
+        var cutoffDate = _clock.LocalNow.AddDays(-retentionDays);
         var logFiles = Directory.GetFiles(logDirectory, "*.log", SearchOption.AllDirectories);
         var deletedCount = 0;
         var totalSize = 0L;
