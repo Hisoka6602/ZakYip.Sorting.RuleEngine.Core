@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -11,8 +12,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 /// TCP JSON Server - 监听下游分拣机连接（Server 模式）
 /// TCP JSON Server - Listen for downstream sorter connections (Server mode)
 /// 
-/// 全局单例，确保只有一个实例与下游通信
-/// Global singleton to ensure only one instance communicates with downstream
+/// 全局单例服务实例，但支持多个下游设备连接
+/// Global singleton service instance, but supports multiple downstream device connections
 /// </summary>
 public class DownstreamTcpJsonServer : IDisposable
 {
@@ -20,9 +21,11 @@ public class DownstreamTcpJsonServer : IDisposable
     private readonly string _host;
     private readonly int _port;
     private TcpListener? _listener;
-    private TcpClient? _connectedClient;
-    private StreamWriter? _writer;
-    private StreamReader? _reader;
+    
+    // 支持多个客户端连接（多个下游分拣设备）
+    // Support multiple client connections (multiple downstream sorter devices)
+    private readonly ConcurrentDictionary<string, ClientConnection> _connectedClients = new();
+    
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _listenerTask;
     private readonly object _lock = new();
@@ -91,8 +94,21 @@ public class DownstreamTcpJsonServer : IDisposable
     }
 
     /// <summary>
-    /// 接受客户端连接（只接受一个连接，全局单例）
-    /// Accept client connections (only one connection, global singleton)
+    /// 客户端连接信息
+    /// Client connection information
+    /// </summary>
+    private class ClientConnection
+    {
+        public required TcpClient Client { get; init; }
+        public required StreamWriter Writer { get; init; }
+        public required StreamReader Reader { get; init; }
+        public required string ClientId { get; init; }
+        public required Task HandlerTask { get; init; }
+    }
+
+    /// <summary>
+    /// 接受客户端连接（支持多个下游分拣设备连接）
+    /// Accept client connections (supports multiple downstream sorter device connections)
     /// </summary>
     private async Task AcceptClientsAsync(CancellationToken cancellationToken)
     {
@@ -103,29 +119,15 @@ public class DownstreamTcpJsonServer : IDisposable
                 _logger.LogInformation("等待下游分拣机连接...");
                 
                 var client = await _listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
-
-                lock (_lock)
-                {
-                    // 全局单例：如果已有连接，拒绝新连接
-                    // Global singleton: reject new connections if already connected
-                    if (_connectedClient != null)
-                    {
-                        _logger.LogWarning(
-                            "拒绝新连接，已存在活动连接。只允许一个下游实例连接。" +
-                            " / Rejecting new connection, active connection exists. Only one downstream instance allowed.");
-                        client.Close();
-                        continue;
-                    }
-
-                    _connectedClient = client;
-                }
+                var clientId = client.Client.RemoteEndPoint?.ToString() ?? Guid.NewGuid().ToString();
 
                 _logger.LogInformation(
-                    "下游分拣机已连接: {RemoteEndPoint}",
-                    client.Client.RemoteEndPoint);
+                    "下游分拣机已连接: {ClientId}, 当前连接数: {Count}",
+                    clientId, _connectedClients.Count + 1);
 
-                // 处理连接
-                _ = Task.Run(() => HandleClientAsync(client, cancellationToken), cancellationToken);
+                // 处理新连接（支持多个下游设备）
+                // Handle new connection (support multiple downstream devices)
+                _ = Task.Run(async () => await HandleClientAsync(client, clientId, cancellationToken).ConfigureAwait(false), cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -142,44 +144,61 @@ public class DownstreamTcpJsonServer : IDisposable
     /// 处理客户端消息
     /// Handle client messages
     /// </summary>
-    private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
+    private async Task HandleClientAsync(TcpClient client, string clientId, CancellationToken cancellationToken)
     {
+        StreamReader? reader = null;
+        StreamWriter? writer = null;
+        
         try
         {
             var stream = client.GetStream();
-            _reader = new StreamReader(stream, Encoding.UTF8);
-            _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+            reader = new StreamReader(stream, Encoding.UTF8);
+            writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+
+            // 注册客户端连接
+            var connection = new ClientConnection
+            {
+                Client = client,
+                Writer = writer,
+                Reader = reader,
+                ClientId = clientId,
+                HandlerTask = Task.CompletedTask
+            };
+            
+            if (!_connectedClients.TryAdd(clientId, connection))
+            {
+                _logger.LogWarning("无法注册客户端连接: {ClientId}", clientId);
+                return;
+            }
+
+            _logger.LogInformation("客户端 {ClientId} 已注册，当前连接数: {Count}", clientId, _connectedClients.Count);
 
             while (!cancellationToken.IsCancellationRequested && client.Connected)
             {
-                var line = await _reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 
                 if (string.IsNullOrEmpty(line))
                 {
-                    _logger.LogWarning("收到空消息，连接可能已断开");
+                    _logger.LogWarning("客户端 {ClientId} 发送空消息，连接可能已断开", clientId);
                     break;
                 }
 
-                await ProcessMessageAsync(line, cancellationToken).ConfigureAwait(false);
+                await ProcessMessageAsync(line, clientId, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "处理客户端消息时发生异常");
+            _logger.LogError(ex, "处理客户端 {ClientId} 消息时发生异常", clientId);
         }
         finally
         {
-            lock (_lock)
-            {
-                _reader?.Dispose();
-                _writer?.Dispose();
-                _connectedClient?.Close();
-                _connectedClient = null;
-                _reader = null;
-                _writer = null;
-            }
+            // 清理连接
+            _connectedClients.TryRemove(clientId, out _);
+            reader?.Dispose();
+            writer?.Dispose();
+            client?.Close();
 
-            _logger.LogInformation("下游分拣机连接已关闭");
+            _logger.LogInformation("客户端 {ClientId} 连接已关闭，当前连接数: {Count}", clientId, _connectedClients.Count);
         }
     }
 
@@ -187,18 +206,18 @@ public class DownstreamTcpJsonServer : IDisposable
     /// 处理 JSON 消息
     /// Process JSON message
     /// </summary>
-    private async Task ProcessMessageAsync(string jsonLine, CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(string jsonLine, string clientId, CancellationToken cancellationToken)
     {
         try
         {
-            _logger.LogDebug("收到消息: {Message}", jsonLine);
+            _logger.LogDebug("收到消息 from {ClientId}: {Message}", clientId, jsonLine);
 
             using var document = JsonDocument.Parse(jsonLine);
             var root = document.RootElement;
 
             if (!root.TryGetProperty("Type", out var typeElement))
             {
-                _logger.LogWarning("消息缺少 Type 字段: {Message}", jsonLine);
+                _logger.LogWarning("消息缺少 Type 字段 from {ClientId}: {Message}", clientId, jsonLine);
                 return;
             }
 
@@ -223,52 +242,61 @@ public class DownstreamTcpJsonServer : IDisposable
                     break;
 
                 default:
-                    _logger.LogWarning("未知的消息类型: {Type}", messageType);
+                    _logger.LogWarning("未知的消息类型 from {ClientId}: {Type}", clientId, messageType);
                     break;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "处理消息失败: {Message}", jsonLine);
+            _logger.LogError(ex, "处理消息失败 from {ClientId}: {Message}", clientId, jsonLine);
         }
     }
 
     /// <summary>
-    /// 发送格口分配通知到下游
-    /// Send chute assignment notification to downstream
+    /// 发送格口分配通知到所有连接的下游设备
+    /// Send chute assignment notification to all connected downstream devices
     /// </summary>
     public async Task<bool> SendChuteAssignmentAsync(
         ChuteAssignmentNotification notification,
         CancellationToken cancellationToken = default)
     {
-        StreamWriter? writer;
-        lock (_lock)
+        if (_connectedClients.IsEmpty)
         {
-            if (_writer == null || _connectedClient?.Connected != true)
-            {
-                _logger.LogWarning("无活动连接，无法发送格口分配");
-                return false;
-            }
-            writer = _writer;
-        }
-
-        try
-        {
-            var json = JsonSerializer.Serialize(notification);
-            await writer.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
-            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-
-            _logger.LogInformation(
-                "已发送格口分配: ParcelId={ParcelId}, ChuteId={ChuteId}",
-                notification.ParcelId, notification.ChuteId);
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "发送格口分配失败");
+            _logger.LogWarning("无活动连接，无法发送格口分配");
             return false;
         }
+
+        var json = JsonSerializer.Serialize(notification);
+        var successCount = 0;
+        var failCount = 0;
+
+        // 向所有连接的设备广播消息
+        // Broadcast message to all connected devices
+        foreach (var kvp in _connectedClients)
+        {
+            try
+            {
+                await kvp.Value.Writer.WriteLineAsync(json.AsMemory(), cancellationToken).ConfigureAwait(false);
+                await kvp.Value.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                
+                _logger.LogInformation(
+                    "已发送格口分配到客户端 {ClientId}: ParcelId={ParcelId}, ChuteId={ChuteId}",
+                    kvp.Key, notification.ParcelId, notification.ChuteId);
+                
+                successCount++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "发送格口分配到客户端 {ClientId} 失败", kvp.Key);
+                failCount++;
+            }
+        }
+
+        _logger.LogInformation(
+            "格口分配广播完成: 成功={Success}, 失败={Fail}, 总连接数={Total}",
+            successCount, failCount, _connectedClients.Count);
+
+        return successCount > 0;
     }
 
     /// <summary>
@@ -281,16 +309,28 @@ public class DownstreamTcpJsonServer : IDisposable
 
         _cancellationTokenSource?.Cancel();
 
+        // 关闭所有客户端连接
+        // Close all client connections
+        foreach (var kvp in _connectedClients)
+        {
+            try
+            {
+                kvp.Value.Reader?.Dispose();
+                kvp.Value.Writer?.Dispose();
+                kvp.Value.Client?.Close();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "关闭客户端 {ClientId} 连接时发生异常", kvp.Key);
+            }
+        }
+        
+        _connectedClients.Clear();
+
         lock (_lock)
         {
             _isRunning = false;
-            _reader?.Dispose();
-            _writer?.Dispose();
-            _connectedClient?.Close();
             _listener?.Stop();
-            _connectedClient = null;
-            _reader = null;
-            _writer = null;
             _listener = null;
         }
 
