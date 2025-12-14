@@ -135,6 +135,7 @@ public class SorterConfigController : ControllerBase
         {
             Name = "默认分拣机配置",
             Protocol = "TCP",
+            ConnectionMode = "Client",
             Host = "127.0.0.1",
             Port = 8888,
             IsEnabled = false,
@@ -142,7 +143,7 @@ public class SorterConfigController : ControllerBase
             AutoReconnect = true,
             ReconnectIntervalSeconds = 5,
             HeartbeatIntervalSeconds = 10,
-            Description = "默认的分拣机通信配置",
+            Description = "默认的分拣机通信配置 - Client模式主动连接到下游分拣机",
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };

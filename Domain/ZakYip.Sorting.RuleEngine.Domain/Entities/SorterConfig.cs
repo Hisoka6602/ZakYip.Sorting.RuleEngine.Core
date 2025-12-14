@@ -31,8 +31,18 @@ public record class SorterConfig
     public required string Protocol { get; init; }
 
     /// <summary>
+    /// 连接模式：Server / Client
+    /// Connection mode: Server / Client
+    /// Server 模式：RuleEngine 监听端口，等待下游连接
+    /// Client 模式：RuleEngine 主动连接到下游
+    /// </summary>
+    public string ConnectionMode { get; init; } = "Client";
+
+    /// <summary>
     /// 主机地址
     /// Host address
+    /// Server 模式：监听地址（如 0.0.0.0）
+    /// Client 模式：下游服务器地址（如 192.168.1.100）
     /// </summary>
     public required string Host { get; init; }
 

@@ -259,7 +259,8 @@ try
                 // Register auto-response mode service
                 services.AddSingleton<IAutoResponseModeService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.AutoResponseModeService>();
 
-                // 注册所有适配器到DI容器
+                // 注册所有WCS API适配器到DI容器
+                // Register all WCS API adapters to DI container
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WcsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<WdtWmsApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
@@ -290,6 +291,7 @@ try
                 // IMonitoringAlertRepository 现在根据数据库配置在上面注册（MySQL或SQLite）
                 // IMonitoringAlertRepository is now registered above based on database configuration (MySQL or SQLite)
                 services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
+                services.AddScoped<ICommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.CommunicationLogRepository>();
                 
                 // 注册DWS相关仓储
                 // Register DWS-related repositories

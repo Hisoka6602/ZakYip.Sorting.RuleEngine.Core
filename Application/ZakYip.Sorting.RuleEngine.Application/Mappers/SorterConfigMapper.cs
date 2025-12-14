@@ -22,6 +22,7 @@ public static class SorterConfigMapper
         {
             Name = entity.Name,
             Protocol = entity.Protocol,
+            ConnectionMode = entity.ConnectionMode,
             Host = entity.Host,
             Port = entity.Port,
             IsEnabled = entity.IsEnabled,
@@ -49,6 +50,7 @@ public static class SorterConfigMapper
             ConfigId = SorterConfig.SingletonId,
             Name = request.Name,
             Protocol = request.Protocol,
+            ConnectionMode = request.ConnectionMode,
             Host = request.Host,
             Port = request.Port,
             IsEnabled = request.IsEnabled,

@@ -8,6 +8,13 @@ public record SorterConfigUpdateRequest
 {
     public required string Name { get; init; }
     public required string Protocol { get; init; }
+    
+    /// <summary>
+    /// 连接模式：Server 或 Client
+    /// Connection mode: Server or Client
+    /// </summary>
+    public string ConnectionMode { get; init; } = "Client";
+    
     public required string Host { get; init; }
     public required int Port { get; init; }
     public required bool IsEnabled { get; init; }

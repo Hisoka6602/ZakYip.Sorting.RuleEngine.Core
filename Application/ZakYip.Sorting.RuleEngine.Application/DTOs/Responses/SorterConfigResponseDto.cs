@@ -11,6 +11,13 @@ public record SorterConfigResponseDto
     
     public required string Name { get; init; }
     public required string Protocol { get; init; }
+    
+    /// <summary>
+    /// 连接模式：Server 或 Client
+    /// Connection mode: Server or Client
+    /// </summary>
+    public required string ConnectionMode { get; init; }
+    
     public required string Host { get; init; }
     public required int Port { get; init; }
     public required bool IsEnabled { get; init; }
