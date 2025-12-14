@@ -63,7 +63,7 @@ public class WcsApiClient : IWcsApiAdapter
         RequestBody = requestBody,
         RequestHeaders = requestHeaders,
         RequestTime = requestTime,
-        ResponseTime = _clock.LocalNow,
+        ResponseTime = DateTime.Now,
         ResponseStatusCode = statusCode,
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
@@ -99,7 +99,7 @@ public class WcsApiClient : IWcsApiAdapter
         RequestBody = requestBody,
         RequestHeaders = requestHeaders,
         RequestTime = requestTime,
-        ResponseTime = _clock.LocalNow,
+        ResponseTime = DateTime.Now,
         ResponseStatusCode = statusCode,
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
@@ -133,7 +133,7 @@ public class WcsApiClient : IWcsApiAdapter
         RequestBody = requestBody,
         RequestHeaders = requestHeaders,
         RequestTime = requestTime,
-        ResponseTime = _clock.LocalNow,
+        ResponseTime = DateTime.Now,
         ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
@@ -150,14 +150,14 @@ public class WcsApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var requestTime = _clock.LocalNow;
+        var requestTime = DateTime.Now;
         var requestUrl = WcsEndpoints.ParcelScan;
         
         // 构造请求数据
         var requestData = new
         {
             barcode,
-            scanTime = _clock.LocalNow
+            scanTime = DateTime.Now
         };
         var json = JsonSerializer.Serialize(requestData, _jsonOptions);
         
@@ -258,7 +258,7 @@ public class WcsApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var requestTime = _clock.LocalNow;
+        var requestTime = DateTime.Now;
         var requestUrl = WcsEndpoints.ChuteRequest;
         
         // 构造请求数据 - 包含DWS数据
@@ -280,7 +280,7 @@ public class WcsApiClient : IWcsApiAdapter
                 thirdSegmentCode = ocrData.ThirdSegmentCode,
                 recipientAddress = ocrData.RecipientAddress
             } : null,
-            requestTime = _clock.LocalNow
+            requestTime = DateTime.Now
         };
         
         var json = JsonSerializer.Serialize(requestData, _jsonOptions);
@@ -385,7 +385,7 @@ public class WcsApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var requestTime = _clock.LocalNow;
+        var requestTime = DateTime.Now;
         var requestUrl = WcsEndpoints.ImageUpload;
         
         HttpResponseMessage? response = null;

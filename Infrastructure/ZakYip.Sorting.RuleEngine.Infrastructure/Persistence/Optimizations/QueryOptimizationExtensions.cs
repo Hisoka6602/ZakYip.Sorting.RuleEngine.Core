@@ -323,7 +323,7 @@ public static class QueryOptimizationExtensions
                 ExecutionCount = 1,
                 TotalExecutionTimeMs = executionTimeMs,
                 MaxExecutionTimeMs = executionTimeMs,
-                LastExecuted = _clock.LocalNow,
+                LastExecuted = DateTime.Now,
                 Recommendations = GenerateQueryRecommendations(queryPlan, executionTimeMs)
             },
             (key, existing) =>
@@ -331,7 +331,7 @@ public static class QueryOptimizationExtensions
                 existing.ExecutionCount++;
                 existing.TotalExecutionTimeMs += executionTimeMs;
                 existing.MaxExecutionTimeMs = Math.Max(existing.MaxExecutionTimeMs, executionTimeMs);
-                existing.LastExecuted = _clock.LocalNow;
+                existing.LastExecuted = DateTime.Now;
                 // 只在执行次数为10的倍数时重新生成建议，避免频繁计算
                 if (existing.ExecutionCount % 10 == 0)
                 {

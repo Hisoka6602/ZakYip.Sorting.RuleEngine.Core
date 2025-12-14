@@ -27,7 +27,7 @@ public class LiteDbDwsDataTemplateRepository : BaseLiteDbRepository<DwsDataTempl
     protected override long GetEntityId(DwsDataTemplate entity) => entity.TemplateId;
 
     protected override DwsDataTemplate UpdateTimestamp(DwsDataTemplate entity) =>
-        entity with { UpdatedAt = _clock.LocalNow };
+        entity with { UpdatedAt = DateTime.Now };
 
     public Task<IEnumerable<DwsDataTemplate>> GetEnabledTemplatesAsync()
     {

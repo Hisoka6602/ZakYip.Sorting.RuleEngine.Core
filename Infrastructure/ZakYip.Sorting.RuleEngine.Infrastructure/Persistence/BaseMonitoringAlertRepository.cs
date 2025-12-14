@@ -84,7 +84,7 @@ public abstract class BaseMonitoringAlertRepository<TContext> : IMonitoringAlert
             if (alert != null)
             {
                 alert.IsResolved = true;
-                alert.ResolvedTime = _clock.LocalNow;
+                alert.ResolvedTime = DateTime.Now;
                 await Context.SaveChangesAsync(cancellationToken);
                 Logger.LogInformation("告警已解决: {AlertId}", alertId);
             }
