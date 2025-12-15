@@ -767,6 +767,8 @@ During code inspection, **138 direct uses of DateTime.Now/DateTime.UtcNow** were
 | **其他 / Others** | 6 | 13 | 🟢 低 / Low |
 | **总计 / Total** | **43** | **118** | |
 
+- 未解决原因 / Unresolved Reason: 本次修改仅涉及文档与模型注释更新，调整时间获取方式需评估业务影响，未在本次改动中修改。
+
 **详细文件清单 / Detailed File List** (Top 10 by violations):
 
 1. BasePostalApiClient.cs - 14 处
