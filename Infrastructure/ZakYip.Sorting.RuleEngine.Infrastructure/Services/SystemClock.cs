@@ -12,8 +12,8 @@ public class SystemClock : ISystemClock
     /// 获取当前本地时间
     /// Get current local time
     /// </summary>
-#pragma warning disable RS0030 // Banned API - This is the designated encapsulation class for _clock.LocalNow
-    public DateTime LocalNow => _clock.LocalNow;
+#pragma warning disable RS0030 // Banned API - This is the designated encapsulation class for DateTime.Now
+    public DateTime LocalNow => DateTime.Now;
 #pragma warning restore RS0030
 
     /// <summary>

@@ -208,9 +208,11 @@ try
                 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
                 {
                     var loggerWdt = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
+                    var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
                     return new WdtWmsApiClient(
                         client,
                         loggerWdt,
+                        clock,
                         appSettings.WdtWmsApi.AppKey,
                         appSettings.WdtWmsApi.AppSecret);
                 });
@@ -231,9 +233,11 @@ try
                 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
                 {
                     var loggerJst = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
+                    var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
                     return new JushuitanErpApiClient(
                         client,
                         loggerJst,
+                        clock,
                         appSettings.JushuitanErpApi.PartnerKey,
                         appSettings.JushuitanErpApi.PartnerSecret,
                         appSettings.JushuitanErpApi.Token);
@@ -493,7 +497,7 @@ try
                     endpoints.MapGet("/health", () => Results.Ok(new
                     {
                         status = "healthy",
-                        timestamp = _clock.LocalNow
+                        timestamp = DateTime.Now
                     }))
                     .WithName("HealthCheck");
 
@@ -515,7 +519,7 @@ try
                             var result = new
                             {
                                 status = report.Status.ToString(),
-                                timestamp = _clock.LocalNow,
+                                timestamp = DateTime.Now,
                                 duration = report.TotalDuration.TotalMilliseconds,
                                 checks = report.Entries.Select(e => new
                                 {

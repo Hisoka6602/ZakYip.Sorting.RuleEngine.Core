@@ -139,8 +139,8 @@ _repository = repository;
             IsJsonFormat = false,
             IsEnabled = false,
             Description = "默认的DWS数据解析模板",
-            CreatedAt = _clock.LocalNow,
-            UpdatedAt = _clock.LocalNow
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 }

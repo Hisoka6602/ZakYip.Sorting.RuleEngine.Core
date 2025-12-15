@@ -147,8 +147,8 @@ _repository = repository;
             ReconnectIntervalSeconds = 5,
             HeartbeatIntervalSeconds = 10,
             Description = "默认的分拣机通信配置 - Client模式主动连接到下游分拣机",
-            CreatedAt = _clock.LocalNow,
-            UpdatedAt = _clock.LocalNow
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 }

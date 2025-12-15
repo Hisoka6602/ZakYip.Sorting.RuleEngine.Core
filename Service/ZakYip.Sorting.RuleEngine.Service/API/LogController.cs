@@ -29,11 +29,11 @@ public class LogController : ControllerBase
     public LogController(
         ILogger<LogController> logger,
         IOptions<AppSettings> appSettings,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         MySqlLogDbContext? mysqlContext = null,
-        SqliteLogDbContext? sqliteContext = null,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        SqliteLogDbContext? sqliteContext = null)
     {
-_logger = logger;
+        _logger = logger;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
         _useMySql = appSettings.Value.MySql.Enabled;

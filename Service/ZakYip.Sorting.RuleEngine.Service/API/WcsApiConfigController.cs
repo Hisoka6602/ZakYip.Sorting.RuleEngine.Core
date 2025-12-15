@@ -156,8 +156,8 @@ _repository = repository;
             HttpMethod = "POST",
             IsEnabled = false,
             Priority = 0,
-            CreatedAt = _clock.LocalNow,
-            UpdatedAt = _clock.LocalNow
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 }

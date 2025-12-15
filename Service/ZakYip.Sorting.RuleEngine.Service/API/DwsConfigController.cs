@@ -161,8 +161,8 @@ _repository = repository;
             AutoReconnect = true,
             ReconnectIntervalSeconds = 5,
             Description = "默认的DWS通信配置",
-            CreatedAt = _clock.LocalNow,
-            UpdatedAt = _clock.LocalNow
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
     }
 }
