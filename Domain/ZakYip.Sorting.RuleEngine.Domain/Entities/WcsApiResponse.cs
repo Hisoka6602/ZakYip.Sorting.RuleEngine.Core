@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 /// <summary>

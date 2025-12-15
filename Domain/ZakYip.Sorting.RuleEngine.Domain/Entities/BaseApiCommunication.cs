@@ -1,6 +1,6 @@
 using ZakYip.Sorting.RuleEngine.Domain.Services;
-
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
+
 /// <summary>
 /// API通信基类 - 提取ApiCommunicationLog和WcsApiResponse的共享属性
 /// Base API Communication class - Extracts shared properties from ApiCommunicationLog and WcsApiResponse

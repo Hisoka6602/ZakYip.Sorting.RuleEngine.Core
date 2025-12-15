@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using ZakYip.Sorting.RuleEngine.Domain.Services;
+using System.ComponentModel.DataAnnotations;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 

@@ -323,14 +323,6 @@ try
                 // Register system clock (Singleton mode)
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
                 
-                // 初始化 SystemClockProvider 用于静态上下文
-                // Initialize SystemClockProvider for static contexts
-                var clock = new ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock();
-                ZakYip.Sorting.RuleEngine.Domain.Services.SystemClockProvider.Initialize(
-                    () => clock.LocalNow,
-                    () => clock.UtcNow
-                );
-
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();
@@ -473,6 +465,21 @@ try
                 var appSettings = context.Configuration.GetSection("AppSettings").Get<AppSettings>() 
                     ?? new AppSettings();
 
+                // 初始化 SystemClockProvider 用于静态上下文
+                // Initialize SystemClockProvider for static contexts using DI-registered instance
+                var clockForProvider = app.ApplicationServices.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
+                ZakYip.Sorting.RuleEngine.Domain.Services.SystemClockProvider.Initialize(
+                    () => clockForProvider.LocalNow,
+                    () => clockForProvider.UtcNow
+                );
+                
+                // 验证 SystemClockProvider 已初始化
+                // Validate SystemClockProvider is initialized
+                if (!ZakYip.Sorting.RuleEngine.Domain.Services.SystemClockProvider.IsInitialized)
+                {
+                    throw new InvalidOperationException("SystemClockProvider initialization failed!");
+                }
+
                 // 初始化数据库
                 InitializeDatabases(app.ApplicationServices, appSettings);
 
@@ -492,7 +499,6 @@ try
 
                 app.UseCors();
                 app.UseRouting();
-                var clock = app.ApplicationServices.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
 
                 app.UseEndpoints(endpoints =>
                 {
@@ -504,11 +510,15 @@ try
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.MonitoringHub>("/hubs/monitoring");
                     
                     // 健康检查端点 - 简单版本
-                    endpoints.MapGet("/health", () => Results.Ok(new
+                    endpoints.MapGet("/health", () =>
                     {
-                        status = "healthy",
-                        timestamp = clock.LocalNow
-                    }))
+                        var clock = app.ApplicationServices.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
+                        return Results.Ok(new
+                        {
+                            status = "healthy",
+                            timestamp = clock.LocalNow
+                        });
+                    })
                     .WithName("HealthCheck");
 
                     // 版本信息端点
@@ -525,6 +535,7 @@ try
                     {
                         ResponseWriter = async (context, report) =>
                         {
+                            var clock = app.ApplicationServices.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
                             context.Response.ContentType = "application/json";
                             var result = new
                             {
