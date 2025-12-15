@@ -1,9 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Application.Services;
-using ZakYip.Sorting.RuleEngine.Service.Configuration;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 
@@ -14,16 +13,16 @@ public class DwsTimeoutCheckerService : BackgroundService
 {
     private readonly ILogger<DwsTimeoutCheckerService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IOptionsMonitor<AppSettings> _appSettings;
+    private readonly IDwsTimeoutSettings _timeoutSettings;
 
     public DwsTimeoutCheckerService(
         ILogger<DwsTimeoutCheckerService> logger,
         IServiceProvider serviceProvider,
-        IOptionsMonitor<AppSettings> appSettings)
+        IDwsTimeoutSettings timeoutSettings)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-        _appSettings = appSettings;
+        _timeoutSettings = timeoutSettings;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,12 +33,10 @@ public class DwsTimeoutCheckerService : BackgroundService
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
-                
-                if (!timeoutSettings.Enabled)
+                if (!_timeoutSettings.Enabled)
                 {
                     _logger.LogDebug("DWS超时检查已禁用，跳过本次检查 / DWS timeout check is disabled, skipping this check");
-                    await Task.Delay(TimeSpan.FromSeconds(timeoutSettings.CheckIntervalSeconds), stoppingToken).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(_timeoutSettings.CheckIntervalSeconds), stoppingToken).ConfigureAwait(false);
                     continue;
                 }
 
@@ -58,7 +55,7 @@ public class DwsTimeoutCheckerService : BackgroundService
                 }
 
                 // 等待下一次检查
-                await Task.Delay(TimeSpan.FromSeconds(timeoutSettings.CheckIntervalSeconds), stoppingToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(_timeoutSettings.CheckIntervalSeconds), stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

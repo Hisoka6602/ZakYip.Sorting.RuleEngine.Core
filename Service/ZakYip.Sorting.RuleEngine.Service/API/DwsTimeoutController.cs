@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -123,8 +124,7 @@ public class DwsTimeoutController : ControllerBase
                 currentSettings.Enabled, currentSettings.MinDwsWaitSeconds, currentSettings.MaxDwsWaitSeconds,
                 currentSettings.ExceptionChuteId, currentSettings.CheckIntervalSeconds);
 
-            return Ok(ApiResponse<DwsTimeoutSettings>.SuccessResult(currentSettings, 
-                "配置更新成功。注意：需要更新appsettings.json文件以持久化配置 / Configuration updated successfully. Note: Update appsettings.json file for persistence"));
+            return Ok(ApiResponse<DwsTimeoutSettings>.SuccessResult(currentSettings));
         }
         catch (Exception ex)
         {

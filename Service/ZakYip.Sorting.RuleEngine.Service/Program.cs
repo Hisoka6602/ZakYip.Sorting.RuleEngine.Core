@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using MySqlConnector;
+using Microsoft.Extensions.Options;
 using NLog;
 using NLog.Web;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
@@ -71,6 +72,17 @@ try
                 // 注册数据库熔断器配置
                 services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
                     configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
+                
+                // 注册DWS超时配置
+                services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DwsTimeoutSettings>(
+                    configuration.GetSection("AppSettings:DwsTimeout"));
+                
+                // 注册IDwsTimeoutSettings接口（用于Application层）
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDwsTimeoutSettings>(sp =>
+                {
+                    var monitor = sp.GetRequiredService<IOptionsMonitor<AppSettings>>();
+                    return monitor.CurrentValue.DwsTimeout;
+                });
 
                 // 注册数据库方言
                 // Register database dialects

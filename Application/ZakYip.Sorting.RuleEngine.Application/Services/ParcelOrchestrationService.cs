@@ -10,7 +10,6 @@ using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Application.Models;
-using ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
@@ -26,7 +25,7 @@ public class ParcelOrchestrationService
     private readonly Channel<ParcelWorkItem> _parcelChannel;
     private readonly ConcurrentDictionary<string, ParcelProcessingContext> _processingContexts;
     private readonly ISystemClock _clock;
-    private readonly IOptionsMonitor<AppSettings> _appSettings;
+    private readonly IDwsTimeoutSettings _timeoutSettings;
     private long _sequenceNumber;
 
     private readonly IParcelActivityTracker? _activityTracker;
@@ -37,7 +36,7 @@ public class ParcelOrchestrationService
         IServiceProvider serviceProvider,
         IMemoryCache cache,
         ISystemClock clock,
-        IOptionsMonitor<AppSettings> appSettings,
+        IDwsTimeoutSettings timeoutSettings,
         IParcelActivityTracker? activityTracker = null)
     {
         _logger = logger;
@@ -45,7 +44,7 @@ public class ParcelOrchestrationService
         _serviceProvider = serviceProvider;
         _cache = cache;
         _clock = clock;
-        _appSettings = appSettings;
+        _timeoutSettings = timeoutSettings;
         _activityTracker = activityTracker;
         
         // 创建有界通道，确保FIFO处理
@@ -111,28 +110,26 @@ public class ParcelOrchestrationService
             return false;
         }
 
-        var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
-        
         // 检查是否启用超时检查
-        if (timeoutSettings.Enabled)
+        if (_timeoutSettings.Enabled)
         {
             var elapsedSeconds = (_clock.LocalNow - context.CreatedAt).TotalSeconds;
             
             // 检查是否太早接收（可能是上一个包裹的DWS数据）
-            if (elapsedSeconds < timeoutSettings.MinDwsWaitSeconds)
+            if (elapsedSeconds < _timeoutSettings.MinDwsWaitSeconds)
             {
                 _logger.LogWarning(
                     "DWS数据接收过早，可能是上一个包裹的数据: ParcelId={ParcelId}, ElapsedSeconds={ElapsedSeconds:F2}, MinWaitSeconds={MinWaitSeconds}",
-                    parcelId, elapsedSeconds, timeoutSettings.MinDwsWaitSeconds);
+                    parcelId, elapsedSeconds, _timeoutSettings.MinDwsWaitSeconds);
                 return false;
             }
             
             // 检查是否超时
-            if (elapsedSeconds > timeoutSettings.MaxDwsWaitSeconds)
+            if (elapsedSeconds > _timeoutSettings.MaxDwsWaitSeconds)
             {
                 _logger.LogWarning(
                     "DWS数据接收超时，拒绝接收: ParcelId={ParcelId}, ElapsedSeconds={ElapsedSeconds:F2}, MaxWaitSeconds={MaxWaitSeconds}",
-                    parcelId, elapsedSeconds, timeoutSettings.MaxDwsWaitSeconds);
+                    parcelId, elapsedSeconds, _timeoutSettings.MaxDwsWaitSeconds);
                 return false;
             }
         }
@@ -252,15 +249,13 @@ public class ParcelOrchestrationService
             case WorkItemType.ProcessTimeout:
                 {
                     // 处理超时包裹，分配到异常格口
-                    var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
-                    
                     _logger.LogWarning(
                         "处理超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedSeconds={ElapsedSeconds:F2}, ExceptionChuteId={ExceptionChuteId}",
                         context.ParcelId, context.CreatedAt, (_clock.LocalNow - context.CreatedAt).TotalSeconds, 
-                        timeoutSettings.ExceptionChuteId);
+                        _timeoutSettings.ExceptionChuteId);
                     
                     // 分配到异常格口
-                    var exceptionChuteNumber = timeoutSettings.ExceptionChuteId.ToString();
+                    var exceptionChuteNumber = _timeoutSettings.ExceptionChuteId.ToString();
                     
                     // 发布规则匹配完成事件（使用异常格口）
                     await _publisher.Publish(new RuleMatchCompletedEvent
@@ -293,9 +288,7 @@ public class ParcelOrchestrationService
     /// </summary>
     public async Task CheckTimeoutParcelsAsync(CancellationToken cancellationToken = default)
     {
-        var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
-        
-        if (!timeoutSettings.Enabled)
+        if (!_timeoutSettings.Enabled)
         {
             return;
         }
@@ -317,7 +310,7 @@ public class ParcelOrchestrationService
             var elapsedSeconds = (now - context.CreatedAt).TotalSeconds;
             
             // 检查是否超时
-            if (elapsedSeconds > timeoutSettings.MaxDwsWaitSeconds)
+            if (elapsedSeconds > _timeoutSettings.MaxDwsWaitSeconds)
             {
                 timedOutParcels.Add(kvp.Key);
             }

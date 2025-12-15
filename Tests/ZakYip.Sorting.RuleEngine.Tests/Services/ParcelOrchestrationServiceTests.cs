@@ -7,6 +7,7 @@ using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Services;
 
@@ -39,12 +40,23 @@ public class ParcelOrchestrationServiceTests
         services.AddScoped(_ => _mockRuleEngineService.Object);
         _serviceProvider = services.BuildServiceProvider();
         
+        // 创建默认的DWS超时配置（禁用超时检查，避免影响现有测试）
+        var timeoutSettings = new DwsTimeoutSettings
+        {
+            Enabled = false,
+            MinDwsWaitSeconds = 2,
+            MaxDwsWaitSeconds = 30,
+            ExceptionChuteId = 999,
+            CheckIntervalSeconds = 5
+        };
+        
         _service = new ParcelOrchestrationService(
             _mockLogger.Object,
             _mockPublisher.Object,
             _serviceProvider,
             _cache,
-            _mockClock.Object);
+            _mockClock.Object,
+            timeoutSettings);
     }
 
     [Fact]

@@ -1,37 +1,36 @@
-namespace ZakYip.Sorting.RuleEngine.Service.Configuration;
+namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 /// <summary>
-/// DWS数据接收超时配置 / DWS data reception timeout settings
+/// DWS数据接收超时设置接口 / DWS data reception timeout settings interface
 /// </summary>
-public class DwsTimeoutSettings
+public interface IDwsTimeoutSettings
 {
+    /// <summary>
+    /// 是否启用超时检查 / Enable timeout check
+    /// </summary>
+    bool Enabled { get; }
+
     /// <summary>
     /// 最小等待时间（秒）- 避免匹配上一个包裹的DWS数据
     /// Minimum wait time (seconds) - Avoid matching DWS data from previous parcel
     /// </summary>
-    public int MinDwsWaitSeconds { get; set; } = 2;
+    int MinDwsWaitSeconds { get; }
 
     /// <summary>
     /// 最大等待时间（秒）- 超时截止时间
     /// Maximum wait time (seconds) - Timeout deadline
     /// </summary>
-    public int MaxDwsWaitSeconds { get; set; } = 30;
+    int MaxDwsWaitSeconds { get; }
 
     /// <summary>
     /// 异常格口ID - 当DWS数据接收超时时，分配到此格口
     /// Exception chute ID - Assign to this chute when DWS data reception times out
     /// </summary>
-    public long ExceptionChuteId { get; set; } = 0;
-
-    /// <summary>
-    /// 是否启用超时检查
-    /// Enable timeout check
-    /// </summary>
-    public bool Enabled { get; set; } = true;
+    long ExceptionChuteId { get; }
 
     /// <summary>
     /// 超时检查间隔（秒）- 后台任务检查超时包裹的频率
     /// Timeout check interval (seconds) - Frequency of background task checking for timed-out parcels
     /// </summary>
-    public int CheckIntervalSeconds { get; set; } = 5;
+    int CheckIntervalSeconds { get; }
 }
