@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
-using ZakYip.Sorting.RuleEngine.Service.Configuration;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
-/// DWS数据接收超时配置管理控制器 / DWS data reception timeout configuration management controller
+/// DWS数据接收超时配置管理控制器（单例模式）/ DWS data reception timeout configuration management controller (Singleton pattern)
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -16,131 +16,247 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("DWS超时配置管理接口 / DWS timeout configuration management API")]
 public class DwsTimeoutController : ControllerBase
 {
-    private readonly IOptionsMonitor<AppSettings> _appSettings;
+    private readonly ISystemClock _clock;
+    private readonly IDwsTimeoutConfigRepository _repository;
+    private readonly IConfigReloadService _reloadService;
     private readonly ILogger<DwsTimeoutController> _logger;
 
     public DwsTimeoutController(
-        IOptionsMonitor<AppSettings> appSettings,
-        ILogger<DwsTimeoutController> logger)
+        IDwsTimeoutConfigRepository repository,
+        IConfigReloadService reloadService,
+        ILogger<DwsTimeoutController> logger,
+        ISystemClock clock)
     {
-        _appSettings = appSettings;
+        _repository = repository;
+        _reloadService = reloadService;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
-    /// 获取DWS数据接收超时配置 / Get DWS data reception timeout configuration
+    /// 获取DWS超时配置（单例）/ Get DWS timeout configuration (singleton)
     /// </summary>
-    /// <returns>DWS超时配置 / DWS timeout configuration</returns>
-    /// <response code="200">成功返回DWS超时配置 / Successfully returns DWS timeout configuration</response>
-    /// <response code="500">服务器内部错误 / Internal server error</response>
     [HttpGet]
     [SwaggerOperation(
         Summary = "获取DWS超时配置 / Get DWS timeout configuration",
-        Description = "获取DWS数据接收超时配置，包括最小/最大等待时间、异常格口ID等 / Get DWS data reception timeout configuration including min/max wait times, exception chute ID, etc.",
+        Description = "获取系统中唯一的DWS超时配置（单例模式）/ Get the unique DWS timeout configuration in the system (singleton pattern)",
         OperationId = "GetDwsTimeoutConfig",
         Tags = new[] { "DwsTimeout" }
     )]
-    [SwaggerResponse(200, "成功返回DWS超时配置", typeof(ApiResponse<DwsTimeoutSettings>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsTimeoutSettings>))]
-    public ActionResult<ApiResponse<DwsTimeoutSettings>> Get()
+    [SwaggerResponse(200, "成功返回DWS超时配置", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
+    public async Task<ActionResult<ApiResponse<DwsTimeoutConfigResponseDto>>> Get()
     {
         try
         {
-            var settings = _appSettings.CurrentValue.DwsTimeout;
-            return Ok(ApiResponse<DwsTimeoutSettings>.SuccessResult(settings));
+            var config = await _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false);
+            
+            if (config == null)
+            {
+                // 返回默认配置 / Return default configuration
+                var defaultConfig = GetDefaultConfig();
+                return Ok(ApiResponse<DwsTimeoutConfigResponseDto>.SuccessResult(defaultConfig));
+            }
+            
+            var dto = ToResponseDto(config);
+            return Ok(ApiResponse<DwsTimeoutConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取DWS超时配置时发生错误 / Error occurred while getting DWS timeout configuration");
-            return StatusCode(500, ApiResponse<DwsTimeoutSettings>.FailureResult(
+            return StatusCode(500, ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
                 "获取DWS超时配置失败 / Failed to get DWS timeout configuration", 
                 "GET_CONFIG_FAILED"));
         }
     }
 
     /// <summary>
-    /// 更新DWS数据接收超时配置 / Update DWS data reception timeout configuration
+    /// 更新DWS超时配置（Upsert）/ Update DWS timeout configuration (Upsert)
     /// </summary>
-    /// <param name="request">超时配置更新请求 / Timeout configuration update request</param>
-    /// <returns>更新后的配置 / Updated configuration</returns>
-    /// <response code="200">配置更新成功 / Configuration updated successfully</response>
-    /// <response code="400">请求参数错误 / Invalid request parameters</response>
-    /// <response code="500">服务器内部错误 / Internal server error</response>
-    /// <remarks>
-    /// 注意：此API仅更新内存中的配置，重启后会恢复到appsettings.json中的值。
-    /// 如需持久化配置，请直接修改appsettings.json文件并重启服务。
-    /// 
-    /// Note: This API only updates in-memory configuration, which will revert to appsettings.json values after restart.
-    /// For persistent configuration changes, directly modify the appsettings.json file and restart the service.
-    /// </remarks>
     [HttpPut]
     [SwaggerOperation(
         Summary = "更新DWS超时配置 / Update DWS timeout configuration",
-        Description = "更新DWS数据接收超时配置。注意：此操作仅更新内存中的配置，需要更新appsettings.json文件以持久化 / Update DWS data reception timeout configuration. Note: This only updates in-memory configuration, update appsettings.json file for persistence",
+        Description = "更新DWS数据接收超时配置，如果不存在则创建（单例模式，全量更新）/ Update DWS timeout configuration, create if not exists (singleton pattern, full update)",
         OperationId = "UpdateDwsTimeoutConfig",
         Tags = new[] { "DwsTimeout" }
     )]
-    [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<DwsTimeoutSettings>))]
-    [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<DwsTimeoutSettings>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsTimeoutSettings>))]
-    public ActionResult<ApiResponse<DwsTimeoutSettings>> Update(
+    [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
+    [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
+    public async Task<ActionResult<ApiResponse<DwsTimeoutConfigResponseDto>>> Update(
         [FromBody, SwaggerRequestBody("DWS超时配置更新请求", Required = true)] DwsTimeoutUpdateRequest request)
     {
         try
         {
-            // 验证参数
+            // 验证参数 / Validate parameters
             if (request.MinDwsWaitSeconds < 0)
             {
-                return BadRequest(ApiResponse<DwsTimeoutSettings>.FailureResult(
+                return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
                     "最小等待时间不能小于0 / MinDwsWaitSeconds cannot be less than 0",
                     "INVALID_MIN_WAIT_TIME"));
             }
 
             if (request.MaxDwsWaitSeconds <= request.MinDwsWaitSeconds)
             {
-                return BadRequest(ApiResponse<DwsTimeoutSettings>.FailureResult(
+                return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
                     "最大等待时间必须大于最小等待时间 / MaxDwsWaitSeconds must be greater than MinDwsWaitSeconds",
                     "INVALID_MAX_WAIT_TIME"));
             }
 
             if (request.ExceptionChuteId < 0)
             {
-                return BadRequest(ApiResponse<DwsTimeoutSettings>.FailureResult(
+                return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
                     "异常格口ID不能小于0 / ExceptionChuteId cannot be less than 0",
                     "INVALID_EXCEPTION_CHUTE_ID"));
             }
 
             if (request.CheckIntervalSeconds <= 0)
             {
-                return BadRequest(ApiResponse<DwsTimeoutSettings>.FailureResult(
+                return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
                     "检查间隔必须大于0 / CheckIntervalSeconds must be greater than 0",
                     "INVALID_CHECK_INTERVAL"));
             }
 
-            // 更新内存中的配置（仅在当前会话中有效）
-            var currentSettings = _appSettings.CurrentValue.DwsTimeout;
-            currentSettings.Enabled = request.Enabled;
-            currentSettings.MinDwsWaitSeconds = request.MinDwsWaitSeconds;
-            currentSettings.MaxDwsWaitSeconds = request.MaxDwsWaitSeconds;
-            currentSettings.ExceptionChuteId = request.ExceptionChuteId;
-            currentSettings.CheckIntervalSeconds = request.CheckIntervalSeconds;
+            // 从请求创建实体（自动设置单例ID）/ Create entity from request (auto-set singleton ID)
+            var config = ToEntity(request);
+            
+            // 检查现有配置 / Check existing configuration
+            var existing = await _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false);
+            bool success;
 
-            _logger.LogInformation(
-                "DWS超时配置已更新: Enabled={Enabled}, MinWait={MinWait}s, MaxWait={MaxWait}s, ExceptionChute={ExceptionChute}, CheckInterval={CheckInterval}s / " +
-                "DWS timeout configuration updated: Enabled={Enabled}, MinWait={MinWait}s, MaxWait={MaxWait}s, ExceptionChute={ExceptionChute}, CheckInterval={CheckInterval}s",
-                currentSettings.Enabled, currentSettings.MinDwsWaitSeconds, currentSettings.MaxDwsWaitSeconds,
-                currentSettings.ExceptionChuteId, currentSettings.CheckIntervalSeconds);
+            if (existing == null)
+            {
+                // 创建新配置 / Create new configuration
+                success = await _repository.UpsertAsync(config).ConfigureAwait(false);
+                _logger.LogInformation("创建DWS超时配置成功 / DWS timeout configuration created successfully");
+            }
+            else
+            {
+                // 更新现有配置 / Update existing configuration
+                success = await _repository.UpsertAsync(config).ConfigureAwait(false);
+                _logger.LogInformation("更新DWS超时配置成功 / DWS timeout configuration updated successfully");
+            }
 
-            return Ok(ApiResponse<DwsTimeoutSettings>.SuccessResult(currentSettings));
+            if (!success)
+            {
+                return StatusCode(500, ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
+                    "保存DWS超时配置失败 / Failed to save DWS timeout configuration",
+                    "SAVE_FAILED"));
+            }
+
+            // 触发配置重新加载 / Trigger configuration reload
+            await _reloadService.ReloadDwsTimeoutConfigAsync().ConfigureAwait(false);
+
+            var dto = ToResponseDto(config);
+            return Ok(ApiResponse<DwsTimeoutConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "更新DWS超时配置时发生错误 / Error occurred while updating DWS timeout configuration");
-            return StatusCode(500, ApiResponse<DwsTimeoutSettings>.FailureResult(
+            return StatusCode(500, ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
                 "更新DWS超时配置失败 / Failed to update DWS timeout configuration",
                 "UPDATE_CONFIG_FAILED"));
         }
     }
+
+    private DwsTimeoutConfigResponseDto GetDefaultConfig()
+    {
+        return new DwsTimeoutConfigResponseDto
+        {
+            ConfigId = DwsTimeoutConfig.SingletonId,
+            Enabled = true,
+            MinDwsWaitSeconds = 2,
+            MaxDwsWaitSeconds = 30,
+            ExceptionChuteId = 0,
+            CheckIntervalSeconds = 5,
+            Description = "默认DWS超时配置 / Default DWS timeout configuration",
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
+        };
+    }
+
+    private DwsTimeoutConfig ToEntity(DwsTimeoutUpdateRequest request)
+    {
+        return new DwsTimeoutConfig
+        {
+            ConfigId = DwsTimeoutConfig.SingletonId,
+            Enabled = request.Enabled,
+            MinDwsWaitSeconds = request.MinDwsWaitSeconds,
+            MaxDwsWaitSeconds = request.MaxDwsWaitSeconds,
+            ExceptionChuteId = request.ExceptionChuteId,
+            CheckIntervalSeconds = request.CheckIntervalSeconds,
+            Description = request.Description,
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
+        };
+    }
+
+    private static DwsTimeoutConfigResponseDto ToResponseDto(DwsTimeoutConfig config)
+    {
+        return new DwsTimeoutConfigResponseDto
+        {
+            ConfigId = config.ConfigId,
+            Enabled = config.Enabled,
+            MinDwsWaitSeconds = config.MinDwsWaitSeconds,
+            MaxDwsWaitSeconds = config.MaxDwsWaitSeconds,
+            ExceptionChuteId = config.ExceptionChuteId,
+            CheckIntervalSeconds = config.CheckIntervalSeconds,
+            Description = config.Description,
+            CreatedAt = config.CreatedAt,
+            UpdatedAt = config.UpdatedAt
+        };
+    }
+}
+
+/// <summary>
+/// DWS超时配置响应DTO / DWS timeout configuration response DTO
+/// </summary>
+public record DwsTimeoutConfigResponseDto
+{
+    /// <summary>
+    /// 配置ID / Configuration ID
+    /// </summary>
+    public long ConfigId { get; init; }
+    
+    /// <summary>
+    /// 是否启用超时检查 / Enable timeout check
+    /// </summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>
+    /// 最小等待时间（秒）/ Minimum wait time (seconds)
+    /// </summary>
+    public int MinDwsWaitSeconds { get; init; }
+
+    /// <summary>
+    /// 最大等待时间（秒）/ Maximum wait time (seconds)
+    /// </summary>
+    public int MaxDwsWaitSeconds { get; init; }
+
+    /// <summary>
+    /// 异常格口ID / Exception chute ID
+    /// </summary>
+    public long ExceptionChuteId { get; init; }
+
+    /// <summary>
+    /// 超时检查间隔（秒）/ Timeout check interval (seconds)
+    /// </summary>
+    public int CheckIntervalSeconds { get; init; }
+    
+    /// <summary>
+    /// 备注说明 / Description
+    /// </summary>
+    public string? Description { get; init; }
+    
+    /// <summary>
+    /// 创建时间 / Created time
+    /// </summary>
+    public DateTime CreatedAt { get; init; }
+    
+    /// <summary>
+    /// 最后更新时间 / Last updated time
+    /// </summary>
+    public DateTime UpdatedAt { get; init; }
 }
 
 /// <summary>
@@ -177,4 +293,10 @@ public record DwsTimeoutUpdateRequest
     /// </summary>
     /// <example>5</example>
     public int CheckIntervalSeconds { get; init; } = 5;
+    
+    /// <summary>
+    /// 备注说明 / Description
+    /// </summary>
+    /// <example>DWS超时配置</example>
+    public string? Description { get; init; }
 }

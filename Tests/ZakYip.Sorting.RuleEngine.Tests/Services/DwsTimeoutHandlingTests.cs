@@ -7,7 +7,6 @@ using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Services;
 
@@ -20,7 +19,7 @@ public class DwsTimeoutHandlingTests
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly Mock<IRuleEngineService> _mockRuleEngineService;
     private readonly Mock<ISystemClock> _mockClock;
-    private readonly DwsTimeoutSettings _timeoutSettings;
+    private readonly TestDwsTimeoutSettings _timeoutSettings;
     private readonly IMemoryCache _cache;
     private readonly IServiceProvider _serviceProvider;
     private DateTime _currentTime;
@@ -37,7 +36,7 @@ public class DwsTimeoutHandlingTests
         _mockClock.SetupGet(c => c.LocalNow).Returns(() => _currentTime);
         
         // 设置默认配置
-        _timeoutSettings = new DwsTimeoutSettings
+        _timeoutSettings = new TestDwsTimeoutSettings
         {
             Enabled = true,
             MinDwsWaitSeconds = 2,
@@ -371,4 +370,16 @@ public class DwsTimeoutHandlingTests
             Times.Never,
             "禁用超时检查后不应检测超时 / Should not detect timeout when timeout check is disabled");
     }
+}
+
+/// <summary>
+/// 测试用的DWS超时配置实现 / Test implementation of DWS timeout settings
+/// </summary>
+internal class TestDwsTimeoutSettings : IDwsTimeoutSettings
+{
+    public bool Enabled { get; set; }
+    public int MinDwsWaitSeconds { get; set; }
+    public int MaxDwsWaitSeconds { get; set; }
+    public long ExceptionChuteId { get; set; }
+    public int CheckIntervalSeconds { get; set; }
 }

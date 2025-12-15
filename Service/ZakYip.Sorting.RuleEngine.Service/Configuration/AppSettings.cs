@@ -81,9 +81,4 @@ public class AppSettings
     /// Using Infrastructure layer's LogFileCleanupSettings to eliminate shadow clone
     /// </summary>
     public LogFileCleanupSettings? LogFileCleanup { get; set; }
-    
-    /// <summary>
-    /// DWS数据接收超时配置 / DWS data reception timeout settings
-    /// </summary>
-    public DwsTimeoutSettings DwsTimeout { get; set; } = new();
 }

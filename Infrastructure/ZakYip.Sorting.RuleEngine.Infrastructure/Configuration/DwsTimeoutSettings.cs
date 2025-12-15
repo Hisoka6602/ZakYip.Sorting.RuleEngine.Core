@@ -1,39 +1,62 @@
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 
 /// <summary>
-/// DWS数据接收超时配置 / DWS data reception timeout settings
+/// DWS超时配置实现，从LiteDB加载
+/// DWS timeout settings implementation, loaded from LiteDB
 /// </summary>
-public class DwsTimeoutSettings : IDwsTimeoutSettings
+public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
 {
-    /// <summary>
-    /// 最小等待时间（秒）- 避免匹配上一个包裹的DWS数据
-    /// Minimum wait time (seconds) - Avoid matching DWS data from previous parcel
-    /// </summary>
-    public int MinDwsWaitSeconds { get; set; } = 2;
+    private readonly IDwsTimeoutConfigRepository _repository;
+    private readonly ISystemClock _clock;
+    private DwsTimeoutConfig? _cachedConfig;
+    private DateTime _lastLoadTime;
+    private readonly TimeSpan _cacheExpiration = TimeSpan.FromSeconds(30);
 
-    /// <summary>
-    /// 最大等待时间（秒）- 超时截止时间
-    /// Maximum wait time (seconds) - Timeout deadline
-    /// </summary>
-    public int MaxDwsWaitSeconds { get; set; } = 30;
+    public DwsTimeoutSettingsFromDb(IDwsTimeoutConfigRepository repository, ISystemClock clock)
+    {
+        _repository = repository;
+        _clock = clock;
+    }
 
-    /// <summary>
-    /// 异常格口ID - 当DWS数据接收超时时，分配到此格口
-    /// Exception chute ID - Assign to this chute when DWS data reception times out
-    /// </summary>
-    public long ExceptionChuteId { get; set; } = 0;
+    private DwsTimeoutConfig GetConfig()
+    {
+        // 简单的缓存机制，避免频繁查询数据库
+        if (_cachedConfig == null || _clock.LocalNow - _lastLoadTime > _cacheExpiration)
+        {
+            _cachedConfig = _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).GetAwaiter().GetResult();
+            _lastLoadTime = _clock.LocalNow;
+            
+            // 如果数据库中没有配置，返回默认值
+            if (_cachedConfig == null)
+            {
+                _cachedConfig = new DwsTimeoutConfig
+                {
+                    ConfigId = DwsTimeoutConfig.SingletonId,
+                    Enabled = true,
+                    MinDwsWaitSeconds = 2,
+                    MaxDwsWaitSeconds = 30,
+                    ExceptionChuteId = 0,
+                    CheckIntervalSeconds = 5,
+                    Description = "Default DWS timeout configuration",
+                    CreatedAt = _clock.LocalNow,
+                    UpdatedAt = _clock.LocalNow
+                };
+            }
+        }
+        
+        return _cachedConfig;
+    }
 
-    /// <summary>
-    /// 是否启用超时检查
-    /// Enable timeout check
-    /// </summary>
-    public bool Enabled { get; set; } = true;
+    public bool Enabled => GetConfig().Enabled;
 
-    /// <summary>
-    /// 超时检查间隔（秒）- 后台任务检查超时包裹的频率
-    /// Timeout check interval (seconds) - Frequency of background task checking for timed-out parcels
-    /// </summary>
-    public int CheckIntervalSeconds { get; set; } = 5;
+    public int MinDwsWaitSeconds => GetConfig().MinDwsWaitSeconds;
+
+    public int MaxDwsWaitSeconds => GetConfig().MaxDwsWaitSeconds;
+
+    public long ExceptionChuteId => GetConfig().ExceptionChuteId;
+
+    public int CheckIntervalSeconds => GetConfig().CheckIntervalSeconds;
 }

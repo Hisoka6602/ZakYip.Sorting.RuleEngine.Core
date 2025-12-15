@@ -7,7 +7,6 @@ using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Services;
 
@@ -41,7 +40,7 @@ public class ParcelOrchestrationServiceTests
         _serviceProvider = services.BuildServiceProvider();
         
         // 创建默认的DWS超时配置（禁用超时检查，避免影响现有测试）
-        var timeoutSettings = new DwsTimeoutSettings
+        var timeoutSettings = new TestDwsTimeoutSettings
         {
             Enabled = false,
             MinDwsWaitSeconds = 2,

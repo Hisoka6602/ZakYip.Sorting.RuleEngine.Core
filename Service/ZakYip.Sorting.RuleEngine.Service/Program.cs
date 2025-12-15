@@ -73,20 +73,10 @@ try
                 services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
                     configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
                 
-                // 注册DWS超时配置
-                services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DwsTimeoutSettings>(
-                    configuration.GetSection("AppSettings:DwsTimeout"));
-                
-                // 注册IDwsTimeoutSettings接口（用于Application层）
-                // 注意：这是一个简化的实现，捕获注册时的配置快照
-                // 如需运行时配置更新，请重启服务或实现配置热更新机制
-                // Note: This is a simplified implementation that captures configuration snapshot at registration time
-                // For runtime configuration updates, restart the service or implement configuration hot-reload mechanism
-                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDwsTimeoutSettings>(sp =>
-                {
-                    var monitor = sp.GetRequiredService<IOptionsMonitor<AppSettings>>();
-                    return monitor.CurrentValue.DwsTimeout;
-                });
+                // 注册IDwsTimeoutSettings接口（用于Application层，从LiteDB加载）
+                // Register IDwsTimeoutSettings interface (for Application layer, loaded from LiteDB)
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDwsTimeoutSettings, 
+                    ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DwsTimeoutSettingsFromDb>();
 
                 // 注册数据库方言
                 // Register database dialects
@@ -317,6 +307,7 @@ try
                 // Register DWS-related repositories
                 services.AddScoped<IDwsConfigRepository, LiteDbDwsConfigRepository>();
                 services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
+                services.AddScoped<IDwsTimeoutConfigRepository, LiteDbDwsTimeoutConfigRepository>();
                 
                 // 注册分拣机配置仓储
                 // Register Sorter configuration repository

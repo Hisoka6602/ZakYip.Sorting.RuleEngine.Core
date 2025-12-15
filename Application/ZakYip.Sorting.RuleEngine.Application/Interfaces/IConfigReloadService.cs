@@ -23,4 +23,10 @@ public interface IConfigReloadService
     /// Reload Sorter configuration
     /// </summary>
     Task ReloadSorterConfigAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// 重新加载DWS超时配置
+    /// Reload DWS timeout configuration
+    /// </summary>
+    Task ReloadDwsTimeoutConfigAsync(CancellationToken cancellationToken = default);
 }
