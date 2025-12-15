@@ -4,11 +4,13 @@ using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Application.Models;
+using ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Services;
 
@@ -24,6 +26,7 @@ public class ParcelOrchestrationService
     private readonly Channel<ParcelWorkItem> _parcelChannel;
     private readonly ConcurrentDictionary<string, ParcelProcessingContext> _processingContexts;
     private readonly ISystemClock _clock;
+    private readonly IOptionsMonitor<AppSettings> _appSettings;
     private long _sequenceNumber;
 
     private readonly IParcelActivityTracker? _activityTracker;
@@ -34,6 +37,7 @@ public class ParcelOrchestrationService
         IServiceProvider serviceProvider,
         IMemoryCache cache,
         ISystemClock clock,
+        IOptionsMonitor<AppSettings> appSettings,
         IParcelActivityTracker? activityTracker = null)
     {
         _logger = logger;
@@ -41,6 +45,7 @@ public class ParcelOrchestrationService
         _serviceProvider = serviceProvider;
         _cache = cache;
         _clock = clock;
+        _appSettings = appSettings;
         _activityTracker = activityTracker;
         
         // 创建有界通道，确保FIFO处理
@@ -104,6 +109,32 @@ public class ParcelOrchestrationService
         {
             _logger.LogWarning("包裹不存在或已关闭: {ParcelId}", parcelId);
             return false;
+        }
+
+        var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
+        
+        // 检查是否启用超时检查
+        if (timeoutSettings.Enabled)
+        {
+            var elapsedSeconds = (_clock.LocalNow - context.CreatedAt).TotalSeconds;
+            
+            // 检查是否太早接收（可能是上一个包裹的DWS数据）
+            if (elapsedSeconds < timeoutSettings.MinDwsWaitSeconds)
+            {
+                _logger.LogWarning(
+                    "DWS数据接收过早，可能是上一个包裹的数据: ParcelId={ParcelId}, ElapsedSeconds={ElapsedSeconds:F2}, MinWaitSeconds={MinWaitSeconds}",
+                    parcelId, elapsedSeconds, timeoutSettings.MinDwsWaitSeconds);
+                return false;
+            }
+            
+            // 检查是否超时
+            if (elapsedSeconds > timeoutSettings.MaxDwsWaitSeconds)
+            {
+                _logger.LogWarning(
+                    "DWS数据接收超时，拒绝接收: ParcelId={ParcelId}, ElapsedSeconds={ElapsedSeconds:F2}, MaxWaitSeconds={MaxWaitSeconds}",
+                    parcelId, elapsedSeconds, timeoutSettings.MaxDwsWaitSeconds);
+                return false;
+            }
         }
 
         context.DwsData = dwsData;
@@ -217,6 +248,35 @@ public class ParcelOrchestrationService
                     }
                     break;
                 }
+                
+            case WorkItemType.ProcessTimeout:
+                {
+                    // 处理超时包裹，分配到异常格口
+                    var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
+                    
+                    _logger.LogWarning(
+                        "处理超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedSeconds={ElapsedSeconds:F2}, ExceptionChuteId={ExceptionChuteId}",
+                        context.ParcelId, context.CreatedAt, (_clock.LocalNow - context.CreatedAt).TotalSeconds, 
+                        timeoutSettings.ExceptionChuteId);
+                    
+                    // 分配到异常格口
+                    var exceptionChuteNumber = timeoutSettings.ExceptionChuteId.ToString();
+                    
+                    // 发布规则匹配完成事件（使用异常格口）
+                    await _publisher.Publish(new RuleMatchCompletedEvent
+                    {
+                        ParcelId = context.ParcelId,
+                        ChuteNumber = exceptionChuteNumber,
+                        CartNumber = context.CartNumber,
+                        CartCount = 1 // 超时包裹默认占用1个小车
+                    }, cancellationToken);
+                    
+                    // 清理处理上下文
+                    _processingContexts.TryRemove(context.ParcelId, out _);
+                    _logger.LogInformation("超时包裹已处理并分配到异常格口: ParcelId={ParcelId}, ExceptionChute={ExceptionChute}", 
+                        context.ParcelId, exceptionChuteNumber);
+                    break;
+                }
         }
     }
 
@@ -225,5 +285,68 @@ public class ParcelOrchestrationService
         // 根据体积或重量计算占用小车数
         // 简单示例：大于100000立方厘米占用2个小车
         return dwsData.Volume > 100000 ? 2 : 1;
+    }
+    
+    /// <summary>
+    /// 检查并处理超时包裹
+    /// Check and process timed-out parcels
+    /// </summary>
+    public async Task CheckTimeoutParcelsAsync(CancellationToken cancellationToken = default)
+    {
+        var timeoutSettings = _appSettings.CurrentValue.DwsTimeout;
+        
+        if (!timeoutSettings.Enabled)
+        {
+            return;
+        }
+        
+        var now = _clock.LocalNow;
+        var timedOutParcels = new List<string>();
+        
+        // 查找所有超时的包裹（还没有接收到DWS数据）
+        foreach (var kvp in _processingContexts)
+        {
+            var context = kvp.Value;
+            
+            // 如果已经接收了DWS数据，跳过
+            if (context.DwsReceivedAt.HasValue)
+            {
+                continue;
+            }
+            
+            var elapsedSeconds = (now - context.CreatedAt).TotalSeconds;
+            
+            // 检查是否超时
+            if (elapsedSeconds > timeoutSettings.MaxDwsWaitSeconds)
+            {
+                timedOutParcels.Add(kvp.Key);
+            }
+        }
+        
+        // 处理超时包裹
+        foreach (var parcelId in timedOutParcels)
+        {
+            if (_processingContexts.TryGetValue(parcelId, out var context))
+            {
+                _logger.LogWarning(
+                    "检测到超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedSeconds={ElapsedSeconds:F2}",
+                    parcelId, context.CreatedAt, (now - context.CreatedAt).TotalSeconds);
+                
+                // 将超时处理加入队列
+                var workItem = new ParcelWorkItem
+                {
+                    ParcelId = parcelId,
+                    SequenceNumber = context.SequenceNumber,
+                    WorkType = WorkItemType.ProcessTimeout
+                };
+                
+                await _parcelChannel.Writer.WriteAsync(workItem, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        
+        if (timedOutParcels.Count > 0)
+        {
+            _logger.LogInformation("共检测到 {Count} 个超时包裹", timedOutParcels.Count);
+        }
     }
 }

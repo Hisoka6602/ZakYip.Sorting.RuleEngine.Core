@@ -361,6 +361,7 @@ try
                 
                 // 注册后台服务
                 services.AddHostedService<ParcelQueueProcessorService>();
+                services.AddHostedService<DwsTimeoutCheckerService>();
                 services.AddHostedService<DataCleanupService>();
                 services.AddHostedService<DataArchiveService>();
                 services.AddHostedService<MySqlAutoTuningService>();
