@@ -26,7 +26,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
     
     // 使用线程安全的实例级序列号，避免静态字段的并发问题
     // Use thread-safe instance-level sequence number to avoid static field concurrency issues
-    private long _sequenceNumber = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+    private long _sequenceNumber;
     private readonly object _sequenceLock = new();
 
     // Configuration parameters - should be injected via options pattern in production
@@ -51,6 +51,7 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
         HttpClient = httpClient;
         Logger = logger;
         _clock = clock;
+        _sequenceNumber = new DateTimeOffset(_clock.UtcNow).ToUnixTimeMilliseconds();
         SoapRequestBuilder = new PostalSoapRequestBuilder();
     }
 
