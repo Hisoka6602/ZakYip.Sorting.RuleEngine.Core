@@ -511,6 +511,564 @@ Following these coding standards will help us:
 
 **Please strictly follow these standards in all code changes.**
 
-**⚠️ 重要：每次提交 PR 前，请确保已通读 [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)**
+**⚠️ 重要：每次提交 PR 前，请确保已通读 <a>TECHNICAL_DEBT.md</a>**
 
-**⚠️ IMPORTANT: Before each PR submission, make sure you have read [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)**
+**⚠️ IMPORTANT: Before each PR submission, make sure you have read <a>TECHNICAL_DEBT.md</a>**
+
+**⚠️ 技术债务文件唯一性：项目中只能有一个技术债务文件 TECHNICAL_DEBT.md**
+
+**⚠️ Technical Debt File Uniqueness: Only ONE technical debt file TECHNICAL_DEBT.md is allowed in the project**
+
+---
+
+## 11. 技术债务文件管理规范 / Technical Debt File Management
+
+### 唯一文件原则 / Single File Principle
+
+**规则 / Rules**:
+- ✅ 项目中**只能有一个**技术债务文档：`TECHNICAL_DEBT.md`（位于项目根目录）
+- ❌ **严格禁止**创建其他技术债务相关文件（如 TECH_DEBT_XXX.md, TD_XXX.md 等）
+- ❌ **严格禁止**在子目录创建独立的技术债务文档
+- ✅ 历史性的技术债务文档必须添加 `archive_` 前缀并加上日期，例如：`archive_TECH_DEBT_DEFENSE_SUMMARY_2025-12-11.md`
+
+**原因 / Reasons**:
+- 避免混淆 - 后续 PR 提交者不知道应该读取哪个文件
+- 统一管理 - 所有技术债务集中在一个地方便于追踪
+- 防止遗漏 - 确保所有团队成员查看相同的技术债务清单
+- 维护简单 - 只需要维护和更新一个文件
+
+**违规示例 / Violation Examples**:
+```
+❌ TECHNICAL_DEBT.md + TECH_DEBT_DEFENSE_SUMMARY.md (两个文件)
+❌ TECHNICAL_DEBT.md + docs/TECHNICAL_DEBT_API.md (多个文件)
+❌ TECHNICAL_DEBT.md + TD_2025_Q4.md (按时间分文件)
+❌ TECHNICAL_DEBT.md + Infrastructure/TD.md (子目录独立文件)
+```
+
+**正确做法 / Correct Approach**:
+```
+✅ TECHNICAL_DEBT.md (唯一的技术债务文件)
+✅ archive_TECH_DEBT_DEFENSE_SUMMARY_2025-12-11.md (历史归档文件)
+✅ archive_TD_REFACTORING_2025-11-15.md (历史归档文件)
+```
+
+**技术债务内容组织 / Technical Debt Content Organization**:
+
+所有技术债务都应该记录在 `TECHNICAL_DEBT.md` 的不同章节中：
+
+```markdown
+## 📊 当前技术债务概览 / Current Technical Debt Overview
+(总览表格 / Overview table)
+
+## 🔄 影分身代码清理记录 / Shadow Clone Code Cleanup Log
+(影分身代码相关 / Shadow clone related)
+
+## 🔧 编译警告解决计划 / Compilation Warnings Resolution Plan
+(编译警告相关 / Compiler warnings related)
+
+## 🔄 重复代码债务 / Duplicate Code Debt
+(重复代码相关 / Duplicate code related)
+
+## 📝 新增技术债务 / New Technical Debt
+(新发现的技术债务 / Newly identified debt)
+```
+
+### 更新和维护 / Update and Maintenance
+
+**每次 PR 的责任 / Responsibilities for Each PR**:
+1. ✅ 提交 PR 前必须通读 `TECHNICAL_DEBT.md`
+2. ✅ 如果解决了技术债务，必须更新 `TECHNICAL_DEBT.md` 相应章节
+3. ✅ 如果引入了新的技术债务，必须在 `TECHNICAL_DEBT.md` 的 "新增技术债务" 章节记录
+4. ❌ 不得创建新的技术债务文件
+
+**文档更新格式 / Documentation Update Format**:
+```markdown
+### YYYY-MM-DD: 技术债务标题 / Technical Debt Title
+
+**类别 / Category**: (代码质量/性能/安全等)
+**严重程度 / Severity**: 🔴 高 / 🟡 中 / 🟢 低
+**状态 / Status**: 📋 待修复 / 🔄 进行中 / ✅ 已完成
+
+#### 背景 / Background
+(问题描述)
+
+#### 修复方案 / Fix Solution
+(详细修复步骤和代码示例)
+
+#### 预估工作量 / Estimated Effort
+(时间预估和优先级)
+```
+
+### 检查清单 / Checklist
+
+**PR 提交前检查 / Pre-PR Submission Check**:
+- [ ] 已通读唯一的技术债务文件 `TECHNICAL_DEBT.md`
+- [ ] 确认项目中只有一个 `TECHNICAL_DEBT.md` 文件
+- [ ] 如果发现其他技术债务文件，已将其归档（添加 `archive_` 前缀和日期）
+- [ ] 已更新 `TECHNICAL_DEBT.md` 相关章节（如果适用）
+- [ ] 未创建新的技术债务文件
+
+---
+
+## 12. PR 完整性约束 / PR Integrity Constraints
+
+### 规则 / Rules
+
+**小型 PR（< 24小时工作量）强制完整性 / Small PR (< 24 hours) Mandatory Integrity**:
+- ❌ **禁止** 提交半完成状态（如：只删除接口但不修复引用） / Prohibit half-completed state
+- ❌ **禁止** 留下编译错误或测试失败 / Prohibit compilation errors or test failures
+- ❌ **禁止** 使用"后续PR修复"作为理由 / Prohibit using "fix in next PR" as excuse
+- ❌ **禁止** 代码中出现"TODO: 后续PR"等标记 / Prohibit "TODO: next PR" markers
+- ✅ **必须** 保证代码可编译、测试通过、功能完整 / Must ensure code compiles, tests pass, features complete
+
+**大型 PR（≥ 24小时工作量）分阶段处理 / Large PR (≥ 24 hours) Phased Approach**:
+- ✅ 允许分多个 PR 逐步完成 / Allow multiple PRs to complete gradually
+- ✅ 每个阶段 PR 必须独立可编译、测试通过 / Each phase PR must compile and pass tests independently
+- ✅ 未完成部分必须登记到技术债务文档 / Incomplete parts must be documented in <a>TECHNICAL_DEBT.md</a>
+- ✅ 技术债条目必须包含 / Tech debt entries must include:
+  - 已完成和未完成的工作清单 / Completed and incomplete work checklist
+  - 详细的下一步指引（文件清单、修改建议、注意事项）/ Detailed next steps guide
+  - 预估工作量和风险等级 / Estimated effort and risk level
+
+---
+
+## 13. 影分身零容忍策略（Shadow Clone Zero Tolerance） / Shadow Clone Code Zero Tolerance
+
+> **⚠️ 危险警告 / Danger Warning**: 影分身代码是最危险的技术债务类型 / Shadow clone code is the most dangerous type of technical debt
+
+### 什么是"影分身"？/ What is "Shadow Clone"?
+
+**影分身** 是指功能相同或高度相似的重复代码，表现形式包括：
+
+**Shadow Clone** refers to duplicate code with identical or highly similar functionality, manifesting as:
+
+1. **重复接口 / Duplicate Interfaces** - 同一职责出现第二个接口 / Second interface for same responsibility
+2. **纯转发类型 / Pure Forwarding Types** - 只做方法转发、不增加任何实质逻辑的 Facade/Adapter/Wrapper/Proxy
+3. **重复 DTO/Model** - 多处存在字段结构完全一致的数据传输对象 / DTOs with identical structure in multiple places
+4. **重复 Options/Settings** - 多处定义相同的配置类 / Configuration classes defined in multiple places
+5. **重复工具方法 / Duplicate Utility Methods** - 在不同类中重复实现相同逻辑的辅助方法
+6. **重复常量 / Duplicate Constants** - 在多个类中定义语义相同的常量（魔法数字）
+
+### 零容忍策略 / Zero Tolerance Policy
+
+**规则 / Rules**:
+
+1. **新增影分身 = PR 不合规 / New Shadow Clone = PR Non-Compliant**
+   - 一旦发现新增的影分身类型，即视为当前 PR 不合规
+   - PR 必须在当前分支中删除该影分身类型或合并到既有实现中
+   - **不能** "先留下以后再清理" / Cannot "leave it for later cleanup"
+
+2. **历史影分身必须优先清理 / Historical Shadow Clones Must Be Cleaned First**
+   - 若在当前 PR 涉及对应模块或调用链，必须优先尝试清理
+   - 如短期内无法彻底清理，必须登记技术债并规划清理 PR
+
+3. **禁止行为 / Prohibited Actions**
+   - ❌ 新增任何形式的"影分身"类型，并期望后续再清理
+   - ❌ 保留一套 Legacy 实现与一套新实现并存
+   - ❌ 在 PR 描述中以"与本次改动无关"为理由保留新增影分身
+
+### 纯转发 Facade/Adapter 判定标准 / Pure Forwarding Judgment Criteria
+
+**判定为影分身的条件 / Conditions for Shadow Clone**:
+- 类型以 `*Facade` / `*Adapter` / `*Wrapper` / `*Proxy` 结尾
+- 只持有 1~2 个服务接口字段
+- 方法体只做直接调用另一个服务的方法，没有任何附加逻辑
+
+**合法的附加逻辑包括 / Legal Additional Logic Includes**:
+- 类型转换/协议映射逻辑（如 LINQ Select、new 对象初始化器）
+- 事件订阅/转发机制（如 `+=` 事件绑定）
+- 状态跟踪（如 `_lastKnownState` 字段）
+- 批量操作聚合（如 `foreach` + `await`）
+- 验证或重试逻辑
+
+### 示例 / Examples
+
+```csharp
+// ❌ 错误：纯转发适配器（影分身）/ Wrong: Pure forwarding adapter (shadow clone)
+public class LoggerAdapter : ICustomLogger
+{
+    private readonly ILogger _logger;
+
+    public void LogInformation(string message, params object[] args)
+    {
+        _logger.LogInformation(message, args);  // ❌ 一行转发，无附加值 / One-line forwarding, no added value
+    }
+}
+
+// ✅ 正确：直接使用 ILogger，删除无意义包装 / Correct: Use ILogger directly, remove meaningless wrapper
+public class OrderService
+{
+    private readonly ILogger _logger;  // ✅ 直接依赖 ILogger / Direct dependency on ILogger
+
+    public OrderService(ILogger logger)
+    {
+        _logger = logger;
+    }
+}
+
+// ✅ 正确：有附加值的适配器（类型转换 + 事件订阅）/ Correct: Adapter with added value
+public class SensorEventProviderAdapter : ISensorEventProvider
+{
+    private readonly IHardwareSensorService _hardwareService;
+
+    public SensorEventProviderAdapter(IHardwareSensorService service)
+    {
+        _hardwareService = service;
+        _hardwareService.SensorTriggered += OnHardwareSensorTriggered;  // ✅ 事件订阅 / Event subscription
+    }
+
+    private void OnHardwareSensorTriggered(object? sender, HardwareSensorEventArgs e)
+    {
+        // ✅ 类型转换和协议映射 / Type conversion and protocol mapping
+        var domainEvent = new SensorDetectedArgs
+        {
+            SensorId = e.DeviceId,
+            DetectedAt = e.Timestamp,
+            SignalStrength = e.RawValue
+        };
+        SensorDetected?.Invoke(this, domainEvent);
+    }
+
+    public event EventHandler<SensorDetectedArgs>? SensorDetected;
+}
+```
+
+---
+
+## 14. 冗余代码零容忍策略 / Dead Code Zero Tolerance
+
+> **⚠️ 危险警告 / Danger Warning**: 冗余代码（Dead Code）是项目的隐形负担 / Dead code is a hidden burden
+
+### 什么是"冗余代码"？/ What is "Dead Code"?
+
+**冗余代码** 是指已经定义但从未被实际使用的代码：
+
+**Dead Code** refers to code that has been defined but is never actually used:
+
+1. **未在 DI 注册的服务 / Services Not Registered in DI** - 定义了接口和实现，但从未在依赖注入容器中注册
+2. **已注册但从未被注入的服务 / Registered but Never Injected Services** - 在 DI 容器中注册，但没有任何地方通过构造函数注入使用
+3. **已注入但从未调用的服务 / Injected but Never Called Services** - 通过构造函数注入，但从未调用其任何方法或属性
+4. **未使用的方法和属性 / Unused Methods and Properties** - 在类中定义，但在整个解决方案中从未被调用
+5. **未使用的类型 / Unused Types** - 定义的类、接口、枚举等，从未被引用
+
+### 零容忍策略 / Zero Tolerance Policy
+
+**规则 / Rules**:
+
+1. **新增冗余代码 = PR 不合规 / New Dead Code = PR Non-Compliant**
+   - 所有新增的类型、方法、属性必须有实际使用场景
+   - 在提交 PR 前必须检查代码是否被实际使用
+
+2. **禁止行为 / Prohibited Actions**
+   - ❌ "先实现，以后可能会用到"的提前设计 / "Implement first, might use later" premature design
+   - ❌ 保留"可能有用"的代码 / Keep "potentially useful" code
+   - ❌ 注释掉代码而不删除（使用版本控制系统）/ Comment out code instead of deleting (use VCS)
+
+### 检测方法 / Detection Methods
+
+**使用 IDE 的"查找所有引用"功能 / Use IDE's "Find All References" feature**:
+- Visual Studio: Right-click → Find All References
+- Rider: Right-click → Find Usages
+- VS Code: Right-click → Find All References
+
+---
+
+## 15. Id 类型统一规范 / Id Type Unification Standard
+
+> **规则 / Rule**: 统一 Id 类型可以避免类型不一致导致的转换错误和混淆 / Unified Id types avoid conversion errors and confusion
+
+### Id 必须使用 long 类型 / Id Must Use long Type
+
+**规则 / Rules**:
+
+1. 除数据库自增主键或外部系统强制使用特定类型的 Key 以外，所有内部定义的 Id 均必须使用 `long` 类型
+2. 禁止在同一语义下混用 `int` 与 `long`
+
+**允许的例外 / Allowed Exceptions**:
+- 数据库表中已有历史字段为 `int` 且暂时无法迁移时
+- 外部系统接口明确要求使用 `int`、`Guid` 或其他类型时
+
+**示例 / Example**:
+
+```csharp
+// ✅ 正确：统一使用 long 类型 / Correct: Unified use of long type
+public class User
+{
+    public long UserId { get; set; }
+    public string UserName { get; set; }
+}
+
+public record UserDto(
+    long UserId,
+    string UserName,
+    string Email
+);
+
+// ❌ 错误：混用 int 和 long / Wrong: Mixing int and long
+public class User
+{
+    public int UserId { get; set; }  // ❌ 使用 int / Using int
+}
+
+public record UserDto(
+    long UserId,  // ❌ 这里使用 long，与领域模型不一致 / Using long here, inconsistent with domain model
+    string UserName
+);
+```
+
+---
+
+## 16. 时间处理规范 / Time Handling Standards
+
+### 统一使用时间抽象接口 / Use Time Abstraction Interface
+
+**规则 / Rules**: 
+- 所有时间获取必须通过抽象接口（如 `ISystemClock`）
+- **严格禁止** 直接使用 `DateTime.Now` 或 `DateTime.UtcNow`
+
+**原因 / Reasons**:
+- 便于单元测试（可以 Mock 时间）/ Easy to unit test (can mock time)
+- 统一时区管理 / Unified timezone management
+- 避免时区转换错误 / Avoid timezone conversion errors
+- 支持时间旅行测试场景 / Support time-travel testing scenarios
+
+**LocalNow vs UtcNow 选择指南 / LocalNow vs UtcNow Selection Guide**:
+- **推荐使用 `LocalNow`** / **Recommended: LocalNow**: 大多数业务场景（日志、记录、显示、业务逻辑）
+- **仅在特定场景使用 `UtcNow`** / **Use UtcNow only in specific scenarios**:
+  - 与外部系统通信时，协议明确要求 UTC 时间
+  - 跨时区的分布式系统需要统一时间基准
+  - 存储到数据库时需要 UTC（但显示时转换为本地时间）
+
+### 示例 / Example
+
+```csharp
+// ✅ 正确 / Correct
+public class OrderService
+{
+    private readonly ISystemClock _clock;
+    
+    public OrderService(ISystemClock clock)
+    {
+        _clock = clock;
+    }
+    
+    public Order CreateOrder(string customerId)
+    {
+        return new Order
+        {
+            OrderId = GenerateId(),
+            CreatedAt = _clock.LocalNow,  // ✅ 使用抽象接口 / Use abstract interface
+            CustomerId = customerId
+        };
+    }
+}
+
+// ❌ 错误 / Wrong
+public Order CreateOrder(string customerId)
+{
+    return new Order
+    {
+        OrderId = GenerateId(),
+        CreatedAt = DateTime.Now  // ❌ 禁止直接使用 / Prohibited direct use
+    };
+}
+```
+
+---
+
+## 17. 并发安全规范 / Concurrency Safety Standards
+
+### 跨线程共享集合必须使用线程安全容器 / Thread-Safe Containers Required
+
+**规则 / Rules**: 任何跨线程共享的集合必须使用线程安全容器或明确的锁封装
+
+**线程安全容器 / Thread-Safe Containers**:
+- `ConcurrentDictionary<TKey, TValue>`
+- `ConcurrentQueue<T>`
+- `ConcurrentBag<T>`
+- `ConcurrentStack<T>`
+- `ImmutableList<T>` / `ImmutableDictionary<TKey, TValue>`
+
+### 示例 / Example
+
+```csharp
+// ✅ 正确：使用线程安全容器 / Correct: Use thread-safe container
+public class SessionTracker
+{
+    private readonly ConcurrentDictionary<string, SessionState> _sessions = new();
+    
+    public void UpdateSession(string sessionId, SessionState state)
+    {
+        _sessions.AddOrUpdate(sessionId, state, (_, __) => state);
+    }
+}
+
+// ✅ 正确：使用明确的锁 / Correct: Use explicit lock
+public class SessionTracker
+{
+    private readonly Dictionary<string, SessionState> _sessions = new();
+    private readonly object _lock = new();
+    
+    public void UpdateSession(string sessionId, SessionState state)
+    {
+        lock (_lock)
+        {
+            _sessions[sessionId] = state;
+        }
+    }
+}
+
+// ❌ 错误：非线程安全 / Wrong: Not thread-safe
+public class SessionTracker
+{
+    private readonly Dictionary<string, SessionState> _sessions = new();
+    
+    public void UpdateSession(string sessionId, SessionState state)
+    {
+        _sessions[sessionId] = state;  // ❌ 多线程不安全 / Multi-threaded unsafe
+    }
+}
+```
+
+---
+
+## 18. API 设计规范增强 / Enhanced API Design Standards
+
+### Swagger 文档注释规范（强制要求）/ Swagger Documentation Annotations (Mandatory)
+
+**规则 / Rules**: 所有 API 端点必须具有完整的 Swagger 注释
+
+**强制要求 / Mandatory Requirements**:
+1. **Controller 类注释** / **Controller Class Annotations**:
+   - 每个 Controller 类必须有完整的 `/// <summary>` 注释
+   - 可选：使用 `/// <remarks>` 提供详细说明
+
+2. **Action 方法注释** / **Action Method Annotations**:
+   - 每个 Action 方法必须使用 `[SwaggerOperation]` 特性
+   - 必须包含：`Summary`、`Description`、`OperationId`、`Tags`
+   - 每个 Action 方法必须使用 `[SwaggerResponse]` 特性标注**所有可能的响应码**
+   - 包括成功响应（200、201、204）和错误响应（400、401、403、404、500）
+
+3. **DTO 属性注释** / **DTO Property Annotations**:
+   - 请求/响应 DTO 的所有属性必须有 `/// <summary>` 注释
+   - 复杂字段应使用 `/// <remarks>` 提供详细说明
+   - 使用 `/// <example>` 提供示例值
+
+**禁止行为 / Prohibited Actions**:
+- ❌ 新增没有任何注释的 API 端点
+- ❌ 使用占位描述（如 "TODO"、"Test"）
+- ❌ 只标注成功响应，不标注错误响应
+- ❌ DTO 属性没有 `<summary>` 注释
+
+### 示例 / Example
+
+```csharp
+/// <summary>
+/// 用户管理 API / User Management API
+/// </summary>
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    /// <summary>
+    /// 获取用户信息 / Get user information
+    /// </summary>
+    /// <param name="id">用户 ID / User ID</param>
+    /// <returns>用户详细信息 / User details</returns>
+    /// <response code="200">成功返回用户信息 / Successfully returns user information</response>
+    /// <response code="404">用户不存在 / User not found</response>
+    /// <response code="500">服务器内部错误 / Internal server error</response>
+    [HttpGet("{id}")]
+    [SwaggerOperation(
+        Summary = "获取用户信息 / Get user information",
+        Description = "根据用户 ID 获取用户详细信息 / Get user details by user ID",
+        OperationId = "GetUser",
+        Tags = new[] { "用户管理 / User Management" }
+    )]
+    [SwaggerResponse(200, "成功返回用户信息", typeof(ApiResponse<UserDto>))]
+    [SwaggerResponse(404, "用户不存在", typeof(ApiResponse<object>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<object>))]
+    public async Task<ActionResult<ApiResponse<UserDto>>> GetUser([FromRoute] long id)
+    {
+        // Implementation
+    }
+}
+
+/// <summary>
+/// 用户数据传输对象 / User DTO
+/// </summary>
+public record UserDto
+{
+    /// <summary>
+    /// 用户唯一标识 / User unique identifier
+    /// </summary>
+    /// <example>1001</example>
+    public long UserId { get; init; }
+    
+    /// <summary>
+    /// 用户名 / Username
+    /// </summary>
+    /// <example>john_doe</example>
+    public string UserName { get; init; } = string.Empty;
+}
+```
+
+---
+
+## 19. 代码审查清单 / Code Review Checklist
+
+在提交代码前，请检查 / Before submitting code, please check:
+
+### 技术债务管理 / Technical Debt Management
+- [ ] 已通读唯一的技术债务文件 `TECHNICAL_DEBT.md` / Read the single technical debt file `TECHNICAL_DEBT.md`
+- [ ] 确认项目中只有一个 `TECHNICAL_DEBT.md` 文件 / Confirmed only ONE `TECHNICAL_DEBT.md` file exists
+- [ ] 未创建其他技术债务文件（如 TECH_DEBT_XXX.md）/ No other tech debt files created
+- [ ] 已将历史技术债务文件归档（archive_ 前缀 + 日期）/ Archived historical tech debt files (archive_ prefix + date)
+
+### PR 完整性 / PR Integrity
+- [ ] PR 可独立编译、测试通过 / PR can compile independently and tests pass
+- [ ] 未留下"TODO: 后续PR"标记 / No "TODO: next PR" markers
+- [ ] 大型 PR 的未完成部分已登记技术债 / Incomplete parts of large PRs documented as tech debt
+
+### 影分身检查（最重要）/ Shadow Clone Check (Most Important)
+- [ ] 未创建纯转发 Facade/Adapter/Wrapper/Proxy / No pure forwarding facades/adapters/wrappers/proxies
+- [ ] 未重复定义相同的工具方法 / No duplicate utility methods
+- [ ] 未重复定义相同结构的 DTO/Model / No duplicate DTOs/Models with same structure
+- [ ] 未重复定义相同的 Options/Settings / No duplicate Options/Settings
+- [ ] 未在多处定义相同的常量 / No duplicate constants
+- [ ] 已清理历史影分身（如果涉及相关模块）/ Cleaned historical shadow clones (if related modules involved)
+
+### 冗余代码检查 / Dead Code Check
+- [ ] 未定义从未在 DI 中注册的服务 / No services defined but never registered in DI
+- [ ] 未注册从未被注入使用的服务 / No registered services never injected
+- [ ] 未注入从未调用的服务 / No injected services never called
+- [ ] 未定义从未使用的方法和属性 / No unused methods and properties
+- [ ] 未定义从未使用的类型 / No unused types
+
+### Id 类型规范 / Id Type Standards
+- [ ] 所有内部 Id 统一使用 `long` 类型 / All internal Ids use long type
+- [ ] 未混用 `int` 和 `long` 作为同一语义的 Id / No mixing int and long for same semantic Id
+
+### 时间处理 / Time Handling
+- [ ] 所有时间通过抽象接口（如 `ISystemClock`）获取 / All time obtained through abstract interface
+- [ ] 未直接使用 `DateTime.Now` / `DateTime.UtcNow` / No direct use of DateTime.Now/DateTime.UtcNow
+
+### 并发安全 / Concurrency Safety
+- [ ] 跨线程集合使用线程安全容器或锁 / Thread-shared collections use thread-safe containers or locks
+
+### API 设计 / API Design
+- [ ] **所有 API 端点有完整的 Swagger 注释** / **All API endpoints have complete Swagger annotations**
+- [ ] Controller 类有 `<summary>` 注释 / Controller classes have `<summary>` annotations
+- [ ] Action 方法有 `[SwaggerOperation]` 特性 / Action methods have `[SwaggerOperation]` attribute
+- [ ] Action 方法标注了所有可能的响应码 / Action methods annotate all possible response codes
+- [ ] DTO 属性有 `<summary>` 注释 / DTO properties have `<summary>` annotations
+
+### 通用规范 / General Standards
+- [ ] 类型使用（record / readonly struct / file / required + init）/ Type usage
+- [ ] 可空引用类型 / Nullable reference types
+- [ ] 异常处理 / Exception handling
+- [ ] 方法设计（单一职责、< 50 行）/ Method design
+- [ ] 命名约定 / Naming conventions
+- [ ] 分层架构 / Layered architecture
+- [ ] 测试覆盖 / Test coverage
+- [ ] 代码清理 / Code cleanup

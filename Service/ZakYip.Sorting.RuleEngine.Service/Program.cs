@@ -208,9 +208,11 @@ try
                 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
                 {
                     var loggerWdt = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
+                    var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
                     return new WdtWmsApiClient(
                         client,
                         loggerWdt,
+                        clock,
                         appSettings.WdtWmsApi.AppKey,
                         appSettings.WdtWmsApi.AppSecret);
                 });
@@ -231,9 +233,11 @@ try
                 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
                 {
                     var loggerJst = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
+                    var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
                     return new JushuitanErpApiClient(
                         client,
                         loggerJst,
+                        clock,
                         appSettings.JushuitanErpApi.PartnerKey,
                         appSettings.JushuitanErpApi.PartnerSecret,
                         appSettings.JushuitanErpApi.Token);
@@ -314,6 +318,10 @@ try
                     options.SizeLimit = cacheSizeLimit; // 设置缓存大小限制
                     options.CompactionPercentage = 0.25; // 压缩百分比
                 });
+
+                // 注册系统时钟（单例模式）
+                // Register system clock (Singleton mode)
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
 
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)

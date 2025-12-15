@@ -18,13 +18,16 @@ public class WcsApiClient : IWcsApiAdapter
     private readonly HttpClient _httpClient;
     private readonly ILogger<WcsApiClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     public WcsApiClient(
         HttpClient httpClient,
-        ILogger<WcsApiClient> logger)
+        ILogger<WcsApiClient> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _clock = clock;
         
         _jsonOptions = new JsonSerializerOptions
         {
@@ -36,7 +39,7 @@ public class WcsApiClient : IWcsApiAdapter
     /// <summary>
     /// 创建成功响应 / Create success response
     /// </summary>
-    private static WcsApiResponse CreateSuccessResponse(
+    private WcsApiResponse CreateSuccessResponse(
         string message,
         string? responseContent,
         string parcelId,
@@ -71,7 +74,7 @@ public class WcsApiClient : IWcsApiAdapter
     /// <summary>
     /// 创建错误响应 / Create error response
     /// </summary>
-    private static WcsApiResponse CreateErrorResponse(
+    private WcsApiResponse CreateErrorResponse(
         string message,
         string? responseContent,
         string parcelId,

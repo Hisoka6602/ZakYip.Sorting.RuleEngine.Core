@@ -20,6 +20,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
 {
     protected readonly HttpClient HttpClient;
     protected readonly ILogger Logger;
+    protected readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     /// <summary>
     /// 获取客户端类型名称，用于日志记录
@@ -35,10 +36,12 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
 
     protected BaseErpApiClient(
         HttpClient httpClient,
-        ILogger logger)
+        ILogger logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         HttpClient = httpClient;
         Logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -51,7 +54,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         
         Logger.LogWarning("{ClientType}不支持扫描包裹功能，条码: {Barcode}", ClientTypeName, barcode);
         
@@ -69,7 +72,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestBody = "N/A",
             RequestHeaders = "{}",
             RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
+            ResponseTime = _clock.LocalNow,
             DurationMs = stopwatch.ElapsedMilliseconds,
             FormattedCurl = $"# Feature not supported by {FeatureNotSupportedText}"
         };
@@ -87,7 +90,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         
         Logger.LogWarning("{ClientType}不支持上传图片功能，条码: {Barcode}", ClientTypeName, barcode);
         
@@ -105,7 +108,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestBody = $"[image upload request: size={imageData.Length} bytes]",
             RequestHeaders = "{}",
             RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
+            ResponseTime = _clock.LocalNow,
             DurationMs = stopwatch.ElapsedMilliseconds,
             FormattedCurl = $"# Feature not supported by {FeatureNotSupportedText}"
         };
@@ -147,7 +150,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestUrl = requestUrl,
             RequestHeaders = requestHeaders,
             RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
+            ResponseTime = _clock.LocalNow,
             ResponseStatusCode = response != null ? (int)response.StatusCode : null,
             ResponseHeaders = responseHeaders,
             DurationMs = elapsedMilliseconds,
@@ -181,7 +184,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestUrl = requestUrl,
             RequestHeaders = requestHeaders,
             RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
+            ResponseTime = _clock.LocalNow,
             ResponseStatusCode = response != null ? (int)response.StatusCode : null,
             ResponseHeaders = responseHeaders,
             DurationMs = elapsedMilliseconds,
@@ -215,7 +218,7 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
             RequestUrl = requestUrl,
             RequestHeaders = requestHeaders,
             RequestTime = requestTime,
-            ResponseTime = DateTime.Now,
+            ResponseTime = _clock.LocalNow,
             ResponseStatusCode = response != null ? (int)response.StatusCode : null,
             ResponseHeaders = responseHeaders,
             DurationMs = elapsedMilliseconds,

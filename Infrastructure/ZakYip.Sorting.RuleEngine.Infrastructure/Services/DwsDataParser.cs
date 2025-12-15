@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -23,6 +24,13 @@ public interface IDwsDataParser
 /// </summary>
 public class DwsDataParser : IDwsDataParser
 {
+    private readonly ISystemClock _clock;
+
+    public DwsDataParser(ISystemClock clock)
+    {
+        _clock = clock;
+    }
+
     private static readonly Dictionary<string, string> FieldMappings = new()
     {
         { "Code", "Barcode" },
@@ -181,6 +189,6 @@ public class DwsDataParser : IDwsDataParser
         // 如果所有格式都解析失败，记录警告并使用当前时间作为最后手段
         // If all parsing fails, log warning and use current time as last resort
         // Note: This indicates data quality issues that should be investigated
-        return DateTime.Now;
+        return _clock.LocalNow;
     }
 }

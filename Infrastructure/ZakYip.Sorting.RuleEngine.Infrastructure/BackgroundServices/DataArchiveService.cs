@@ -17,6 +17,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 /// </summary>
 public class DataArchiveService : BackgroundService
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<DataArchiveService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly ShardingSettings _settings;
@@ -26,13 +27,15 @@ public class DataArchiveService : BackgroundService
     public DataArchiveService(
         ILogger<DataArchiveService> logger,
         IServiceProvider serviceProvider,
-        IOptions<ShardingSettings> settings)
+        IOptions<ShardingSettings> settings,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
         // 创建信号量以控制并行归档批次数量
         _archiveSemaphore = new SemaphoreSlim(_settings.ArchiveParallelism, _settings.ArchiveParallelism);
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -64,7 +67,7 @@ public class DataArchiveService : BackgroundService
     private async Task PerformArchiveAsync(CancellationToken cancellationToken)
     {
         // 检查是否应该执行归档（基于时间）
-        var now = DateTime.Now;
+        var now = _clock.LocalNow;
         if (now.Hour != 3) // 只在凌晨3点执行
         {
             return;
@@ -76,7 +79,7 @@ public class DataArchiveService : BackgroundService
         }
 
         _logger.LogInformation("开始执行数据归档...");
-        var startTime = DateTime.Now;
+        var startTime = _clock.LocalNow;
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetService<MySqlLogDbContext>();
@@ -103,7 +106,7 @@ public class DataArchiveService : BackgroundService
             return;
         }
 
-        var coldDataThreshold = DateTime.Now.AddDays(-_settings.ColdDataThresholdDays);
+        var coldDataThreshold = _clock.LocalNow.AddDays(-_settings.ColdDataThresholdDays);
 
         try
         {
@@ -128,7 +131,7 @@ public class DataArchiveService : BackgroundService
                 await ArchiveColdDataInBatchesAsync(dbContext, coldDataThreshold, coldDataCount, cancellationToken);
             }
 
-            var duration = DateTime.Now - startTime;
+            var duration = _clock.LocalNow - startTime;
             _logger.LogInformation("数据归档完成，耗时: {Duration}秒", duration.TotalSeconds);
             
             // 发布数据归档事件
@@ -141,8 +144,8 @@ public class DataArchiveService : BackgroundService
                     {
                         RecordCount = coldDataCount,
                         StartDate = coldDataThreshold,
-                        EndDate = DateTime.Now.AddDays(-_settings.ColdDataThresholdDays),
-                        ArchivedAt = DateTime.Now,
+                        EndDate = _clock.LocalNow.AddDays(-_settings.ColdDataThresholdDays),
+                        ArchivedAt = _clock.LocalNow,
                         DurationMs = (long)duration.TotalMilliseconds
                     }, cancellationToken);
                 }

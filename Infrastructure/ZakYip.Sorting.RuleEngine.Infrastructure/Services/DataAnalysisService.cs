@@ -23,19 +23,22 @@ public class DataAnalysisService : IDataAnalysisService
     private readonly SqliteLogDbContext? _sqliteContext;
     private readonly ILogger<DataAnalysisService> _logger;
     private readonly ResiliencePipeline _retryPipeline;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     public DataAnalysisService(
         IChuteRepository chuteRepository,
         IPerformanceMetricRepository performanceMetricRepository,
         MySqlLogDbContext? mysqlContext,
         SqliteLogDbContext? sqliteContext,
-        ILogger<DataAnalysisService> logger)
+        ILogger<DataAnalysisService> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _chuteRepository = chuteRepository;
         _performanceMetricRepository = performanceMetricRepository;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
         _logger = logger;
+        _clock = clock;
 
         // 配置重试策略
         _retryPipeline = new ResiliencePipelineBuilder()
@@ -157,8 +160,8 @@ public class DataAnalysisService : IDataAnalysisService
     {
         try
         {
-            var start = startTime ?? DateTime.Now.AddDays(-7);
-            var end = endTime ?? DateTime.Now;
+            var start = startTime ?? _clock.LocalNow.AddDays(-7);
+            var end = endTime ?? _clock.LocalNow;
 
             _logger.LogInformation("生成分拣效率分析报表: {StartTime} - {EndTime}", start, end);
 
@@ -359,8 +362,8 @@ public class DataAnalysisService : IDataAnalysisService
                     chutes = chutes.Where(c => c != null && c.IsEnabled).ToArray();
                 }
 
-                var startTime = query.StartTime ?? DateTime.Now.AddDays(-7);
-                var endTime = query.EndTime ?? DateTime.Now;
+                var startTime = query.StartTime ?? _clock.LocalNow.AddDays(-7);
+                var endTime = query.EndTime ?? _clock.LocalNow;
 
                 var statistics = new List<ChuteUtilizationStatisticsDto>();
 
@@ -413,8 +416,8 @@ public class DataAnalysisService : IDataAnalysisService
                     return null;
                 }
 
-                var start = startTime ?? DateTime.Now.AddDays(-7);
-                var end = endTime ?? DateTime.Now;
+                var start = startTime ?? _clock.LocalNow.AddDays(-7);
+                var end = endTime ?? _clock.LocalNow;
 
                 return await CalculateChuteStatisticsAsync(chute, start, end, ct);
             }
@@ -435,8 +438,8 @@ public class DataAnalysisService : IDataAnalysisService
         {
             try
             {
-                var start = startTime ?? DateTime.Now.AddDays(-7);
-                var end = endTime ?? DateTime.Now;
+                var start = startTime ?? _clock.LocalNow.AddDays(-7);
+                var end = endTime ?? _clock.LocalNow;
 
                 // 表统计消息仅在控制台输出，不记录到logs
                 Console.WriteLine($"查询分拣效率概览: {start} - {end}");

@@ -4,6 +4,7 @@ using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 

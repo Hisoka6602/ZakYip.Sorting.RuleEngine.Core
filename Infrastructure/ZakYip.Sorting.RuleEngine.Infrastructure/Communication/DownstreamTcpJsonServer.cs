@@ -20,6 +20,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 /// </summary>
 public class DownstreamTcpJsonServer : IDisposable
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<DownstreamTcpJsonServer> _logger;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
@@ -50,12 +51,14 @@ public class DownstreamTcpJsonServer : IDisposable
         string host,
         int port,
         ILogger<DownstreamTcpJsonServer> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         MySqlLogDbContext? mysqlContext = null,
         SqliteLogDbContext? sqliteContext = null)
     {
         _host = host;
         _port = port;
         _logger = logger;
+        _clock = clock;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
     }
@@ -332,7 +335,7 @@ public class DownstreamTcpJsonServer : IDisposable
             FormattedContent = formattedContent,
             ExtractedParcelId = parcelId,
             ExtractedCartNumber = null,
-            CommunicationTime = DateTime.Now,
+            CommunicationTime = _clock.LocalNow,
             IsSuccess = isSuccess,
             ErrorMessage = errorMessage
         };

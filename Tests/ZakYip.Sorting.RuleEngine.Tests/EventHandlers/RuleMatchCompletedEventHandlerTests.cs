@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.EventHandlers;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -15,13 +16,18 @@ public class RuleMatchCompletedEventHandlerTests
 {
     private readonly Mock<ILogger<RuleMatchCompletedEventHandler>> _mockLogger;
     private readonly Mock<ILogRepository> _mockLogRepository;
+    private readonly Mock<ISorterAdapterManager> _mockSorterAdapterManager;
     private readonly RuleMatchCompletedEventHandler _handler;
 
     public RuleMatchCompletedEventHandlerTests()
     {
         _mockLogger = new Mock<ILogger<RuleMatchCompletedEventHandler>>();
         _mockLogRepository = new Mock<ILogRepository>();
-        _handler = new RuleMatchCompletedEventHandler(_mockLogger.Object, _mockLogRepository.Object);
+        _mockSorterAdapterManager = new Mock<ISorterAdapterManager>();
+        _handler = new RuleMatchCompletedEventHandler(
+            _mockLogger.Object, 
+            _mockLogRepository.Object,
+            _mockSorterAdapterManager.Object);
     }
 
     [Fact]

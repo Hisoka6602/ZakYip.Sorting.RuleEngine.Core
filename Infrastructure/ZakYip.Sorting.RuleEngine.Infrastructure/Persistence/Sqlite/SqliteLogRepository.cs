@@ -10,8 +10,9 @@ public class SqliteLogRepository : BaseLogRepositoryImpl<SqliteLogDbContext, Log
 {
     public SqliteLogRepository(
         SqliteLogDbContext context,
-        ILogger<SqliteLogRepository> logger)
-        : base(context, logger)
+        ILogger<SqliteLogRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        : base(context, logger, clock)
     {
     }
 
@@ -21,7 +22,7 @@ public class SqliteLogRepository : BaseLogRepositoryImpl<SqliteLogDbContext, Log
             Level = level,
             Message = message,
             Details = details,
-            CreatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow
         };
 
     protected override Task AddLogEntryAsync(LogEntry logEntry, CancellationToken cancellationToken)

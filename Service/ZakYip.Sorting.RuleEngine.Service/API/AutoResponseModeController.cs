@@ -14,15 +14,18 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("自动应答模式管理接口，用于开启和关闭模拟应答功能")]
 public class AutoResponseModeController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IAutoResponseModeService _autoResponseModeService;
     private readonly ILogger<AutoResponseModeController> _logger;
 
     public AutoResponseModeController(
         IAutoResponseModeService autoResponseModeService,
-        ILogger<AutoResponseModeController> logger)
+        ILogger<AutoResponseModeController> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _autoResponseModeService = autoResponseModeService;
+_autoResponseModeService = autoResponseModeService;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -57,7 +60,7 @@ public class AutoResponseModeController : ControllerBase
         {
             Enabled = true,
             Message = "自动应答模式已启用 / Auto-response mode enabled",
-            Timestamp = DateTime.Now
+            Timestamp = _clock.LocalNow
         });
     }
 
@@ -90,7 +93,7 @@ public class AutoResponseModeController : ControllerBase
         {
             Enabled = false,
             Message = "自动应答模式已禁用 / Auto-response mode disabled",
-            Timestamp = DateTime.Now
+            Timestamp = _clock.LocalNow
         });
     }
 
@@ -118,7 +121,7 @@ public class AutoResponseModeController : ControllerBase
             Message = isEnabled 
                 ? "自动应答模式已启用 / Auto-response mode enabled" 
                 : "自动应答模式已禁用 / Auto-response mode disabled",
-            Timestamp = DateTime.Now
+            Timestamp = _clock.LocalNow
         });
     }
 }

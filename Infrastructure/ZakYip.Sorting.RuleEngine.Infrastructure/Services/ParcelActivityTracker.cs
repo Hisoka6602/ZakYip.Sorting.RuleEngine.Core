@@ -9,6 +9,12 @@ public class ParcelActivityTracker : IParcelActivityTracker
 {
     private DateTime? _lastActivityTime;
     private readonly object _lock = new();
+    private readonly ISystemClock _clock;
+
+    public ParcelActivityTracker(ISystemClock clock)
+    {
+        _clock = clock;
+    }
 
     /// <summary>
     /// 记录包裹创建时间
@@ -18,7 +24,7 @@ public class ParcelActivityTracker : IParcelActivityTracker
     {
         lock (_lock)
         {
-            _lastActivityTime = DateTime.Now;
+            _lastActivityTime = _clock.LocalNow;
         }
     }
 
@@ -35,7 +41,7 @@ public class ParcelActivityTracker : IParcelActivityTracker
                 return int.MaxValue; // 从未创建过包裹
             }
 
-            return (int)(DateTime.Now - _lastActivityTime.Value).TotalMinutes;
+            return (int)(_clock.LocalNow - _lastActivityTime.Value).TotalMinutes;
         }
     }
 

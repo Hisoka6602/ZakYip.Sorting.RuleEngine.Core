@@ -19,6 +19,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("WCS API配置管理接口")]
 public class WcsApiConfigController : ControllerBase
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IWcsApiConfigRepository _repository;
     private readonly IConfigReloadService _reloadService;
     private readonly ILogger<WcsApiConfigController> _logger;
@@ -26,11 +27,13 @@ public class WcsApiConfigController : ControllerBase
     public WcsApiConfigController(
         IWcsApiConfigRepository repository,
         IConfigReloadService reloadService,
-        ILogger<WcsApiConfigController> logger)
+        ILogger<WcsApiConfigController> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _repository = repository;
         _reloadService = reloadService;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>

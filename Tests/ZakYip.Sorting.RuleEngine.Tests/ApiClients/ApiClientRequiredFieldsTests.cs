@@ -8,6 +8,7 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 using Xunit;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 
@@ -39,7 +40,7 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger);
+        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");
@@ -76,7 +77,7 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger);
+        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
 
         var dwsData = new DwsData
         {
@@ -123,7 +124,7 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger);
+        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
 
         var imageData = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }; // Simple image bytes
 
@@ -158,7 +159,7 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger);
+        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");
@@ -200,7 +201,7 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<JushuitanErpApiClient>>();
-        var client = new JushuitanErpApiClient(httpClient, logger, "testKey", "testSecret", "testToken");
+        var client = new JushuitanErpApiClient(httpClient, logger, new MockSystemClock(), "testKey", "testSecret", "testToken");
 
         var dwsData = new DwsData
         {
@@ -229,7 +230,7 @@ public class ApiClientRequiredFieldsTests
         // Arrange
         var logger = Mock.Of<ILogger<JushuitanErpApiClient>>();
         var httpClient = new HttpClient();
-        var client = new JushuitanErpApiClient(httpClient, logger, "testKey", "testSecret", "testToken");
+        var client = new JushuitanErpApiClient(httpClient, logger, new MockSystemClock(), "testKey", "testSecret", "testToken");
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");

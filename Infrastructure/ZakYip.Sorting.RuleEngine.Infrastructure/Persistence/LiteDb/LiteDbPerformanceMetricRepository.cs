@@ -9,12 +9,15 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// </summary>
 public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILiteDatabase _database;
     private readonly ILiteCollection<PerformanceMetric> _collection;
 
-    public LiteDbPerformanceMetricRepository(ILiteDatabase database)
+    public LiteDbPerformanceMetricRepository(
+        ILiteDatabase database,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _database = database;
+_database = database;
         _collection = _database.GetCollection<PerformanceMetric>("performance_metrics");
         
         // 创建索引以提高查询性能
@@ -22,6 +25,7 @@ public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
         _collection.EnsureIndex(x => x.ParcelId);
         _collection.EnsureIndex(x => x.RecordedAt);
         _collection.EnsureIndex(x => x.Success);
+        _clock = clock;
     }
 
     /// <summary>
@@ -36,7 +40,7 @@ public class LiteDbPerformanceMetricRepository : IPerformanceMetricRepository
         
         if (metric.RecordedAt == default)
         {
-            metric.RecordedAt = DateTime.Now;
+            metric.RecordedAt = _clock.LocalNow;
         }
         
         _collection.Insert(metric);

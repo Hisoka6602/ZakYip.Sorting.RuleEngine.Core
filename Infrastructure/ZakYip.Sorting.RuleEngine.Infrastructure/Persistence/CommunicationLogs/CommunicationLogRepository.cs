@@ -12,15 +12,18 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs
 /// </summary>
 public class CommunicationLogRepository : ICommunicationLogRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly MySqlLogDbContext _dbContext;
     private readonly ILogger<CommunicationLogRepository> _logger;
 
     public CommunicationLogRepository(
         MySqlLogDbContext dbContext,
-        ILogger<CommunicationLogRepository> logger)
+        ILogger<CommunicationLogRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _dbContext = dbContext;
+_dbContext = dbContext;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -46,7 +49,7 @@ public class CommunicationLogRepository : ICommunicationLogRepository
                 RemoteAddress = remoteAddress,
                 IsSuccess = isSuccess,
                 ErrorMessage = errorMessage,
-                CreatedAt = DateTime.Now
+                CreatedAt = _clock.LocalNow
             };
 
             _dbContext.CommunicationLogs.Add(log);

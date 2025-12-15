@@ -17,6 +17,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 /// </summary>
 public class DataCleanupService : BackgroundService
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<DataCleanupService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly ShardingSettings _settings;
@@ -27,12 +28,14 @@ public class DataCleanupService : BackgroundService
         ILogger<DataCleanupService> logger,
         IServiceProvider serviceProvider,
         IOptions<ShardingSettings> settings,
-        IParcelActivityTracker activityTracker)
+        IParcelActivityTracker activityTracker,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
         _activityTracker = activityTracker;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -78,7 +81,7 @@ public class DataCleanupService : BackgroundService
     {
         // 防止频繁清理（每次清理后至少间隔1小时）
         if (_lastCleanupTime.HasValue && 
-            (DateTime.Now - _lastCleanupTime.Value).TotalHours < 1)
+            (_clock.LocalNow - _lastCleanupTime.Value).TotalHours < 1)
         {
             // 跳过清理不记录日志，只在实际清理时记录
             // Skip logging when cleanup is skipped, only log when actual cleanup happens
@@ -112,8 +115,8 @@ public class DataCleanupService : BackgroundService
             return;
         }
 
-        var cutoffDate = DateTime.Now.AddDays(-_settings.RetentionDays);
-        var startTime = DateTime.Now;
+        var cutoffDate = _clock.LocalNow.AddDays(-_settings.RetentionDays);
+        var startTime = _clock.LocalNow;
         
         try
         {
@@ -160,9 +163,9 @@ public class DataCleanupService : BackgroundService
                 }
             }
 
-            _lastCleanupTime = DateTime.Now;
+            _lastCleanupTime = _clock.LocalNow;
             
-            var duration = DateTime.Now - startTime;
+            var duration = _clock.LocalNow - startTime;
             _logger.LogInformation("数据清理完成，耗时: {DurationMs}ms", duration.TotalMilliseconds);
             
             // 发布数据清理事件
@@ -174,7 +177,7 @@ public class DataCleanupService : BackgroundService
                     RecordCount = deletedCount,
                     TableName = "LogEntries",
                     CutoffDate = cutoffDate,
-                    CleanedAt = DateTime.Now,
+                    CleanedAt = _clock.LocalNow,
                     DurationMs = (long)duration.TotalMilliseconds
                 }, cancellationToken);
             }

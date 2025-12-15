@@ -11,6 +11,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 /// </summary>
 public class ReactiveMonitoringService : IDisposable
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<ReactiveMonitoringService> _logger;
     private readonly Subject<CommunicationLog> _communicationLogSubject;
     private readonly Subject<ApiCommunicationLog> _apiCommunicationLogSubject;
@@ -42,9 +43,11 @@ public class ReactiveMonitoringService : IDisposable
     /// </summary>
     public IObservable<MonitoringAlert> Alerts => _alertSubject.AsObservable();
 
-    public ReactiveMonitoringService(ILogger<ReactiveMonitoringService> logger)
+    public ReactiveMonitoringService(
+        ILogger<ReactiveMonitoringService> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _communicationLogSubject = new Subject<CommunicationLog>();
         _apiCommunicationLogSubject = new Subject<ApiCommunicationLog>();
         _matchingLogSubject = new Subject<MatchingLog>();
@@ -52,6 +55,7 @@ public class ReactiveMonitoringService : IDisposable
         _subscriptions = new List<IDisposable>();
 
         InitializeStreams();
+        _clock = clock;
     }
 
     /// <summary>
@@ -258,7 +262,7 @@ public class ReactiveMonitoringService : IDisposable
                     }),
                 (apiStats, matchStats) => new PerformanceMetrics
                 {
-                    Timestamp = DateTime.Now,
+                    Timestamp = _clock.LocalNow,
                     TotalApiCalls = apiStats.TotalApiCalls,
                     SuccessfulApiCalls = apiStats.SuccessfulApiCalls,
                     AverageApiDuration = apiStats.AvgApiDuration,

@@ -27,10 +27,11 @@ public class WdtErpFlagshipApiClient : BaseErpApiClient
     public WdtErpFlagshipApiClient(
         HttpClient httpClient,
         ILogger<WdtErpFlagshipApiClient> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         string key = "",
         string appsecret = "",
         string sid = "")
-        : base(httpClient, logger)
+        : base(httpClient, logger, clock)
     {
         Parameters = new WdtErpFlagshipApiParameters
         {
@@ -55,7 +56,7 @@ public class WdtErpFlagshipApiClient : BaseErpApiClient
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
 
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -207,7 +208,7 @@ public class WdtErpFlagshipApiClient : BaseErpApiClient
                     RequestBody = JsonConvert.SerializeObject(requestBody),
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -233,7 +234,7 @@ public class WdtErpFlagshipApiClient : BaseErpApiClient
                     RequestBody = JsonConvert.SerializeObject(requestBody),
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
-                    ResponseTime = DateTime.Now,
+                    ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,

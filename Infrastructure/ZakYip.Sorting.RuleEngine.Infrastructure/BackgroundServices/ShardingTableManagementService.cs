@@ -13,6 +13,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 /// </summary>
 public class ShardingTableManagementService : BackgroundService
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<ShardingTableManagementService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly ShardingSettings _settings;
@@ -23,12 +24,14 @@ public class ShardingTableManagementService : BackgroundService
         ILogger<ShardingTableManagementService> logger,
         IServiceProvider serviceProvider,
         IOptions<ShardingSettings> settings,
-        IDatabaseDialect dialect)
+        IDatabaseDialect dialect,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _logger = logger;
+_logger = logger;
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
         _dialect = dialect;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -110,7 +113,7 @@ public class ShardingTableManagementService : BackgroundService
     private List<string> GetTableNamesToCheck()
     {
         var tables = new List<string>();
-        var now = DateTime.Now;
+        var now = _clock.LocalNow;
 
         switch (_settings.Strategy.ToLower())
         {

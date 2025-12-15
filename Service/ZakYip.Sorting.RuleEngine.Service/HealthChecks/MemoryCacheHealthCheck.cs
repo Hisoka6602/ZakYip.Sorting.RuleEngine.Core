@@ -8,11 +8,15 @@ namespace ZakYip.Sorting.RuleEngine.Service.HealthChecks;
 /// </summary>
 public class MemoryCacheHealthCheck : IHealthCheck
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IMemoryCache _cache;
 
-    public MemoryCacheHealthCheck(IMemoryCache cache)
+    public MemoryCacheHealthCheck(
+        IMemoryCache cache,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _cache = cache;
+        _clock = clock;
     }
 
     public Task<HealthCheckResult> CheckHealthAsync(
@@ -23,7 +27,7 @@ public class MemoryCacheHealthCheck : IHealthCheck
         {
             // 测试缓存读写
             var testKey = "_health_check_test_";
-            var testValue = DateTime.Now.Ticks;
+            var testValue = _clock.LocalNow.Ticks;
             
             _cache.Set(testKey, testValue, TimeSpan.FromSeconds(1));
             var retrievedValue = _cache.Get<long>(testKey);

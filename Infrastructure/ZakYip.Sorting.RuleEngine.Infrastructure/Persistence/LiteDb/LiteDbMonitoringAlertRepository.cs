@@ -16,16 +16,19 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 [Obsolete("LiteDB应仅用于配置存储，不应用于日志数据。请使用MySqlMonitoringAlertRepository或SqliteMonitoringAlertRepository代替。", false)]
 public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
 {
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILiteDatabase _database;
     private readonly ILogger<LiteDbMonitoringAlertRepository> _logger;
     private const string CollectionName = "monitoring_alerts";
 
     public LiteDbMonitoringAlertRepository(
         ILiteDatabase database,
-        ILogger<LiteDbMonitoringAlertRepository> logger)
+        ILogger<LiteDbMonitoringAlertRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _database = database;
+_database = database;
         _logger = logger;
+        _clock = clock;
     }
 
     public Task AddAlertAsync(MonitoringAlert alert, CancellationToken cancellationToken = default)
@@ -87,7 +90,7 @@ public class LiteDbMonitoringAlertRepository : IMonitoringAlertRepository
             if (alert != null)
             {
                 alert.IsResolved = true;
-                alert.ResolvedTime = DateTime.Now;
+                alert.ResolvedTime = _clock.LocalNow;
                 collection.Update(alert);
                 _logger.LogInformation("告警已解决: {AlertId}", alertId);
             }
