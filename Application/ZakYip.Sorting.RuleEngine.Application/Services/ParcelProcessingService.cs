@@ -20,18 +20,21 @@ public class ParcelProcessingService : IParcelProcessingService
     private readonly ILogRepository _logRepository;
     private readonly ILogger<ParcelProcessingService> _logger;
     private readonly ObjectPool<Stopwatch> _stopwatchPool;
+    private readonly ISystemClock _clock;
 
     public ParcelProcessingService(
         IRuleEngineService ruleEngineService,
         IWcsApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
-        ILogger<ParcelProcessingService> logger)
+        ILogger<ParcelProcessingService> logger,
+        ISystemClock clock)
     {
         _ruleEngineService = ruleEngineService;
         _apiAdapterFactory = apiAdapterFactory;
         _logRepository = logRepository;
         _logger = logger;
-        
+        _clock = clock;
+
         // 创建Stopwatch对象池以提高性能
         var policy = new DefaultPooledObjectPolicy<Stopwatch>();
         _stopwatchPool = new DefaultObjectPool<Stopwatch>(policy, ObjectPoolDefaults.StopwatchPoolSize);
@@ -105,7 +108,7 @@ public class ParcelProcessingService : IParcelProcessingService
             // 更新包裹状态
             parcelInfo.ChuteNumber = chuteNumber;
             parcelInfo.Status = chuteNumber != null ? ParcelStatus.Completed : ParcelStatus.Failed;
-            parcelInfo.UpdatedAt = DateTime.Now;
+            parcelInfo.UpdatedAt = _clock.LocalNow;
 
             stopwatch.Stop();
 

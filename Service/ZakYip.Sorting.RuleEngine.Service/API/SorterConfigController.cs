@@ -93,7 +93,7 @@ _repository = repository;
         try
         {
             // 从请求创建实体（自动设置单例ID）
-            var config = request.ToEntity();
+            var config = request.ToEntity(_clock);
             
             // Upsert操作：如果存在则更新，否则插入
             var success = await _repository.UpsertAsync(config).ConfigureAwait(false);
@@ -147,8 +147,8 @@ _repository = repository;
             ReconnectIntervalSeconds = 5,
             HeartbeatIntervalSeconds = 10,
             Description = "默认的分拣机通信配置 - Client模式主动连接到下游分拣机",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }

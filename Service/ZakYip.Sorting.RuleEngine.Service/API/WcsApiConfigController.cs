@@ -93,7 +93,7 @@ public class WcsApiConfigController : ControllerBase
         try
         {
             // 从请求创建实体（自动设置单例ID）
-            var config = request.ToEntity();
+            var config = request.ToEntity(_clock);
             
             // 检查现有配置
             var existing = await _repository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
@@ -156,8 +156,8 @@ public class WcsApiConfigController : ControllerBase
             HttpMethod = "POST",
             IsEnabled = false,
             Priority = 0,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }

@@ -19,6 +19,7 @@ public class ParcelProcessingServiceTests
     private readonly Mock<IWcsApiAdapterFactory> _mockFactory;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<ILogger<ParcelProcessingService>> _mockLogger;
+    private readonly Mock<ISystemClock> _mockClock;
     private readonly ParcelProcessingService _service;
 
     public ParcelProcessingServiceTests()
@@ -29,12 +30,16 @@ public class ParcelProcessingServiceTests
         _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockApiAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockLogger = new Mock<ILogger<ParcelProcessingService>>();
+        _mockClock = new Mock<ISystemClock>();
+        var fixedTime = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local);
+        _mockClock.SetupGet(c => c.LocalNow).Returns(fixedTime);
 
         _service = new ParcelProcessingService(
             _mockRuleEngineService.Object,
             _mockFactory.Object,
             _mockLogRepository.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockClock.Object);
     }
 
     [Fact]

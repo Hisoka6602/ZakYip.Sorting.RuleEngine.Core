@@ -1,6 +1,7 @@
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Mappers;
 
@@ -42,11 +43,12 @@ public static class DwsConfigMapper
     /// 从更新请求创建实体
     /// Create entity from update request
     /// </summary>
-    public static DwsConfig ToEntity(this DwsConfigUpdateRequest request)
+    public static DwsConfig ToEntity(this DwsConfigUpdateRequest request, ISystemClock clock)
     {
         ArgumentNullException.ThrowIfNull(request);
-        
-        var now = DateTime.Now;
+        ArgumentNullException.ThrowIfNull(clock);
+
+        var now = clock.LocalNow;
         return new DwsConfig
         {
             ConfigId = DwsConfig.SingletonId,
@@ -109,11 +111,12 @@ public static class DwsDataTemplateMapper
     /// 从更新请求创建实体
     /// Create entity from update request
     /// </summary>
-    public static DwsDataTemplate ToEntity(this DwsDataTemplateUpdateRequest request)
+    public static DwsDataTemplate ToEntity(this DwsDataTemplateUpdateRequest request, ISystemClock clock)
     {
         ArgumentNullException.ThrowIfNull(request);
-        
-        var now = DateTime.Now;
+        ArgumentNullException.ThrowIfNull(clock);
+
+        var now = clock.LocalNow;
         return new DwsDataTemplate
         {
             TemplateId = DwsDataTemplate.SingletonId,

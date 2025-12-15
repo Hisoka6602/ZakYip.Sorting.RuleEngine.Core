@@ -1,4 +1,6 @@
 using LiteDB;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 
@@ -12,6 +14,7 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
 {
     protected readonly ILiteDatabase Database;
     protected readonly string CollectionName;
+    protected static readonly ISystemClock Clock = new SystemClock();
 
     protected BaseLiteDbRepository(ILiteDatabase database, string collectionName)
     {

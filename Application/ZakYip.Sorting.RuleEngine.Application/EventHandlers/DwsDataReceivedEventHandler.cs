@@ -15,17 +15,20 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     private readonly IWcsApiAdapterFactory _apiAdapterFactory;
     private readonly ILogRepository _logRepository;
     private readonly IPublisher _publisher;
+    private readonly ISystemClock _clock;
 
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
         IWcsApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
-        IPublisher publisher)
+        IPublisher publisher,
+        ISystemClock clock)
     {
         _logger = logger;
         _apiAdapterFactory = apiAdapterFactory;
         _logRepository = logRepository;
         _publisher = publisher;
+        _clock = clock;
     }
 
     public async Task Handle(DwsDataReceivedEvent notification, CancellationToken cancellationToken)
@@ -39,7 +42,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             $"重量: {notification.DwsData.Weight}g, 体积: {notification.DwsData.Volume}cm³").ConfigureAwait(false);
 
         // 主动请求格口（主动调用，不发布事件）
-        var apiStartTime = DateTime.Now;
+        var apiStartTime = _clock.LocalNow;
         try
         {
             var response = await _apiAdapterFactory.GetActiveAdapter().RequestChuteAsync(
@@ -48,7 +51,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 null, // OcrData not available in this event
                 cancellationToken).ConfigureAwait(false);
 
-            var apiDuration = DateTime.Now - apiStartTime;
+            var apiDuration = _clock.LocalNow - apiStartTime;
 
             // 记录WCS API响应（主动调用的响应，直接记录，不通过事件）
             if (response != null)
@@ -65,7 +68,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                     IsSuccess = response.Success,
                     StatusCode = response.ResponseStatusCode,
                     DurationMs = response.DurationMs,
-                    CalledAt = DateTime.Now,
+                    CalledAt = _clock.LocalNow,
                     ErrorMessage = response.Success ? null : response.Message,
                     ApiResponse = response
                 }, cancellationToken);
@@ -73,7 +76,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         }
         catch (Exception ex)
         {
-            var apiDuration = DateTime.Now - apiStartTime;
+            var apiDuration = _clock.LocalNow - apiStartTime;
             
             _logger.LogWarning(ex, "WCS API调用失败，将继续使用规则引擎: ParcelId={ParcelId}", notification.ParcelId);
             await _logRepository.LogWarningAsync(
@@ -88,7 +91,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 IsSuccess = false,
                 StatusCode = null,
                 DurationMs = (long)apiDuration.TotalMilliseconds,
-                CalledAt = DateTime.Now,
+                CalledAt = _clock.LocalNow,
                 ErrorMessage = ex.Message,
                 ApiResponse = null
             }, cancellationToken);
