@@ -30,7 +30,7 @@ public class WcsApiConfigController : ControllerBase
         ILogger<WcsApiConfigController> logger,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-_repository = repository;
+        _repository = repository;
         _reloadService = reloadService;
         _logger = logger;
         _clock = clock;

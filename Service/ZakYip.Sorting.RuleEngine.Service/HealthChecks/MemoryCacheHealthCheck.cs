@@ -15,7 +15,7 @@ public class MemoryCacheHealthCheck : IHealthCheck
         IMemoryCache cache,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-_cache = cache;
+        _cache = cache;
         _clock = clock;
     }
 

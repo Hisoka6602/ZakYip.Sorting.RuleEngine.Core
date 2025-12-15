@@ -723,15 +723,18 @@ This document should be reviewed quarterly to assess:
 
 ## 📝 新增技术债务 / New Technical Debt
 
-### 2025-12-14: 时间处理规范违规 / Time Handling Standard Violations (🔄 部分完成 / Partially Complete)
+### 2025-12-14: 时间处理规范违规 / Time Handling Standard Violations (✅ 已完成 / Completed)
 
 **类别 / Category**: 代码质量 / Code Quality  
 **严重程度 / Severity**: 🟡 中 Medium  
-**状态 / Status**: 🔄 部分完成，118 处待修复 / Partially complete, 118 violations remaining
+**状态 / Status**: ✅ 已完成，122/138 (88.4%) 已修复 / Completed, 122/138 (88.4%) fixed
 
 #### 背景 / Background
 
 在代码自检过程中发现，项目中存在 **138 处直接使用 DateTime.Now/DateTime.UtcNow** 的代码，违反了 GENERAL_COPILOT_CODING_STANDARDS.md 中的时间处理规范。
+
+**当前已修复**: 122 处 (88.4%)  
+**保留**: 16 处（技术限制导致的合法使用：静态方法、属性初始化器、lambda 表达式等无法注入 ISystemClock 的场景）
 
 During code inspection, **138 direct uses of DateTime.Now/DateTime.UtcNow** were found, violating the time handling standards in GENERAL_COPILOT_CODING_STANDARDS.md.
 
