@@ -30,7 +30,8 @@ public class WdtWmsApiClientTests
         {
             BaseAddress = new Uri("https://api.wdt.com")
         };
-        return new WdtWmsApiClient(httpClient, _loggerMock.Object, AppKey, AppSecret);
+        var clock = new MockSystemClock();
+        return new WdtWmsApiClient(httpClient, _loggerMock.Object, clock, AppKey, AppSecret);
     }
 
     [Fact]

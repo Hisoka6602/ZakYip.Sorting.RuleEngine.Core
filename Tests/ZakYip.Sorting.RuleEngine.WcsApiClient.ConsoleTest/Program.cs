@@ -24,7 +24,8 @@ class Program
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         if (!string.IsNullOrEmpty(API_KEY)) httpClient.DefaultRequestHeaders.Add("X-API-Key", API_KEY);
         
-        var client = new Infrastructure.ApiClients.WcsApiClient(httpClient, logger);
+        var clock = new Infrastructure.Services.SystemClock();
+        var client = new Infrastructure.ApiClients.WcsApiClient(httpClient, logger, clock);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

@@ -31,7 +31,8 @@ public class WdtErpFlagshipApiClientTests
         {
             BaseAddress = new Uri("https://api.example.com")
         };
-        var client = new WdtErpFlagshipApiClient(httpClient, _loggerMock.Object, Key, Appsecret, Sid);
+        var clock = new MockSystemClock();
+        var client = new WdtErpFlagshipApiClient(httpClient, _loggerMock.Object, clock, Key, Appsecret, Sid);
         client.Parameters.Url = "https://api.example.com/flagship";
         client.Parameters.Method = "wms.stockout.Sales.weighingExt";
         client.Parameters.V = "1.0";

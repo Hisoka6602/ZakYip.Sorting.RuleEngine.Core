@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 namespace ZakYip.Sorting.RuleEngine.Domain.DTOs;
 
 /// <summary>
@@ -9,12 +10,12 @@ public class HeatmapQueryDto
     /// <summary>
     /// 开始日期
     /// </summary>
-    public DateTime StartDate { get; set; } = DateTime.Now.Date.AddDays(-7);
+    public DateTime StartDate { get; set; } = SystemClockProvider.LocalNow.Date.AddDays(-7);
 
     /// <summary>
     /// 结束日期
     /// </summary>
-    public DateTime EndDate { get; set; } = DateTime.Now.Date;
+    public DateTime EndDate { get; set; } = SystemClockProvider.LocalNow.Date;
 
     /// <summary>
     /// 格口ID（可选，为空则查询所有格口）

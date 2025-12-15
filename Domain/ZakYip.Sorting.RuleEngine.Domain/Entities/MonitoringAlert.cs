@@ -1,7 +1,6 @@
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
-
 /// <summary>
 /// 监控告警日志实体
 /// Monitoring alert log entity

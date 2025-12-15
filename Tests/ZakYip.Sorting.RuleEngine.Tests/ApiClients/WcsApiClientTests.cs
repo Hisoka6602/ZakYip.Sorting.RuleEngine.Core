@@ -28,7 +28,8 @@ public class WcsApiClientTests
         {
             BaseAddress = new Uri("https://api.example.com")
         };
-        return new WcsApiClient(httpClient, _loggerMock.Object);
+        var clock = new MockSystemClock();
+        return new WcsApiClient(httpClient, _loggerMock.Object, clock);
     }
 
     [Fact]

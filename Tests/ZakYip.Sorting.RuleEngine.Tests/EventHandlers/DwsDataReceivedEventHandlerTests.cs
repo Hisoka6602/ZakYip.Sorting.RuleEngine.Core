@@ -5,6 +5,7 @@ using ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.EventHandlers;
 
@@ -29,12 +30,14 @@ public class DwsDataReceivedEventHandlerTests
         _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockPublisher = new Mock<IPublisher>();
+        var clock = new MockSystemClock();
 
         _handler = new DwsDataReceivedEventHandler(
             _mockLogger.Object,
             _mockFactory.Object,
             _mockLogRepository.Object,
-            _mockPublisher.Object);
+            _mockPublisher.Object,
+            clock);
     }
 
     [Fact]

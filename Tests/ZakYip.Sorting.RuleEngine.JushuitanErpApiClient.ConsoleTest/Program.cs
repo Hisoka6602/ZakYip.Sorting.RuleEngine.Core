@@ -26,7 +26,8 @@ class Program
         var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.JushuitanErp.JushuitanErpApiClient>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.JushuitanErp.JushuitanErpApiClient(httpClient, logger, PARTNER_KEY, PARTNER_SECRET, TOKEN);
+        var clock = new Infrastructure.Services.SystemClock();
+        var client = new Infrastructure.ApiClients.JushuitanErp.JushuitanErpApiClient(httpClient, logger, clock, PARTNER_KEY, PARTNER_SECRET, TOKEN);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

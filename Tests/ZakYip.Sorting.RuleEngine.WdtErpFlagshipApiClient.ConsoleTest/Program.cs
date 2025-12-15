@@ -26,7 +26,8 @@ class Program
         var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.WdtErpFlagship.WdtErpFlagshipApiClient>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.WdtErpFlagship.WdtErpFlagshipApiClient(httpClient, logger, KEY, APPSECRET, SID);
+        var clock = new Infrastructure.Services.SystemClock();
+        var client = new Infrastructure.ApiClients.WdtErpFlagship.WdtErpFlagshipApiClient(httpClient, logger, clock, KEY, APPSECRET, SID);
         
         // Configure additional parameters
         client.Parameters.Url = BASE_URL;

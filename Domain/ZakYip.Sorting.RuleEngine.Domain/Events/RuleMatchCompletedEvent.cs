@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 using MediatR;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.Events;
@@ -30,5 +31,5 @@ public record class RuleMatchCompletedEvent : INotification
     /// <summary>
     /// 完成时间
     /// </summary>
-    public DateTime CompletedAt { get; init; } = DateTime.Now;
+    public DateTime CompletedAt { get; init; } = SystemClockProvider.LocalNow;
 }

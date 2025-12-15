@@ -2,6 +2,7 @@ using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Mappers;
 
@@ -56,9 +57,10 @@ public class MapperParameterValidationTests
     {
         // Arrange
         SorterConfigUpdateRequest? nullRequest = null;
+        var clock = new MockSystemClock();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => nullRequest!.ToEntity());
+        Assert.Throws<ArgumentNullException>(() => nullRequest!.ToEntity(clock));
     }
 
     [Fact]
@@ -66,9 +68,10 @@ public class MapperParameterValidationTests
     {
         // Arrange
         WcsApiConfigUpdateRequest? nullRequest = null;
+        var clock = new MockSystemClock();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => nullRequest!.ToEntity());
+        Assert.Throws<ArgumentNullException>(() => nullRequest!.ToEntity(clock));
     }
 
     [Fact]
@@ -86,9 +89,10 @@ public class MapperParameterValidationTests
     {
         // Arrange
         DwsConfigUpdateRequest? nullRequest = null;
+        var clock = new MockSystemClock();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => DwsConfigMapper.ToEntity(nullRequest!));
+        Assert.Throws<ArgumentNullException>(() => DwsConfigMapper.ToEntity(nullRequest!, clock));
     }
 
     [Fact]
@@ -106,8 +110,9 @@ public class MapperParameterValidationTests
     {
         // Arrange
         DwsDataTemplateUpdateRequest? nullRequest = null;
+        var clock = new MockSystemClock();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => DwsDataTemplateMapper.ToEntity(nullRequest!));
+        Assert.Throws<ArgumentNullException>(() => DwsDataTemplateMapper.ToEntity(nullRequest!, clock));
     }
 }

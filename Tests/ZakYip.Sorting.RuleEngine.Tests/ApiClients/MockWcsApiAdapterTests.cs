@@ -20,7 +20,8 @@ public class MockWcsApiAdapterTests
     public MockWcsApiAdapterTests()
     {
         _mockLogger = new Mock<ILogger<MockWcsApiAdapter>>();
-        _adapter = new MockWcsApiAdapter(_mockLogger.Object);
+        var clock = new MockSystemClock();
+        _adapter = new MockWcsApiAdapter(_mockLogger.Object, clock);
     }
 
     [Fact]

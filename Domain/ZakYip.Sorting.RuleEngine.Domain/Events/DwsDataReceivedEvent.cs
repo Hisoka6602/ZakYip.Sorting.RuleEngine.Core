@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 using MediatR;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
@@ -21,5 +22,5 @@ public record class DwsDataReceivedEvent : INotification
     /// <summary>
     /// 接收时间
     /// </summary>
-    public DateTime ReceivedAt { get; init; } = DateTime.Now;
+    public DateTime ReceivedAt { get; init; } = SystemClockProvider.LocalNow;
 }
