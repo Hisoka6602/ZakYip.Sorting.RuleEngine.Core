@@ -36,7 +36,9 @@ public class DwsTimeoutCheckerService : BackgroundService
                 if (!_timeoutSettings.Enabled)
                 {
                     _logger.LogDebug("DWS超时检查已禁用，跳过本次检查 / DWS timeout check is disabled, skipping this check");
-                    await Task.Delay(TimeSpan.FromSeconds(_timeoutSettings.CheckIntervalSeconds), stoppingToken).ConfigureAwait(false);
+                    // 当禁用时，等待较长时间以减少CPU使用
+                    // When disabled, wait longer to reduce CPU usage
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
                     continue;
                 }
 

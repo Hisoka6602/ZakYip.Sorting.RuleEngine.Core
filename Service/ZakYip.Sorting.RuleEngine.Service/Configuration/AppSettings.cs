@@ -1,7 +1,5 @@
 using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 
-using ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
-
 namespace ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 /// <summary>

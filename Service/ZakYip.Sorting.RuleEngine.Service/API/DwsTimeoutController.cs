@@ -66,6 +66,13 @@ public class DwsTimeoutController : ControllerBase
     /// <response code="200">配置更新成功 / Configuration updated successfully</response>
     /// <response code="400">请求参数错误 / Invalid request parameters</response>
     /// <response code="500">服务器内部错误 / Internal server error</response>
+    /// <remarks>
+    /// 注意：此API仅更新内存中的配置，重启后会恢复到appsettings.json中的值。
+    /// 如需持久化配置，请直接修改appsettings.json文件并重启服务。
+    /// 
+    /// Note: This API only updates in-memory configuration, which will revert to appsettings.json values after restart.
+    /// For persistent configuration changes, directly modify the appsettings.json file and restart the service.
+    /// </remarks>
     [HttpPut]
     [SwaggerOperation(
         Summary = "更新DWS超时配置 / Update DWS timeout configuration",
