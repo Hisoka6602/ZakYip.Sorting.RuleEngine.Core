@@ -93,7 +93,7 @@ _repository = repository;
         try
         {
             // 从请求创建实体（自动设置单例ID）
-            var config = request.ToEntity();
+            var config = request.ToEntity(_clock);
             
             // 检查现有配置
             var existing = await _repository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
@@ -161,8 +161,8 @@ _repository = repository;
             AutoReconnect = true,
             ReconnectIntervalSeconds = 5,
             Description = "默认的DWS通信配置",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }

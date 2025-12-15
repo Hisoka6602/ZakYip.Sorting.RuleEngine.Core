@@ -1,5 +1,6 @@
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Mappers;
 
@@ -13,11 +14,12 @@ public static class WcsApiConfigMapper
     /// 从更新请求创建实体
     /// Create entity from update request
     /// </summary>
-    public static WcsApiConfig ToEntity(this WcsApiConfigUpdateRequest request)
+    public static WcsApiConfig ToEntity(this WcsApiConfigUpdateRequest request, ISystemClock clock)
     {
         ArgumentNullException.ThrowIfNull(request);
-        
-        var now = DateTime.Now;
+        ArgumentNullException.ThrowIfNull(clock);
+
+        var now = clock.LocalNow;
         return new WcsApiConfig
         {
             ConfigId = WcsApiConfig.SingletonId,

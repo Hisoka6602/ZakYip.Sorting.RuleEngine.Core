@@ -89,7 +89,7 @@ _repository = repository;
         try
         {
             // 从请求创建实体（自动设置单例ID）
-            var template = request.ToEntity();
+            var template = request.ToEntity(_clock);
             
             // 检查现有模板
             var existing = await _repository.GetByIdAsync(DwsDataTemplate.SingletonId).ConfigureAwait(false);
@@ -139,8 +139,8 @@ _repository = repository;
             IsJsonFormat = false,
             IsEnabled = false,
             Description = "默认的DWS数据解析模板",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
     }
 }

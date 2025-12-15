@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Optimizations;
 
@@ -12,6 +14,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Optimizations;
 /// </summary>
 public static class QueryOptimizationExtensions
 {
+    private static readonly ISystemClock Clock = new SystemClock();
+
     /// <summary>
     /// 慢查询阈值（毫秒）- 超过此时间的查询将被记录
     /// Slow query threshold (milliseconds) - Queries exceeding this time will be logged
@@ -323,7 +327,7 @@ public static class QueryOptimizationExtensions
                 ExecutionCount = 1,
                 TotalExecutionTimeMs = executionTimeMs,
                 MaxExecutionTimeMs = executionTimeMs,
-                LastExecuted = DateTime.Now,
+                LastExecuted = Clock.LocalNow,
                 Recommendations = GenerateQueryRecommendations(queryPlan, executionTimeMs)
             },
             (key, existing) =>
@@ -331,7 +335,7 @@ public static class QueryOptimizationExtensions
                 existing.ExecutionCount++;
                 existing.TotalExecutionTimeMs += executionTimeMs;
                 existing.MaxExecutionTimeMs = Math.Max(existing.MaxExecutionTimeMs, executionTimeMs);
-                existing.LastExecuted = DateTime.Now;
+                existing.LastExecuted = Clock.LocalNow;
                 // 只在执行次数为10的倍数时重新生成建议，避免频繁计算
                 if (existing.ExecutionCount % 10 == 0)
                 {

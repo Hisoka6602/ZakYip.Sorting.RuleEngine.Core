@@ -10,8 +10,9 @@ public class MySqlMonitoringAlertRepository : BaseMonitoringAlertRepository<MySq
 {
     public MySqlMonitoringAlertRepository(
         MySqlLogDbContext context,
-        ILogger<MySqlMonitoringAlertRepository> logger) 
-        : base(context, logger)
+        ILogger<MySqlMonitoringAlertRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        : base(context, logger, clock)
     {
     }
 }

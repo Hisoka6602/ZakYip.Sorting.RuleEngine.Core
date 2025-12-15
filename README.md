@@ -15,11 +15,32 @@ ZakYip分拣规则引擎系统是一个高性能的包裹分拣规则引擎，�
 ## 更新记录
 
 - 本次更新：
-  - 为包裹处理相关模型补充双语XML注释，符合编码规范的文档要求。
-  - 更新README文件结构描述，便于快速定位核心模型和技术债务文件。
+  - 统一包裹处理、编排与仓储相关组件的时间来源，注入 `ISystemClock` 替换直接的 `DateTime.Now` 访问。
+  - 为 ReactiveExtensions 与查询优化工具提供共享系统时钟，确保时间戳生成一致。
+  - 更新 LiteDB 仓储与监控告警仓储的时间戳写入逻辑，避免零散时间获取方式。
 - 可继续完善的内容：
-  - 扩展其他公开模型与DTO的注释覆盖率，补充示例值与详细备注。
-  - 按技术债务计划逐步替换剩余的时间处理直接调用，统一使用抽象时间服务。
+  - 在 Domain 实体和默认值层面继续推广时钟抽象，清理剩余静态时间初始化。
+  - 对测试数据生成器与模拟器补充时钟注入，以简化断言并减少时间相关脆弱性。
+
+## 本次更新概览 / Latest Update Overview
+
+```
+Application/
+  Services/
+    ParcelProcessingService.cs       - 通过依赖注入的系统时钟记录包裹更新时间
+    ParcelOrchestrationService.cs    - 使用系统时钟创建/更新处理上下文时间戳
+Infrastructure/
+  Persistence/
+    BaseMonitoringAlertRepository.cs - 解决告警时改用注入时钟记录时间
+    Optimizations/QueryOptimizationExtensions.cs - 查询计划缓存时间改用系统时钟
+    LiteDb/BaseLiteDbRepository.cs   - 提供共享时钟以更新LiteDB实体时间
+    LiteDb/LiteDbDwsConfigRepository.cs - 更新配置时间戳使用共享时钟
+    LiteDb/LiteDbDwsDataTemplateRepository.cs - 更新时间戳使用共享时钟
+  Services/ReactiveExtensions.cs     - 窗口统计与心跳时间改用系统时钟
+Tests/
+  Services/ParcelProcessingServiceTests.cs - 注入模拟时钟验证更新时间
+  Services/ParcelOrchestrationServiceTests.cs - 注入模拟时钟验证上下文时间
+```
 
 ## 主逻辑流程
 

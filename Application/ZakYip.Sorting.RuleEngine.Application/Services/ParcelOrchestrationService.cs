@@ -23,6 +23,7 @@ public class ParcelOrchestrationService
     private readonly IMemoryCache _cache;
     private readonly Channel<ParcelWorkItem> _parcelChannel;
     private readonly ConcurrentDictionary<string, ParcelProcessingContext> _processingContexts;
+    private readonly ISystemClock _clock;
     private long _sequenceNumber;
 
     private readonly IParcelActivityTracker? _activityTracker;
@@ -32,12 +33,14 @@ public class ParcelOrchestrationService
         IPublisher publisher,
         IServiceProvider serviceProvider,
         IMemoryCache cache,
+        ISystemClock clock,
         IParcelActivityTracker? activityTracker = null)
     {
         _logger = logger;
         _publisher = publisher;
         _serviceProvider = serviceProvider;
         _cache = cache;
+        _clock = clock;
         _activityTracker = activityTracker;
         
         // 创建有界通道，确保FIFO处理
@@ -69,7 +72,7 @@ public class ParcelOrchestrationService
             CartNumber = cartNumber,
             Barcode = barcode,
             SequenceNumber = sequence,
-            CreatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow
         };
         
         if (!_processingContexts.TryAdd(parcelId, context))
@@ -104,7 +107,7 @@ public class ParcelOrchestrationService
         }
 
         context.DwsData = dwsData;
-        context.DwsReceivedAt = DateTime.Now;
+        context.DwsReceivedAt = _clock.LocalNow;
         
         // 将DWS处理加入队列
         var workItem = new ParcelWorkItem

@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
@@ -8,6 +9,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 /// </summary>
 public static class ReactiveExtensions
 {
+    private static readonly ISystemClock Clock = new SystemClock();
+
     /// <summary>
     /// 创建一个可观察序列，当超过指定时间未收到元素时发出超时通知
     /// Create an observable sequence that emits a timeout notification when no elements are received within the specified time
@@ -41,7 +44,7 @@ public static class ReactiveExtensions
             .Select(batch =>
             {
                 var values = batch.Select(selector).ToList();
-                var now = DateTime.Now;
+                var now = Clock.LocalNow;
                 return new WindowStatistics<T>
                 {
                     WindowStart = now - windowDuration,
@@ -172,7 +175,7 @@ public static class ReactiveExtensions
     {
         var heartbeat = Observable
             .Interval(heartbeatInterval)
-            .Select(_ => Either<T, HeartbeatSignal>.CreateRight(new HeartbeatSignal { Timestamp = DateTime.Now }));
+            .Select(_ => Either<T, HeartbeatSignal>.CreateRight(new HeartbeatSignal { Timestamp = Clock.LocalNow }));
 
         var sourceWithLeft = source.Select(item => Either<T, HeartbeatSignal>.CreateLeft(item));
 

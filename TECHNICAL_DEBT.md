@@ -788,6 +788,30 @@ During code inspection, **138 direct uses of DateTime.Now/DateTime.UtcNow** were
 |------|--------------------|---------------|-----------|
 | ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/ApiClients/Shared/BasePostalApiClient.cs | `BasePostalApiClient._sequenceNumber` 初始化迁移至构造函数 / initialization moved to constructor | 4801071985d06459c1848cb20ad8dc1ad4e97724 |
 | ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/ApiClients/WcsApiClient.cs | `WcsApiClient.CreateSuccessResponse` 时间戳改用 `_clock.LocalNow` | 4801071985d06459c1848cb20ad8dc1ad4e97724 |
+| ✅ Resolved | Application/ZakYip.Sorting.RuleEngine.Application/Mappers/DwsMapper.cs | `DwsConfigMapper.ToEntity` 与 `DwsDataTemplateMapper.ToEntity` 使用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Application/ZakYip.Sorting.RuleEngine.Application/Mappers/WcsApiConfigMapper.cs | `WcsApiConfigMapper.ToEntity` 使用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Application/ZakYip.Sorting.RuleEngine.Application/Mappers/SorterConfigMapper.cs | `SorterConfigMapper.ToEntity` 使用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Service/ZakYip.Sorting.RuleEngine.Service/API/DwsConfigController.cs | `GetDefaultConfig` 与保存路径均改用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Service/ZakYip.Sorting.RuleEngine.Service/API/DwsDataTemplateController.cs | `GetDefaultTemplate` 时间戳改用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Service/ZakYip.Sorting.RuleEngine.Service/API/WcsApiConfigController.cs | `GetDefaultConfig` 时间戳改用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Service/ZakYip.Sorting.RuleEngine.Service/API/SorterConfigController.cs | `GetDefaultConfig` 时间戳改用 `_clock.LocalNow` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Application/ZakYip.Sorting.RuleEngine.Application/EventHandlers/DwsDataReceivedEventHandler.cs | `Handle` 方法使用 `_clock.LocalNow` 计算调用时间 | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Service/ZakYip.Sorting.RuleEngine.Service/Program.cs | `/health` 与 `/health/detail` 时间戳改用注入的 `ISystemClock` | d7d379d6096e26e08a33a4260899979cd523c0ea |
+| ✅ Resolved | Application/ZakYip.Sorting.RuleEngine.Application/Services/ParcelProcessingService.cs | 构造函数注入 `_clock` 并使用 `_clock.LocalNow` 更新包裹时间戳 | 39126f6 |
+| ✅ Resolved | Application/ZakYip.Sorting.RuleEngine.Application/Services/ParcelOrchestrationService.cs | 通过 `_clock.LocalNow` 生成上下文时间并注入时钟 | 39126f6 |
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Persistence/BaseMonitoringAlertRepository.cs | 告警解决时间改为 `_clock.LocalNow` 并注入时钟 | 39126f6 |
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Persistence/Optimizations/QueryOptimizationExtensions.cs | 查询缓存时间戳改用 `SystemClock` 封装 | 39126f6 |
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Services/ReactiveExtensions.cs | 滑动窗口与心跳时间戳改用 `SystemClock` | 39126f6 |
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Persistence/LiteDb/LiteDbDwsConfigRepository.cs | 更新时间戳改用基类 `Clock.LocalNow` | 39126f6 |
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Persistence/LiteDb/LiteDbDwsDataTemplateRepository.cs | 更新时间戳改用基类 `Clock.LocalNow` | 39126f6 |
+
+**⛔ Blocked / Exception:**
+
+| 状态 | 文件路径 File Path | 符号名 Symbol | 原因 / Reason |
+|------|--------------------|---------------|---------------|
+| ⛔ Blocked | Application/ZakYip.Sorting.RuleEngine.Application/DTOs/Responses/ApiResponse.cs | `Timestamp` 初始化与静态工厂默认时间使用 `DateTime.Now` | 调整为 `ISystemClock` 需要修改所有调用方签名与序列化输出时间语义，风险影响所有 API 响应格式，属于架构级变更。 |
+| ⛔ Blocked | Application/ZakYip.Sorting.RuleEngine.Application/DTOs/Responses/PagedResponse.cs | `Timestamp` 初始化与静态工厂默认时间使用 `DateTime.Now` | 同上，需重塑通用响应构造链路与调用者签名，属于跨模块改动，当前迭代不做架构调整。 |
+| ⛔ Blocked | Domain/ZakYip.Sorting.RuleEngine.Domain/Entities/* | `CreatedAt`/`RecordedAt` 等属性初始值使用 `DateTime.Now`（如 ParcelInfo、CommunicationLog、PerformanceMetric 等） | 域实体为持久化模型，默认值用于 ORM 映射与现有构造逻辑，改为依赖注入需新增构造函数并修改大量仓储/映射器，属于架构重排，当前迭代冻结。 |
 
 #### 修复方案 / Fix Solution
 

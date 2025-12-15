@@ -12,8 +12,9 @@ public class SqliteMonitoringAlertRepository : BaseMonitoringAlertRepository<Sql
 {
     public SqliteMonitoringAlertRepository(
         SqliteLogDbContext context,
-        ILogger<SqliteMonitoringAlertRepository> logger)
-        : base(context, logger)
+        ILogger<SqliteMonitoringAlertRepository> logger,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        : base(context, logger, clock)
     {
     }
 

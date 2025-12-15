@@ -1,6 +1,7 @@
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Application.Mappers;
 
@@ -40,11 +41,12 @@ public static class SorterConfigMapper
     /// 从更新请求创建实体
     /// Create entity from update request
     /// </summary>
-    public static SorterConfig ToEntity(this SorterConfigUpdateRequest request)
+    public static SorterConfig ToEntity(this SorterConfigUpdateRequest request, ISystemClock clock)
     {
         ArgumentNullException.ThrowIfNull(request);
-        
-        var now = DateTime.Now;
+        ArgumentNullException.ThrowIfNull(clock);
+
+        var now = clock.LocalNow;
         return new SorterConfig
         {
             ConfigId = SorterConfig.SingletonId,

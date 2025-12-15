@@ -16,11 +16,13 @@ public abstract class BaseMonitoringAlertRepository<TContext> : IMonitoringAlert
 {
     protected readonly TContext Context;
     protected readonly ILogger Logger;
+    private readonly ISystemClock _clock;
 
-    protected BaseMonitoringAlertRepository(TContext context, ILogger logger)
+    protected BaseMonitoringAlertRepository(TContext context, ILogger logger, ISystemClock clock)
     {
         Context = context;
         Logger = logger;
+        _clock = clock;
     }
 
     public virtual async Task AddAlertAsync(MonitoringAlert alert, CancellationToken cancellationToken = default)
@@ -84,7 +86,7 @@ public abstract class BaseMonitoringAlertRepository<TContext> : IMonitoringAlert
             if (alert != null)
             {
                 alert.IsResolved = true;
-                alert.ResolvedTime = DateTime.Now;
+                alert.ResolvedTime = _clock.LocalNow;
                 await Context.SaveChangesAsync(cancellationToken);
                 Logger.LogInformation("告警已解决: {AlertId}", alertId);
             }

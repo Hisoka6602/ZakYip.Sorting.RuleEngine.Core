@@ -19,6 +19,7 @@ public class ParcelOrchestrationServiceTests
     private readonly Mock<ILogger<ParcelOrchestrationService>> _mockLogger;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly Mock<IRuleEngineService> _mockRuleEngineService;
+    private readonly Mock<ISystemClock> _mockClock;
     private readonly IMemoryCache _cache;
     private readonly IServiceProvider _serviceProvider;
     private readonly ParcelOrchestrationService _service;
@@ -28,6 +29,9 @@ public class ParcelOrchestrationServiceTests
         _mockLogger = new Mock<ILogger<ParcelOrchestrationService>>();
         _mockPublisher = new Mock<IPublisher>();
         _mockRuleEngineService = new Mock<IRuleEngineService>();
+        _mockClock = new Mock<ISystemClock>();
+        var fixedTime = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local);
+        _mockClock.SetupGet(c => c.LocalNow).Returns(fixedTime);
         _cache = new MemoryCache(new MemoryCacheOptions());
         
         // 创建 ServiceProvider 用于测试
@@ -39,7 +43,8 @@ public class ParcelOrchestrationServiceTests
             _mockLogger.Object,
             _mockPublisher.Object,
             _serviceProvider,
-            _cache);
+            _cache,
+            _mockClock.Object);
     }
 
     [Fact]
