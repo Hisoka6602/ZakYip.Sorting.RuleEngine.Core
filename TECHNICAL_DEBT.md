@@ -727,14 +727,14 @@ This document should be reviewed quarterly to assess:
 
 **类别 / Category**: 代码质量 / Code Quality  
 **严重程度 / Severity**: 🟡 中 Medium  
-**状态 / Status**: ✅ 已完成，122/138 (88.4%) 已修复 / Completed, 122/138 (88.4%) fixed
+**状态 / Status**: ✅ 已完成，124/138 (89.9%) 已修复 / Completed, 124/138 (89.9%) fixed
 
 #### 背景 / Background
 
 在代码自检过程中发现，项目中存在 **138 处直接使用 DateTime.Now/DateTime.UtcNow** 的代码，违反了 GENERAL_COPILOT_CODING_STANDARDS.md 中的时间处理规范。
 
-**当前已修复**: 122 处 (88.4%)  
-**保留**: 16 处（技术限制导致的合法使用：静态方法、属性初始化器、lambda 表达式等无法注入 ISystemClock 的场景）
+**当前已修复**: 124 处 (89.9%)
+**保留**: 14 处（技术限制导致的合法使用：静态方法、属性初始化器、lambda 表达式等无法注入 ISystemClock 的场景）
 
 During code inspection, **138 direct uses of DateTime.Now/DateTime.UtcNow** were found, violating the time handling standards in GENERAL_COPILOT_CODING_STANDARDS.md.
 
@@ -781,6 +781,13 @@ During code inspection, **138 direct uses of DateTime.Now/DateTime.UtcNow** were
 8. MockWcsApiAdapter.cs - 6 处
 9. JushuitanErpApiClient.cs - 5 处
 10. AutoResponseModeController.cs - 3 处
+
+**本次修复 / Resolved in this PR:**
+
+| 状态 | 文件路径 File Path | 符号名 Symbol | commit id |
+|------|--------------------|---------------|-----------|
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/ApiClients/Shared/BasePostalApiClient.cs | `BasePostalApiClient._sequenceNumber` 初始化迁移至构造函数 / initialization moved to constructor | 4801071985d06459c1848cb20ad8dc1ad4e97724 |
+| ✅ Resolved | Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/ApiClients/WcsApiClient.cs | `WcsApiClient.CreateSuccessResponse` 时间戳改用 `_clock.LocalNow` | 4801071985d06459c1848cb20ad8dc1ad4e97724 |
 
 #### 修复方案 / Fix Solution
 

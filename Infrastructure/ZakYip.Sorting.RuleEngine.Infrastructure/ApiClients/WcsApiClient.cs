@@ -18,12 +18,12 @@ public class WcsApiClient : IWcsApiAdapter
     private readonly HttpClient _httpClient;
     private readonly ILogger<WcsApiClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
-    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
+    private readonly ISystemClock _clock;
 
     public WcsApiClient(
         HttpClient httpClient,
         ILogger<WcsApiClient> logger,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        ISystemClock clock)
     {
         _httpClient = httpClient;
         _logger = logger;
@@ -63,7 +63,7 @@ public class WcsApiClient : IWcsApiAdapter
         RequestBody = requestBody,
         RequestHeaders = requestHeaders,
         RequestTime = requestTime,
-        ResponseTime = DateTime.Now,
+        ResponseTime = _clock.LocalNow,
         ResponseStatusCode = statusCode,
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
@@ -99,7 +99,7 @@ public class WcsApiClient : IWcsApiAdapter
         RequestBody = requestBody,
         RequestHeaders = requestHeaders,
         RequestTime = requestTime,
-        ResponseTime = DateTime.Now,
+        ResponseTime = _clock.LocalNow,
         ResponseStatusCode = statusCode,
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
@@ -110,7 +110,7 @@ public class WcsApiClient : IWcsApiAdapter
     /// <summary>
     /// 创建异常响应 / Create exception response
     /// </summary>
-    private static WcsApiResponse CreateExceptionResponse(
+    private WcsApiResponse CreateExceptionResponse(
         Exception ex,
         string parcelId,
         string requestUrl,
@@ -133,7 +133,7 @@ public class WcsApiClient : IWcsApiAdapter
         RequestBody = requestBody,
         RequestHeaders = requestHeaders,
         RequestTime = requestTime,
-        ResponseTime = DateTime.Now,
+        ResponseTime = _clock.LocalNow,
         ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
@@ -150,14 +150,14 @@ public class WcsApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         var requestUrl = WcsEndpoints.ParcelScan;
         
         // 构造请求数据
         var requestData = new
         {
             barcode,
-            scanTime = DateTime.Now
+            scanTime = _clock.LocalNow
         };
         var json = JsonSerializer.Serialize(requestData, _jsonOptions);
         
@@ -258,7 +258,7 @@ public class WcsApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         var requestUrl = WcsEndpoints.ChuteRequest;
         
         // 构造请求数据 - 包含DWS数据
@@ -280,7 +280,7 @@ public class WcsApiClient : IWcsApiAdapter
                 thirdSegmentCode = ocrData.ThirdSegmentCode,
                 recipientAddress = ocrData.RecipientAddress
             } : null,
-            requestTime = DateTime.Now
+            requestTime = _clock.LocalNow
         };
         
         var json = JsonSerializer.Serialize(requestData, _jsonOptions);
@@ -385,7 +385,7 @@ public class WcsApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var requestTime = DateTime.Now;
+        var requestTime = _clock.LocalNow;
         var requestUrl = WcsEndpoints.ImageUpload;
         
         HttpResponseMessage? response = null;
