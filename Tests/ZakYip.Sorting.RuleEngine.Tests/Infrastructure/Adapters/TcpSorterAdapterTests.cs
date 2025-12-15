@@ -1,7 +1,11 @@
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using Moq;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using Xunit;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Infrastructure.Adapters;
 
@@ -22,7 +26,7 @@ public class TcpSorterAdapterTests
     public void AdapterName_ShouldReturnCorrectName()
     {
         // Arrange
-        var adapter = new TcpSorterAdapter("localhost", 8080, _mockLogger.Object);
+        var adapter = new TcpSorterAdapter("localhost", 8080, _mockLogger.Object, new MockSystemClock());
 
         // Act & Assert
         Assert.Equal("TCP-Generic", adapter.AdapterName);
@@ -32,7 +36,7 @@ public class TcpSorterAdapterTests
     public void ProtocolType_ShouldReturnTCP()
     {
         // Arrange
-        var adapter = new TcpSorterAdapter("localhost", 8080, _mockLogger.Object);
+        var adapter = new TcpSorterAdapter("localhost", 8080, _mockLogger.Object, new MockSystemClock());
 
         // Act & Assert
         Assert.Equal("TCP", adapter.ProtocolType);
@@ -42,7 +46,7 @@ public class TcpSorterAdapterTests
     public async Task IsConnectedAsync_InitialState_ShouldReturnFalse()
     {
         // Arrange
-        var adapter = new TcpSorterAdapter("localhost", 8080, _mockLogger.Object);
+        var adapter = new TcpSorterAdapter("localhost", 8080, _mockLogger.Object, new MockSystemClock());
 
         // Act
         var isConnected = await adapter.IsConnectedAsync();
@@ -55,7 +59,7 @@ public class TcpSorterAdapterTests
     public async Task SendChuteNumberAsync_WithoutConnection_ShouldReturnFalse()
     {
         // Arrange
-        var adapter = new TcpSorterAdapter("localhost", 9999, _mockLogger.Object);
+        var adapter = new TcpSorterAdapter("localhost", 9999, _mockLogger.Object, new MockSystemClock());
         var parcelId = "PKG-001";
         var chuteNumber = "CHUTE-05";
 
@@ -70,7 +74,7 @@ public class TcpSorterAdapterTests
     public void Constructor_ShouldSetPropertiesCorrectly()
     {
         // Arrange & Act
-        var adapter = new TcpSorterAdapter("test-host", 12345, _mockLogger.Object);
+        var adapter = new TcpSorterAdapter("test-host", 12345, _mockLogger.Object, new MockSystemClock());
 
         // Assert
         Assert.Equal("TCP-Generic", adapter.AdapterName);
@@ -81,7 +85,7 @@ public class TcpSorterAdapterTests
     public async Task SendChuteNumberAsync_WithInvalidHost_ShouldReturnFalseAndLogError()
     {
         // Arrange
-        var adapter = new TcpSorterAdapter("invalid-host-that-does-not-exist", 8080, _mockLogger.Object);
+        var adapter = new TcpSorterAdapter("invalid-host-that-does-not-exist", 8080, _mockLogger.Object, new MockSystemClock());
         var parcelId = "PKG-002";
         var chuteNumber = "CHUTE-10";
 
