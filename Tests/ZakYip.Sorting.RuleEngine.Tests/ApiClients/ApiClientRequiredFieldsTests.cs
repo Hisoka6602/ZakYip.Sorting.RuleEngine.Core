@@ -270,7 +270,8 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WdtWmsApiClient>>();
-        var client = new WdtWmsApiClient(httpClient, logger, "testKey", "testSecret", "testSid");
+        var clock = new MockSystemClock();
+        var client = new WdtWmsApiClient(httpClient, logger, clock, "testKey", "testSecret");
 
         var dwsData = new DwsData
         {
@@ -299,7 +300,8 @@ public class ApiClientRequiredFieldsTests
         // Arrange
         var logger = Mock.Of<ILogger<WdtWmsApiClient>>();
         var httpClient = new HttpClient();
-        var client = new WdtWmsApiClient(httpClient, logger, "testKey", "testSecret", "testSid");
+        var clock = new MockSystemClock();
+        var client = new WdtWmsApiClient(httpClient, logger, clock, "testKey", "testSecret");
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");

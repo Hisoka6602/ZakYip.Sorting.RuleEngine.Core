@@ -144,7 +144,7 @@ public class WcsApiConfigController : ControllerBase
     /// 获取默认配置
     /// Get default configuration
     /// </summary>
-    private static WcsApiConfigResponseDto GetDefaultConfig()
+    private WcsApiConfigResponseDto GetDefaultConfig()
     {
         return new WcsApiConfigResponseDto
         {

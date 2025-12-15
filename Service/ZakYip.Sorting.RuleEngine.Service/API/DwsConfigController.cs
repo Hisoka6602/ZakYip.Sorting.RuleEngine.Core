@@ -144,7 +144,7 @@ _repository = repository;
     /// 获取默认配置
     /// Get default configuration
     /// </summary>
-    private static DwsConfigResponseDto GetDefaultConfig()
+    private DwsConfigResponseDto GetDefaultConfig()
     {
         return new DwsConfigResponseDto
         {

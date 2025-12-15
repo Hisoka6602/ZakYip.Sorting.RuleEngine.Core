@@ -34,12 +34,14 @@ public class MqttSorterAdapterTests : IDisposable
             It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
+        var clock = new MockSystemClock();
         _adapter = new MqttSorterAdapter(
             "localhost",
             1883,
             "sorter/chute",
             _mockLogger.Object,
             _mockLogRepository.Object,
+            clock,
             "test-sorter-client");
     }
 
@@ -95,12 +97,14 @@ public class MqttSorterAdapterTests : IDisposable
     public void Constructor_ShouldSetPropertiesCorrectly()
     {
         // Arrange & Act
+        var clock = new MockSystemClock();
         var adapter = new MqttSorterAdapter(
             "test-broker",
             1883,
             "test/topic",
             _mockLogger.Object,
             _mockLogRepository.Object,
+            clock,
             "test-client-id",
             "test-user",
             "test-password");
@@ -114,12 +118,14 @@ public class MqttSorterAdapterTests : IDisposable
     public void Dispose_ShouldNotThrowException()
     {
         // Arrange
+        var clock = new MockSystemClock();
         var adapter = new MqttSorterAdapter(
             "localhost",
             1883,
             "test/topic",
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockLogRepository.Object,
+            clock);
 
         // Act & Assert
         var exception = Record.Exception(() => adapter.Dispose());

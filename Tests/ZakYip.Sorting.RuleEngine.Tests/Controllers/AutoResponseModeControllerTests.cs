@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using ZakYip.Sorting.RuleEngine.Service.API;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Controllers;
@@ -21,7 +22,8 @@ public class AutoResponseModeControllerTests
     {
         _mockService = new Mock<IAutoResponseModeService>();
         _mockLogger = new Mock<ILogger<AutoResponseModeController>>();
-        _controller = new AutoResponseModeController(_mockService.Object, _mockLogger.Object);
+        var clock = new MockSystemClock();
+        _controller = new AutoResponseModeController(_mockService.Object, _mockLogger.Object, clock);
     }
 
     [Fact]

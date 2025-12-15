@@ -31,7 +31,8 @@ public class JushuitanErpApiClientTests
         {
             BaseAddress = new Uri("https://api.jushuitan.com")
         };
-        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, PartnerKey, PartnerSecret, Token);
+        var clock = new MockSystemClock();
+        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, clock, PartnerKey, PartnerSecret, Token);
     }
 
     [Fact]

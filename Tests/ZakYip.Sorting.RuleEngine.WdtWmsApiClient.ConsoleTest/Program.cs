@@ -25,7 +25,8 @@ class Program
         var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.WdtWms.WdtWmsApiClient>();
         var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
         
-        var client = new Infrastructure.ApiClients.WdtWms.WdtWmsApiClient(httpClient, logger, APP_KEY, APP_SECRET);
+        var clock = new Infrastructure.Services.SystemClock();
+        var client = new Infrastructure.ApiClients.WdtWms.WdtWmsApiClient(httpClient, logger, clock, APP_KEY, APP_SECRET);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

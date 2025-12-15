@@ -484,7 +484,7 @@ try
 
                 app.UseCors();
                 app.UseRouting();
-                var clock = app.Services.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
+                var clock = app.ApplicationServices.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
 
                 app.UseEndpoints(endpoints =>
                 {

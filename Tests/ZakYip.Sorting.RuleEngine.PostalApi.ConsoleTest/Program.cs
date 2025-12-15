@@ -71,7 +71,8 @@ class Program
             httpClient.DefaultRequestHeaders.Add("X-API-Key", API_KEY);
         }
         
-        var adapter = new PostProcessingCenterApiClient(httpClient, logger);
+        var clock = new Infrastructure.Services.SystemClock();
+        var adapter = new PostProcessingCenterApiClient(httpClient, logger, clock);
         
         Console.WriteLine($"URL: {PROCESSING_CENTER_URL}\n");
         
@@ -137,7 +138,8 @@ class Program
             httpClient.DefaultRequestHeaders.Add("X-API-Key", API_KEY);
         }
         
-        var adapter = new PostCollectionApiClient(httpClient, logger);
+        var clock = new Infrastructure.Services.SystemClock();
+        var adapter = new PostCollectionApiClient(httpClient, logger, clock);
         
         Console.WriteLine($"URL: {COLLECTION_INSTITUTION_URL}\n");
         

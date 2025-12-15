@@ -129,7 +129,7 @@ _repository = repository;
     /// 获取默认模板
     /// Get default template
     /// </summary>
-    private static DwsDataTemplateResponseDto GetDefaultTemplate()
+    private DwsDataTemplateResponseDto GetDefaultTemplate()
     {
         return new DwsDataTemplateResponseDto
         {
