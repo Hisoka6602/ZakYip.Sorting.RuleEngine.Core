@@ -51,8 +51,6 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 null, // OcrData not available in this event
                 cancellationToken).ConfigureAwait(false);
 
-            var apiDuration = _clock.LocalNow - apiStartTime;
-
             // 记录WCS API响应（主动调用的响应，直接记录，不通过事件）
             if (response != null)
             {
