@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
@@ -70,7 +71,7 @@ public class PagedResponse<T>
     /// 时间戳
     /// </summary>
     [Required]
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTime Timestamp { get; set; } = SystemClockProvider.LocalNow;
 
     /// <summary>
     /// 创建成功的分页响应
@@ -84,7 +85,7 @@ public class PagedResponse<T>
             Total = total,
             Page = page,
             PageSize = pageSize,
-            Timestamp = DateTime.Now
+            Timestamp = SystemClockProvider.LocalNow
         };
     }
 
@@ -102,7 +103,7 @@ public class PagedResponse<T>
             PageSize = 0,
             ErrorMessage = errorMessage,
             ErrorCode = errorCode,
-            Timestamp = DateTime.Now
+            Timestamp = SystemClockProvider.LocalNow
         };
     }
 }

@@ -322,6 +322,14 @@ try
                 // 注册系统时钟（单例模式）
                 // Register system clock (Singleton mode)
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
+                
+                // 初始化 SystemClockProvider 用于静态上下文
+                // Initialize SystemClockProvider for static contexts
+                var clock = new ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock();
+                ZakYip.Sorting.RuleEngine.Domain.Services.SystemClockProvider.Initialize(
+                    () => clock.LocalNow,
+                    () => clock.UtcNow
+                );
 
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)

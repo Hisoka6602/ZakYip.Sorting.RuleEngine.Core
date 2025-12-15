@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.DTOs;
@@ -61,5 +62,5 @@ public class RealtimeMonitoringDto
     /// <summary>
     /// 数据更新时间
     /// </summary>
-    public DateTime UpdateTime { get; set; } = DateTime.Now;
+    public DateTime UpdateTime { get; set; } = SystemClockProvider.LocalNow;
 }

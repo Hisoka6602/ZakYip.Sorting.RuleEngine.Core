@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 using MediatR;
 
 namespace ZakYip.Sorting.RuleEngine.Domain.Events;
@@ -25,7 +26,7 @@ public record class ParcelCreatedEvent : INotification
     /// <summary>
     /// 创建时间
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
+    public DateTime CreatedAt { get; init; } = SystemClockProvider.LocalNow;
     
     /// <summary>
     /// 包裹序号（用于保证FIFO顺序）

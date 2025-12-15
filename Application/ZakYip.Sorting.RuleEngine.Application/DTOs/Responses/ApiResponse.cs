@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ZakYip.Sorting.RuleEngine.Domain.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 
@@ -33,7 +34,7 @@ public class ApiResponse<T>
     /// 时间戳
     /// </summary>
     [Required]
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTime Timestamp { get; set; } = SystemClockProvider.LocalNow;
 
     /// <summary>
     /// 创建成功响应
@@ -44,7 +45,7 @@ public class ApiResponse<T>
         {
             Success = true,
             Data = data,
-            Timestamp = DateTime.Now
+            Timestamp = SystemClockProvider.LocalNow
         };
     }
 
@@ -58,7 +59,7 @@ public class ApiResponse<T>
             Success = false,
             ErrorMessage = errorMessage,
             ErrorCode = errorCode,
-            Timestamp = DateTime.Now
+            Timestamp = SystemClockProvider.LocalNow
         };
     }
 }
