@@ -334,9 +334,9 @@ try
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();
                 services.AddSingleton<IRuleEngineService, RuleEngineService>();
-                services.AddSingleton<IParcelProcessingService, ParcelProcessingService>();
+                services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
                 services.AddSingleton<RuleValidationService>();
-                services.AddSingleton<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
+                services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
                 services.AddSingleton<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
                 
                 // 注册配置热更新服务（单例）
