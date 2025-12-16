@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -10,15 +11,15 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// </summary>
 public class PerformanceMetricService
 {
-    private readonly IPerformanceMetricRepository? _repository;
+    private readonly IServiceScopeFactory? _serviceScopeFactory;
     private readonly ILogger<PerformanceMetricService> _logger;
 
     public PerformanceMetricService(
         ILogger<PerformanceMetricService> logger,
-        IPerformanceMetricRepository? repository = null)
+        IServiceScopeFactory? serviceScopeFactory = null)
     {
         _logger = logger;
-        _repository = repository;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     /// <summary>
@@ -72,9 +73,16 @@ public class PerformanceMetricService
     {
         try
         {
-            if (_repository != null)
+            if (_serviceScopeFactory != null)
             {
-                await _repository.RecordMetricAsync(metric, cancellationToken).ConfigureAwait(false);
+                // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+                // Use IServiceScopeFactory to create scope to access scoped repository
+                using var scope = _serviceScopeFactory.CreateScope();
+                var repository = scope.ServiceProvider.GetService<IPerformanceMetricRepository>();
+                if (repository != null)
+                {
+                    await repository.RecordMetricAsync(metric, cancellationToken).ConfigureAwait(false);
+                }
             }
 
             // 同时记录到日志

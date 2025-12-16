@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -11,9 +12,7 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// </summary>
 public class ConfigReloadService : IConfigReloadService
 {
-    private readonly IDwsConfigRepository _dwsConfigRepository;
-    private readonly IWcsApiConfigRepository _wcsConfigRepository;
-    private readonly ISorterConfigRepository _sorterConfigRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IDwsAdapterManager _dwsAdapterManager;
     private readonly IWcsAdapterManager _wcsAdapterManager;
     private readonly ISorterAdapterManager _sorterAdapterManager;
@@ -21,18 +20,14 @@ public class ConfigReloadService : IConfigReloadService
     private readonly ILogger<ConfigReloadService> _logger;
 
     public ConfigReloadService(
-        IDwsConfigRepository dwsConfigRepository,
-        IWcsApiConfigRepository wcsConfigRepository,
-        ISorterConfigRepository sorterConfigRepository,
+        IServiceScopeFactory serviceScopeFactory,
         IDwsAdapterManager dwsAdapterManager,
         IWcsAdapterManager wcsAdapterManager,
         ISorterAdapterManager sorterAdapterManager,
         ConfigCacheService configCacheService,
         ILogger<ConfigReloadService> logger)
     {
-        _dwsConfigRepository = dwsConfigRepository;
-        _wcsConfigRepository = wcsConfigRepository;
-        _sorterConfigRepository = sorterConfigRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _dwsAdapterManager = dwsAdapterManager;
         _wcsAdapterManager = wcsAdapterManager;
         _sorterAdapterManager = sorterAdapterManager;
@@ -46,7 +41,12 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _dwsConfigRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dwsConfigRepository = scope.ServiceProvider.GetRequiredService<IDwsConfigRepository>();
+            
+            var config = await dwsConfigRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("DWS配置不存在，跳过重新加载");
@@ -82,7 +82,12 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _wcsConfigRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var wcsConfigRepository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+            
+            var config = await wcsConfigRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("WCS配置不存在，跳过重新加载");
@@ -118,7 +123,12 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            var config = await _sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var sorterConfigRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
+            
+            var config = await sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
             if (config == null)
             {
                 _logger.LogWarning("分拣机配置不存在，跳过重新加载");

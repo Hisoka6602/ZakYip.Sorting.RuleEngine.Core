@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -17,8 +18,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 /// </summary>
 public class DataAnalysisService : IDataAnalysisService
 {
-    private readonly IChuteRepository _chuteRepository;
-    private readonly IPerformanceMetricRepository _performanceMetricRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
     private readonly ILogger<DataAnalysisService> _logger;
@@ -26,15 +26,13 @@ public class DataAnalysisService : IDataAnalysisService
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
 
     public DataAnalysisService(
-        IChuteRepository chuteRepository,
-        IPerformanceMetricRepository performanceMetricRepository,
+        IServiceScopeFactory serviceScopeFactory,
         MySqlLogDbContext? mysqlContext,
         SqliteLogDbContext? sqliteContext,
         ILogger<DataAnalysisService> logger,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _chuteRepository = chuteRepository;
-        _performanceMetricRepository = performanceMetricRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
         _logger = logger;
@@ -64,10 +62,16 @@ public class DataAnalysisService : IDataAnalysisService
         {
             _logger.LogInformation("生成格口使用热力图: {StartDate} - {EndDate}", query.StartDate, query.EndDate);
 
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+            var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+
             // 获取格口列表
             var chutes = query.ChuteId.HasValue
-                ? new[] { await _chuteRepository.GetByIdAsync(query.ChuteId.Value, cancellationToken) }
-                : (await _chuteRepository.GetAllAsync(cancellationToken)).ToArray();
+                ? new[] { await chuteRepository.GetByIdAsync(query.ChuteId.Value, cancellationToken) }
+                : (await chuteRepository.GetAllAsync(cancellationToken)).ToArray();
 
             if (query.OnlyEnabled)
             {
@@ -81,7 +85,7 @@ public class DataAnalysisService : IDataAnalysisService
                 if (chute == null) continue;
 
                 // 获取该格口在指定时间范围内的所有性能指标
-                var metrics = await _performanceMetricRepository.GetMetricsAsync(
+                var metrics = await performanceMetricRepository.GetMetricsAsync(
                     query.StartDate,
                     query.EndDate.AddDays(1), // 包含结束日期的全天
                     $"Chute_{chute.ChuteName}",
@@ -165,7 +169,13 @@ public class DataAnalysisService : IDataAnalysisService
 
             _logger.LogInformation("生成分拣效率分析报表: {StartTime} - {EndTime}", start, end);
 
-            var allChutes = (await _chuteRepository.GetAllAsync(cancellationToken)).ToList();
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+            // Use IServiceScopeFactory to create scope to access scoped repositories
+            using var scope = _serviceScopeFactory.CreateScope();
+            var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+            var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+
+            var allChutes = (await chuteRepository.GetAllAsync(cancellationToken)).ToList();
             var enabledChutes = allChutes.Where(c => c.IsEnabled).ToList();
 
             var activeChutesCount = 0;
@@ -179,7 +189,7 @@ public class DataAnalysisService : IDataAnalysisService
 
             foreach (var chute in enabledChutes)
             {
-                var metrics = await _performanceMetricRepository.GetMetricsAsync(
+                var metrics = await performanceMetricRepository.GetMetricsAsync(
                     start,
                     end,
                     $"Chute_{chute.ChuteName}",
@@ -352,10 +362,15 @@ public class DataAnalysisService : IDataAnalysisService
                 // 表统计消息仅在控制台输出，不记录到logs（按需求规范）
                 Console.WriteLine($"查询格口利用率统计: ChuteId={query.ChuteId}, StartTime={query.StartTime}, EndTime={query.EndTime}");
 
+                // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+                // Use IServiceScopeFactory to create scope to access scoped repository
+                using var scope = _serviceScopeFactory.CreateScope();
+                var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+
                 // 获取所有格口或指定格口
                 var chutes = query.ChuteId.HasValue
-                    ? new[] { await _chuteRepository.GetByIdAsync(query.ChuteId.Value, ct) }
-                    : (await _chuteRepository.GetAllAsync(ct)).ToArray();
+                    ? new[] { await chuteRepository.GetByIdAsync(query.ChuteId.Value, ct) }
+                    : (await chuteRepository.GetAllAsync(ct)).ToArray();
 
                 if (query.OnlyEnabled)
                 {
@@ -409,7 +424,12 @@ public class DataAnalysisService : IDataAnalysisService
         {
             try
             {
-                var chute = await _chuteRepository.GetByIdAsync(chuteId, ct);
+                // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+                // Use IServiceScopeFactory to create scope to access scoped repository
+                using var scope = _serviceScopeFactory.CreateScope();
+                var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+                
+                var chute = await chuteRepository.GetByIdAsync(chuteId, ct);
                 if (chute == null)
                 {
                     _logger.LogWarning("格口不存在: {ChuteId}", chuteId);
@@ -444,7 +464,12 @@ public class DataAnalysisService : IDataAnalysisService
                 // 表统计消息仅在控制台输出，不记录到logs
                 Console.WriteLine($"查询分拣效率概览: {start} - {end}");
 
-                var allChutes = (await _chuteRepository.GetAllAsync(ct)).ToList();
+                // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+                // Use IServiceScopeFactory to create scope to access scoped repository
+                using var scope = _serviceScopeFactory.CreateScope();
+                var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+
+                var allChutes = (await chuteRepository.GetAllAsync(ct)).ToList();
                 var enabledChutes = allChutes.Where(c => c.IsEnabled).ToList();
 
                 var chuteStatistics = new List<ChuteUtilizationStatisticsDto>();
@@ -511,7 +536,13 @@ public class DataAnalysisService : IDataAnalysisService
                 // 表统计消息仅在控制台输出，不记录到logs
                 Console.WriteLine($"查询格口小时级统计: ChuteId={chuteId}, {startTime} - {endTime}");
 
-                var chute = await _chuteRepository.GetByIdAsync(chuteId, ct);
+                // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+                // Use IServiceScopeFactory to create scope to access scoped repositories
+                using var scope = _serviceScopeFactory.CreateScope();
+                var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+                var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+
+                var chute = await chuteRepository.GetByIdAsync(chuteId, ct);
                 if (chute == null)
                 {
                     _logger.LogWarning("格口不存在: {ChuteId}", chuteId);
@@ -519,7 +550,7 @@ public class DataAnalysisService : IDataAnalysisService
                 }
 
                 // 获取该格口的所有性能指标
-                var metrics = await _performanceMetricRepository.GetMetricsAsync(
+                var metrics = await performanceMetricRepository.GetMetricsAsync(
                     startTime,
                     endTime,
                     $"Chute_{chute.ChuteName}",
@@ -743,8 +774,13 @@ public class DataAnalysisService : IDataAnalysisService
     {
         try
         {
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+            
             // 获取该格口的所有性能指标
-            var metrics = await _performanceMetricRepository.GetMetricsAsync(
+            var metrics = await performanceMetricRepository.GetMetricsAsync(
                 startTime,
                 endTime,
                 $"Chute_{chute.ChuteName}",

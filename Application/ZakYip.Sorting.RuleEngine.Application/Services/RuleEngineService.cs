@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -14,7 +15,7 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// </summary>
 public class RuleEngineService : IRuleEngineService
 {
-    private readonly IRuleRepository _ruleRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<RuleEngineService> _logger;
     private readonly IMemoryCache _cache;
     private readonly PerformanceMetricService _performanceService;
@@ -30,12 +31,12 @@ public class RuleEngineService : IRuleEngineService
     private readonly LowCodeExpressionMatcher _lowCodeMatcher = new();
 
     public RuleEngineService(
-        IRuleRepository ruleRepository,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<RuleEngineService> logger,
         IMemoryCache cache,
         PerformanceMetricService performanceService)
     {
-        _ruleRepository = ruleRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         _cache = cache;
         _performanceService = performanceService;
@@ -126,8 +127,13 @@ public class RuleEngineService : IRuleEngineService
                 return cachedRules;
             }
 
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var ruleRepository = scope.ServiceProvider.GetRequiredService<IRuleRepository>();
+            
             // 从数据库加载规则
-            var rules = await _ruleRepository.GetEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
+            var rules = await ruleRepository.GetEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
 
             // 配置滑动过期缓存选项
             var cacheOptions = new MemoryCacheEntryOptions()

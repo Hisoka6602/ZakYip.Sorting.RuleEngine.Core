@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.Services;
@@ -25,8 +26,29 @@ public class RuleEngineServiceTests
         _mockLogger = new Mock<ILogger<RuleEngineService>>();
         var mockPerfLogger = new Mock<ILogger<PerformanceMetricService>>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var performanceService = new PerformanceMetricService(mockPerfLogger.Object);
-        _service = new RuleEngineService(_mockRuleRepository.Object, _mockLogger.Object, _memoryCache, performanceService);
+        
+        // Create a mock IServiceScopeFactory that returns the mock repository
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IRuleRepository)))
+            .Returns(_mockRuleRepository.Object);
+        
+        var mockScope = new Mock<IServiceScope>();
+        mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+        
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
+        // Create performance service with mock scope factory for repository
+        var mockPerfServiceProvider = new Mock<IServiceProvider>();
+        var mockPerfScope = new Mock<IServiceScope>();
+        mockPerfScope.Setup(s => s.ServiceProvider).Returns(mockPerfServiceProvider.Object);
+        var mockPerfScopeFactory = new Mock<IServiceScopeFactory>();
+        mockPerfScopeFactory.Setup(f => f.CreateScope()).Returns(mockPerfScope.Object);
+        
+        var performanceService = new PerformanceMetricService(mockPerfLogger.Object, mockPerfScopeFactory.Object);
+        _service = new RuleEngineService(mockScopeFactory.Object, _mockLogger.Object, _memoryCache, performanceService);
     }
 
     [Fact]

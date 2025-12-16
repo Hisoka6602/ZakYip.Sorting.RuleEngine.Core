@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.Services;
@@ -20,7 +21,21 @@ public class PerformanceMetricServiceTests
     {
         _mockLogger = new Mock<ILogger<PerformanceMetricService>>();
         _mockRepository = new Mock<IPerformanceMetricRepository>();
-        _service = new PerformanceMetricService(_mockLogger.Object, _mockRepository.Object);
+        
+        // Create a mock IServiceScopeFactory that returns the mock repository
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IPerformanceMetricRepository)))
+            .Returns(_mockRepository.Object);
+        
+        var mockScope = new Mock<IServiceScope>();
+        mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+        
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
+        _service = new PerformanceMetricService(_mockLogger.Object, mockScopeFactory.Object);
     }
 
     [Fact]

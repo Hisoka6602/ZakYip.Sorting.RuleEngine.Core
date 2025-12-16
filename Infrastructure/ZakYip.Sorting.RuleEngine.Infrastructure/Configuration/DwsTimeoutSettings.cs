@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -9,16 +10,16 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 /// </summary>
 public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
 {
-    private readonly IDwsTimeoutConfigRepository _repository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ISystemClock _clock;
     private readonly object _lock = new();
     private DwsTimeoutConfig? _cachedConfig;
     private DateTime _lastLoadTime;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromSeconds(30);
 
-    public DwsTimeoutSettingsFromDb(IDwsTimeoutConfigRepository repository, ISystemClock clock)
+    public DwsTimeoutSettingsFromDb(IServiceScopeFactory serviceScopeFactory, ISystemClock clock)
     {
-        _repository = repository;
+        _serviceScopeFactory = serviceScopeFactory;
         _clock = clock;
     }
 
@@ -32,16 +33,29 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
                 // 再次检查，避免重复加载 / Double-check to avoid redundant loading
                 if (_cachedConfig == null || _clock.LocalNow - _lastLoadTime > _cacheExpiration)
                 {
-                    // 使用 Task.Run 在线程池中执行异步操作，避免死锁
-                    // Execute async operation in thread pool to avoid deadlock
-                    _cachedConfig = Task.Run(async () => 
-                        await _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false)
-                    ).GetAwaiter().GetResult();
+                    // 在锁外创建scope并同步执行，避免异步导致的复杂性
+                    // Create scope and execute synchronously to avoid async complexity
+                    DwsTimeoutConfig? loadedConfig = null;
+                    
+                    // 使用独立作用域加载配置，确保资源正确释放
+                    // Use isolated scope to load config, ensuring proper resource disposal
+                    using (var scope = _serviceScopeFactory.CreateScope())
+                    {
+                        var repository = scope.ServiceProvider.GetRequiredService<IDwsTimeoutConfigRepository>();
+                        
+                        // 使用 Task.Run 在线程池中执行异步操作，避免死锁
+                        // 并在scope内完成，确保repository在使用期间有效
+                        // Execute async operation in thread pool to avoid deadlock
+                        // Complete within scope to ensure repository is valid during use
+                        loadedConfig = Task.Run(async () => 
+                            await repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false)
+                        ).GetAwaiter().GetResult();
+                    }
                     
                     _lastLoadTime = _clock.LocalNow;
                     
                     // 如果数据库中没有配置，返回默认值
-                    if (_cachedConfig == null)
+                    if (loadedConfig == null)
                     {
                         _cachedConfig = new DwsTimeoutConfig
                         {
@@ -55,6 +69,10 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
                             CreatedAt = _clock.LocalNow,
                             UpdatedAt = _clock.LocalNow
                         };
+                    }
+                    else
+                    {
+                        _cachedConfig = loadedConfig;
                     }
                 }
             }

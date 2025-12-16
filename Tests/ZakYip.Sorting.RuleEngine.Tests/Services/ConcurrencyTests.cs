@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Concurrent;
@@ -28,8 +29,25 @@ public class ConcurrencyTests
         _mockLogger = new Mock<ILogger<RuleEngineService>>();
         var mockPerfLogger = new Mock<ILogger<PerformanceMetricService>>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var performanceService = new PerformanceMetricService(mockPerfLogger.Object);
-        _service = new RuleEngineService(_mockRuleRepository.Object, _mockLogger.Object, _memoryCache, performanceService);
+        
+        // Create a mock IServiceScopeFactory for both services
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IRuleRepository)))
+            .Returns(_mockRuleRepository.Object);
+        
+        var mockScope = new Mock<IServiceScope>();
+        mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+        
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
+        var mockPerfScopeFactory = new Mock<IServiceScopeFactory>();
+        mockPerfScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
+        var performanceService = new PerformanceMetricService(mockPerfLogger.Object, mockPerfScopeFactory.Object);
+        _service = new RuleEngineService(mockScopeFactory.Object, _mockLogger.Object, _memoryCache, performanceService);
     }
 
     /// <summary>
@@ -269,8 +287,25 @@ public class ConcurrencyTests
         var mockLogger = new Mock<ILogger<RuleEngineService>>();
         var mockPerfLogger = new Mock<ILogger<PerformanceMetricService>>();
         var memCache = new MemoryCache(new MemoryCacheOptions());
-        var perfService = new PerformanceMetricService(mockPerfLogger.Object);
-        var service = new RuleEngineService(mockRepo.Object, mockLogger.Object, memCache, perfService);
+        
+        // Create mock scope factories
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IRuleRepository)))
+            .Returns(mockRepo.Object);
+        
+        var mockScope = new Mock<IServiceScope>();
+        mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+        
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
+        var mockPerfScopeFactory = new Mock<IServiceScopeFactory>();
+        mockPerfScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
+        var perfService = new PerformanceMetricService(mockPerfLogger.Object, mockPerfScopeFactory.Object);
+        var service = new RuleEngineService(mockScopeFactory.Object, mockLogger.Object, memCache, perfService);
 
         var attemptCount = 0;
         mockRepo.Setup(r => r.GetEnabledRulesAsync(It.IsAny<CancellationToken>()))

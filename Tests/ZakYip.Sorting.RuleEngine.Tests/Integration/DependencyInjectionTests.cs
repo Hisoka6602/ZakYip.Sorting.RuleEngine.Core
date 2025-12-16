@@ -62,8 +62,7 @@ public class DependencyInjectionTests
         // Register service (merged service that includes ChuteStatistics, GanttChart functionality)
         services.AddScoped<IDataAnalysisService>(sp => 
             new DataAnalysisService(
-                sp.GetRequiredService<IChuteRepository>(),
-                sp.GetRequiredService<IPerformanceMetricRepository>(),
+                sp.GetRequiredService<IServiceScopeFactory>(),
                 null, // MySqlLogDbContext (optional)
                 null, // SqliteLogDbContext (optional)
                 sp.GetRequiredService<ILogger<DataAnalysisService>>(),

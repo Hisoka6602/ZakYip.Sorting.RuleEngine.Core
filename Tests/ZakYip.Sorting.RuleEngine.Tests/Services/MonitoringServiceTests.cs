@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -28,10 +29,25 @@ public class MonitoringServiceTests
         _mockChuteRepository = new Mock<IChuteRepository>();
         _mockLogger = new Mock<ILogger<MonitoringService>>();
         
+        // Create a mock IServiceScopeFactory that returns the mock repositories
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IMonitoringAlertRepository)))
+            .Returns(_mockAlertRepository.Object);
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IPerformanceMetricRepository)))
+            .Returns(_mockPerformanceMetricRepository.Object);
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IChuteRepository)))
+            .Returns(_mockChuteRepository.Object);
+        
+        var mockScope = new Mock<IServiceScope>();
+        mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+        
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        
         _service = new MonitoringService(
-            _mockAlertRepository.Object,
-            _mockPerformanceMetricRepository.Object,
-            _mockChuteRepository.Object,
+            mockScopeFactory.Object,
             _mockLogger.Object,
             new Mocks.MockSystemClock());
     }

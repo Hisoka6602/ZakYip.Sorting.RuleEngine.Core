@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.DTOs;
@@ -13,9 +14,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 /// </summary>
 public class MonitoringService : IMonitoringService
 {
-    private readonly IMonitoringAlertRepository _alertRepository;
-    private readonly IPerformanceMetricRepository _performanceMetricRepository;
-    private readonly IChuteRepository _chuteRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<MonitoringService> _logger;
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     
@@ -32,15 +31,11 @@ public class MonitoringService : IMonitoringService
     private const int ProcessingRateLowThreshold = 10;              // 处理速率过低阈值（包裹/分钟）
 
     public MonitoringService(
-        IMonitoringAlertRepository alertRepository,
-        IPerformanceMetricRepository performanceMetricRepository,
-        IChuteRepository chuteRepository,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<MonitoringService> logger,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-        _alertRepository = alertRepository;
-        _performanceMetricRepository = performanceMetricRepository;
-        _chuteRepository = chuteRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         _clock = clock;
     }
@@ -49,21 +44,28 @@ public class MonitoringService : IMonitoringService
     {
         try
         {
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+            // Use IServiceScopeFactory to create scope to access scoped repositories
+            using var scope = _serviceScopeFactory.CreateScope();
+            var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+            var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+            var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+            
             var now = _clock.LocalNow;
             var oneMinuteAgo = now.AddMinutes(-1);
             var fiveMinutesAgo = now.AddMinutes(-5);
             var oneHourAgo = now.AddHours(-1);
 
             // 获取最近的性能指标
-            var lastMinuteMetrics = await _performanceMetricRepository.GetMetricsAsync(
+            var lastMinuteMetrics = await performanceMetricRepository.GetMetricsAsync(
                 oneMinuteAgo, now, null, cancellationToken);
-            var last5MinutesMetrics = await _performanceMetricRepository.GetMetricsAsync(
+            var last5MinutesMetrics = await performanceMetricRepository.GetMetricsAsync(
                 fiveMinutesAgo, now, null, cancellationToken);
-            var lastHourMetrics = await _performanceMetricRepository.GetMetricsAsync(
+            var lastHourMetrics = await performanceMetricRepository.GetMetricsAsync(
                 oneHourAgo, now, null, cancellationToken);
 
             // 获取活跃格口数
-            var chutes = await _chuteRepository.GetAllAsync(cancellationToken);
+            var chutes = await chuteRepository.GetAllAsync(cancellationToken);
             var enabledChutes = chutes.Where(c => c.IsEnabled).ToList();
             
             // 统计最近一小时有活动的格口
@@ -93,7 +95,7 @@ public class MonitoringService : IMonitoringService
             var dbStatus = DatabaseStatus.Healthy;
 
             // 获取活跃告警数
-            var activeAlerts = await _alertRepository.GetActiveAlertsAsync(cancellationToken);
+            var activeAlerts = await alertRepository.GetActiveAlertsAsync(cancellationToken);
 
             // 评估系统健康状态
             var healthStatus = EvaluateSystemHealth(errorRate, dbStatus, activeAlerts.Count);
@@ -151,7 +153,12 @@ public class MonitoringService : IMonitoringService
     {
         try
         {
-            var alerts = await _alertRepository.GetActiveAlertsAsync(cancellationToken);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+            
+            var alerts = await alertRepository.GetActiveAlertsAsync(cancellationToken);
             return alerts.Select(MapToDto).ToList();
         }
         catch (Exception ex)
@@ -165,7 +172,12 @@ public class MonitoringService : IMonitoringService
     {
         try
         {
-            await _alertRepository.ResolveAlertAsync(alertId, cancellationToken);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+            
+            await alertRepository.ResolveAlertAsync(alertId, cancellationToken);
             _logger.LogInformation("告警已手动解决: {AlertId}", alertId);
         }
         catch (Exception ex)
@@ -182,7 +194,12 @@ public class MonitoringService : IMonitoringService
     {
         try
         {
-            var alerts = await _alertRepository.GetAlertsByTimeRangeAsync(startTime, endTime, cancellationToken);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using var scope = _serviceScopeFactory.CreateScope();
+            var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+            
+            var alerts = await alertRepository.GetAlertsByTimeRangeAsync(startTime, endTime, cancellationToken);
             return alerts.Select(MapToDto).ToList();
         }
         catch (Exception ex)
@@ -206,7 +223,13 @@ public class MonitoringService : IMonitoringService
         
         var fiveMinutesAgo = now.AddMinutes(-5);
 
-        var metrics = await _performanceMetricRepository.GetMetricsAsync(
+        // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+        // Use IServiceScopeFactory to create scope to access scoped repositories
+        using var scope = _serviceScopeFactory.CreateScope();
+        var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+        var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+
+        var metrics = await performanceMetricRepository.GetMetricsAsync(
             fiveMinutesAgo, now, null, cancellationToken);
 
         var processingRate = metrics.Count() / 5.0m; // 包裹/分钟
@@ -223,7 +246,7 @@ public class MonitoringService : IMonitoringService
                 ThresholdValue = ProcessingRateLowThreshold
             };
 
-            await _alertRepository.AddAlertAsync(alert, cancellationToken);
+            await alertRepository.AddAlertAsync(alert, cancellationToken);
             
             // 记录告警时间，实现节流
             // Record alert time for throttling
@@ -239,12 +262,19 @@ public class MonitoringService : IMonitoringService
         var now = _clock.LocalNow;
         var oneHourAgo = now.AddHours(-1);
 
-        var chutes = await _chuteRepository.GetAllAsync(cancellationToken);
+        // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+        // Use IServiceScopeFactory to create scope to access scoped repositories
+        using var scope = _serviceScopeFactory.CreateScope();
+        var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+        var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+        var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+
+        var chutes = await chuteRepository.GetAllAsync(cancellationToken);
         var enabledChutes = chutes.Where(c => c.IsEnabled).ToList();
 
         foreach (var chute in enabledChutes)
         {
-            var metrics = await _performanceMetricRepository.GetMetricsAsync(
+            var metrics = await performanceMetricRepository.GetMetricsAsync(
                 oneHourAgo, now, $"Chute_{chute.ChuteName}", cancellationToken);
 
             if (!metrics.Any()) continue;
@@ -264,7 +294,7 @@ public class MonitoringService : IMonitoringService
                     ThresholdValue = ChuteUsageRateCriticalThreshold
                 };
 
-                await _alertRepository.AddAlertAsync(alert, cancellationToken);
+                await alertRepository.AddAlertAsync(alert, cancellationToken);
             }
             else if (usageRate >= ChuteUsageRateWarningThreshold)
             {
@@ -279,7 +309,7 @@ public class MonitoringService : IMonitoringService
                     ThresholdValue = ChuteUsageRateWarningThreshold
                 };
 
-                await _alertRepository.AddAlertAsync(alert, cancellationToken);
+                await alertRepository.AddAlertAsync(alert, cancellationToken);
             }
         }
     }
@@ -289,7 +319,13 @@ public class MonitoringService : IMonitoringService
         var now = _clock.LocalNow;
         var fiveMinutesAgo = now.AddMinutes(-5);
 
-        var metrics = await _performanceMetricRepository.GetMetricsAsync(
+        // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+        // Use IServiceScopeFactory to create scope to access scoped repositories
+        using var scope = _serviceScopeFactory.CreateScope();
+        var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+        var alertRepository = scope.ServiceProvider.GetRequiredService<IMonitoringAlertRepository>();
+
+        var metrics = await performanceMetricRepository.GetMetricsAsync(
             fiveMinutesAgo, now, null, cancellationToken);
 
         if (!metrics.Any()) return;
@@ -310,7 +346,7 @@ public class MonitoringService : IMonitoringService
                 ThresholdValue = ErrorRateCriticalThreshold
             };
 
-            await _alertRepository.AddAlertAsync(alert, cancellationToken);
+            await alertRepository.AddAlertAsync(alert, cancellationToken);
         }
         else if (errorRate >= ErrorRateWarningThreshold)
         {
@@ -324,7 +360,7 @@ public class MonitoringService : IMonitoringService
                 ThresholdValue = ErrorRateWarningThreshold
             };
 
-            await _alertRepository.AddAlertAsync(alert, cancellationToken);
+            await alertRepository.AddAlertAsync(alert, cancellationToken);
         }
     }
 
