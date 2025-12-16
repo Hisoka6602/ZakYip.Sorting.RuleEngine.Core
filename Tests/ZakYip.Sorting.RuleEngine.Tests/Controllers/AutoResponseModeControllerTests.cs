@@ -29,34 +29,91 @@ public class AutoResponseModeControllerTests
     [Fact]
     public void Enable_CallsServiceEnable()
     {
+        // Arrange
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
+
         // Act
-        var result = _controller.Enable();
+        _controller.Enable(null);
 
         // Assert
-        _mockService.Verify(s => s.Enable(), Times.Once);
+        _mockService.Verify(s => s.Enable(null), Times.Once);
+    }
+
+    [Fact]
+    public void Enable_WithCustomChuteNumbers_PassesToService()
+    {
+        // Arrange
+        var customChutes = new[] { 1, 2, 3, 4, 5, 6 };
+        var request = new EnableAutoResponseModeRequest { ChuteNumbers = customChutes };
+        _mockService.Setup(s => s.ChuteNumbers).Returns(customChutes);
+
+        // Act
+        _controller.Enable(request);
+
+        // Assert
+        _mockService.Verify(s => s.Enable(customChutes), Times.Once);
     }
 
     [Fact]
     public void Enable_ReturnsOkResultWithDto()
     {
+        // Arrange
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
+
         // Act
-        var result = _controller.Enable();
+        var result = _controller.Enable(null);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<AutoResponseModeStatusDto>(okResult.Value);
         Assert.True(dto.Enabled);
         Assert.Contains("enabled", dto.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(dto.ChuteNumbers);
+        Assert.Equal(new[] { 1, 2, 3 }, dto.ChuteNumbers);
+    }
+
+    [Fact]
+    public void Enable_WithInvalidChuteNumbers_ReturnsBadRequest()
+    {
+        // Arrange
+        var invalidChutes = new[] { 1, -2, 3 }; // Contains negative number
+        var request = new EnableAutoResponseModeRequest { ChuteNumbers = invalidChutes };
+
+        // Act
+        var result = _controller.Enable(request);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var dto = Assert.IsType<AutoResponseModeStatusDto>(badRequestResult.Value);
+        Assert.False(dto.Enabled);
+        Assert.Contains("positive", dto.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Enable_WithZeroInChuteNumbers_ReturnsBadRequest()
+    {
+        // Arrange
+        var invalidChutes = new[] { 0, 1, 2 }; // Contains zero
+        var request = new EnableAutoResponseModeRequest { ChuteNumbers = invalidChutes };
+
+        // Act
+        var result = _controller.Enable(request);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var dto = Assert.IsType<AutoResponseModeStatusDto>(badRequestResult.Value);
+        Assert.False(dto.Enabled);
     }
 
     [Fact]
     public void Enable_ReturnsUtcTimestamp()
     {
         // Arrange
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
         var beforeCall = DateTime.Now;
 
         // Act
-        var result = _controller.Enable();
+        var result = _controller.Enable(null);
         var afterCall = DateTime.Now;
 
         // Assert
@@ -70,8 +127,11 @@ public class AutoResponseModeControllerTests
     [Fact]
     public void Enable_LogsInformation()
     {
+        // Arrange
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
+
         // Act
-        _controller.Enable();
+        _controller.Enable(null);
 
         // Assert
         _mockLogger.Verify(
@@ -97,6 +157,9 @@ public class AutoResponseModeControllerTests
     [Fact]
     public void Disable_ReturnsOkResultWithDto()
     {
+        // Arrange
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
+
         // Act
         var result = _controller.Disable();
 
@@ -105,6 +168,7 @@ public class AutoResponseModeControllerTests
         var dto = Assert.IsType<AutoResponseModeStatusDto>(okResult.Value);
         Assert.False(dto.Enabled);
         Assert.Contains("disabled", dto.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(dto.ChuteNumbers);
     }
 
     [Fact]
@@ -145,6 +209,7 @@ public class AutoResponseModeControllerTests
     {
         // Arrange
         _mockService.Setup(s => s.IsEnabled).Returns(true);
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
 
         // Act
         var result = _controller.GetStatus();
@@ -154,6 +219,8 @@ public class AutoResponseModeControllerTests
         var dto = Assert.IsType<AutoResponseModeStatusDto>(okResult.Value);
         Assert.True(dto.Enabled);
         Assert.Contains("enabled", dto.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(dto.ChuteNumbers);
+        Assert.Equal(new[] { 1, 2, 3 }, dto.ChuteNumbers);
     }
 
     [Fact]
@@ -161,6 +228,7 @@ public class AutoResponseModeControllerTests
     {
         // Arrange
         _mockService.Setup(s => s.IsEnabled).Returns(false);
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
 
         // Act
         var result = _controller.GetStatus();
@@ -170,6 +238,7 @@ public class AutoResponseModeControllerTests
         var dto = Assert.IsType<AutoResponseModeStatusDto>(okResult.Value);
         Assert.False(dto.Enabled);
         Assert.Contains("disabled", dto.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(dto.ChuteNumbers);
     }
 
     [Fact]
@@ -177,6 +246,7 @@ public class AutoResponseModeControllerTests
     {
         // Arrange
         _mockService.Setup(s => s.IsEnabled).Returns(true);
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
         var beforeCall = DateTime.Now;
 
         // Act
@@ -194,25 +264,28 @@ public class AutoResponseModeControllerTests
     {
         // Arrange
         _mockService.Setup(s => s.IsEnabled).Returns(true);
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
 
         // Act
         var result = _controller.GetStatus();
 
         // Assert
         _mockService.Verify(s => s.IsEnabled, Times.Once);
+        _mockService.Verify(s => s.ChuteNumbers, Times.Once);
     }
 
     [Fact]
     public void ConcurrentRequests_HandleProperly()
     {
         // Arrange
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
         var tasks = new List<Task<ActionResult<AutoResponseModeStatusDto>>>();
 
         // Act - Simulate concurrent requests
         for (int i = 0; i < 10; i++)
         {
             if (i % 3 == 0)
-                tasks.Add(Task.Run(() => _controller.Enable()));
+                tasks.Add(Task.Run(() => _controller.Enable(null)));
             else if (i % 3 == 1)
                 tasks.Add(Task.Run(() => _controller.Disable()));
             else
@@ -235,9 +308,10 @@ public class AutoResponseModeControllerTests
     {
         // Arrange
         _mockService.Setup(s => s.IsEnabled).Returns(true);
+        _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
 
         // Act
-        var enableResult = _controller.Enable();
+        var enableResult = _controller.Enable(null);
         var disableResult = _controller.Disable();
         var statusResult = _controller.GetStatus();
 

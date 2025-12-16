@@ -11,6 +11,7 @@ public class AutoResponseModeService : IAutoResponseModeService
 {
     private readonly ILogger<AutoResponseModeService> _logger;
     private bool _isEnabled;
+    private int[] _chuteNumbers = [1, 2, 3]; // 默认格口数组 / Default chute array
     private readonly object _lock = new();
 
     public AutoResponseModeService(ILogger<AutoResponseModeService> logger)
@@ -23,15 +24,27 @@ public class AutoResponseModeService : IAutoResponseModeService
     /// 启用自动应答模式
     /// Enable auto-response mode
     /// </summary>
-    public void Enable()
+    /// <param name="chuteNumbers">可选的格口号数组 / Optional chute numbers array</param>
+    public void Enable(int[]? chuteNumbers = null)
     {
         lock (_lock)
         {
-            if (!_isEnabled)
+            if (chuteNumbers != null && chuteNumbers.Length > 0)
             {
-                _isEnabled = true;
-                _logger.LogInformation("自动应答模式已启用 / Auto-response mode enabled");
+                // 创建副本以防止外部修改内部数组 / Create a copy to prevent external modification
+                _chuteNumbers = (int[])chuteNumbers.Clone();
+                _logger.LogInformation(
+                    "自动应答模式已启用，使用自定义格口数组: [{ChuteNumbers}] / Auto-response mode enabled with custom chute array: [{ChuteNumbers}]",
+                    string.Join(", ", _chuteNumbers));
             }
+            else
+            {
+                _logger.LogInformation(
+                    "自动应答模式已启用，使用默认格口数组: [{ChuteNumbers}] / Auto-response mode enabled with default chute array: [{ChuteNumbers}]",
+                    string.Join(", ", _chuteNumbers));
+            }
+            
+            _isEnabled = true;
         }
     }
 
@@ -62,6 +75,22 @@ public class AutoResponseModeService : IAutoResponseModeService
             lock (_lock)
             {
                 return _isEnabled;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 获取当前配置的格口号数组
+    /// Get current configured chute numbers array
+    /// </summary>
+    public int[] ChuteNumbers
+    {
+        get
+        {
+            lock (_lock)
+            {
+                // 返回副本，防止外部修改内部数组 / Return a copy to prevent external modification
+                return (int[])_chuteNumbers.Clone();
             }
         }
     }

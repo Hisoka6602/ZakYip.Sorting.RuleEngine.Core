@@ -32,35 +32,65 @@ _autoResponseModeService = autoResponseModeService;
     /// 启用自动应答模式
     /// Enable auto-response mode
     /// </summary>
+    /// <param name="request">启用请求，包含可选的格口数组配置 / Enable request with optional chute array configuration</param>
     /// <returns>操作结果</returns>
     /// <response code="200">自动应答模式已启用</response>
     /// <remarks>
-    /// 启用后，系统将不请求任何第三方API，而是随机返回1-20之间的格口ID。
-    /// 用于模拟与下游的通信，方便测试和演示。
+    /// 启用后，系统将不请求任何第三方API，而是从配置的格口数组中随机返回格口ID。
+    /// 如果未提供格口数组，默认使用 [1,2,3]。
     /// 
     /// When enabled, the system will not request any third-party APIs,
-    /// but randomly return a chute ID between 1-20.
-    /// Used to simulate communication with downstream systems for testing and demonstration.
+    /// but randomly return a chute ID from the configured array.
+    /// Defaults to [1,2,3] if no array is provided.
+    /// 
+    /// 示例请求:
+    /// 
+    ///     POST /api/AutoResponseMode/enable
+    ///     {
+    ///        "chuteNumbers": [1, 2, 3, 4, 5, 6]
+    ///     }
+    /// 
     /// </remarks>
     [HttpPost("enable")]
     [SwaggerOperation(
         Summary = "启用自动应答模式",
-        Description = "启用自动应答模式后，系统将返回随机格口ID (1-20)，不调用第三方API",
+        Description = "启用自动应答模式后，系统将从配置的格口数组中返回随机格口ID，不调用第三方API。默认 [1,2,3]",
         OperationId = "EnableAutoResponseMode",
         Tags = new[] { "AutoResponseMode" }
     )]
     [SwaggerResponse(200, "自动应答模式已启用", typeof(AutoResponseModeStatusDto))]
-    public ActionResult<AutoResponseModeStatusDto> Enable()
+    [SwaggerResponse(400, "无效的格口号数组", typeof(AutoResponseModeStatusDto))]
+    public ActionResult<AutoResponseModeStatusDto> Enable([FromBody] EnableAutoResponseModeRequest? request = null)
     {
         _logger.LogInformation("收到启用自动应答模式请求");
         
-        _autoResponseModeService.Enable();
+        var chuteNumbers = request?.ChuteNumbers;
+        
+        // 验证格口号数组 / Validate chute numbers
+        if (chuteNumbers != null && chuteNumbers.Length > 0)
+        {
+            if (chuteNumbers.Any(num => num <= 0))
+            {
+                return BadRequest(new AutoResponseModeStatusDto
+                {
+                    Enabled = false,
+                    Message = "格口号必须是正整数 / Chute numbers must be positive integers",
+                    Timestamp = _clock.LocalNow,
+                    ChuteNumbers = [1, 2, 3] // Return default
+                });
+            }
+        }
+        
+        _autoResponseModeService.Enable(chuteNumbers);
+        
+        var actualChuteNumbers = _autoResponseModeService.ChuteNumbers;
         
         return Ok(new AutoResponseModeStatusDto
         {
             Enabled = true,
-            Message = "自动应答模式已启用 / Auto-response mode enabled",
-            Timestamp = _clock.LocalNow
+            Message = $"自动应答模式已启用，格口数组: [{string.Join(", ", actualChuteNumbers)}] / Auto-response mode enabled with chute array: [{string.Join(", ", actualChuteNumbers)}]",
+            Timestamp = _clock.LocalNow,
+            ChuteNumbers = actualChuteNumbers
         });
     }
 
@@ -88,12 +118,14 @@ _autoResponseModeService = autoResponseModeService;
         _logger.LogInformation("收到禁用自动应答模式请求");
         
         _autoResponseModeService.Disable();
+        var chuteNumbers = _autoResponseModeService.ChuteNumbers;
         
         return Ok(new AutoResponseModeStatusDto
         {
             Enabled = false,
             Message = "自动应答模式已禁用 / Auto-response mode disabled",
-            Timestamp = _clock.LocalNow
+            Timestamp = _clock.LocalNow,
+            ChuteNumbers = chuteNumbers
         });
     }
 
@@ -106,7 +138,7 @@ _autoResponseModeService = autoResponseModeService;
     [HttpGet("status")]
     [SwaggerOperation(
         Summary = "获取自动应答模式状态",
-        Description = "查询当前自动应答模式是否启用",
+        Description = "查询当前自动应答模式是否启用及配置的格口数组",
         OperationId = "GetAutoResponseModeStatus",
         Tags = new[] { "AutoResponseMode" }
     )]
@@ -114,16 +146,34 @@ _autoResponseModeService = autoResponseModeService;
     public ActionResult<AutoResponseModeStatusDto> GetStatus()
     {
         var isEnabled = _autoResponseModeService.IsEnabled;
+        var chuteNumbers = _autoResponseModeService.ChuteNumbers;
         
         return Ok(new AutoResponseModeStatusDto
         {
             Enabled = isEnabled,
             Message = isEnabled 
-                ? "自动应答模式已启用 / Auto-response mode enabled" 
+                ? $"自动应答模式已启用，格口数组: [{string.Join(", ", chuteNumbers)}] / Auto-response mode enabled with chute array: [{string.Join(", ", chuteNumbers)}]"
                 : "自动应答模式已禁用 / Auto-response mode disabled",
-            Timestamp = _clock.LocalNow
+            Timestamp = _clock.LocalNow,
+            ChuteNumbers = chuteNumbers
         });
     }
+}
+
+/// <summary>
+/// 启用自动应答模式请求
+/// Enable auto-response mode request
+/// </summary>
+[SwaggerSchema(Description = "启用自动应答模式请求，可选指定格口数组")]
+public record class EnableAutoResponseModeRequest
+{
+    /// <summary>
+    /// 格口号数组，例如 [1,2,3,4,5,6]。如果未指定，默认使用 [1,2,3]
+    /// Chute numbers array, e.g. [1,2,3,4,5,6]. Defaults to [1,2,3] if not specified
+    /// </summary>
+    /// <example>[1, 2, 3, 4, 5, 6]</example>
+    [SwaggerSchema(Description = "格口号数组，例如 [1,2,3,4,5,6]")]
+    public int[]? ChuteNumbers { get; init; }
 }
 
 /// <summary>
@@ -153,4 +203,11 @@ public record class AutoResponseModeStatusDto
     /// </summary>
     [SwaggerSchema(Description = "操作时间戳")]
     public required DateTime Timestamp { get; init; }
+
+    /// <summary>
+    /// 格口号数组
+    /// Chute numbers array
+    /// </summary>
+    [SwaggerSchema(Description = "当前配置的格口号数组")]
+    public required int[] ChuteNumbers { get; init; }
 }

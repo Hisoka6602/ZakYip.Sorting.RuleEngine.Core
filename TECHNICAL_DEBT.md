@@ -43,6 +43,7 @@ This document records identified technical debt in the project. Before opening a
 | **编译错误 Compilation Errors** | **0 个** | **✅ 无 None** | **✅ 已全部修复！** |
 | **时间处理规范违规** | **4 处** | **✅ 无 None** | **✅ 已全部修复！(仅剩合法实现)** |
 | 编译警告 Compiler Warnings | 0 个 | ✅ 无 None | ✅ 已全部解决！ |
+| **API控制器整合** | **1 项** | **🟡 中 Medium** | **📋 待处理 / Pending** |
 
 > **🎉 最新更新 / Latest Update (2025-12-16)**: 
 > - ✅ **所有技术债务已完全解决！** All technical debt fully resolved!
@@ -733,6 +734,118 @@ This document should be reviewed quarterly to assess:
 ---
 
 ## 📝 新增技术债务
+
+### 2025-12-16: API控制器整合 / API Controller Consolidation (📋 待处理 / PENDING)
+
+**类别 / Category**: 架构优化 / Architecture Optimization  
+**严重程度 / Severity**: 🟡 中 Medium  
+**状态 / Status**: 📋 待处理 / Pending  
+**PR参考 / PR Reference**: copilot/configure-autoresponse-endpoints
+
+#### 背景 / Background
+
+根据需求，需要将相关的API端点整合到统一的控制器中以提高代码组织性和可维护性。当前存在多个功能相关的控制器分散在不同文件中。
+
+According to requirements, related API endpoints need to be consolidated into unified controllers to improve code organization and maintainability. Currently, multiple functionally-related controllers are scattered across different files.
+
+#### 待整合的控制器 / Controllers to Consolidate
+
+**DWS相关控制器 / DWS-Related Controllers (3 → 1):**
+- `DwsConfigController` (路由: /api/DwsConfig)
+- `DwsDataTemplateController` (路由: /api/DwsDataTemplate)
+- `DwsTimeoutController` (路由: /api/DwsTimeout)
+- **目标 / Target**: 整合为单一的 `DwsController` (路由: /api/Dws)
+
+**分拣相关控制器 / Sorting-Related Controllers (2 → 1):**
+- `SortingMachineController` (路由: /api/SortingMachine)
+- `SorterConfigController` (路由: /api/SorterConfig)
+- **目标 / Target**: 整合为单一的 `SortingController` 或保留 `SortingMachineController` 并整合功能
+
+**包裹相关控制器 / Parcel-Related Controllers:**
+- `ParcelController` (路由: /api/Parcel) - 已经是单一控制器，无需整合
+
+#### 影响分析 / Impact Analysis
+
+**破坏性变更 / Breaking Changes:**
+- ❌ 所有API路由将发生变化
+- ❌ 客户端代码需要更新所有API调用
+- ❌ 需要提供详细的迁移指南
+
+**预估工作量 / Estimated Effort:**
+- 代码重构: 3-4 小时
+- 测试更新: 1-2 小时
+- 文档更新: 1 小时
+- 客户端迁移指南: 1 小时
+- **总计 / Total**: 6-8 小时
+
+**风险等级 / Risk Level:** 🔴 高 / High
+
+#### 修复方案 / Fix Solution
+
+**推荐方案 / Recommended Approach:**
+
+1. **创建新的统一控制器 / Create New Unified Controllers**
+   ```csharp
+   // 示例 / Example: DwsController
+   [ApiController]
+   [Route("api/[controller]")]
+   public class DwsController : ControllerBase
+   {
+       // 整合来自 DwsConfigController 的端点
+       [HttpGet("config")]
+       public async Task<ActionResult> GetConfig() { }
+       
+       // 整合来自 DwsDataTemplateController 的端点
+       [HttpGet("data-template")]
+       public async Task<ActionResult> GetDataTemplate() { }
+       
+       // 整合来自 DwsTimeoutController 的端点
+       [HttpGet("timeout")]
+       public async Task<ActionResult> GetTimeout() { }
+   }
+   ```
+
+2. **更新依赖注入 / Update Dependency Injection**
+   - 整合所有相关服务到新控制器
+
+3. **更新测试 / Update Tests**
+   - 合并或更新所有控制器测试
+   - 更新集成测试中的API路由
+
+4. **提供迁移指南 / Provide Migration Guide**
+   - 创建旧路由 → 新路由的映射表
+   - 提供客户端更新示例代码
+
+5. **考虑向后兼容 / Consider Backward Compatibility (可选 / Optional)**
+   - 保留旧控制器并标记为 `[Obsolete]`
+   - 实现路由重定向到新端点
+   - 设置弃用时间表
+
+#### 备选方案 / Alternative Approach
+
+**非破坏性方案 / Non-Breaking Approach:**
+- 仅更新 Swagger 标签进行逻辑分组
+- 保持所有现有路由不变
+- 详见 `docs_API_REORGANIZATION_ANALYSIS.md` 中的 Option B
+
+#### 相关文档 / Related Documents
+
+- 📄 详细分析报告: `docs_API_REORGANIZATION_ANALYSIS.md`
+- 📋 原始需求: PR #copilot/configure-autoresponse-endpoints
+
+#### 优先级 / Priority
+
+🟡 中等 / Medium - 架构改进，但需要协调客户端更新
+
+#### 负责人 / Owner
+
+待分配 / To Be Assigned
+
+#### 下次评审 / Next Review
+
+下一个Sprint计划会议 / Next Sprint Planning Meeting
+
+---
 
 ### 2025-12-16: 查询性能优化 (✅ 已完成)
 
