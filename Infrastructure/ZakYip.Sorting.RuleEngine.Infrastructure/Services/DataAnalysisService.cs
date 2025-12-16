@@ -536,7 +536,13 @@ public class DataAnalysisService : IDataAnalysisService
                 // 表统计消息仅在控制台输出，不记录到logs
                 Console.WriteLine($"查询格口小时级统计: ChuteId={chuteId}, {startTime} - {endTime}");
 
-                var chute = await _chuteRepository.GetByIdAsync(chuteId, ct);
+                // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repositories
+                // Use IServiceScopeFactory to create scope to access scoped repositories
+                using var scope = _serviceScopeFactory.CreateScope();
+                var chuteRepository = scope.ServiceProvider.GetRequiredService<IChuteRepository>();
+                var performanceMetricRepository = scope.ServiceProvider.GetRequiredService<IPerformanceMetricRepository>();
+
+                var chute = await chuteRepository.GetByIdAsync(chuteId, ct);
                 if (chute == null)
                 {
                     _logger.LogWarning("格口不存在: {ChuteId}", chuteId);
@@ -544,7 +550,7 @@ public class DataAnalysisService : IDataAnalysisService
                 }
 
                 // 获取该格口的所有性能指标
-                var metrics = await _performanceMetricRepository.GetMetricsAsync(
+                var metrics = await performanceMetricRepository.GetMetricsAsync(
                     startTime,
                     endTime,
                     $"Chute_{chute.ChuteName}",
