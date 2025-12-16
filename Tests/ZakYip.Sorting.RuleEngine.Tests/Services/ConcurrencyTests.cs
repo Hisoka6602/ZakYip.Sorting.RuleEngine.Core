@@ -31,6 +31,8 @@ public class ConcurrencyTests
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         
         // Create a mock IServiceScopeFactory for both services
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IRuleRepository)))
             .Returns(_mockRuleRepository.Object);
@@ -287,6 +289,8 @@ public class ConcurrencyTests
         var memCache = new MemoryCache(new MemoryCacheOptions());
         
         // Create mock scope factories
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IRuleRepository)))
             .Returns(mockRepo.Object);

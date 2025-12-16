@@ -23,6 +23,8 @@ public class PerformanceMetricServiceTests
         _mockRepository = new Mock<IPerformanceMetricRepository>();
         
         // Create a mock IServiceScopeFactory that returns the mock repository
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IPerformanceMetricRepository)))
             .Returns(_mockRepository.Object);

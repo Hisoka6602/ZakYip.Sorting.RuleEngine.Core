@@ -30,6 +30,8 @@ public class MonitoringServiceTests
         _mockLogger = new Mock<ILogger<MonitoringService>>();
         
         // Create a mock IServiceScopeFactory that returns the mock repositories
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IMonitoringAlertRepository)))
             .Returns(_mockAlertRepository.Object);

@@ -28,6 +28,8 @@ public class RuleEngineServiceTests
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         
         // Create a mock IServiceScopeFactory that returns the mock repository
+        // GetRequiredService is an extension method that calls GetService internally
+        // So we only need to setup GetService to return non-null values
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IRuleRepository)))
             .Returns(_mockRuleRepository.Object);
