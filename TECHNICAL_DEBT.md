@@ -6,9 +6,9 @@
 
 This document records identified technical debt in the project. Before opening any PR, this document must be read thoroughly to ensure no new technical debt is introduced and existing debt is resolved when possible.
 
-> 📊 **完整完成报告 / Full Completion Report**: 请查看 [TECHNICAL_DEBT_COMPLETION_REPORT.md](./TECHNICAL_DEBT_COMPLETION_REPORT.md) 了解详细的技术债务解决情况和质量评估。
+> ⚠️ **重要 / Important**: 根据编码规范第 11 条，本项目**只能有一个**技术债务文档。所有技术债务信息都应记录在本文件中。历史归档文件以 `archive_` 前缀命名。
 > 
-> Please see [TECHNICAL_DEBT_COMPLETION_REPORT.md](./TECHNICAL_DEBT_COMPLETION_REPORT.md) for detailed technical debt resolution status and quality assessment.
+> According to Coding Guideline #11, this project must maintain **only ONE** technical debt document. All technical debt information should be recorded in this file. Historical archive files are named with `archive_` prefix.
 
 ---
 
@@ -53,7 +53,6 @@ This document records identified technical debt in the project. Before opening a
 > - ✅ **时间处理：** 138 → 4 (97.1% 修复，仅剩 SystemClock/SystemClockProvider 中的合法实现)
 > - ✅ **代码重复率：** 3.18% (低于 CI 阈值 5%，接近 SonarQube 目标 3%)
 > - ✅ **影分身代码：** 0 处 (100% 消除)
-> - 📊 **完整报告 / Full Report**: [TECHNICAL_DEBT_COMPLETION_REPORT.md](./TECHNICAL_DEBT_COMPLETION_REPORT.md)
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 3.18% **低于 CI 阈值**，非常接近 SonarQube 目标！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 3.18% is **below CI threshold** and very close to SonarQube target!
@@ -1105,12 +1104,6 @@ For questions about technical debt, please contact the project lead.
 - ✅ **第二层 / Layer 2**: CI/CD 自动检测 (Automated detection)
 - ✅ **第三层 / Layer 3**: PR 审查流程 (Review process)
 - ✅ **第四层 / Layer 4**: 定期审查机制 (Regular review)
-
-#### 完整报告 / Full Report:
-📊 详细的技术债务解决情况和质量评估，请查看：
-For detailed technical debt resolution status and quality assessment, please see:
-
-**[TECHNICAL_DEBT_COMPLETION_REPORT.md](./TECHNICAL_DEBT_COMPLETION_REPORT.md)**
 
 ---
 
