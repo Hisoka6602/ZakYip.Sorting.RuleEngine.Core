@@ -31,7 +31,8 @@ public class AutoResponseModeService : IAutoResponseModeService
         {
             if (chuteNumbers != null && chuteNumbers.Length > 0)
             {
-                _chuteNumbers = chuteNumbers;
+                // 创建副本以防止外部修改内部数组 / Create a copy to prevent external modification
+                _chuteNumbers = (int[])chuteNumbers.Clone();
                 _logger.LogInformation(
                     "自动应答模式已启用，使用自定义格口数组: [{ChuteNumbers}] / Auto-response mode enabled with custom chute array: [{ChuteNumbers}]",
                     string.Join(", ", _chuteNumbers));
@@ -88,7 +89,8 @@ public class AutoResponseModeService : IAutoResponseModeService
         {
             lock (_lock)
             {
-                return _chuteNumbers;
+                // 返回副本，防止外部修改内部数组 / Return a copy to prevent external modification
+                return (int[])_chuteNumbers.Clone();
             }
         }
     }

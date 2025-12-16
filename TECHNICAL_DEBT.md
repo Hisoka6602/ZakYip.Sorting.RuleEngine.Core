@@ -826,11 +826,11 @@ According to requirements, related API endpoints need to be consolidated into un
 **非破坏性方案 / Non-Breaking Approach:**
 - 仅更新 Swagger 标签进行逻辑分组
 - 保持所有现有路由不变
-- 详见 `API_REORGANIZATION_ANALYSIS.md` 中的 Option B
+- 详见 `docs_API_REORGANIZATION_ANALYSIS.md` 中的 Option B
 
 #### 相关文档 / Related Documents
 
-- 📄 详细分析报告: `API_REORGANIZATION_ANALYSIS.md`
+- 📄 详细分析报告: `docs_API_REORGANIZATION_ANALYSIS.md`
 - 📋 原始需求: PR #copilot/configure-autoresponse-endpoints
 
 #### 优先级 / Priority

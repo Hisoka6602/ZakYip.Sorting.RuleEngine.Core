@@ -59,11 +59,28 @@ _autoResponseModeService = autoResponseModeService;
         Tags = new[] { "AutoResponseMode" }
     )]
     [SwaggerResponse(200, "自动应答模式已启用", typeof(AutoResponseModeStatusDto))]
+    [SwaggerResponse(400, "无效的格口号数组", typeof(AutoResponseModeStatusDto))]
     public ActionResult<AutoResponseModeStatusDto> Enable([FromBody] EnableAutoResponseModeRequest? request = null)
     {
         _logger.LogInformation("收到启用自动应答模式请求");
         
         var chuteNumbers = request?.ChuteNumbers;
+        
+        // 验证格口号数组 / Validate chute numbers
+        if (chuteNumbers != null && chuteNumbers.Length > 0)
+        {
+            if (chuteNumbers.Any(num => num <= 0))
+            {
+                return BadRequest(new AutoResponseModeStatusDto
+                {
+                    Enabled = false,
+                    Message = "格口号必须是正整数 / Chute numbers must be positive integers",
+                    Timestamp = _clock.LocalNow,
+                    ChuteNumbers = [1, 2, 3] // Return default
+                });
+            }
+        }
+        
         _autoResponseModeService.Enable(chuteNumbers);
         
         var actualChuteNumbers = _autoResponseModeService.ChuteNumbers;

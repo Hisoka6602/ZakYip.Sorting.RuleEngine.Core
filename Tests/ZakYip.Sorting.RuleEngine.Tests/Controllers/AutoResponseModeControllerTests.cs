@@ -33,7 +33,7 @@ public class AutoResponseModeControllerTests
         _mockService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]);
 
         // Act
-        var result = _controller.Enable(null);
+        _controller.Enable(null);
 
         // Assert
         _mockService.Verify(s => s.Enable(null), Times.Once);
@@ -48,7 +48,7 @@ public class AutoResponseModeControllerTests
         _mockService.Setup(s => s.ChuteNumbers).Returns(customChutes);
 
         // Act
-        var result = _controller.Enable(request);
+        _controller.Enable(request);
 
         // Assert
         _mockService.Verify(s => s.Enable(customChutes), Times.Once);
@@ -70,6 +70,39 @@ public class AutoResponseModeControllerTests
         Assert.Contains("enabled", dto.Message, StringComparison.OrdinalIgnoreCase);
         Assert.NotNull(dto.ChuteNumbers);
         Assert.Equal(new[] { 1, 2, 3 }, dto.ChuteNumbers);
+    }
+
+    [Fact]
+    public void Enable_WithInvalidChuteNumbers_ReturnsBadRequest()
+    {
+        // Arrange
+        var invalidChutes = new[] { 1, -2, 3 }; // Contains negative number
+        var request = new EnableAutoResponseModeRequest { ChuteNumbers = invalidChutes };
+
+        // Act
+        var result = _controller.Enable(request);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var dto = Assert.IsType<AutoResponseModeStatusDto>(badRequestResult.Value);
+        Assert.False(dto.Enabled);
+        Assert.Contains("positive", dto.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Enable_WithZeroInChuteNumbers_ReturnsBadRequest()
+    {
+        // Arrange
+        var invalidChutes = new[] { 0, 1, 2 }; // Contains zero
+        var request = new EnableAutoResponseModeRequest { ChuteNumbers = invalidChutes };
+
+        // Act
+        var result = _controller.Enable(request);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var dto = Assert.IsType<AutoResponseModeStatusDto>(badRequestResult.Value);
+        Assert.False(dto.Enabled);
     }
 
     [Fact]
