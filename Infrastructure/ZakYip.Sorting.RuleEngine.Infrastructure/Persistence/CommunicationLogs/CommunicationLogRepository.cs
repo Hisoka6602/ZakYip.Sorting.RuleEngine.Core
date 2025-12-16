@@ -99,6 +99,7 @@ _dbContext = dbContext;
             }
 
             return await query
+                .AsNoTracking()
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(maxRecords)
                 .ToListAsync();

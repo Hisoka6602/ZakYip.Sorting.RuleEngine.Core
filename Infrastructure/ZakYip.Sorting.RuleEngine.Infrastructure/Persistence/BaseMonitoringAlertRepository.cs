@@ -46,6 +46,7 @@ public abstract class BaseMonitoringAlertRepository<TContext> : IMonitoringAlert
         try
         {
             return await Context.MonitoringAlerts
+                .AsNoTracking()
                 .Where(a => !a.IsResolved)
                 .OrderByDescending(a => a.AlertTime)
                 .ToListAsync(cancellationToken);
@@ -65,6 +66,7 @@ public abstract class BaseMonitoringAlertRepository<TContext> : IMonitoringAlert
         try
         {
             return await Context.MonitoringAlerts
+                .AsNoTracking()
                 .Where(a => a.AlertTime >= startTime && a.AlertTime <= endTime)
                 .OrderByDescending(a => a.AlertTime)
                 .ToListAsync(cancellationToken);
