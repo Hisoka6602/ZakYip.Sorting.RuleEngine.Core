@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using MySqlConnector;
+using Microsoft.Extensions.Options;
 using NLog;
 using NLog.Web;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
@@ -71,6 +72,11 @@ try
                 // 注册数据库熔断器配置
                 services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
                     configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
+                
+                // 注册IDwsTimeoutSettings接口（用于Application层，从LiteDB加载）
+                // Register IDwsTimeoutSettings interface (for Application layer, loaded from LiteDB)
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDwsTimeoutSettings, 
+                    ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DwsTimeoutSettingsFromDb>();
 
                 // 注册数据库方言
                 // Register database dialects
@@ -301,6 +307,7 @@ try
                 // Register DWS-related repositories
                 services.AddScoped<IDwsConfigRepository, LiteDbDwsConfigRepository>();
                 services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
+                services.AddScoped<IDwsTimeoutConfigRepository, LiteDbDwsTimeoutConfigRepository>();
                 
                 // 注册分拣机配置仓储
                 // Register Sorter configuration repository
@@ -361,6 +368,7 @@ try
                 
                 // 注册后台服务
                 services.AddHostedService<ParcelQueueProcessorService>();
+                services.AddHostedService<DwsTimeoutCheckerService>();
                 services.AddHostedService<DataCleanupService>();
                 services.AddHostedService<DataArchiveService>();
                 services.AddHostedService<MySqlAutoTuningService>();

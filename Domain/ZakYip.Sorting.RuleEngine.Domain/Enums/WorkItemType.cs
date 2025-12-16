@@ -13,5 +13,9 @@ public enum WorkItemType
     
     /// <summary>处理DWS数据</summary>
     [Description("处理DWS数据")]
-    ProcessDws
+    ProcessDws,
+    
+    /// <summary>处理超时包裹</summary>
+    [Description("处理超时包裹")]
+    ProcessTimeout
 }

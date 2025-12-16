@@ -148,4 +148,12 @@ public class ConfigReloadService : IConfigReloadService
             throw;
         }
     }
+    
+    public Task ReloadDwsTimeoutConfigAsync(CancellationToken cancellationToken = default)
+    {
+        // DWS超时配置存储在LiteDB中，通过DwsTimeoutSettingsFromDb自动加载
+        // 配置会在30秒后自动刷新缓存，无需手动重新加载
+        _logger.LogInformation("DWS超时配置将在下次访问时自动刷新（30秒缓存）");
+        return Task.CompletedTask;
+    }
 }
