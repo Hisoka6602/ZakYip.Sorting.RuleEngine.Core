@@ -15,14 +15,17 @@ public class MockWcsApiAdapter : IWcsApiAdapter
 {
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<MockWcsApiAdapter> _logger;
+    private readonly IAutoResponseModeService _autoResponseModeService;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public MockWcsApiAdapter(
         ILogger<MockWcsApiAdapter> logger,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
+        IAutoResponseModeService autoResponseModeService)
     {
-_logger = logger;
+        _logger = logger;
         _clock = clock;
+        _autoResponseModeService = autoResponseModeService;
     }
 
     /// <summary>
@@ -127,14 +130,15 @@ _logger = logger;
     }
 
     /// <summary>
-    /// 生成随机格口号（1-20）
-    /// Generate random chute number (1-20)
+    /// 生成随机格口号（从配置的格口数组中选择）
+    /// Generate random chute number (selected from configured chute array)
     /// 使用 Random.Shared 以确保线程安全和更好的性能
     /// Uses Random.Shared for thread safety and better performance
     /// </summary>
-    private static string GenerateRandomChuteNumber()
+    private string GenerateRandomChuteNumber()
     {
-        var number = Random.Shared.Next(1, 21); // 1-20
-        return number.ToString();
+        var chuteNumbers = _autoResponseModeService.ChuteNumbers;
+        var index = Random.Shared.Next(0, chuteNumbers.Length);
+        return chuteNumbers[index].ToString();
     }
 }

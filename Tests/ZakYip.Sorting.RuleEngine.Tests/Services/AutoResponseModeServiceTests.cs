@@ -31,6 +31,42 @@ public class AutoResponseModeServiceTests
     }
 
     [Fact]
+    public void ChuteNumbers_DefaultState_ReturnsDefaultArray()
+    {
+        // Act
+        var chuteNumbers = _service.ChuteNumbers;
+
+        // Assert
+        Assert.NotNull(chuteNumbers);
+        Assert.Equal(new[] { 1, 2, 3 }, chuteNumbers);
+    }
+
+    [Fact]
+    public void Enable_WithoutParameters_UsesDefaultChuteNumbers()
+    {
+        // Act
+        _service.Enable();
+
+        // Assert
+        Assert.True(_service.IsEnabled);
+        Assert.Equal(new[] { 1, 2, 3 }, _service.ChuteNumbers);
+    }
+
+    [Fact]
+    public void Enable_WithCustomChuteNumbers_SetsCustomArray()
+    {
+        // Arrange
+        var customChutes = new[] { 1, 2, 3, 4, 5, 6 };
+
+        // Act
+        _service.Enable(customChutes);
+
+        // Assert
+        Assert.True(_service.IsEnabled);
+        Assert.Equal(customChutes, _service.ChuteNumbers);
+    }
+
+    [Fact]
     public void Enable_WhenDisabled_EnablesMode()
     {
         // Arrange

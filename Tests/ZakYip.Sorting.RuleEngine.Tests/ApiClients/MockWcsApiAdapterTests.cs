@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
@@ -15,13 +16,16 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 public class MockWcsApiAdapterTests
 {
     private readonly Mock<ILogger<MockWcsApiAdapter>> _mockLogger;
+    private readonly Mock<IAutoResponseModeService> _mockAutoResponseService;
     private readonly MockWcsApiAdapter _adapter;
 
     public MockWcsApiAdapterTests()
     {
         _mockLogger = new Mock<ILogger<MockWcsApiAdapter>>();
+        _mockAutoResponseService = new Mock<IAutoResponseModeService>();
+        _mockAutoResponseService.Setup(s => s.ChuteNumbers).Returns([1, 2, 3]); // Default chute array
         var clock = new MockSystemClock();
-        _adapter = new MockWcsApiAdapter(_mockLogger.Object, clock);
+        _adapter = new MockWcsApiAdapter(_mockLogger.Object, clock, _mockAutoResponseService.Object);
     }
 
     [Fact]
@@ -123,10 +127,10 @@ public class MockWcsApiAdapterTests
             chuteNumbers.Add(chuteNumber);
         }
 
-        // Assert - All chute numbers should be in range 1-20
-        Assert.All(chuteNumbers, cn => Assert.InRange(cn, 1, 20));
-        // Should have some variety in random numbers (at least 5 different values)
-        Assert.True(chuteNumbers.Count >= 5);
+        // Assert - All chute numbers should be in configured array [1, 2, 3]
+        Assert.All(chuteNumbers, cn => Assert.InRange(cn, 1, 3));
+        // Should have at least 2 different values in random numbers
+        Assert.True(chuteNumbers.Count >= 2);
     }
 
     [Fact]
