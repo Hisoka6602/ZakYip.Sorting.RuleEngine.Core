@@ -43,10 +43,10 @@ public class ParcelOrchestrationServiceTests
         var timeoutSettings = new TestDwsTimeoutSettings
         {
             Enabled = false,
-            MinDwsWaitSeconds = 2,
-            MaxDwsWaitSeconds = 30,
+            MinDwsWaitMilliseconds = 2000,
+            MaxDwsWaitMilliseconds = 30000,
             ExceptionChuteId = 999,
-            CheckIntervalSeconds = 5
+            CheckIntervalMilliseconds = 5000
         };
         
         _service = new ParcelOrchestrationService(

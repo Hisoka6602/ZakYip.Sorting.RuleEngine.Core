@@ -57,7 +57,7 @@ public class DwsTimeoutCheckerService : BackgroundService
                 }
 
                 // 等待下一次检查
-                await Task.Delay(TimeSpan.FromSeconds(_timeoutSettings.CheckIntervalSeconds), stoppingToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(_timeoutSettings.CheckIntervalMilliseconds), stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

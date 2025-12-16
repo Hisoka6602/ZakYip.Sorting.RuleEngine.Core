@@ -25,16 +25,16 @@ public record class DwsTimeoutConfig
     public required bool Enabled { get; init; }
 
     /// <summary>
-    /// 最小等待时间（秒）- 避免匹配上一个包裹的DWS数据
-    /// Minimum wait time (seconds) - Avoid matching DWS data from previous parcel
+    /// 最小等待时间（毫秒）- 避免匹配上一个包裹的DWS数据
+    /// Minimum wait time (milliseconds) - Avoid matching DWS data from previous parcel
     /// </summary>
-    public required int MinDwsWaitSeconds { get; init; }
+    public required int MinDwsWaitMilliseconds { get; init; }
 
     /// <summary>
-    /// 最大等待时间（秒）- 超时截止时间
-    /// Maximum wait time (seconds) - Timeout deadline
+    /// 最大等待时间（毫秒）- 超时截止时间
+    /// Maximum wait time (milliseconds) - Timeout deadline
     /// </summary>
-    public required int MaxDwsWaitSeconds { get; init; }
+    public required int MaxDwsWaitMilliseconds { get; init; }
 
     /// <summary>
     /// 异常格口ID - 当DWS数据接收超时时，分配到此格口
@@ -43,10 +43,10 @@ public record class DwsTimeoutConfig
     public required long ExceptionChuteId { get; init; }
 
     /// <summary>
-    /// 超时检查间隔（秒）- 后台任务检查超时包裹的频率
-    /// Timeout check interval (seconds) - Frequency of background task checking for timed-out parcels
+    /// 超时检查间隔（毫秒）- 后台任务检查超时包裹的频率
+    /// Timeout check interval (milliseconds) - Frequency of background task checking for timed-out parcels
     /// </summary>
-    public required int CheckIntervalSeconds { get; init; }
+    public required int CheckIntervalMilliseconds { get; init; }
     
     /// <summary>
     /// 备注说明

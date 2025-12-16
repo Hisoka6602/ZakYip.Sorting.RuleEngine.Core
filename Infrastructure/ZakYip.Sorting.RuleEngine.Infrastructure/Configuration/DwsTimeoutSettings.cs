@@ -47,10 +47,10 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
                         {
                             ConfigId = DwsTimeoutConfig.SingletonId,
                             Enabled = true,
-                            MinDwsWaitSeconds = 2,
-                            MaxDwsWaitSeconds = 30,
+                            MinDwsWaitMilliseconds = 2000, // 2秒 / 2 seconds
+                            MaxDwsWaitMilliseconds = 30000, // 30秒 / 30 seconds
                             ExceptionChuteId = 999, // 使用999作为默认值 / Use 999 as default value
-                            CheckIntervalSeconds = 5,
+                            CheckIntervalMilliseconds = 5000, // 5秒 / 5 seconds
                             Description = "Default DWS timeout configuration",
                             CreatedAt = _clock.LocalNow,
                             UpdatedAt = _clock.LocalNow
@@ -65,11 +65,11 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
 
     public bool Enabled => GetConfig().Enabled;
 
-    public int MinDwsWaitSeconds => GetConfig().MinDwsWaitSeconds;
+    public int MinDwsWaitMilliseconds => GetConfig().MinDwsWaitMilliseconds;
 
-    public int MaxDwsWaitSeconds => GetConfig().MaxDwsWaitSeconds;
+    public int MaxDwsWaitMilliseconds => GetConfig().MaxDwsWaitMilliseconds;
 
     public long ExceptionChuteId => GetConfig().ExceptionChuteId;
 
-    public int CheckIntervalSeconds => GetConfig().CheckIntervalSeconds;
+    public int CheckIntervalMilliseconds => GetConfig().CheckIntervalMilliseconds;
 }

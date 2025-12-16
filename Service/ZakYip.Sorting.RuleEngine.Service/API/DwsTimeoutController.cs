@@ -89,17 +89,17 @@ public class DwsTimeoutController : ControllerBase
         try
         {
             // 验证参数 / Validate parameters
-            if (request.MinDwsWaitSeconds < 0)
+            if (request.MinDwsWaitMilliseconds < 0)
             {
                 return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
-                    "最小等待时间不能小于0 / MinDwsWaitSeconds cannot be less than 0",
+                    "最小等待时间不能小于0 / MinDwsWaitMilliseconds cannot be less than 0",
                     "INVALID_MIN_WAIT_TIME"));
             }
 
-            if (request.MaxDwsWaitSeconds <= request.MinDwsWaitSeconds)
+            if (request.MaxDwsWaitMilliseconds <= request.MinDwsWaitMilliseconds)
             {
                 return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
-                    "最大等待时间必须大于最小等待时间 / MaxDwsWaitSeconds must be greater than MinDwsWaitSeconds",
+                    "最大等待时间必须大于最小等待时间 / MaxDwsWaitMilliseconds must be greater than MinDwsWaitMilliseconds",
                     "INVALID_MAX_WAIT_TIME"));
             }
 
@@ -110,10 +110,10 @@ public class DwsTimeoutController : ControllerBase
                     "INVALID_EXCEPTION_CHUTE_ID"));
             }
 
-            if (request.CheckIntervalSeconds <= 0)
+            if (request.CheckIntervalMilliseconds <= 0)
             {
                 return BadRequest(ApiResponse<DwsTimeoutConfigResponseDto>.FailureResult(
-                    "检查间隔必须大于0 / CheckIntervalSeconds must be greater than 0",
+                    "检查间隔必须大于0 / CheckIntervalMilliseconds must be greater than 0",
                     "INVALID_CHECK_INTERVAL"));
             }
 
@@ -166,10 +166,10 @@ public class DwsTimeoutController : ControllerBase
         {
             ConfigId = DwsTimeoutConfig.SingletonId,
             Enabled = true,
-            MinDwsWaitSeconds = 2,
-            MaxDwsWaitSeconds = 30,
+            MinDwsWaitMilliseconds = 2000, // 2秒 / 2 seconds
+            MaxDwsWaitMilliseconds = 30000, // 30秒 / 30 seconds
             ExceptionChuteId = 999, // 999 表示未分配异常格口 / 999 means "unassigned exception chute"
-            CheckIntervalSeconds = 5,
+            CheckIntervalMilliseconds = 5000, // 5秒 / 5 seconds
             Description = "默认DWS超时配置（异常格口未分配）/ Default DWS timeout configuration (exception chute unassigned)",
             CreatedAt = _clock.LocalNow,
             UpdatedAt = _clock.LocalNow
@@ -182,10 +182,10 @@ public class DwsTimeoutController : ControllerBase
         {
             ConfigId = DwsTimeoutConfig.SingletonId,
             Enabled = request.Enabled,
-            MinDwsWaitSeconds = request.MinDwsWaitSeconds,
-            MaxDwsWaitSeconds = request.MaxDwsWaitSeconds,
+            MinDwsWaitMilliseconds = request.MinDwsWaitMilliseconds,
+            MaxDwsWaitMilliseconds = request.MaxDwsWaitMilliseconds,
             ExceptionChuteId = request.ExceptionChuteId,
-            CheckIntervalSeconds = request.CheckIntervalSeconds,
+            CheckIntervalMilliseconds = request.CheckIntervalMilliseconds,
             Description = request.Description,
             CreatedAt = _clock.LocalNow,
             UpdatedAt = _clock.LocalNow
@@ -198,10 +198,10 @@ public class DwsTimeoutController : ControllerBase
         {
             ConfigId = config.ConfigId,
             Enabled = config.Enabled,
-            MinDwsWaitSeconds = config.MinDwsWaitSeconds,
-            MaxDwsWaitSeconds = config.MaxDwsWaitSeconds,
+            MinDwsWaitMilliseconds = config.MinDwsWaitMilliseconds,
+            MaxDwsWaitMilliseconds = config.MaxDwsWaitMilliseconds,
             ExceptionChuteId = config.ExceptionChuteId,
-            CheckIntervalSeconds = config.CheckIntervalSeconds,
+            CheckIntervalMilliseconds = config.CheckIntervalMilliseconds,
             Description = config.Description,
             CreatedAt = config.CreatedAt,
             UpdatedAt = config.UpdatedAt
@@ -225,14 +225,14 @@ public record DwsTimeoutConfigResponseDto
     public bool Enabled { get; init; }
 
     /// <summary>
-    /// 最小等待时间（秒）/ Minimum wait time (seconds)
+    /// 最小等待时间（毫秒）/ Minimum wait time (milliseconds)
     /// </summary>
-    public int MinDwsWaitSeconds { get; init; }
+    public int MinDwsWaitMilliseconds { get; init; }
 
     /// <summary>
-    /// 最大等待时间（秒）/ Maximum wait time (seconds)
+    /// 最大等待时间（毫秒）/ Maximum wait time (milliseconds)
     /// </summary>
-    public int MaxDwsWaitSeconds { get; init; }
+    public int MaxDwsWaitMilliseconds { get; init; }
 
     /// <summary>
     /// 异常格口ID / Exception chute ID
@@ -240,9 +240,9 @@ public record DwsTimeoutConfigResponseDto
     public long ExceptionChuteId { get; init; }
 
     /// <summary>
-    /// 超时检查间隔（秒）/ Timeout check interval (seconds)
+    /// 超时检查间隔（毫秒）/ Timeout check interval (milliseconds)
     /// </summary>
-    public int CheckIntervalSeconds { get; init; }
+    public int CheckIntervalMilliseconds { get; init; }
     
     /// <summary>
     /// 备注说明 / Description
@@ -272,28 +272,28 @@ public record DwsTimeoutUpdateRequest
     public bool Enabled { get; init; } = true;
 
     /// <summary>
-    /// 最小等待时间（秒）- 避免匹配上一个包裹的DWS数据 / Minimum wait time (seconds) - Avoid matching DWS data from previous parcel
+    /// 最小等待时间（毫秒）- 避免匹配上一个包裹的DWS数据 / Minimum wait time (milliseconds) - Avoid matching DWS data from previous parcel
     /// </summary>
-    /// <example>2</example>
-    public int MinDwsWaitSeconds { get; init; } = 2;
+    /// <example>2000</example>
+    public int MinDwsWaitMilliseconds { get; init; } = 2000;
 
     /// <summary>
-    /// 最大等待时间（秒）- 超时截止时间 / Maximum wait time (seconds) - Timeout deadline
+    /// 最大等待时间（毫秒）- 超时截止时间 / Maximum wait time (milliseconds) - Timeout deadline
     /// </summary>
-    /// <example>30</example>
-    public int MaxDwsWaitSeconds { get; init; } = 30;
+    /// <example>30000</example>
+    public int MaxDwsWaitMilliseconds { get; init; } = 30000;
 
     /// <summary>
     /// 异常格口ID - 当DWS数据接收超时时，分配到此格口 / Exception chute ID - Assign to this chute when DWS data reception times out
     /// </summary>
     /// <example>999</example>
-    public long ExceptionChuteId { get; init; } = 0;
+    public long ExceptionChuteId { get; init; } = 999;
 
     /// <summary>
-    /// 超时检查间隔（秒）- 后台任务检查超时包裹的频率 / Timeout check interval (seconds) - Frequency of background task checking for timed-out parcels
+    /// 超时检查间隔（毫秒）- 后台任务检查超时包裹的频率 / Timeout check interval (milliseconds) - Frequency of background task checking for timed-out parcels
     /// </summary>
-    /// <example>5</example>
-    public int CheckIntervalSeconds { get; init; } = 5;
+    /// <example>5000</example>
+    public int CheckIntervalMilliseconds { get; init; } = 5000;
     
     /// <summary>
     /// 备注说明 / Description

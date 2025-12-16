@@ -39,10 +39,10 @@ public class DwsTimeoutHandlingTests
         _timeoutSettings = new TestDwsTimeoutSettings
         {
             Enabled = true,
-            MinDwsWaitSeconds = 2,
-            MaxDwsWaitSeconds = 30,
+            MinDwsWaitMilliseconds = 2000,
+            MaxDwsWaitMilliseconds = 30000,
             ExceptionChuteId = 999,
-            CheckIntervalSeconds = 5
+            CheckIntervalMilliseconds = 5000
         };
         
         // 创建 ServiceProvider 用于测试
@@ -378,8 +378,8 @@ public class DwsTimeoutHandlingTests
 internal class TestDwsTimeoutSettings : IDwsTimeoutSettings
 {
     public bool Enabled { get; set; }
-    public int MinDwsWaitSeconds { get; set; }
-    public int MaxDwsWaitSeconds { get; set; }
+    public int MinDwsWaitMilliseconds { get; set; }
+    public int MaxDwsWaitMilliseconds { get; set; }
     public long ExceptionChuteId { get; set; }
-    public int CheckIntervalSeconds { get; set; }
+    public int CheckIntervalMilliseconds { get; set; }
 }

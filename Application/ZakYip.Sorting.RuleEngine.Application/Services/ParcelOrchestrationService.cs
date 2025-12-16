@@ -113,23 +113,23 @@ public class ParcelOrchestrationService
         // 检查是否启用超时检查
         if (_timeoutSettings.Enabled)
         {
-            var elapsedSeconds = (_clock.LocalNow - context.CreatedAt).TotalSeconds;
+            var elapsedMilliseconds = (_clock.LocalNow - context.CreatedAt).TotalMilliseconds;
             
             // 检查是否太早接收（可能是上一个包裹的DWS数据）
-            if (elapsedSeconds < _timeoutSettings.MinDwsWaitSeconds)
+            if (elapsedMilliseconds < _timeoutSettings.MinDwsWaitMilliseconds)
             {
                 _logger.LogWarning(
-                    "DWS数据接收过早，可能是上一个包裹的数据: ParcelId={ParcelId}, ElapsedSeconds={ElapsedSeconds:F2}, MinWaitSeconds={MinWaitSeconds}",
-                    parcelId, elapsedSeconds, _timeoutSettings.MinDwsWaitSeconds);
+                    "DWS数据接收过早，可能是上一个包裹的数据: ParcelId={ParcelId}, ElapsedMs={ElapsedMs:F2}, MinWaitMs={MinWaitMs}",
+                    parcelId, elapsedMilliseconds, _timeoutSettings.MinDwsWaitMilliseconds);
                 return false;
             }
             
             // 检查是否超时
-            if (elapsedSeconds > _timeoutSettings.MaxDwsWaitSeconds)
+            if (elapsedMilliseconds > _timeoutSettings.MaxDwsWaitMilliseconds)
             {
                 _logger.LogWarning(
-                    "DWS数据接收超时，拒绝接收: ParcelId={ParcelId}, ElapsedSeconds={ElapsedSeconds:F2}, MaxWaitSeconds={MaxWaitSeconds}",
-                    parcelId, elapsedSeconds, _timeoutSettings.MaxDwsWaitSeconds);
+                    "DWS数据接收超时，拒绝接收: ParcelId={ParcelId}, ElapsedMs={ElapsedMs:F2}, MaxWaitMs={MaxWaitMs}",
+                    parcelId, elapsedMilliseconds, _timeoutSettings.MaxDwsWaitMilliseconds);
                 return false;
             }
         }
@@ -250,8 +250,8 @@ public class ParcelOrchestrationService
                 {
                     // 处理超时包裹，分配到异常格口
                     _logger.LogWarning(
-                        "处理超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedSeconds={ElapsedSeconds:F2}, ExceptionChuteId={ExceptionChuteId}",
-                        context.ParcelId, context.CreatedAt, (_clock.LocalNow - context.CreatedAt).TotalSeconds, 
+                        "处理超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedMs={ElapsedMs:F2}, ExceptionChuteId={ExceptionChuteId}",
+                        context.ParcelId, context.CreatedAt, (_clock.LocalNow - context.CreatedAt).TotalMilliseconds, 
                         _timeoutSettings.ExceptionChuteId);
                     
                     // 分配到异常格口
@@ -305,10 +305,10 @@ public class ParcelOrchestrationService
         foreach (var kvp in parcelsWithoutDws)
         {
             var context = kvp.Value;
-            var elapsedSeconds = (now - context.CreatedAt).TotalSeconds;
+            var elapsedMilliseconds = (now - context.CreatedAt).TotalMilliseconds;
             
             // 检查是否超时
-            if (elapsedSeconds > _timeoutSettings.MaxDwsWaitSeconds)
+            if (elapsedMilliseconds > _timeoutSettings.MaxDwsWaitMilliseconds)
             {
                 timedOutParcels.Add(kvp.Key);
             }
@@ -327,8 +327,8 @@ public class ParcelOrchestrationService
                 }
                 
                 _logger.LogWarning(
-                    "检测到超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedSeconds={ElapsedSeconds:F2}",
-                    parcelId, context.CreatedAt, (now - context.CreatedAt).TotalSeconds);
+                    "检测到超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedMs={ElapsedMs:F2}",
+                    parcelId, context.CreatedAt, (now - context.CreatedAt).TotalMilliseconds);
                 
                 // 将超时处理加入队列
                 var workItem = new ParcelWorkItem

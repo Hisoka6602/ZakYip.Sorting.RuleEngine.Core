@@ -11,16 +11,16 @@ public interface IDwsTimeoutSettings
     bool Enabled { get; }
 
     /// <summary>
-    /// 最小等待时间（秒）- 避免匹配上一个包裹的DWS数据
-    /// Minimum wait time (seconds) - Avoid matching DWS data from previous parcel
+    /// 最小等待时间（毫秒）- 避免匹配上一个包裹的DWS数据
+    /// Minimum wait time (milliseconds) - Avoid matching DWS data from previous parcel
     /// </summary>
-    int MinDwsWaitSeconds { get; }
+    int MinDwsWaitMilliseconds { get; }
 
     /// <summary>
-    /// 最大等待时间（秒）- 超时截止时间
-    /// Maximum wait time (seconds) - Timeout deadline
+    /// 最大等待时间（毫秒）- 超时截止时间
+    /// Maximum wait time (milliseconds) - Timeout deadline
     /// </summary>
-    int MaxDwsWaitSeconds { get; }
+    int MaxDwsWaitMilliseconds { get; }
 
     /// <summary>
     /// 异常格口ID - 当DWS数据接收超时时，分配到此格口
@@ -29,8 +29,8 @@ public interface IDwsTimeoutSettings
     long ExceptionChuteId { get; }
 
     /// <summary>
-    /// 超时检查间隔（秒）- 后台任务检查超时包裹的频率
-    /// Timeout check interval (seconds) - Frequency of background task checking for timed-out parcels
+    /// 超时检查间隔（毫秒）- 后台任务检查超时包裹的频率
+    /// Timeout check interval (milliseconds) - Frequency of background task checking for timed-out parcels
     /// </summary>
-    int CheckIntervalSeconds { get; }
+    int CheckIntervalMilliseconds { get; }
 }
