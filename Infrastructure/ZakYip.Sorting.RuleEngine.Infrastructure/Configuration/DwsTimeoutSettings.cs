@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -9,16 +10,16 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Configuration;
 /// </summary>
 public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
 {
-    private readonly IDwsTimeoutConfigRepository _repository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ISystemClock _clock;
     private readonly object _lock = new();
     private DwsTimeoutConfig? _cachedConfig;
     private DateTime _lastLoadTime;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromSeconds(30);
 
-    public DwsTimeoutSettingsFromDb(IDwsTimeoutConfigRepository repository, ISystemClock clock)
+    public DwsTimeoutSettingsFromDb(IServiceScopeFactory serviceScopeFactory, ISystemClock clock)
     {
-        _repository = repository;
+        _serviceScopeFactory = serviceScopeFactory;
         _clock = clock;
     }
 
@@ -32,10 +33,15 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
                 // 再次检查，避免重复加载 / Double-check to avoid redundant loading
                 if (_cachedConfig == null || _clock.LocalNow - _lastLoadTime > _cacheExpiration)
                 {
+                    // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+                    // Use IServiceScopeFactory to create scope to access scoped repository
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var repository = scope.ServiceProvider.GetRequiredService<IDwsTimeoutConfigRepository>();
+                    
                     // 使用 Task.Run 在线程池中执行异步操作，避免死锁
                     // Execute async operation in thread pool to avoid deadlock
                     _cachedConfig = Task.Run(async () => 
-                        await _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false)
+                        await repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false)
                     ).GetAwaiter().GetResult();
                     
                     _lastLoadTime = _clock.LocalNow;
