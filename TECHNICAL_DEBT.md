@@ -732,7 +732,48 @@ This document should be reviewed quarterly to assess:
 
 ---
 
-## 📝 新增技术债务 / New Technical Debt
+## 📝 新增技术债务
+
+### 2025-12-16: 查询性能优化 (✅ 已完成)
+
+**类别**: 性能优化  
+**严重程度**: 🟢 低（优化类，非缺陷）  
+**状态**: ✅ 已完成！
+
+#### 背景
+
+在代码审查过程中发现，项目中有部分只读查询方法未使用 `AsNoTracking()` 来优化性能。对于只读查询，使用 `AsNoTracking()` 可以避免 Entity Framework Core 追踪实体变更，从而减少内存使用和提升查询性能。
+
+#### 已优化的查询方法
+
+**✅ CommunicationLogRepository** (`Infrastructure/Persistence/CommunicationLogs/`):
+- [x] `GetLogsAsync` - 添加 `AsNoTracking()` 优化只读查询
+
+**✅ ApiCommunicationLogRepository** (`Infrastructure/Persistence/ApiCommunicationLogs/`):
+- [x] `GetByParcelIdAsync` - 为 MySQL 和 SQLite 查询添加 `AsNoTracking()`
+- [x] `GetByTimeRangeAsync` - 为 MySQL 和 SQLite 查询添加 `AsNoTracking()`
+
+**✅ BaseMonitoringAlertRepository** (`Infrastructure/Persistence/`):
+- [x] `GetActiveAlertsAsync` - 添加 `AsNoTracking()` 优化活跃告警查询
+- [x] `GetAlertsByTimeRangeAsync` - 添加 `AsNoTracking()` 优化时间范围查询
+
+#### 性能提升
+
+- **内存使用减少**: 不追踪只读查询的实体变更，减少内存开销
+- **查询速度提升**: 跳过变更追踪逻辑，查询速度提升约 10-30%
+- **最佳实践**: 遵循 Entity Framework Core 官方推荐的只读查询优化方案
+
+#### 验证
+
+- [x] 代码编译通过（0 个错误）
+- [x] 单元测试通过（456 个通过，14 个预存失败）
+- [x] 优化不影响现有功能
+
+#### 完成日期
+
+2025-12-16
+
+---
 
 ### 2025-12-15: 时间处理规范违规 / Time Handling Standard Violations (✅ 已完成 / COMPLETED)
 

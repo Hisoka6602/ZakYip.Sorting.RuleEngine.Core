@@ -110,6 +110,7 @@ public class ApiCommunicationLogRepository : IApiCommunicationLogRepository
             if (_mysqlContext != null)
             {
                 return await _mysqlContext.ApiCommunicationLogs
+                    .AsNoTracking()
                     .Where(log => log.ParcelId == parcelId)
                     .OrderByDescending(log => log.RequestTime)
                     .ToListAsync(cancellationToken);
@@ -118,6 +119,7 @@ public class ApiCommunicationLogRepository : IApiCommunicationLogRepository
             else if (_sqliteContext != null)
             {
                 return await _sqliteContext.ApiCommunicationLogs
+                    .AsNoTracking()
                     .Where(log => log.ParcelId == parcelId)
                     .OrderByDescending(log => log.RequestTime)
                     .ToListAsync(cancellationToken);
@@ -146,6 +148,7 @@ public class ApiCommunicationLogRepository : IApiCommunicationLogRepository
             if (_mysqlContext != null)
             {
                 return await _mysqlContext.ApiCommunicationLogs
+                    .AsNoTracking()
                     .Where(log => log.RequestTime >= startTime && log.RequestTime <= endTime)
                     .OrderByDescending(log => log.RequestTime)
                     .ToListAsync(cancellationToken);
@@ -154,6 +157,7 @@ public class ApiCommunicationLogRepository : IApiCommunicationLogRepository
             else if (_sqliteContext != null)
             {
                 return await _sqliteContext.ApiCommunicationLogs
+                    .AsNoTracking()
                     .Where(log => log.RequestTime >= startTime && log.RequestTime <= endTime)
                     .OrderByDescending(log => log.RequestTime)
                     .ToListAsync(cancellationToken);
