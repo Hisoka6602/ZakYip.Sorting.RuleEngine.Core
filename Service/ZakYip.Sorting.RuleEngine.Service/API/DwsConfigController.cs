@@ -16,7 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("DWS配置管理接口")]
+[SwaggerTag("DWS管理 / DWS Management")]
 public class DwsConfigController : ControllerBase
 {
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;

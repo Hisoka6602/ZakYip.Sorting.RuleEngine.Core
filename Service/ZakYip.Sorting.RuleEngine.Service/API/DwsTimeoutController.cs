@@ -13,7 +13,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("DWS超时配置管理接口 / DWS timeout configuration management API")]
+[SwaggerTag("DWS管理 / DWS Management")]
 public class DwsTimeoutController : ControllerBase
 {
     private readonly ISystemClock _clock;

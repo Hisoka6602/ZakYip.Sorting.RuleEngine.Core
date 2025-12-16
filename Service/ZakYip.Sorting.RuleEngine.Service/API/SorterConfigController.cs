@@ -16,7 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("分拣机配置管理接口")]
+[SwaggerTag("分拣机管理 / Sorting Management")]
 public class SorterConfigController : ControllerBase
 {
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;

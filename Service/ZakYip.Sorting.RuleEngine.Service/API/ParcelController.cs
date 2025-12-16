@@ -11,7 +11,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("包裹处理接口，提供包裹的单个和批量处理功能")]
+[SwaggerTag("包裹管理 / Parcel Management")]
 public class ParcelController : ControllerBase
 {
     private readonly IParcelProcessingService _parcelProcessingService;
