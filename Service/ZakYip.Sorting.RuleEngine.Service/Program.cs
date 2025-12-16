@@ -192,10 +192,17 @@ try
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    return new HttpClientHandler
+                    var handler = new HttpClientHandler();
+                    
+                    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
+                    // 警告：仅在开发/测试环境禁用SSL验证
+                    if (appSettings.WcsApi.DisableSslValidation)
                     {
-                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
-                    };
+                        logger.Warn("WCS API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
+                        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
+                    }
+                    
+                    return handler;
                 });
 
                 // 注册旺店通WMS API适配器
@@ -206,10 +213,17 @@ try
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    return new HttpClientHandler
+                    var handler = new HttpClientHandler();
+                    
+                    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
+                    // 警告：仅在开发/测试环境禁用SSL验证
+                    if (appSettings.WdtWmsApi.DisableSslValidation)
                     {
-                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
-                    };
+                        logger.Warn("WdtWms API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
+                        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
+                    }
+                    
+                    return handler;
                 })
                 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
                 {
@@ -231,10 +245,17 @@ try
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    return new HttpClientHandler
+                    var handler = new HttpClientHandler();
+                    
+                    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
+                    // 警告：仅在开发/测试环境禁用SSL验证
+                    if (appSettings.JushuitanErpApi.DisableSslValidation)
                     {
-                        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
-                    };
+                        logger.Warn("Jushuitán ERP API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
+                        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
+                    }
+                    
+                    return handler;
                 })
                 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
                 {

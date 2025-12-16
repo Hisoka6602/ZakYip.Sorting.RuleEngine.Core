@@ -69,18 +69,26 @@ services.AddHttpClient<WcsApiClient>(client =>
 })
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
-    return new HttpClientHandler
+    var handler = new HttpClientHandler();
+    
+    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
+    if (appSettings.WcsApi.DisableSslValidation)
     {
-        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
-    };
+        logger.Warn("SSL certificate validation is DISABLED - development/testing only!");
+        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
+    }
+    // Production: Uses default certificate validation ✅
+    
+    return handler;
 });
 ```
 
 **✅ 合规要点 / Compliance Points:**
 - ✅ 使用 IHttpClientFactory 管理生命周期
 - ✅ BaseAddress 和 Timeout 集中配置
-- ✅ 自定义 HttpClientHandler（SSL 证书验证）
+- ✅ SSL 证书验证：生产环境启用，开发环境可配置禁用
 - ✅ API Key 通过 Headers 配置
+- ⚠️ **安全警告**: `DisableSslValidation` 仅用于开发/测试，生产环境必须为 `false`
 
 ---
 
@@ -113,10 +121,17 @@ services.AddHttpClient<WdtWmsApiClient>((sp, client) =>
 })
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
-    return new HttpClientHandler
+    var handler = new HttpClientHandler();
+    
+    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
+    if (appSettings.WdtWmsApi.DisableSslValidation)
     {
-        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
-    };
+        logger.Warn("SSL certificate validation is DISABLED - development/testing only!");
+        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
+    }
+    // Production: Uses default certificate validation ✅
+    
+    return handler;
 })
 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
 {
@@ -135,11 +150,12 @@ services.AddHttpClient<WdtWmsApiClient>((sp, client) =>
 - ✅ 使用 Typed Client 模式
 - ✅ 通过 Factory 方法注入额外依赖（AppKey, AppSecret）
 - ✅ 继承自 BaseErpApiClient，复用 HttpClient
-- ✅ SSL 证书验证自定义配置
+- ✅ SSL 证书验证：生产环境启用，开发环境可配置禁用
+- ⚠️ **安全警告**: `DisableSslValidation` 仅用于开发/测试，生产环境必须为 `false`
 
 ---
 
-### 3. 聚水潭 ERP API 客户端 / Jushuituan ERP API Client
+### 3. 聚水潭 ERP API 客户端 / Jushuitán ERP API Client
 
 **类名 / Class:** `JushuitanErpApiClient`  
 **文件 / File:** `Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/ApiClients/JushuitanErpApiClient.cs`  
@@ -170,10 +186,17 @@ services.AddHttpClient<JushuitanErpApiClient>((sp, client) =>
 })
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
-    return new HttpClientHandler
+    var handler = new HttpClientHandler();
+    
+    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
+    if (appSettings.JushuitanErpApi.DisableSslValidation)
     {
-        ServerCertificateCustomValidationCallback = (m, c, ch, _) => true
-    };
+        logger.Warn("SSL certificate validation is DISABLED - development/testing only!");
+        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
+    }
+    // Production: Uses default certificate validation ✅
+    
+    return handler;
 })
 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
 {
@@ -193,7 +216,8 @@ services.AddHttpClient<JushuitanErpApiClient>((sp, client) =>
 - ✅ 使用 Typed Client 模式
 - ✅ 通过 Factory 注入 3 个 ERP 凭证参数
 - ✅ 继承自 BaseErpApiClient
-- ✅ 超时和 SSL 配置完整
+- ✅ SSL 证书验证：生产环境启用，开发环境可配置禁用
+- ⚠️ **安全警告**: `DisableSslValidation` 仅用于开发/测试，生产环境必须为 `false`
 
 ---
 
