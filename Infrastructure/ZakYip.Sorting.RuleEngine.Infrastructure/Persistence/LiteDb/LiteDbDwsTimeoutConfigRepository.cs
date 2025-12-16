@@ -40,11 +40,24 @@ public class LiteDbDwsTimeoutConfigRepository : IDwsTimeoutConfigRepository
     {
         var collection = _database.GetCollection<DwsTimeoutConfig>(CollectionName);
         
-        // 更新时间戳
-        var configWithTimestamp = config with { UpdatedAt = _clock.LocalNow };
+        // 检查是否已存在该配置 / Check if config already exists
+        var existing = collection.FindById(new BsonValue(config.ConfigId));
+        var now = _clock.LocalNow;
+        DwsTimeoutConfig configToSave;
+        
+        if (existing is not null)
+        {
+            // 保留原有 CreatedAt，仅更新时间戳 / Preserve original CreatedAt, only update UpdatedAt
+            configToSave = config with { CreatedAt = existing.CreatedAt, UpdatedAt = now };
+        }
+        else
+        {
+            // 新建时设置 CreatedAt 和 UpdatedAt / Set both CreatedAt and UpdatedAt for new record
+            configToSave = config with { CreatedAt = now, UpdatedAt = now };
+        }
         
         // Upsert操作：如果存在则更新，否则插入
-        var result = collection.Upsert(configWithTimestamp);
+        var result = collection.Upsert(configToSave);
         return Task.FromResult(result);
     }
 }

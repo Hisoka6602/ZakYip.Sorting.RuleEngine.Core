@@ -11,6 +11,7 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
 {
     private readonly IDwsTimeoutConfigRepository _repository;
     private readonly ISystemClock _clock;
+    private readonly object _lock = new();
     private DwsTimeoutConfig? _cachedConfig;
     private DateTime _lastLoadTime;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromSeconds(30);
@@ -23,27 +24,39 @@ public class DwsTimeoutSettingsFromDb : IDwsTimeoutSettings
 
     private DwsTimeoutConfig GetConfig()
     {
-        // 简单的缓存机制，避免频繁查询数据库
+        // 使用双重检查锁定确保线程安全 / Use double-check locking for thread safety
         if (_cachedConfig == null || _clock.LocalNow - _lastLoadTime > _cacheExpiration)
         {
-            _cachedConfig = _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).GetAwaiter().GetResult();
-            _lastLoadTime = _clock.LocalNow;
-            
-            // 如果数据库中没有配置，返回默认值
-            if (_cachedConfig == null)
+            lock (_lock)
             {
-                _cachedConfig = new DwsTimeoutConfig
+                // 再次检查，避免重复加载 / Double-check to avoid redundant loading
+                if (_cachedConfig == null || _clock.LocalNow - _lastLoadTime > _cacheExpiration)
                 {
-                    ConfigId = DwsTimeoutConfig.SingletonId,
-                    Enabled = true,
-                    MinDwsWaitSeconds = 2,
-                    MaxDwsWaitSeconds = 30,
-                    ExceptionChuteId = 0,
-                    CheckIntervalSeconds = 5,
-                    Description = "Default DWS timeout configuration",
-                    CreatedAt = _clock.LocalNow,
-                    UpdatedAt = _clock.LocalNow
-                };
+                    // 使用 Task.Run 在线程池中执行异步操作，避免死锁
+                    // Execute async operation in thread pool to avoid deadlock
+                    _cachedConfig = Task.Run(async () => 
+                        await _repository.GetByIdAsync(DwsTimeoutConfig.SingletonId).ConfigureAwait(false)
+                    ).GetAwaiter().GetResult();
+                    
+                    _lastLoadTime = _clock.LocalNow;
+                    
+                    // 如果数据库中没有配置，返回默认值
+                    if (_cachedConfig == null)
+                    {
+                        _cachedConfig = new DwsTimeoutConfig
+                        {
+                            ConfigId = DwsTimeoutConfig.SingletonId,
+                            Enabled = true,
+                            MinDwsWaitSeconds = 2,
+                            MaxDwsWaitSeconds = 30,
+                            ExceptionChuteId = 999, // 使用999作为默认值 / Use 999 as default value
+                            CheckIntervalSeconds = 5,
+                            Description = "Default DWS timeout configuration",
+                            CreatedAt = _clock.LocalNow,
+                            UpdatedAt = _clock.LocalNow
+                        };
+                    }
+                }
             }
         }
         

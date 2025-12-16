@@ -132,7 +132,8 @@ public class DwsTimeoutController : ControllerBase
             }
             else
             {
-                // 更新现有配置 / Update existing configuration
+                // 更新现有配置，保留原始创建时间 / Update existing configuration, preserve original CreatedAt
+                config = config with { CreatedAt = existing.CreatedAt };
                 success = await _repository.UpsertAsync(config).ConfigureAwait(false);
                 _logger.LogInformation("更新DWS超时配置成功 / DWS timeout configuration updated successfully");
             }
@@ -167,9 +168,9 @@ public class DwsTimeoutController : ControllerBase
             Enabled = true,
             MinDwsWaitSeconds = 2,
             MaxDwsWaitSeconds = 30,
-            ExceptionChuteId = 0,
+            ExceptionChuteId = 999, // 999 表示未分配异常格口 / 999 means "unassigned exception chute"
             CheckIntervalSeconds = 5,
-            Description = "默认DWS超时配置 / Default DWS timeout configuration",
+            Description = "默认DWS超时配置（异常格口未分配）/ Default DWS timeout configuration (exception chute unassigned)",
             CreatedAt = _clock.LocalNow,
             UpdatedAt = _clock.LocalNow
         };

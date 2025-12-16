@@ -297,16 +297,14 @@ public class ParcelOrchestrationService
         var timedOutParcels = new List<string>();
         
         // 查找所有超时的包裹（还没有接收到DWS数据）
-        foreach (var kvp in _processingContexts)
+        // 使用显式过滤 / Use explicit filtering
+        var parcelsWithoutDws = _processingContexts
+            .Where(kvp => !kvp.Value.DwsReceivedAt.HasValue)
+            .ToList();
+        
+        foreach (var kvp in parcelsWithoutDws)
         {
             var context = kvp.Value;
-            
-            // 如果已经接收了DWS数据，跳过
-            if (context.DwsReceivedAt.HasValue)
-            {
-                continue;
-            }
-            
             var elapsedSeconds = (now - context.CreatedAt).TotalSeconds;
             
             // 检查是否超时
@@ -321,6 +319,13 @@ public class ParcelOrchestrationService
         {
             if (_processingContexts.TryGetValue(parcelId, out var context))
             {
+                // 再次检查是否已接收DWS数据，避免竞态条件 / Re-check DwsReceivedAt to avoid race condition
+                if (context.DwsReceivedAt.HasValue)
+                {
+                    _logger.LogDebug("包裹 {ParcelId} 在超时检查期间接收到DWS数据，跳过超时处理", parcelId);
+                    continue;
+                }
+                
                 _logger.LogWarning(
                     "检测到超时包裹: ParcelId={ParcelId}, CreatedAt={CreatedAt}, ElapsedSeconds={ElapsedSeconds:F2}",
                     parcelId, context.CreatedAt, (now - context.CreatedAt).TotalSeconds);
