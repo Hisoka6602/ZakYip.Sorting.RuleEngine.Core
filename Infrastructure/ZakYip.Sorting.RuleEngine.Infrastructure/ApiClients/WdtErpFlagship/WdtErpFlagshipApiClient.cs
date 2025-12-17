@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,48 +13,73 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
 
 /// <summary>
 /// 旺店通ERP旗舰版 API客户端实现
-/// WDT (Wang Dian Tong) ERP Flagship API client implementation
-/// 参考: https://gist.github.com/Hisoka6602/7d6a8ab67247306ae51ebe7a865cdaee
+/// WDT ERP Flagship API client implementation
+/// 直接实现IWcsApiAdapter接口，无基类继承
+/// Directly implements IWcsApiAdapter interface, no base class
 /// </summary>
-public class WdtErpFlagshipApiClient : BaseErpApiClient
+public class WdtErpFlagshipApiClient : IWcsApiAdapter
 {
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<WdtErpFlagshipApiClient> _logger;
+    private readonly ISystemClock _clock;
+    
     public WdtErpFlagshipApiParameters Parameters { get; set; }
-
-    protected override string ClientTypeName => "旺店通ERP旗舰版";
-    protected override string FeatureNotSupportedText => "WDT ERP Flagship";
 
     public WdtErpFlagshipApiClient(
         HttpClient httpClient,
         ILogger<WdtErpFlagshipApiClient> logger,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
+        ISystemClock clock,
+        string url = "",
         string key = "",
         string appsecret = "",
         string sid = "")
-        : base(httpClient, logger, clock)
     {
+        _httpClient = httpClient;
+        _logger = logger;
+        _clock = clock;
         Parameters = new WdtErpFlagshipApiParameters
         {
+            Url = url,
             Key = key,
             Appsecret = appsecret,
             Sid = sid
         };
     }
 
-
+    /// <summary>
+    /// 扫描包裹 - 旺店通ERP旗舰版不支持此功能
+    /// Scan parcel - Not supported by WDT ERP Flagship
+    /// </summary>
+    public Task<WcsApiResponse> ScanParcelAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("旺店通ERP旗舰版不支持扫描包裹功能，条码: {Barcode}", barcode);
+        
+        return Task.FromResult(new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = "旺店通ERP旗舰版不支持扫描包裹功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = barcode,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = 0
+        });
+    }
 
     /// <summary>
-    /// 请求格口（上传称重数据）
-    /// Request a chute/gate number for the parcel
-    /// 对应参考代码中的 UploadData 方法
+    /// 请求格口（扩展称重/一次称重）
+    /// Request chute (weighing extended/once weighing)
     /// </summary>
-    public override async Task<WcsApiResponse> RequestChuteAsync(
+    public async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
         DwsData dwsData,
         OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+        var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
 
         HttpResponseMessage? response = null;
@@ -66,208 +90,261 @@ public class WdtErpFlagshipApiClient : BaseErpApiClient
         
         try
         {
-            Logger.LogDebug("WDT ERP Flagship - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
+            _logger.LogDebug("旺店通ERP旗舰版 - 开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}",
+                parcelId, dwsData.Barcode);
 
-            // 重量保留3位小数
-            var roundedWeight = Math.Round(Convert.ToDecimal(dwsData.Weight), 3);
-            
-            // 根据不同的Method构建不同的请求体
-            object[] requestBody = Parameters.Method switch
+            var timestamp = DateTimeOffset.Now.ToUnixTimeSeconds().ToString();
+
+            // 根据Method构造不同的业务参数
+            object bizData;
+            if (Parameters.Method == "wms.stockout.Sales.weighingExt")
             {
-                "wms.stockout.Sales.weighingExt" => new object[]
+                // 扩展称重
+                bizData = new
                 {
-                    dwsData.Barcode,
-                    string.Empty,
-                    roundedWeight,
-                    Parameters.PackagerId,
-                    Parameters.Force
-                },
-                "wms.stockout.Sales.onceWeighing" => new object[]
-                {
-                    dwsData.Barcode,
-                    string.Empty,
-                    roundedWeight,
-                    Parameters.PackagerId,
-                    Parameters.OperateTableName,
-                    Parameters.Force
-                },
-                "wms.stockout.Sales.onceWeighingByNo" => new object[]
-                {
-                    dwsData.Barcode,
-                    string.Empty,
-                    roundedWeight,
-                    Parameters.PackagerNo,
-                    Parameters.OperateTableName,
-                    Parameters.Force
-                },
-                _ => Array.Empty<object>()
-            };
-
-            // WDT使用Unix时间戳减去1325347200 (2012-01-01的时间戳)
-            var timestamp = DateTimeOffset.Now.ToUnixTimeSeconds() - 1325347200;
-
-            // 构建参数字典（不包含body和sign）
-            var dictionary = new Dictionary<string, object>
+                    outer_no = dwsData.Barcode,
+                    weight = (double)dwsData.Weight,
+                    length = (double)dwsData.Length,
+                    width = (double)dwsData.Width,
+                    height = (double)dwsData.Height,
+                    volume = (double)dwsData.Volume,
+                    packager_id = Parameters.PackagerId
+                };
+            }
+            else if (Parameters.Method == "wms.stockout.Sales.onceWeighing")
             {
-                {"body", JsonConvert.SerializeObject(requestBody)},
-                {"key", Parameters.Key},
-                {"sid", Parameters.Sid},
-                {"method", Parameters.Method},
-                {"v", Parameters.V},
-                {"salt", Parameters.Salt},
-                {"timestamp", timestamp},
-            };
-
-            // 生成签名: appsecret + key1value1key2value2... + appsecret，然后MD5
-            var pairs = dictionary.OrderBy(o => o.Key);
-            var signString = Parameters.Appsecret + 
-                           string.Join("", pairs.Select(s => s.Key + s.Value)) + 
-                           Parameters.Appsecret;
-
-            string sign;
-            using (var md5 = MD5.Create())
+                // 一次称重(按打包员ID)
+                bizData = new
+                {
+                    outer_no = dwsData.Barcode,
+                    weight = (double)dwsData.Weight,
+                    packager_id = Parameters.PackagerId,
+                    operate_table_name = Parameters.OperateTableName,
+                    force = Parameters.Force
+                };
+            }
+            else if (Parameters.Method == "wms.stockout.Sales.onceWeighingByNo")
             {
-                var result = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
-                var strResult = BitConverter.ToString(result);
-                sign = strResult.Replace("-", "", StringComparison.Ordinal).ToLower();
+                // 一次称重(按打包员编号)
+                bizData = new
+                {
+                    outer_no = dwsData.Barcode,
+                    weight = (double)dwsData.Weight,
+                    packager_no = Parameters.PackagerNo,
+                    operate_table_name = Parameters.OperateTableName,
+                    force = Parameters.Force
+                };
+            }
+            else
+            {
+                throw new InvalidOperationException($"不支持的方法: {Parameters.Method}");
             }
 
-            // 将sign加入字典，移除body（body通过POST传递）
-            dictionary.Add("sign", sign);
-            dictionary.Remove("body");
+            var bizJson = JsonConvert.SerializeObject(bizData);
 
-            // 拼接URL参数
-            var param = string.Join("&", dictionary.OrderBy(o => o.Key).Select(s => $"{s.Key}={s.Value}"));
-            var requestUrl = $"{Parameters.Url}?{param}";
-
-            HttpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
-
-            // 准备请求体
-            var dataStream = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(requestBody)));
-            HttpContent content = new StreamContent(dataStream);
-            content.Headers.Add("Content-Type", "application/json");
-
-            // 生成请求信息
-            var reqHeaders = new Dictionary<string, string>
+            var requestData = new Dictionary<string, string>
             {
-                ["Content-Type"] = "application/json"
+                { "method", Parameters.Method },
+                { "sid", Parameters.Sid },
+                { "key", Parameters.Key },
+                { "timestamp", timestamp },
+                { "v", Parameters.V },
+                { "format", "json" },
+                { "body", bizJson }
             };
-            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
-                "POST",
-                requestUrl,
-                reqHeaders,
-                JsonConvert.SerializeObject(requestBody));
-            requestHeaders = ApiRequestHelper.FormatHeaders(reqHeaders);
 
-            response = await HttpClient.PostAsync(requestUrl, content, cancellationToken);
-            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            responseContent = Regex.Unescape(responseContent);
+            // 如果有salt，添加到请求中
+            if (!string.IsNullOrEmpty(Parameters.Salt))
+            {
+                requestData.Add("salt", Parameters.Salt);
+            }
+
+            var sign = GenerateSign(requestData, Parameters.Appsecret);
+            requestData.Add("sign", sign);
+
+            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
+            var content = new FormUrlEncodedContent(requestData);
+
+            var headers = new Dictionary<string, string>
+            {
+                ["Content-Type"] = "application/x-www-form-urlencoded"
+            };
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl("POST", Parameters.Url, headers, bizJson);
+            requestHeaders = ApiRequestHelper.FormatHeaders(headers);
+
+            response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken).ConfigureAwait(false);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             bool isSuccess = false;
-            string? exceptionMsg = null;
-
             if (!string.IsNullOrWhiteSpace(responseContent))
             {
-                try
-                {
-                    var jObject = JObject.Parse(responseContent);
-                    // 检查status字段，值为"0"表示成功
-                    if (jObject["status"]?.ToString()?.Equals("0") == true)
-                    {
-                        isSuccess = true;
-                    }
-                    else
-                    {
-                        exceptionMsg = jObject["message"]?.ToString() ?? jObject["msg"]?.ToString();
-                    }
-                }
-                catch (JsonException)
-                {
-                    exceptionMsg = "报文解析异常";
-                }
+                var jObject = JObject.Parse(responseContent);
+                // 旺店通ERP旗舰版成功响应格式: { "status": 0, "data": {...} } 或 { "code": 0 }
+                isSuccess = jObject["status"]?.Value<int>() == 0 || jObject["code"]?.Value<int>() == 0;
             }
 
             stopwatch.Stop();
 
             if (response.IsSuccessStatusCode && isSuccess)
             {
-                Logger.LogInformation(
-                    "WDT ERP Flagship - 上传称重数据成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
-                    parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("旺店通ERP旗舰版 - 请求格口成功，包裹ID: {ParcelId}, 耗时: {Duration}ms",
+                    parcelId, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = HttpStatusCodes.Success,
-                    Message = "上传称重数据成功",
+                    Message = "请求格口成功",
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
-                    RequestUrl = requestUrl,
-                    RequestBody = JsonConvert.SerializeObject(requestBody),
+                    RequestUrl = Parameters.Url,
+                    RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
+                    FormattedCurl = formattedCurl,
+                    OcrData = ocrData
                 };
             }
             else
             {
-                Logger.LogWarning(
-                    "WDT ERP Flagship - 请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 错误: {Error}, 耗时: {Duration}ms",
-                    parcelId, dwsData.Barcode, response.StatusCode, exceptionMsg, stopwatch.ElapsedMilliseconds);
+                _logger.LogWarning("旺店通ERP旗舰版 - 请求格口失败，包裹ID: {ParcelId}, 状态码: {StatusCode}",
+                    parcelId, response.StatusCode);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
+                    Message = $"请求格口失败: {response.StatusCode}",
                     Data = responseContent,
                     ResponseBody = responseContent,
-                    ErrorMessage = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
+                    ErrorMessage = $"请求格口失败: {response.StatusCode}",
                     ParcelId = parcelId,
-                    RequestUrl = requestUrl,
-                    RequestBody = JsonConvert.SerializeObject(requestBody),
+                    RequestUrl = Parameters.Url,
+                    RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
+                    FormattedCurl = formattedCurl,
+                    OcrData = ocrData
                 };
             }
-        }
-        catch (HttpRequestException ex)
-        {
-            stopwatch.Stop();
-            Logger.LogError(ex, "WDT ERP Flagship - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
-                parcelId, stopwatch.ElapsedMilliseconds);
-
-            return CreateHttpExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
-                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
-        }
-        catch (TaskCanceledException ex)
-        {
-            stopwatch.Stop();
-            Logger.LogError(ex, "WDT ERP Flagship - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
-                parcelId, stopwatch.ElapsedMilliseconds);
-
-            return CreateTimeoutResponse(ex, parcelId, Parameters.Url, requestHeaders, 
-                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            Logger.LogError(ex, "WDT ERP Flagship - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
-                parcelId, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "旺店通ERP旗舰版 - 请求格口异常，包裹ID: {ParcelId}", parcelId);
 
-            return CreateExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
-                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
+            return new WcsApiResponse
+            {
+                Success = false,
+                Code = HttpStatusCodes.Error,
+                Message = ex.Message,
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                RequestUrl = Parameters.Url,
+                RequestHeaders = requestHeaders,
+                RequestTime = requestTime,
+                ResponseTime = _clock.LocalNow,
+                ResponseStatusCode = response != null ? (int)response.StatusCode : null,
+                ResponseHeaders = responseHeaders,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = formattedCurl,
+                OcrData = ocrData
+            };
         }
+    }
+
+    /// <summary>
+    /// 上传图片 - 旺店通ERP旗舰版不支持此功能
+    /// Upload image - Not supported by WDT ERP Flagship
+    /// </summary>
+    public Task<WcsApiResponse> UploadImageAsync(
+        string barcode,
+        byte[] imageData,
+        string contentType = ImageFileDefaults.DefaultContentType,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("旺店通ERP旗舰版不支持上传图片功能，条码: {Barcode}", barcode);
+        
+        return Task.FromResult(new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = "旺店通ERP旗舰版不支持上传图片功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = barcode,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = 0
+        });
+    }
+
+    /// <summary>
+    /// 落格回调 - 旺店通ERP旗舰版不支持此功能
+    /// Chute landing callback - Not supported by WDT ERP Flagship
+    /// </summary>
+    public Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("旺店通ERP旗舰版不支持落格回调功能，包裹ID: {ParcelId}", parcelId);
+        
+        return Task.FromResult(new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = "旺店通ERP旗舰版不支持落格回调功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = parcelId,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = 0
+        });
+    }
+
+    /// <summary>
+    /// 生成签名
+    /// Generate signature for API authentication
+    /// </summary>
+    private static string GenerateSign(Dictionary<string, string> parameters, string appSecret)
+    {
+        if (string.IsNullOrEmpty(appSecret))
+        {
+            return string.Empty;
+        }
+
+        var sortedKeys = parameters.Keys
+            .Where(k => k != "sign")
+            .OrderBy(k => k, StringComparer.Ordinal)
+            .ToList();
+
+        var paramStr = new StringBuilder();
+        foreach (var key in sortedKeys)
+        {
+            paramStr.Append(key).Append(parameters[key]);
+        }
+
+        var signStr = appSecret + paramStr + appSecret;
+
+        using var md5 = MD5.Create();
+        var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signStr));
+        var sb = new StringBuilder();
+        foreach (var b in hashBytes)
+        {
+            sb.Append(b.ToString("X2")); // X2 = 大写
+        }
+        return sb.ToString();
     }
 }

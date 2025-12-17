@@ -49,4 +49,19 @@ public interface IWcsApiAdapter
         byte[] imageData,
         string contentType = ImageFileDefaults.DefaultContentType,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 落格回调 - 通知WCS系统包裹已经落入指定格口
+    /// Chute landing callback - Notify WCS system that parcel has landed in the specified chute
+    /// </summary>
+    /// <param name="parcelId">包裹ID / Parcel ID</param>
+    /// <param name="chuteId">格口ID / Chute ID</param>
+    /// <param name="barcode">包裹条码 / Parcel barcode</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>WCS API响应 / WCS API response</returns>
+    Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default);
 }

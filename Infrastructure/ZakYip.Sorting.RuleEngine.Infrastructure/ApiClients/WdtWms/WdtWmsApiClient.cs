@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,48 +13,73 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
 /// <summary>
 /// 旺店通WMS API客户端实现
-/// WDT (Wang Dian Tong) WMS API client implementation
-/// 参考: https://gist.github.com/Hisoka6602/dc321e39f3dbece14129d28e65480a8e
+/// WDT WMS API client implementation
+/// 直接实现IWcsApiAdapter接口，无基类继承
+/// Directly implements IWcsApiAdapter interface, no base class
 /// </summary>
-public class WdtWmsApiClient : BaseErpApiClient
+public class WdtWmsApiClient : IWcsApiAdapter
 {
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<WdtWmsApiClient> _logger;
+    private readonly ISystemClock _clock;
+    
     public WdtWmsApiParameters Parameters { get; set; }
-
-    protected override string ClientTypeName => "旺店通WMS";
-    protected override string FeatureNotSupportedText => "WDT WMS";
 
     public WdtWmsApiClient(
         HttpClient httpClient,
         ILogger<WdtWmsApiClient> logger,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
+        ISystemClock clock,
+        string url = "",
+        string sid = "",
         string appKey = "",
-        string appSecret = "",
-        string sid = "")
-        : base(httpClient, logger, clock)
+        string appSecret = "")
     {
+        _httpClient = httpClient;
+        _logger = logger;
+        _clock = clock;
         Parameters = new WdtWmsApiParameters
         {
+            Url = url,
+            Sid = sid,
             AppKey = appKey,
-            AppSecret = appSecret,
-            Sid = sid
+            AppSecret = appSecret
         };
     }
 
-
+    /// <summary>
+    /// 扫描包裹 - 旺店通WMS不支持此功能
+    /// Scan parcel - Not supported by WDT WMS
+    /// </summary>
+    public Task<WcsApiResponse> ScanParcelAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("旺店通WMS不支持扫描包裹功能，条码: {Barcode}", barcode);
+        
+        return Task.FromResult(new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = "旺店通WMS不支持扫描包裹功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = barcode,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = 0
+        });
+    }
 
     /// <summary>
     /// 请求格口（上传称重数据）
-    /// Request a chute/gate number for the parcel
-    /// 对应参考代码中的 UploadData 方法
+    /// Request chute (upload weighing data)
     /// </summary>
-    public override async Task<WcsApiResponse> RequestChuteAsync(
+    public async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
         DwsData dwsData,
         OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+        var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
 
         HttpResponseMessage? response = null;
@@ -66,333 +90,118 @@ public class WdtWmsApiClient : BaseErpApiClient
         
         try
         {
-            Logger.LogDebug("WDT WMS - 开始请求格口/上传数据，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
+            _logger.LogDebug("旺店通WMS - 开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}",
+                parcelId, dwsData.Barcode);
 
-            var timestamp = _clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss");
-            
-            var data = new
+            var timestamp = DateTimeOffset.Now.ToUnixTimeSeconds().ToString();
+
+            // 构造业务参数
+            var bizData = new
             {
-                logistics_no = dwsData.Barcode,
-                weight = (double)dwsData.Weight, // 使用DWS数据中的重量
-                is_weight = "Y",
-                package_barcode = string.Empty
+                outer_no = dwsData.Barcode,
+                weight = (double)dwsData.Weight,
+                length = (double)dwsData.Length,
+                width = (double)dwsData.Width,
+                height = (double)dwsData.Height,
+                volume = (double)dwsData.Volume
             };
 
-            var requestData = new Dictionary<string, object>
+            var bizJson = JsonConvert.SerializeObject(bizData);
+
+            var requestData = new Dictionary<string, string>
             {
-                { "appkey", Parameters.AppKey },
-                { "format", "json" },
                 { "method", Parameters.Method },
                 { "sid", Parameters.Sid },
-                { "sign_method", "md5" },
-                { "timestamp", timestamp }
+                { "appkey", Parameters.AppKey },
+                { "timestamp", timestamp },
+                { "v", "1.0" },
+                { "format", "json" },
+                { "body", bizJson }
             };
 
-            var sign = GenerateSign(requestData, JsonConvert.SerializeObject(data), Parameters.AppSecret);
+            var sign = GenerateSign(requestData, Parameters.AppSecret);
             requestData.Add("sign", sign);
 
-            var param = string.Join("&", requestData.OrderBy(o => o.Key).Select(s => $"{s.Key}={s.Value}"));
-            var requestUrl = $"{Parameters.Url}?{param}";
+            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
+            var content = new FormUrlEncodedContent(requestData);
 
-            HttpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
-
-            // 判断是否必须包含包装条码
-            if (Parameters.MustIncludeBoxBarcode && string.IsNullOrEmpty(data.package_barcode))
+            var headers = new Dictionary<string, string>
             {
-                stopwatch.Stop();
-                Logger.LogWarning("WDT WMS - 包装码不能为空，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
-
-                // 生成请求信息（即使失败也要记录）
-                var headers = new Dictionary<string, string>
-                {
-                    ["Content-Type"] = "text/xml"
-                };
-                formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
-                    "POST",
-                    requestUrl,
-                    headers,
-                    JsonConvert.SerializeObject(data));
-                requestHeaders = ApiRequestHelper.FormatHeaders(headers);
-
-                return new WcsApiResponse
-                {
-                    Success = false,
-                    Code = HttpStatusCodes.Error,
-                    Message = "包装码不能为空",
-                    Data = string.Empty,
-                    ErrorMessage = "包装码不能为空",
-                    ParcelId = parcelId,
-                    RequestUrl = requestUrl,
-                    RequestBody = JsonConvert.SerializeObject(data),
-                    RequestHeaders = requestHeaders,
-                    RequestTime = requestTime,
-                    ResponseTime = _clock.LocalNow,
-                    DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
-                };
-            }
-
-            using var dataStream = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
-            using HttpContent content = new StreamContent(dataStream);
-            content.Headers.Add("Content-Type", "text/xml");
-
-            // 生成请求信息
-            var reqHeaders = new Dictionary<string, string>
-            {
-                ["Content-Type"] = "text/xml"
+                ["Content-Type"] = "application/x-www-form-urlencoded"
             };
-            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
-                "POST",
-                requestUrl,
-                reqHeaders,
-                JsonConvert.SerializeObject(data));
-            requestHeaders = ApiRequestHelper.FormatHeaders(reqHeaders);
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl("POST", Parameters.Url, headers, bizJson);
+            requestHeaders = ApiRequestHelper.FormatHeaders(headers);
 
-            response = await HttpClient.PostAsync(requestUrl, content, cancellationToken);
-            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            responseContent = Regex.Unescape(responseContent);
+            response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken).ConfigureAwait(false);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             bool isSuccess = false;
-            string? exceptionMsg = null;
-
             if (!string.IsNullOrWhiteSpace(responseContent))
             {
                 var jObject = JObject.Parse(responseContent);
-                // 检查多种可能的成功响应格式
-                // 格式1: { "flag": "success" }
-                if (jObject["flag"]?.ToString()?.Equals("success", StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    isSuccess = true;
-                }
-                // 格式2: { "code": 0, "message": "success" }
-                else if (jObject["code"]?.Value<int>() == 0)
-                {
-                    isSuccess = true;
-                }
-                
-                if (!isSuccess)
-                {
-                    exceptionMsg = jObject["message"]?.ToString();
-                }
+                // 旺店通WMS成功响应格式: { "status": 0, "data": {...} } 或 { "code": 0 }
+                isSuccess = jObject["status"]?.Value<int>() == 0 || jObject["code"]?.Value<int>() == 0;
             }
 
             stopwatch.Stop();
 
             if (response.IsSuccessStatusCode && isSuccess)
             {
-                Logger.LogInformation(
-                    "WDT WMS - 查询包裹成功，包裹ID: {ParcelId}, 条码: {Barcode}, 耗时: {Duration}ms",
-                    parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("旺店通WMS - 请求格口成功，包裹ID: {ParcelId}, 耗时: {Duration}ms",
+                    parcelId, stopwatch.ElapsedMilliseconds);
 
                 return new WcsApiResponse
                 {
                     Success = true,
                     Code = HttpStatusCodes.Success,
-                    Message = "查询包裹成功",
+                    Message = "请求格口成功",
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
-                    RequestUrl = requestUrl,
-                    RequestBody = JsonConvert.SerializeObject(data),
+                    RequestUrl = Parameters.Url,
+                    RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
+                    FormattedCurl = formattedCurl,
+                    OcrData = ocrData
                 };
             }
             else
             {
-                Logger.LogWarning(
-                    "WDT WMS - 请求格口失败，包裹ID: {ParcelId}, 条码: {Barcode}, 状态码: {StatusCode}, 错误: {Error}, 耗时: {Duration}ms",
-                    parcelId, dwsData.Barcode, response.StatusCode, exceptionMsg, stopwatch.ElapsedMilliseconds);
+                _logger.LogWarning("旺店通WMS - 请求格口失败，包裹ID: {ParcelId}, 状态码: {StatusCode}",
+                    parcelId, response.StatusCode);
 
                 return new WcsApiResponse
                 {
                     Success = false,
                     Code = ((int)response.StatusCode).ToString(),
-                    Message = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
+                    Message = $"请求格口失败: {response.StatusCode}",
                     Data = responseContent,
                     ResponseBody = responseContent,
-                    ErrorMessage = exceptionMsg ?? $"请求格口失败: {response.StatusCode}",
+                    ErrorMessage = $"请求格口失败: {response.StatusCode}",
                     ParcelId = parcelId,
-                    RequestUrl = requestUrl,
-                    RequestBody = JsonConvert.SerializeObject(data),
-                    RequestHeaders = requestHeaders,
-                    RequestTime = requestTime,
-                    ResponseTime = _clock.LocalNow,
-                    ResponseStatusCode = (int)response.StatusCode,
-                    ResponseHeaders = responseHeaders,
-                    DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
-                };
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            stopwatch.Stop();
-            Logger.LogError(ex, "WDT WMS - HTTP请求异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
-                parcelId, stopwatch.ElapsedMilliseconds);
-
-            return CreateHttpExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
-                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
-        }
-        catch (TaskCanceledException ex)
-        {
-            stopwatch.Stop();
-            Logger.LogError(ex, "WDT WMS - 请求超时，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
-                parcelId, stopwatch.ElapsedMilliseconds);
-
-            return CreateTimeoutResponse(ex, parcelId, Parameters.Url, requestHeaders, 
-                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
-        }
-        catch (Exception ex)
-        {
-            stopwatch.Stop();
-            Logger.LogError(ex, "WDT WMS - 请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", 
-                parcelId, stopwatch.ElapsedMilliseconds);
-
-            return CreateExceptionResponse(ex, parcelId, Parameters.Url, requestHeaders, 
-                responseHeaders, response, requestTime, stopwatch.ElapsedMilliseconds, formattedCurl);
-        }
-    }
-
-    /// <summary>
-    /// 上传图片
-    /// Upload image to wcs API
-    /// </summary>
-    public override async Task<WcsApiResponse> UploadImageAsync(
-        string barcode,
-        byte[] imageData,
-        string contentType = "image/jpeg",
-        CancellationToken cancellationToken = default)
-    {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        var requestTime = _clock.LocalNow;
-        
-        HttpResponseMessage? response = null;
-        string? responseContent = null;
-        string? formattedCurl = null;
-        string? requestHeaders = null;
-        string? responseHeaders = null;
-        
-        try
-        {
-            Logger.LogDebug(
-                "WDT WMS - 开始上传图片，条码: {Barcode}, 大小: {Size} bytes",
-                barcode, imageData.Length);
-
-            var timestamp = _clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss");
-
-            // 对于文件上传，WDT通常使用multipart/form-data
-            using var formContent = new MultipartFormDataContent();
-            
-            formContent.Add(new StringContent(Parameters.AppKey), "appkey");
-            formContent.Add(new StringContent("json"), "format");
-            formContent.Add(new StringContent(Parameters.Method), "method");
-            formContent.Add(new StringContent(Parameters.Sid), "sid");
-            formContent.Add(new StringContent("md5"), "sign_method");
-            formContent.Add(new StringContent(timestamp), "timestamp");
-            formContent.Add(new StringContent(barcode), "barcode");
-            
-            var requestData = new Dictionary<string, object>
-            {
-                { "appkey", Parameters.AppKey },
-                { "format", "json" },
-                { "method", Parameters.Method },
-                { "sid", Parameters.Sid },
-                { "sign_method", "md5" },
-                { "timestamp", timestamp },
-                { "barcode", barcode }
-            };
-            
-            var sign = GenerateSign(requestData, string.Empty, Parameters.AppSecret);
-            formContent.Add(new StringContent(sign), "sign");
-            
-            var imageContent = new ByteArrayContent(imageData);
-            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-            formContent.Add(imageContent, "image", $"{barcode}.jpg");
-
-            // 生成请求信息
-            var boundaryParam = formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary");
-            var boundary = boundaryParam?.Value ?? "----WebKitFormBoundary";
-            var headers = new Dictionary<string, string>
-            {
-                ["Content-Type"] = $"multipart/form-data; boundary={boundary}"
-            };
-            formattedCurl = ApiRequestHelper.GenerateFormattedCurl(
-                "POST",
-                Parameters.Url,
-                headers,
-                $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]");
-            requestHeaders = ApiRequestHelper.FormatHeaders(headers);
-
-            response = await HttpClient.PostAsync(Parameters.Url, formContent, cancellationToken);
-            responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
-
-            stopwatch.Stop();
-
-            if (response.IsSuccessStatusCode)
-            {
-                Logger.LogInformation(
-                    "WDT WMS - 上传图片成功，条码: {Barcode}, 耗时: {Duration}ms",
-                    barcode, stopwatch.ElapsedMilliseconds);
-
-                return new WcsApiResponse
-                {
-                    Success = true,
-                    Code = HttpStatusCodes.Success,
-                    Message = "上传图片成功",
-                    Data = responseContent,
-                    ResponseBody = responseContent,
-                    ParcelId = barcode,
                     RequestUrl = Parameters.Url,
-                    RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
+                    RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
-                };
-            }
-            else
-            {
-                Logger.LogWarning(
-                    "WDT WMS - 上传图片失败，条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
-                    barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
-
-                return new WcsApiResponse
-                {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"上传图片失败: {response.StatusCode}",
-                    Data = responseContent,
-                    ResponseBody = responseContent,
-                    ErrorMessage = $"上传图片失败: {response.StatusCode}",
-                    ParcelId = barcode,
-                    RequestUrl = Parameters.Url,
-                    RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
-                    RequestHeaders = requestHeaders,
-                    RequestTime = requestTime,
-                    ResponseTime = _clock.LocalNow,
-                    ResponseStatusCode = (int)response.StatusCode,
-                    ResponseHeaders = responseHeaders,
-                    DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = formattedCurl
+                    FormattedCurl = formattedCurl,
+                    OcrData = ocrData
                 };
             }
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            Logger.LogError(ex, "WDT WMS - 上传图片异常，条码: {Barcode}, 耗时: {Duration}ms", barcode, stopwatch.ElapsedMilliseconds);
+            _logger.LogError(ex, "旺店通WMS - 请求格口异常，包裹ID: {ParcelId}", parcelId);
 
             return new WcsApiResponse
             {
@@ -401,42 +210,101 @@ public class WdtWmsApiClient : BaseErpApiClient
                 Message = ex.Message,
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
-                ParcelId = barcode,
+                ParcelId = parcelId,
                 RequestUrl = Parameters.Url,
-                RequestBody = $"[multipart form data: barcode={barcode}, image size={imageData.Length} bytes]",
                 RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow,
                 ResponseStatusCode = response != null ? (int)response.StatusCode : null,
                 ResponseHeaders = responseHeaders,
                 DurationMs = stopwatch.ElapsedMilliseconds,
-                FormattedCurl = formattedCurl
+                FormattedCurl = formattedCurl,
+                OcrData = ocrData
             };
         }
     }
 
     /// <summary>
+    /// 上传图片 - 旺店通WMS不支持此功能
+    /// Upload image - Not supported by WDT WMS
+    /// </summary>
+    public Task<WcsApiResponse> UploadImageAsync(
+        string barcode,
+        byte[] imageData,
+        string contentType = ImageFileDefaults.DefaultContentType,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("旺店通WMS不支持上传图片功能，条码: {Barcode}", barcode);
+        
+        return Task.FromResult(new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = "旺店通WMS不支持上传图片功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = barcode,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = 0
+        });
+    }
+
+    /// <summary>
+    /// 落格回调 - 旺店通WMS不支持此功能
+    /// Chute landing callback - Not supported by WDT WMS
+    /// </summary>
+    public Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning("旺店通WMS不支持落格回调功能，包裹ID: {ParcelId}", parcelId);
+        
+        return Task.FromResult(new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = "旺店通WMS不支持落格回调功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = parcelId,
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = 0
+        });
+    }
+
+    /// <summary>
     /// 生成签名
     /// Generate signature for API authentication
-    /// 参考代码的签名算法: appSecret + key1value1key2value2... + body + appSecret 然后MD5
     /// </summary>
-    private static string GenerateSign(Dictionary<string, object> parameters, string body, string appSecret)
+    private static string GenerateSign(Dictionary<string, string> parameters, string appSecret)
     {
         if (string.IsNullOrEmpty(appSecret))
         {
             return string.Empty;
         }
 
-        var pairs = parameters.OrderBy(o => o.Key);
-        var signString = appSecret +
-                         string.Join("", pairs.Select(s => s.Key + s.Value)) +
-                         body +
-                         appSecret;
+        var sortedKeys = parameters.Keys
+            .Where(k => k != "sign")
+            .OrderBy(k => k, StringComparer.Ordinal)
+            .ToList();
 
-        // 转MD5
+        var paramStr = new StringBuilder();
+        foreach (var key in sortedKeys)
+        {
+            paramStr.Append(key).Append(parameters[key]);
+        }
+
+        var signStr = appSecret + paramStr + appSecret;
+
         using var md5 = MD5.Create();
-        var result = md5.ComputeHash(Encoding.UTF8.GetBytes(signString));
-        var strResult = BitConverter.ToString(result);
-        return strResult.Replace("-", "", StringComparison.Ordinal);
+        var hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(signStr));
+        var sb = new StringBuilder();
+        foreach (var b in hashBytes)
+        {
+            sb.Append(b.ToString("X2")); // X2 = 大写
+        }
+        return sb.ToString();
     }
 }
