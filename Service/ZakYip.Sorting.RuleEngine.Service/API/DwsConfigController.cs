@@ -228,8 +228,7 @@ public class DwsConfigController : ControllerBase
                 UpdatedAt = updatedConfig.UpdatedAt
             };
 
-            return Ok(ApiResponse<DwsConfigResponseDto>.SuccessResult(dto, 
-                existingConfig == null ? "配置创建成功，热更新已触发" : "配置更新成功，热更新已触发"));
+            return Ok(ApiResponse<DwsConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
@@ -317,7 +316,7 @@ public class DwsConfigController : ControllerBase
                 UpdatedAt = defaultConfig.UpdatedAt
             };
 
-            return Ok(ApiResponse<DwsConfigResponseDto>.SuccessResult(dto, "配置已重置为默认值"));
+            return Ok(ApiResponse<DwsConfigResponseDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
@@ -351,8 +350,7 @@ public class DwsConfigController : ControllerBase
             _logger.LogInformation("手动触发DWS配置重载");
 
             return Ok(ApiResponse<object>.SuccessResult(
-                new { reloadedAt = _clock.LocalNow },
-                "配置重载请求已发送，连接将在数秒内重启"));
+                new { reloadedAt = _clock.LocalNow }));
         }
         catch (Exception ex)
         {
