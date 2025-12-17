@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -66,7 +67,7 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
                 $"模式 / Mode: {notification.Mode}, " +
                 $"地址 / Host: {notification.Host}:{notification.Port}, " +
                 $"状态 / Enabled: {notification.IsEnabled}, " +
-                $"原因 / Reason: {notification.Reason ?? "User update"}").ConfigureAwait(false);
+                $"原因 / Reason: {notification.Reason ?? ConfigChangeReasons.UserUpdate}").ConfigureAwait(false);
 
             // 如果配置被禁用，断开连接 / If configuration is disabled, disconnect
             if (!notification.IsEnabled)
@@ -81,7 +82,9 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
                 return;
             }
 
-            // 重新加载配置 / Reload configuration
+            // 重新加载完整配置 / Reload full configuration
+            // Note: We need to fetch from database to get all properties (DataTemplateId, MaxConnections, etc.)
+            // that are required for connection but not included in the lightweight event notification
             var config = await _configRepository.GetByIdAsync(notification.ConfigId).ConfigureAwait(false);
             if (config == null)
             {

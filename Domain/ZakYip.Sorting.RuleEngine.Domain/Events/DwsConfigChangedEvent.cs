@@ -35,7 +35,7 @@ public readonly record struct DwsConfigChangedEvent : INotification
     /// <summary>
     /// 端口号 / Port Number
     /// </summary>
-    public int Port { get; init; }
+    public required int Port { get; init; }
     
     /// <summary>
     /// 是否启用 / Is Enabled

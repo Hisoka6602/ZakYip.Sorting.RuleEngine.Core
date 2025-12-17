@@ -44,3 +44,30 @@ public static class ImageFileDefaults
     /// </summary>
     public const string DefaultContentType = "image/jpeg";
 }
+
+/// <summary>
+/// 配置变更原因常量
+/// Configuration change reason constants
+/// </summary>
+public static class ConfigChangeReasons
+{
+    /// <summary>
+    /// 配置已创建 / Configuration created
+    /// </summary>
+    public const string ConfigurationCreated = "Configuration created";
+    
+    /// <summary>
+    /// 配置已更新 / Configuration updated
+    /// </summary>
+    public const string ConfigurationUpdated = "Configuration updated";
+    
+    /// <summary>
+    /// 手动重载触发 / Manual reload triggered
+    /// </summary>
+    public const string ManualReloadTriggered = "Manual reload triggered";
+    
+    /// <summary>
+    /// 用户更新 / User update
+    /// </summary>
+    public const string UserUpdate = "User update";
+}

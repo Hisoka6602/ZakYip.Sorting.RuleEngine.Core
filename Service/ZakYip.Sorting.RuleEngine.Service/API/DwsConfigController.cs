@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -220,7 +221,9 @@ public class DwsConfigController : ControllerBase
                 Port = updatedConfig.Port,
                 IsEnabled = updatedConfig.IsEnabled,
                 UpdatedAt = updatedConfig.UpdatedAt,
-                Reason = existingConfig == null ? "Configuration created" : "Configuration updated"
+                Reason = existingConfig == null 
+                    ? ConfigChangeReasons.ConfigurationCreated 
+                    : ConfigChangeReasons.ConfigurationUpdated
             };
             
             await _publisher.Publish(configChangedEvent, default).ConfigureAwait(false);
@@ -384,7 +387,7 @@ public class DwsConfigController : ControllerBase
                 Port = config.Port,
                 IsEnabled = config.IsEnabled,
                 UpdatedAt = _clock.LocalNow,
-                Reason = "Manual reload triggered"
+                Reason = ConfigChangeReasons.ManualReloadTriggered
             };
             
             await _publisher.Publish(configChangedEvent, default).ConfigureAwait(false);
