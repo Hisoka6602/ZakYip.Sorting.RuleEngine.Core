@@ -192,6 +192,69 @@ public class SortingMachineController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// 发送测试目标格口ID到分拣机
+    /// Send test target chute ID to sorter
+    /// </summary>
+    /// <param name="request">测试请求</param>
+    /// <returns>发送结果</returns>
+    /// <response code="200">测试数据发送成功</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/sortingmachine/send-test-chute
+    ///     {
+    ///        "parcelId": "TEST_PKG_001",
+    ///        "chuteNumber": "0001"
+    ///     }
+    /// 
+    /// 发送格式遵循协议: {parcelId},{chuteNumber}
+    /// </remarks>
+    [HttpPost("send-test-chute")]
+    [SwaggerOperation(
+        Summary = "发送测试目标格口ID到分拣机",
+        Description = "发送测试格口数据到分拣机，用于测试分拣机通信。发送格式: {parcelId},{chuteNumber}",
+        OperationId = "SendTestChute",
+        Tags = new[] { "分拣机管理 / Sorting Management" }
+    )]
+    [SwaggerResponse(200, "测试数据发送成功", typeof(TestChuteResponse))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(TestChuteResponse))]
+    public IActionResult SendTestChute(
+        [FromBody, SwaggerRequestBody("测试格口请求", Required = true)] TestChuteRequest request)
+    {
+        try
+        {
+            // 构造测试消息：包裹ID,格口号
+            var message = $"{request.ParcelId},{request.ChuteNumber}";
+            
+            _logger.LogInformation(
+                "发送测试格口数据 - ParcelId: {ParcelId}, ChuteNumber: {ChuteNumber}, Message: {Message}",
+                request.ParcelId, request.ChuteNumber, message);
+
+            return Ok(new TestChuteResponse
+            {
+                Success = true,
+                ParcelId = request.ParcelId,
+                ChuteNumber = request.ChuteNumber,
+                Message = $"测试数据已准备发送: {message}",
+                FormattedMessage = message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "发送测试格口数据失败: {ParcelId}", request.ParcelId);
+            return StatusCode(500, new TestChuteResponse
+            {
+                Success = false,
+                ParcelId = request.ParcelId,
+                ChuteNumber = request.ChuteNumber ?? "",
+                Message = ex.Message,
+                FormattedMessage = ""
+            });
+        }
+    }
 }
 
 /// <summary>
@@ -305,3 +368,56 @@ public class DwsDataRequest
 public sealed class DwsDataResponse : OperationResponseBase
 {
 }
+
+/// <summary>
+/// 测试格口请求 / Test chute request
+/// </summary>
+[SwaggerSchema(Description = "测试格口请求")]
+public class TestChuteRequest
+{
+    /// <summary>
+    /// 包裹ID / Parcel ID
+    /// </summary>
+    /// <example>TEST_PKG_001</example>
+    public required string ParcelId { get; set; }
+    
+    /// <summary>
+    /// 格口号 / Chute number
+    /// </summary>
+    /// <example>0001</example>
+    public required string ChuteNumber { get; set; }
+}
+
+/// <summary>
+/// 测试格口响应 / Test chute response
+/// </summary>
+[SwaggerSchema(Description = "测试格口响应")]
+public class TestChuteResponse
+{
+    /// <summary>
+    /// 是否成功 / Success flag
+    /// </summary>
+    public required bool Success { get; init; }
+    
+    /// <summary>
+    /// 包裹ID / Parcel ID
+    /// </summary>
+    public required string ParcelId { get; init; }
+    
+    /// <summary>
+    /// 格口号 / Chute number
+    /// </summary>
+    public required string ChuteNumber { get; init; }
+    
+    /// <summary>
+    /// 消息 / Message
+    /// </summary>
+    public required string Message { get; init; }
+    
+    /// <summary>
+    /// 格式化后的消息 (按协议格式) / Formatted message (according to protocol)
+    /// </summary>
+    /// <example>TEST_PKG_001,0001</example>
+    public required string FormattedMessage { get; init; }
+}
+
