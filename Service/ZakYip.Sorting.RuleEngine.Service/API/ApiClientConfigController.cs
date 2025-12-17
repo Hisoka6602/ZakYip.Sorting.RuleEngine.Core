@@ -446,6 +446,11 @@ public class ApiClientConfigController : ControllerBase
             
             if (request.CsbInfo != null)
             {
+                // 确保 CsbInfo 已初始化 / Ensure CsbInfo is initialized
+                if (_appSettings.PostCollectionFullApi.CsbInfo == null)
+                {
+                    _appSettings.PostCollectionFullApi.CsbInfo = new CsbSettings();
+                }
                 _appSettings.PostCollectionFullApi.CsbInfo.AuditServiceUrl = request.CsbInfo.AuditServiceUrl ?? string.Empty;
                 _appSettings.PostCollectionFullApi.CsbInfo.AuditTimeout = request.CsbInfo.AuditTimeout ?? 1000;
             }

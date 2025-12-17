@@ -225,7 +225,9 @@ public class DwsTestController : ControllerBase
 
         if (dataParts.Length != templateParts.Length)
         {
-            throw new InvalidOperationException($"数据部分数量({dataParts.Length})与模板部分数量({templateParts.Length})不匹配");
+            throw new InvalidOperationException(
+                $"数据部分数量({dataParts.Length})与模板部分数量({templateParts.Length})不匹配 / " +
+                $"Data parts count ({dataParts.Length}) does not match template parts count ({templateParts.Length})");
         }
 
         var parsedData = new DwsTestData();

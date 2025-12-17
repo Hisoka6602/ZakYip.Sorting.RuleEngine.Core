@@ -18,8 +18,6 @@ public class ConfigurationCacheService
     private const string EnabledChutesCacheKey = "EnabledChutes";
     private const string SortingRulesCacheKey = "AllSortingRules";
     private const string EnabledSortingRulesCacheKey = "EnabledSortingRules";
-    private const string ThirdPartyApiConfigsCacheKey = "AllThirdPartyApiConfigs";
-    private const string EnabledThirdPartyApiConfigsCacheKey = "EnabledThirdPartyApiConfigs";
     
     // 缓存过期时间（默认1小时）
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromHours(1);
@@ -149,8 +147,6 @@ public class ConfigurationCacheService
         _cache.Remove(EnabledChutesCacheKey);
         _cache.Remove(SortingRulesCacheKey);
         _cache.Remove(EnabledSortingRulesCacheKey);
-        _cache.Remove(ThirdPartyApiConfigsCacheKey);
-        _cache.Remove(EnabledThirdPartyApiConfigsCacheKey);
         
         _logger.LogInformation("所有配置缓存已清除");
     }
