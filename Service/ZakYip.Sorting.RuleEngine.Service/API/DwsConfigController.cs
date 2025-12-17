@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -21,17 +22,20 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 public class DwsConfigController : ControllerBase
 {
     private readonly IDwsConfigRepository _configRepository;
+    private readonly IConfigurationAuditLogRepository _auditLogRepository;
     private readonly ILogger<DwsConfigController> _logger;
     private readonly ISystemClock _clock;
     private readonly IPublisher _publisher;
 
     public DwsConfigController(
         IDwsConfigRepository configRepository,
+        IConfigurationAuditLogRepository auditLogRepository,
         ILogger<DwsConfigController> logger,
         ISystemClock clock,
         IPublisher publisher)
     {
         _configRepository = configRepository;
+        _auditLogRepository = auditLogRepository;
         _logger = logger;
         _clock = clock;
         _publisher = publisher;
@@ -210,6 +214,34 @@ public class DwsConfigController : ControllerBase
                 return StatusCode(500, ApiResponse<DwsConfigResponseDto>.FailureResult(
                     "保存配置失败", "SAVE_FAILED"));
             }
+
+            // 保存审计日志 / Save audit log
+            var operationType = existingConfig == null ? "Create" : "Update";
+            var contentBefore = existingConfig != null 
+                ? JsonSerializer.Serialize(existingConfig, new JsonSerializerOptions { WriteIndented = false })
+                : null;
+            var contentAfter = JsonSerializer.Serialize(updatedConfig, new JsonSerializerOptions { WriteIndented = false });
+            
+            var auditLog = new ConfigurationAuditLog
+            {
+                ConfigurationType = nameof(DwsConfig),
+                ConfigurationId = updatedConfig.ConfigId,
+                OperationType = operationType,
+                ContentBefore = contentBefore,
+                ContentAfter = contentAfter,
+                ChangeReason = existingConfig == null 
+                    ? ConfigChangeReasons.ConfigurationCreated 
+                    : ConfigChangeReasons.ConfigurationUpdated,
+                OperatorUser = User?.Identity?.Name ?? "Anonymous",
+                OperatorIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                CreatedAt = now,
+                Remarks = $"DWS配置{operationType}：{updatedConfig.Name}"
+            };
+            
+            await _auditLogRepository.AddAsync(auditLog).ConfigureAwait(false);
+            _logger.LogInformation(
+                "DWS配置审计日志已记录 / DWS config audit log recorded: Operation={Operation}, ConfigId={ConfigId}",
+                operationType, updatedConfig.ConfigId);
 
             // 发布配置变更事件，触发热更新 / Publish configuration changed event to trigger hot reload
             var configChangedEvent = new DwsConfigChangedEvent

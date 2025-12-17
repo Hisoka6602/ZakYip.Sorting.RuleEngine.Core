@@ -21,6 +21,7 @@ public abstract class BaseLogDbContext : DbContext
     public DbSet<MatchingLog> MatchingLogs { get; set; } = null!;
     public DbSet<ApiRequestLog> ApiRequestLogs { get; set; } = null!;
     public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
+    public DbSet<ConfigurationAuditLog> ConfigurationAuditLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +33,7 @@ public abstract class BaseLogDbContext : DbContext
         ConfigureMatchingLog(modelBuilder);
         ConfigureApiRequestLog(modelBuilder);
         ConfigureMonitoringAlert(modelBuilder);
+        ConfigureConfigurationAuditLog(modelBuilder);
         ConfigureLogEntry(modelBuilder);
     }
 
@@ -290,6 +292,45 @@ public abstract class BaseLogDbContext : DbContext
     /// Override to provide database-specific monitoring alert configuration (e.g., column types)
     /// </summary>
     protected virtual void ConfigureMonitoringAlertDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<MonitoringAlert> entity)
+    {
+    }
+    
+    /// <summary>
+    /// 配置配置审计日志实体
+    /// Configure configuration audit log entity
+    /// </summary>
+    protected virtual void ConfigureConfigurationAuditLog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ConfigurationAuditLog>(entity =>
+        {
+            entity.ToTable("configuration_audit_logs");
+            entity.HasKey(e => e.AuditId);
+            entity.Property(e => e.AuditId).ValueGeneratedOnAdd();
+            entity.Property(e => e.ConfigurationType).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.ConfigurationId).IsRequired();
+            entity.Property(e => e.OperationType).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.ChangeReason).HasMaxLength(500);
+            entity.Property(e => e.OperatorUser).HasMaxLength(200);
+            entity.Property(e => e.OperatorIpAddress).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            
+            entity.HasIndex(e => e.CreatedAt).IsDescending().HasDatabaseName("IX_config_audit_logs_CreatedAt_Desc");
+            entity.HasIndex(e => new { e.ConfigurationType, e.ConfigurationId, e.CreatedAt })
+                .IsDescending(false, false, true).HasDatabaseName("IX_config_audit_logs_Type_Id_CreatedAt");
+            entity.HasIndex(e => new { e.ConfigurationType, e.CreatedAt })
+                .IsDescending(false, true).HasDatabaseName("IX_config_audit_logs_Type_CreatedAt");
+            entity.HasIndex(e => e.OperationType).HasDatabaseName("IX_config_audit_logs_OperationType");
+            
+            ConfigureConfigurationAuditLogDatabaseSpecific(entity);
+        });
+    }
+    
+    /// <summary>
+    /// 子类重写以提供数据库特定的配置审计日志配置（如列类型）
+    /// Override to provide database-specific configuration audit log configuration (e.g., column types)
+    /// </summary>
+    protected virtual void ConfigureConfigurationAuditLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<ConfigurationAuditLog> entity)
     {
     }
 }
