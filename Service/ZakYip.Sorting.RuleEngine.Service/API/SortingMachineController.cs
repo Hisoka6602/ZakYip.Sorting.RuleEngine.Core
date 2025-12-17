@@ -238,7 +238,7 @@ public class SortingMachineController : ControllerBase
                 Success = true,
                 ParcelId = request.ParcelId,
                 ChuteNumber = request.ChuteNumber,
-                Message = $"测试数据已准备发送: {message}",
+                Message = $"测试数据已生成 (Test data generated): {message}",
                 FormattedMessage = message
             });
         }

@@ -84,7 +84,7 @@ public class DwsTestController : ControllerBase
             return Ok(new DwsTestResponse
             {
                 Success = true,
-                Message = $"测试数据已准备发送: {formattedData}",
+                Message = $"测试数据已生成 (Test data generated): {formattedData}",
                 FormattedData = formattedData,
                 Template = request.Template,
                 Delimiter = request.Delimiter

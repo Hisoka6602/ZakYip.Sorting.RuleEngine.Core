@@ -403,6 +403,8 @@ public class ApiClientConfigController : ControllerBase
     /// <summary>
     /// 更新邮政分揽投机构 API配置
     /// Update Postal Collection API configuration
+    /// 注意：配置更改仅影响当前运行实例，重启后将从appsettings.json重新加载
+    /// Note: Configuration changes only affect the current running instance, will reload from appsettings.json after restart
     /// </summary>
     /// <param name="request">配置请求</param>
     /// <returns>更新结果</returns>
@@ -476,6 +478,8 @@ public class ApiClientConfigController : ControllerBase
     /// <summary>
     /// 更新邮政处理中心 API配置
     /// Update Postal Processing Center API configuration
+    /// 注意：配置更改仅影响当前运行实例，重启后将从appsettings.json重新加载
+    /// Note: Configuration changes only affect the current running instance, will reload from appsettings.json after restart
     /// </summary>
     /// <param name="request">配置请求</param>
     /// <returns>更新结果</returns>
