@@ -11,19 +11,19 @@ public record PostProcessingCenterConfigRequest
     /// API Base URL (SOAP endpoint, without ?wsdl)
     /// </summary>
     /// <example>http://10.4.188.85/pcs-tc-nc-job/WyService/services/CommWY</example>
-    public required string BaseUrl { get; init; }
+    public required string BaseUrl { get; set; }
     
     /// <summary>
     /// 超时时间（秒）
     /// Timeout (seconds)
     /// </summary>
     /// <example>30</example>
-    public int TimeoutSeconds { get; init; } = 30;
+    public int TimeoutSeconds { get; set; } = 30;
     
     /// <summary>
     /// 是否启用
     /// Whether enabled
     /// </summary>
     /// <example>false</example>
-    public bool Enabled { get; init; } = false;
+    public bool Enabled { get; set; } = false;
 }

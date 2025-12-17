@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -14,10 +15,14 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 public class DwsTestController : ControllerBase
 {
     private readonly ILogger<DwsTestController> _logger;
+    private readonly ISystemClock _clock;
 
-    public DwsTestController(ILogger<DwsTestController> logger)
+    public DwsTestController(
+        ILogger<DwsTestController> logger,
+        ISystemClock clock)
     {
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -106,7 +111,7 @@ public class DwsTestController : ControllerBase
     /// 格式化DWS数据
     /// Format DWS data according to template
     /// </summary>
-    private static string FormatDwsData(string template, string delimiter, DwsTestData? testData)
+    private string FormatDwsData(string template, string delimiter, DwsTestData? testData)
     {
         if (testData == null)
         {
@@ -121,7 +126,7 @@ public class DwsTestController : ControllerBase
             .Replace("{Width}", testData.Width?.ToString() ?? "0")
             .Replace("{Height}", testData.Height?.ToString() ?? "0")
             .Replace("{Volume}", testData.Volume?.ToString() ?? "0")
-            .Replace("{Timestamp}", testData.Timestamp ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            .Replace("{Timestamp}", testData.Timestamp ?? _clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss"));
 
         return formatted;
     }
