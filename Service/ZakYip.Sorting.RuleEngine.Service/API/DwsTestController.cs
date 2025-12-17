@@ -108,6 +108,88 @@ public class DwsTestController : ControllerBase
     }
 
     /// <summary>
+    /// 解析DWS数据字符串
+    /// Parse DWS data string
+    /// </summary>
+    /// <param name="request">解析请求</param>
+    /// <returns>解析结果</returns>
+    /// <response code="200">解析成功</response>
+    /// <response code="400">请求参数错误</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 示例请求:
+    /// 
+    ///     POST /api/Dws/Test/parse-data
+    ///     {
+    ///        "dataString": "TEST001,2500.5,300,200,150,9000,2023-11-01T10:30:00",
+    ///        "template": "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
+    ///        "delimiter": ","
+    ///     }
+    /// 
+    /// 解析结果将返回结构化的DWS数据
+    /// </remarks>
+    [HttpPost("parse-data")]
+    [SwaggerOperation(
+        Summary = "解析DWS数据字符串",
+        Description = "根据模板解析DWS数据字符串，返回结构化的数据对象。",
+        OperationId = "ParseDwsData",
+        Tags = new[] { "DWS管理 / DWS Management" }
+    )]
+    [SwaggerResponse(200, "解析成功", typeof(DwsParseResponse))]
+    [SwaggerResponse(400, "请求参数错误", typeof(DwsParseResponse))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(DwsParseResponse))]
+    public IActionResult ParseDwsData(
+        [FromBody, SwaggerRequestBody("DWS数据解析请求", Required = true)] DwsParseRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.DataString))
+            {
+                return BadRequest(new DwsParseResponse
+                {
+                    Success = false,
+                    Message = "数据字符串不能为空 / Data string cannot be empty",
+                    ParsedData = null
+                });
+            }
+
+            if (string.IsNullOrEmpty(request.Template))
+            {
+                return BadRequest(new DwsParseResponse
+                {
+                    Success = false,
+                    Message = "模板不能为空 / Template cannot be empty",
+                    ParsedData = null
+                });
+            }
+
+            // 解析DWS数据
+            var parsedData = ParseDwsDataString(request.DataString, request.Template, request.Delimiter);
+            
+            _logger.LogInformation(
+                "解析DWS数据 - DataString: {DataString}, Template: {Template}",
+                request.DataString, request.Template);
+
+            return Ok(new DwsParseResponse
+            {
+                Success = true,
+                Message = "数据解析成功 / Data parsing successful",
+                ParsedData = parsedData
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "解析DWS数据失败");
+            return StatusCode(500, new DwsParseResponse
+            {
+                Success = false,
+                Message = $"解析失败: {ex.Message}",
+                ParsedData = null
+            });
+        }
+    }
+
+    /// <summary>
     /// 格式化DWS数据
     /// Format DWS data according to template
     /// </summary>
@@ -129,6 +211,64 @@ public class DwsTestController : ControllerBase
             .Replace("{Timestamp}", testData.Timestamp ?? _clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss"));
 
         return formatted;
+    }
+
+    /// <summary>
+    /// 解析DWS数据字符串
+    /// Parse DWS data string according to template
+    /// </summary>
+    private DwsTestData ParseDwsDataString(string dataString, string template, string delimiter)
+    {
+        // 分割数据和模板
+        var dataParts = dataString.Split(delimiter);
+        var templateParts = template.Split(delimiter);
+
+        if (dataParts.Length != templateParts.Length)
+        {
+            throw new InvalidOperationException(
+                $"数据部分数量({dataParts.Length})与模板部分数量({templateParts.Length})不匹配 / " +
+                $"Data parts count ({dataParts.Length}) does not match template parts count ({templateParts.Length})");
+        }
+
+        var parsedData = new DwsTestData();
+
+        for (int i = 0; i < templateParts.Length; i++)
+        {
+            var templatePart = templateParts[i].Trim();
+            var dataPart = dataParts[i].Trim();
+
+            switch (templatePart)
+            {
+                case "{Code}":
+                    parsedData.Code = dataPart;
+                    break;
+                case "{Weight}":
+                    if (decimal.TryParse(dataPart, out var weight))
+                        parsedData.Weight = weight;
+                    break;
+                case "{Length}":
+                    if (decimal.TryParse(dataPart, out var length))
+                        parsedData.Length = length;
+                    break;
+                case "{Width}":
+                    if (decimal.TryParse(dataPart, out var width))
+                        parsedData.Width = width;
+                    break;
+                case "{Height}":
+                    if (decimal.TryParse(dataPart, out var height))
+                        parsedData.Height = height;
+                    break;
+                case "{Volume}":
+                    if (decimal.TryParse(dataPart, out var volume))
+                        parsedData.Volume = volume;
+                    break;
+                case "{Timestamp}":
+                    parsedData.Timestamp = dataPart;
+                    break;
+            }
+        }
+
+        return parsedData;
     }
 }
 
@@ -236,4 +376,51 @@ public class DwsTestResponse
     /// 使用的分隔符 / Delimiter used
     /// </summary>
     public string? Delimiter { get; init; }
+}
+
+/// <summary>
+/// DWS数据解析请求 / DWS data parse request
+/// </summary>
+[SwaggerSchema(Description = "DWS数据解析请求")]
+public class DwsParseRequest
+{
+    /// <summary>
+    /// 待解析的数据字符串 / Data string to parse
+    /// </summary>
+    /// <example>TEST001,2500.5,300,200,150,9000,2023-11-01T10:30:00</example>
+    public required string DataString { get; init; }
+    
+    /// <summary>
+    /// 数据模板 / Data template
+    /// </summary>
+    /// <example>{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}</example>
+    public required string Template { get; init; }
+    
+    /// <summary>
+    /// 分隔符 / Delimiter
+    /// </summary>
+    /// <example>,</example>
+    public string Delimiter { get; init; } = ",";
+}
+
+/// <summary>
+/// DWS数据解析响应 / DWS data parse response
+/// </summary>
+[SwaggerSchema(Description = "DWS数据解析响应")]
+public class DwsParseResponse
+{
+    /// <summary>
+    /// 是否成功 / Success flag
+    /// </summary>
+    public required bool Success { get; init; }
+    
+    /// <summary>
+    /// 消息 / Message
+    /// </summary>
+    public required string Message { get; init; }
+    
+    /// <summary>
+    /// 解析后的数据 / Parsed data
+    /// </summary>
+    public DwsTestData? ParsedData { get; init; }
 }

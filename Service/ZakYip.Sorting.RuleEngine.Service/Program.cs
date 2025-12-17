@@ -317,7 +317,6 @@ try
                 // Register repositories (keep database access layer as Scoped)
                 services.AddScoped<IRuleRepository, LiteDbRuleRepository>();
                 services.AddScoped<IChuteRepository, LiteDbChuteRepository>();
-                services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
                 services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
                 // IMonitoringAlertRepository 现在根据数据库配置在上面注册（MySQL或SQLite）
                 // IMonitoringAlertRepository is now registered above based on database configuration (MySQL or SQLite)
@@ -368,7 +367,6 @@ try
                 // 注册适配器管理器（单例）
                 // Register adapter managers (Singleton)
                 services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
-                services.AddSingleton<IWcsAdapterManager, WcsAdapterManager>();
                 services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
                 
                 // 注册包裹活动追踪器（用于空闲检测）
@@ -730,9 +728,6 @@ static void ConfigureLiteDbEntityMapping(BsonMapper mapper)
     
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsDataTemplate>()
         .Id(x => x.TemplateId);
-    
-    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.WcsApiConfig>()
-        .Id(x => x.ConfigId);
     
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig>()
         .Id(x => x.ConfigId);

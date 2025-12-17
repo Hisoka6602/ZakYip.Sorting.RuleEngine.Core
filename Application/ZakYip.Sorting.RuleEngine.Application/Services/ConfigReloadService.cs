@@ -14,7 +14,6 @@ public class ConfigReloadService : IConfigReloadService
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IDwsAdapterManager _dwsAdapterManager;
-    private readonly IWcsAdapterManager _wcsAdapterManager;
     private readonly ISorterAdapterManager _sorterAdapterManager;
     private readonly ConfigCacheService _configCacheService;
     private readonly ILogger<ConfigReloadService> _logger;
@@ -22,14 +21,12 @@ public class ConfigReloadService : IConfigReloadService
     public ConfigReloadService(
         IServiceScopeFactory serviceScopeFactory,
         IDwsAdapterManager dwsAdapterManager,
-        IWcsAdapterManager wcsAdapterManager,
         ISorterAdapterManager sorterAdapterManager,
         ConfigCacheService configCacheService,
         ILogger<ConfigReloadService> logger)
     {
         _serviceScopeFactory = serviceScopeFactory;
         _dwsAdapterManager = dwsAdapterManager;
-        _wcsAdapterManager = wcsAdapterManager;
         _sorterAdapterManager = sorterAdapterManager;
         _configCacheService = configCacheService;
         _logger = logger;
@@ -76,45 +73,12 @@ public class ConfigReloadService : IConfigReloadService
         }
     }
 
-    public async Task ReloadWcsConfigAsync(CancellationToken cancellationToken = default)
+    public Task ReloadWcsConfigAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("开始重新加载WCS配置...");
-        
-        try
-        {
-            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
-            // Use IServiceScopeFactory to create scope to access scoped repository
-            using var scope = _serviceScopeFactory.CreateScope();
-            var wcsConfigRepository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
-            
-            var config = await wcsConfigRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
-            if (config == null)
-            {
-                _logger.LogWarning("WCS配置不存在，跳过重新加载");
-                return;
-            }
-
-            // 更新缓存
-            _configCacheService.UpdateWcsConfigCache(config);
-
-            // 断开现有连接
-            _logger.LogInformation("断开现有WCS连接...");
-            await _wcsAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
-
-            // 如果配置已启用，使用新配置重新连接
-            if (config.IsEnabled)
-            {
-                _logger.LogInformation("使用新配置重新连接WCS: {BaseUrl}", config.BaseUrl);
-                await _wcsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
-            }
-
-            _logger.LogInformation("WCS配置重新加载完成");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "重新加载WCS配置时发生错误");
-            throw;
-        }
+        // WCS API配置已移除，不再需要重新加载
+        // WCS API configuration has been removed, reload is no longer needed
+        _logger.LogInformation("WCS API配置已弃用，跳过重新加载");
+        return Task.CompletedTask;
     }
 
     public async Task ReloadSorterConfigAsync(CancellationToken cancellationToken = default)

@@ -371,31 +371,42 @@ public class ApiClientConfigController : ControllerBase
     [HttpGet("postcollection")]
     [SwaggerOperation(
         Summary = "获取邮政分揽投机构 API配置",
-        Description = "获取当前邮政分揽投机构 API客户端的配置参数",
+        Description = "获取当前邮政分揽投机构 API客户端的完整配置参数",
         OperationId = "GetPostCollectionConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
-    [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<PostCollectionConfigRequest>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<PostCollectionConfigRequest>))]
-    [ProducesResponseType(typeof(ApiResponse<PostCollectionConfigRequest>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<PostCollectionConfigRequest>), 404)]
-    public ActionResult<ApiResponse<PostCollectionConfigRequest>> GetPostCollectionConfig()
+    [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<PostCollectionFullConfigRequest>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<PostCollectionFullConfigRequest>))]
+    [ProducesResponseType(typeof(ApiResponse<PostCollectionFullConfigRequest>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<PostCollectionFullConfigRequest>), 500)]
+    public ActionResult<ApiResponse<PostCollectionFullConfigRequest>> GetPostCollectionConfig()
     {
         try
         {
-            var config = new PostCollectionConfigRequest
+            var config = new PostCollectionFullConfigRequest
             {
-                BaseUrl = _appSettings.PostCollectionApi.BaseUrl,
-                TimeoutSeconds = _appSettings.PostCollectionApi.TimeoutSeconds,
-                Enabled = _appSettings.PostCollectionApi.Enabled
+                Url = _appSettings.PostCollectionFullApi.Url,
+                Timeout = _appSettings.PostCollectionFullApi.Timeout,
+                WorkshopCode = _appSettings.PostCollectionFullApi.WorkshopCode,
+                DeviceId = _appSettings.PostCollectionFullApi.DeviceId,
+                CompanyName = _appSettings.PostCollectionFullApi.CompanyName,
+                DeviceBarcode = _appSettings.PostCollectionFullApi.DeviceBarcode,
+                OrganizationNumber = _appSettings.PostCollectionFullApi.OrganizationNumber,
+                EmployeeNumber = _appSettings.PostCollectionFullApi.EmployeeNumber,
+                IsUseCsb = _appSettings.PostCollectionFullApi.IsUseCsb,
+                CsbInfo = _appSettings.PostCollectionFullApi.CsbInfo != null ? new CsbConfigParameters
+                {
+                    AuditServiceUrl = _appSettings.PostCollectionFullApi.CsbInfo.AuditServiceUrl,
+                    AuditTimeout = _appSettings.PostCollectionFullApi.CsbInfo.AuditTimeout
+                } : null
             };
 
-            return Ok(ApiResponse<PostCollectionConfigRequest>.SuccessResult(config));
+            return Ok(ApiResponse<PostCollectionFullConfigRequest>.SuccessResult(config));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取邮政分揽投机构配置时发生错误");
-            return StatusCode(500, ApiResponse<PostCollectionConfigRequest>.FailureResult(
+            return StatusCode(500, ApiResponse<PostCollectionFullConfigRequest>.FailureResult(
                 "获取配置失败", "GET_CONFIG_FAILED"));
         }
     }
@@ -411,21 +422,38 @@ public class ApiClientConfigController : ControllerBase
     [HttpPut("postcollection")]
     [SwaggerOperation(
         Summary = "更新邮政分揽投机构 API配置",
-        Description = "更新邮政分揽投机构 API客户端的配置参数",
+        Description = "更新邮政分揽投机构 API客户端的完整配置参数",
         OperationId = "UpdatePostCollectionConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<string>))]
     [ProducesResponseType(typeof(ApiResponse<string>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<string>), 404)]
-    public ActionResult<ApiResponse<string>> UpdatePostCollectionConfig([FromBody] PostCollectionConfigRequest request)
+    [ProducesResponseType(typeof(ApiResponse<string>), 500)]
+    public ActionResult<ApiResponse<string>> UpdatePostCollectionConfig([FromBody] PostCollectionFullConfigRequest request)
     {
         try
         {
-            _appSettings.PostCollectionApi.BaseUrl = request.BaseUrl;
-            _appSettings.PostCollectionApi.TimeoutSeconds = request.TimeoutSeconds;
-            _appSettings.PostCollectionApi.Enabled = request.Enabled;
+            _appSettings.PostCollectionFullApi.Url = request.Url;
+            _appSettings.PostCollectionFullApi.Timeout = request.Timeout;
+            _appSettings.PostCollectionFullApi.WorkshopCode = request.WorkshopCode;
+            _appSettings.PostCollectionFullApi.DeviceId = request.DeviceId;
+            _appSettings.PostCollectionFullApi.CompanyName = request.CompanyName;
+            _appSettings.PostCollectionFullApi.DeviceBarcode = request.DeviceBarcode;
+            _appSettings.PostCollectionFullApi.OrganizationNumber = request.OrganizationNumber;
+            _appSettings.PostCollectionFullApi.EmployeeNumber = request.EmployeeNumber;
+            _appSettings.PostCollectionFullApi.IsUseCsb = request.IsUseCsb;
+            
+            if (request.CsbInfo != null)
+            {
+                // 确保 CsbInfo 已初始化 / Ensure CsbInfo is initialized
+                if (_appSettings.PostCollectionFullApi.CsbInfo == null)
+                {
+                    _appSettings.PostCollectionFullApi.CsbInfo = new CsbSettings();
+                }
+                _appSettings.PostCollectionFullApi.CsbInfo.AuditServiceUrl = request.CsbInfo.AuditServiceUrl ?? string.Empty;
+                _appSettings.PostCollectionFullApi.CsbInfo.AuditTimeout = request.CsbInfo.AuditTimeout ?? 1000;
+            }
 
             _logger.LogInformation("成功更新邮政分揽投机构 API配置");
             return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
@@ -446,31 +474,34 @@ public class ApiClientConfigController : ControllerBase
     [HttpGet("postprocessingcenter")]
     [SwaggerOperation(
         Summary = "获取邮政处理中心 API配置",
-        Description = "获取当前邮政处理中心 API客户端的配置参数",
+        Description = "获取当前邮政处理中心 API客户端的完整配置参数",
         OperationId = "GetPostProcessingCenterConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
-    [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<PostProcessingCenterConfigRequest>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<PostProcessingCenterConfigRequest>))]
-    [ProducesResponseType(typeof(ApiResponse<PostProcessingCenterConfigRequest>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<PostProcessingCenterConfigRequest>), 404)]
-    public ActionResult<ApiResponse<PostProcessingCenterConfigRequest>> GetPostProcessingCenterConfig()
+    [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<PostProcessingCenterFullConfigRequest>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<PostProcessingCenterFullConfigRequest>))]
+    [ProducesResponseType(typeof(ApiResponse<PostProcessingCenterFullConfigRequest>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<PostProcessingCenterFullConfigRequest>), 500)]
+    public ActionResult<ApiResponse<PostProcessingCenterFullConfigRequest>> GetPostProcessingCenterConfig()
     {
         try
         {
-            var config = new PostProcessingCenterConfigRequest
+            var config = new PostProcessingCenterFullConfigRequest
             {
-                BaseUrl = _appSettings.PostProcessingCenterApi.BaseUrl,
-                TimeoutSeconds = _appSettings.PostProcessingCenterApi.TimeoutSeconds,
-                Enabled = _appSettings.PostProcessingCenterApi.Enabled
+                Url = _appSettings.PostProcessingCenterFullApi.Url,
+                Timeout = _appSettings.PostProcessingCenterFullApi.Timeout,
+                WorkshopCode = _appSettings.PostProcessingCenterFullApi.WorkshopCode,
+                DeviceId = _appSettings.PostProcessingCenterFullApi.DeviceId,
+                EmployeeNumber = _appSettings.PostProcessingCenterFullApi.EmployeeNumber,
+                LocalServiceUrl = _appSettings.PostProcessingCenterFullApi.LocalServiceUrl
             };
 
-            return Ok(ApiResponse<PostProcessingCenterConfigRequest>.SuccessResult(config));
+            return Ok(ApiResponse<PostProcessingCenterFullConfigRequest>.SuccessResult(config));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取邮政处理中心配置时发生错误");
-            return StatusCode(500, ApiResponse<PostProcessingCenterConfigRequest>.FailureResult(
+            return StatusCode(500, ApiResponse<PostProcessingCenterFullConfigRequest>.FailureResult(
                 "获取配置失败", "GET_CONFIG_FAILED"));
         }
     }
@@ -486,21 +517,24 @@ public class ApiClientConfigController : ControllerBase
     [HttpPut("postprocessingcenter")]
     [SwaggerOperation(
         Summary = "更新邮政处理中心 API配置",
-        Description = "更新邮政处理中心 API客户端的配置参数",
+        Description = "更新邮政处理中心 API客户端的完整配置参数",
         OperationId = "UpdatePostProcessingCenterConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<string>))]
     [ProducesResponseType(typeof(ApiResponse<string>), 200)]
-    [ProducesResponseType(typeof(ApiResponse<string>), 404)]
-    public ActionResult<ApiResponse<string>> UpdatePostProcessingCenterConfig([FromBody] PostProcessingCenterConfigRequest request)
+    [ProducesResponseType(typeof(ApiResponse<string>), 500)]
+    public ActionResult<ApiResponse<string>> UpdatePostProcessingCenterConfig([FromBody] PostProcessingCenterFullConfigRequest request)
     {
         try
         {
-            _appSettings.PostProcessingCenterApi.BaseUrl = request.BaseUrl;
-            _appSettings.PostProcessingCenterApi.TimeoutSeconds = request.TimeoutSeconds;
-            _appSettings.PostProcessingCenterApi.Enabled = request.Enabled;
+            _appSettings.PostProcessingCenterFullApi.Url = request.Url;
+            _appSettings.PostProcessingCenterFullApi.Timeout = request.Timeout;
+            _appSettings.PostProcessingCenterFullApi.WorkshopCode = request.WorkshopCode;
+            _appSettings.PostProcessingCenterFullApi.DeviceId = request.DeviceId;
+            _appSettings.PostProcessingCenterFullApi.EmployeeNumber = request.EmployeeNumber;
+            _appSettings.PostProcessingCenterFullApi.LocalServiceUrl = request.LocalServiceUrl;
 
             _logger.LogInformation("成功更新邮政处理中心 API配置");
             return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));

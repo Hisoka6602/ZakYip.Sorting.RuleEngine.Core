@@ -16,7 +16,6 @@ public class ConfigCacheService
     
     // 缓存键常量 / Cache key constants
     private const string DWS_CONFIG_KEY = "config:dws";
-    private const string WCS_CONFIG_KEY = "config:wcs";
     private const string SORTER_CONFIG_KEY = "config:sorter";
     
     // 滑动过期时间：1小时 / Sliding expiration: 1 hour
@@ -58,35 +57,6 @@ public class ConfigCacheService
             else
             {
                 _logger.LogWarning("DWS配置不存在");
-            }
-            
-            return config;
-        });
-    }
-
-    /// <summary>
-    /// 获取或加载WCS配置（带缓存）
-    /// Get or load WCS config (with cache)
-    /// </summary>
-    public async Task<WcsApiConfig?> GetOrLoadWcsConfigAsync(
-        IWcsApiConfigRepository repository,
-        CancellationToken cancellationToken = default)
-    {
-        return await _cache.GetOrCreateAsync(WCS_CONFIG_KEY, async entry =>
-        {
-            entry.SlidingExpiration = SlidingExpiration;
-            entry.Priority = CacheItemPriority.NeverRemove;
-            
-            _logger.LogInformation("从数据库加载WCS配置到缓存");
-            var config = await repository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
-            
-            if (config != null)
-            {
-                _logger.LogInformation("WCS配置已缓存");
-            }
-            else
-            {
-                _logger.LogWarning("WCS配置不存在");
             }
             
             return config;
@@ -141,24 +111,6 @@ public class ConfigCacheService
     }
 
     /// <summary>
-    /// 更新WCS配置缓存（热更新时调用）
-    /// Update WCS config cache (called on hot-reload)
-    /// </summary>
-    public void UpdateWcsConfigCache(WcsApiConfig config)
-    {
-        _logger.LogInformation("更新WCS配置缓存");
-        
-        var cacheEntryOptions = new MemoryCacheEntryOptions
-        {
-            SlidingExpiration = SlidingExpiration,
-            Priority = CacheItemPriority.NeverRemove
-        };
-        
-        _cache.Set(WCS_CONFIG_KEY, config, cacheEntryOptions);
-        _logger.LogInformation("WCS配置缓存已更新");
-    }
-
-    /// <summary>
     /// 更新分拣机配置缓存（热更新时调用）
     /// Update Sorter config cache (called on hot-reload)
     /// </summary>
@@ -187,16 +139,6 @@ public class ConfigCacheService
     }
 
     /// <summary>
-    /// 清除WCS配置缓存
-    /// Clear WCS config cache
-    /// </summary>
-    public void ClearWcsConfigCache()
-    {
-        _logger.LogInformation("清除WCS配置缓存");
-        _cache.Remove(WCS_CONFIG_KEY);
-    }
-
-    /// <summary>
     /// 清除分拣机配置缓存
     /// Clear Sorter config cache
     /// </summary>
@@ -214,7 +156,6 @@ public class ConfigCacheService
     {
         _logger.LogInformation("清除所有配置缓存");
         ClearDwsConfigCache();
-        ClearWcsConfigCache();
         ClearSorterConfigCache();
     }
 }

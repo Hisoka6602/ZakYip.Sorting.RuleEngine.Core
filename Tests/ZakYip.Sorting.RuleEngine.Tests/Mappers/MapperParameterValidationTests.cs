@@ -33,16 +33,6 @@ public class MapperParameterValidationTests
     }
 
     [Fact]
-    public void EntityToDtoMapper_ToResponseDto_WcsApiConfig_Should_ThrowArgumentNullException_When_EntityIsNull()
-    {
-        // Arrange
-        WcsApiConfig? nullEntity = null;
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => nullEntity!.ToResponseDto());
-    }
-
-    [Fact]
     public void SorterConfigMapper_ToResponseDto_Should_ThrowArgumentNullException_When_EntityIsNull()
     {
         // Arrange
@@ -57,17 +47,6 @@ public class MapperParameterValidationTests
     {
         // Arrange
         SorterConfigUpdateRequest? nullRequest = null;
-        var clock = new MockSystemClock();
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => nullRequest!.ToEntity(clock));
-    }
-
-    [Fact]
-    public void WcsApiConfigMapper_ToEntity_Should_ThrowArgumentNullException_When_RequestIsNull()
-    {
-        // Arrange
-        WcsApiConfigUpdateRequest? nullRequest = null;
         var clock = new MockSystemClock();
 
         // Act & Assert

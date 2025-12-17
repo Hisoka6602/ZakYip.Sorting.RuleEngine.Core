@@ -64,6 +64,18 @@ public class AppSettings
     public PostCollectionApiSettings PostCollectionApi { get; set; } = new();
 
     /// <summary>
+    /// 邮政处理中心API完整配置
+    /// Postal Processing Center API Full configuration
+    /// </summary>
+    public PostProcessingCenterFullApiSettings PostProcessingCenterFullApi { get; set; } = new();
+
+    /// <summary>
+    /// 邮政分揽投机构API完整配置
+    /// Postal Collection Institution API Full configuration
+    /// </summary>
+    public PostCollectionFullApiSettings PostCollectionFullApi { get; set; } = new();
+
+    /// <summary>
     /// MiniAPI配置
     /// MiniAPI configuration
     /// </summary>
