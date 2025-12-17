@@ -140,57 +140,6 @@ public class ConfigurationCacheService
 
     #endregion
 
-    #region ThirdPartyApiConfig缓存
-
-    /// <summary>
-    /// 获取所有WCS API配置（从缓存）
-    /// </summary>
-    public async Task<IEnumerable<WcsApiConfig>> GetAllThirdPartyApiConfigsAsync(
-        IWcsApiConfigRepository repository)
-    {
-        return await _cache.GetOrCreateAsync(ThirdPartyApiConfigsCacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = _cacheExpiration;
-            entry.Size = 1;
-            var configs = await repository.GetAllAsync();
-            _logger.LogInformation("WCS API配置数据已缓存，共 {Count} 条", configs.Count());
-            return configs;
-        }) ?? Enumerable.Empty<WcsApiConfig>();
-    }
-
-    /// <summary>
-    /// 获取启用的WCS API配置（从缓存）
-    /// </summary>
-    public async Task<IEnumerable<WcsApiConfig>> GetEnabledThirdPartyApiConfigsAsync(
-        IWcsApiConfigRepository repository)
-    {
-        return await _cache.GetOrCreateAsync(EnabledThirdPartyApiConfigsCacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = _cacheExpiration;
-            entry.Size = 1;
-            var configs = await repository.GetEnabledConfigsAsync();
-            _logger.LogInformation("启用WCS API配置数据已缓存，共 {Count} 条", configs.Count());
-            return configs;
-        }) ?? Enumerable.Empty<WcsApiConfig>();
-    }
-
-    /// <summary>
-    /// 重新加载WCS API配置缓存
-    /// </summary>
-    public async Task ReloadThirdPartyApiConfigCacheAsync(
-        IWcsApiConfigRepository repository)
-    {
-        _cache.Remove(ThirdPartyApiConfigsCacheKey);
-        _cache.Remove(EnabledThirdPartyApiConfigsCacheKey);
-        
-        await GetAllThirdPartyApiConfigsAsync(repository);
-        await GetEnabledThirdPartyApiConfigsAsync(repository);
-        
-        _logger.LogInformation("WCS API配置缓存已重新加载");
-    }
-
-    #endregion
-
     /// <summary>
     /// 清除所有缓存
     /// </summary>
