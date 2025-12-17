@@ -637,31 +637,31 @@ file class ApiRequestLogPagedResult
     /// 日志数据列表
     /// Log data list
     /// </summary>
-    public List<ApiRequestLog> Data { get; set; } = new();
+    public required List<ApiRequestLog> Data { get; init; }
 
     /// <summary>
     /// 当前页码
     /// Current page index
     /// </summary>
-    public int PageIndex { get; set; }
+    public required int PageIndex { get; init; }
 
     /// <summary>
     /// 每页数量
     /// Page size
     /// </summary>
-    public int PageSize { get; set; }
+    public required int PageSize { get; init; }
 
     /// <summary>
     /// 总记录数
     /// Total count
     /// </summary>
-    public int TotalCount { get; set; }
+    public required int TotalCount { get; init; }
 
     /// <summary>
     /// 总页数
     /// Total pages
     /// </summary>
-    public int TotalPages { get; set; }
+    public required int TotalPages { get; init; }
 }
 
 /// <summary>
@@ -674,29 +674,29 @@ file class ApiRequestStatistics
     /// 总请求数
     /// Total requests
     /// </summary>
-    public int TotalRequests { get; set; }
+    public required int TotalRequests { get; init; }
 
     /// <summary>
     /// 成功请求数
     /// Success requests
     /// </summary>
-    public int SuccessRequests { get; set; }
+    public required int SuccessRequests { get; init; }
 
     /// <summary>
     /// 失败请求数
     /// Failed requests
     /// </summary>
-    public int FailedRequests { get; set; }
+    public required int FailedRequests { get; init; }
 
     /// <summary>
     /// 成功率（百分比）
     /// Success rate (percentage)
     /// </summary>
-    public decimal SuccessRate { get; set; }
+    public required decimal SuccessRate { get; init; }
 
     /// <summary>
     /// 平均耗时（毫秒）
     /// Average duration (milliseconds)
     /// </summary>
-    public decimal AverageDurationMs { get; set; }
+    public required decimal AverageDurationMs { get; init; }
 }
