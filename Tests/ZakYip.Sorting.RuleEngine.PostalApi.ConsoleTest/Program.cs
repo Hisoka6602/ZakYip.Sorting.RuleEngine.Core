@@ -72,7 +72,10 @@ class Program
         }
         
         var clock = new Infrastructure.Services.SystemClock();
-        var adapter = new PostProcessingCenterApiClient(httpClient, logger, clock);
+        
+        // Create a mock config repository for testing
+        var mockConfigRepo = new MockPostProcessingCenterConfigRepository();
+        var adapter = new PostProcessingCenterApiClient(httpClient, logger, clock, mockConfigRepo);
         
         Console.WriteLine($"URL: {PROCESSING_CENTER_URL}\n");
         
@@ -139,7 +142,10 @@ class Program
         }
         
         var clock = new Infrastructure.Services.SystemClock();
-        var adapter = new PostCollectionApiClient(httpClient, logger, clock);
+        
+        // Create a mock config repository for testing
+        var mockConfigRepo = new MockPostCollectionConfigRepository();
+        var adapter = new PostCollectionApiClient(httpClient, logger, clock, mockConfigRepo);
         
         Console.WriteLine($"URL: {COLLECTION_INSTITUTION_URL}\n");
         
@@ -168,4 +174,31 @@ class Program
         var imageResult = await adapter.UploadImageAsync("POST-COLLECT-001", testImage, "image/jpeg");
         Console.WriteLine($"结果 / Result: {imageResult.Success} - {imageResult.Message}\n");
     }
+}
+
+// Mock repository for testing
+class MockPostProcessingCenterConfigRepository : Domain.Interfaces.IPostProcessingCenterConfigRepository
+{
+    public Task<bool> AddAsync(Domain.Entities.PostProcessingCenterConfig config) => Task.FromResult(true);
+    public Task<bool> DeleteAsync(long configId) => Task.FromResult(true);
+    public Task<IEnumerable<Domain.Entities.PostProcessingCenterConfig>> GetAllAsync() => 
+        Task.FromResult(Enumerable.Empty<Domain.Entities.PostProcessingCenterConfig>());
+    public Task<Domain.Entities.PostProcessingCenterConfig?> GetByIdAsync(long configId) => 
+        Task.FromResult<Domain.Entities.PostProcessingCenterConfig?>(null); // Will trigger default config creation
+    public Task<IEnumerable<Domain.Entities.PostProcessingCenterConfig>> GetEnabledConfigsAsync() => 
+        Task.FromResult(Enumerable.Empty<Domain.Entities.PostProcessingCenterConfig>());
+    public Task<bool> UpdateAsync(Domain.Entities.PostProcessingCenterConfig config) => Task.FromResult(true);
+}
+
+class MockPostCollectionConfigRepository : Domain.Interfaces.IPostCollectionConfigRepository
+{
+    public Task<bool> AddAsync(Domain.Entities.PostCollectionConfig config) => Task.FromResult(true);
+    public Task<bool> DeleteAsync(long configId) => Task.FromResult(true);
+    public Task<IEnumerable<Domain.Entities.PostCollectionConfig>> GetAllAsync() => 
+        Task.FromResult(Enumerable.Empty<Domain.Entities.PostCollectionConfig>());
+    public Task<Domain.Entities.PostCollectionConfig?> GetByIdAsync(long configId) => 
+        Task.FromResult<Domain.Entities.PostCollectionConfig?>(null); // Will trigger default config creation
+    public Task<IEnumerable<Domain.Entities.PostCollectionConfig>> GetEnabledConfigsAsync() => 
+        Task.FromResult(Enumerable.Empty<Domain.Entities.PostCollectionConfig>());
+    public Task<bool> UpdateAsync(Domain.Entities.PostCollectionConfig config) => Task.FromResult(true);
 }
