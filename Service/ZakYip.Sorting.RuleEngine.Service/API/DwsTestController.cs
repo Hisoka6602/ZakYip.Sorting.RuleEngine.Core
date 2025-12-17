@@ -148,7 +148,7 @@ public class DwsTestController : ControllerBase
                 return BadRequest(new DwsParseResponse
                 {
                     Success = false,
-                    Message = "数据字符串不能为空",
+                    Message = "数据字符串不能为空 / Data string cannot be empty",
                     ParsedData = null
                 });
             }
@@ -158,7 +158,7 @@ public class DwsTestController : ControllerBase
                 return BadRequest(new DwsParseResponse
                 {
                     Success = false,
-                    Message = "模板不能为空",
+                    Message = "模板不能为空 / Template cannot be empty",
                     ParsedData = null
                 });
             }
@@ -173,7 +173,7 @@ public class DwsTestController : ControllerBase
             return Ok(new DwsParseResponse
             {
                 Success = true,
-                Message = "数据解析成功",
+                Message = "数据解析成功 / Data parsing successful",
                 ParsedData = parsedData
             });
         }
@@ -388,19 +388,19 @@ public class DwsParseRequest
     /// 待解析的数据字符串 / Data string to parse
     /// </summary>
     /// <example>TEST001,2500.5,300,200,150,9000,2023-11-01T10:30:00</example>
-    public required string DataString { get; set; }
+    public required string DataString { get; init; }
     
     /// <summary>
     /// 数据模板 / Data template
     /// </summary>
     /// <example>{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}</example>
-    public required string Template { get; set; }
+    public required string Template { get; init; }
     
     /// <summary>
     /// 分隔符 / Delimiter
     /// </summary>
     /// <example>,</example>
-    public string Delimiter { get; set; } = ",";
+    public string Delimiter { get; init; } = ",";
 }
 
 /// <summary>
