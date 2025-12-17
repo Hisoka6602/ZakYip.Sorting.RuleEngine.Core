@@ -51,7 +51,7 @@ public class SortingMachineController : ControllerBase
         Summary = "接收分拣程序信号，创建包裹处理空间",
         Description = "接收分拣机信号，创建包裹处理空间等待DWS数据。仅用于测试，生产环境请使用SignalR Hub。",
         OperationId = "CreateParcel",
-        Tags = new[] { "SortingMachine" }
+        Tags = new[] { "分拣机管理 / Sorting Management" }
     )]
     [SwaggerResponse(200, "包裹处理空间创建成功", typeof(ParcelCreationResponse))]
     [SwaggerResponse(400, "包裹ID已存在或创建失败", typeof(ParcelCreationResponse))]
@@ -132,7 +132,7 @@ public class SortingMachineController : ControllerBase
         Summary = "接收DWS数据",
         Description = "接收DWS扫描的包裹数据，触发分拣处理。仅用于测试，生产环境请使用SignalR Hub。",
         OperationId = "ReceiveDwsData",
-        Tags = new[] { "SortingMachine" }
+        Tags = new[] { "分拣机管理 / Sorting Management" }
     )]
     [SwaggerResponse(200, "DWS数据接收成功", typeof(DwsDataResponse))]
     [SwaggerResponse(404, "包裹不存在或已关闭", typeof(DwsDataResponse))]

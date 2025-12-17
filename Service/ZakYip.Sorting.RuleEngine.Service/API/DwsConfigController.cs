@@ -45,7 +45,7 @@ _repository = repository;
         Summary = "获取DWS配置",
         Description = "获取系统中唯一的DWS配置（单例模式）",
         OperationId = "GetDwsConfig",
-        Tags = new[] { "DwsConfig" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "成功返回DWS配置", typeof(ApiResponse<DwsConfigResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsConfigResponseDto>))]
@@ -82,7 +82,7 @@ _repository = repository;
         Summary = "更新DWS配置",
         Description = "更新DWS配置，如果不存在则创建（单例模式，全量更新）",
         OperationId = "UpdateDwsConfig",
-        Tags = new[] { "DwsConfig" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<DwsConfigResponseDto>))]
     [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<DwsConfigResponseDto>))]
