@@ -44,6 +44,8 @@ This document records identified technical debt in the project. Before opening a
 | **时间处理规范违规** | **0 处** | **✅ 无 None** | **✅ 已全部修复！(仅 SystemClock 中的 2 处合法实现)** |
 | 编译警告 Compiler Warnings | 0 个 | ✅ 无 None | ✅ 已全部解决！ |
 | **API控制器整合** | **0 项** | **✅ 无 None** | **✅ 已完成！(Swagger逻辑分组)** |
+| **API配置端点缺失** | **7 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
+| **ERP客户端待重建** | **2 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 
 > **🎉 最新更新 / Latest Update (2025-12-17)**: 
 > - ✅ **所有技术债务已完全解决并验证！** All technical debt fully resolved and verified!
@@ -98,6 +100,232 @@ Detected 7 constant "shadow clones", but determined to be **false positives**:
 - 其他 2 组类似情况
 
 **结论 / Conclusion**: 这些常量虽然数值相同，但语义完全不同，应保持独立。
+
+---
+
+## 📋 待实现功能 / Pending Features (2025-12-17)
+
+### 🟡 中优先级：API配置端点和热更新 / Medium Priority: API Config Endpoints with Hot Reload
+
+**背景 / Background**:
+根据项目硬性要求，所有第三方API配置必须：
+1. 存储在LiteDB（不能在appsettings.json）
+2. 有配置管理API端点（GET/PUT/DELETE/RELOAD）
+3. 支持热更新（配置变更自动生效，无需重启）
+
+Per project hard requirements, all third-party API configurations must:
+1. Be stored in LiteDB (not in appsettings.json)
+2. Have config management API endpoints (GET/PUT/DELETE/RELOAD)
+3. Support hot reload (config changes take effect automatically without restart)
+
+**当前状态 / Current Status**:
+- ✅ DwsConfigController - 已完成（作为示例实现）/ Completed (as reference implementation)
+- ⏳ 其他7个API配置端点 - 待实现 / Other 7 API config endpoints - Pending
+
+#### 📝 待创建的配置端点 / Config Endpoints to Create
+
+##### 1. SorterConfigController
+**路由 / Routes**: `/api/Sorter/Config`
+**实体 / Entity**: `SorterConfig` (已存在 / Exists)
+**Repository**: `ISorterConfigRepository`, `LiteDbSorterConfigRepository` (已存在 / Exists)
+**端点 / Endpoints**:
+- GET `/api/Sorter/Config` - 获取配置
+- PUT `/api/Sorter/Config` - 更新配置（热更新）
+- DELETE `/api/Sorter/Config` - 重置配置
+- POST `/api/Sorter/Config/reload` - 手动重载
+
+**预估工作量 / Estimated Effort**: 30分钟 / 30 minutes
+
+##### 2. JushuitanErpConfigController
+**路由 / Routes**: `/api/JushuitanErp/Config`
+**需求 / Requirements**:
+- 创建 `JushuitanErpConfig` 实体 (包含AppKey, AppSecret, AccessToken等)
+- 创建 `IJushuitanErpConfigRepository` 接口
+- 实现 `LiteDbJushuitanErpConfigRepository`
+- 创建 `JushuitanErpConfigUpdateRequest` DTO
+- 创建 `JushuitanErpConfigResponseDto` DTO
+- 创建控制器并实现4个端点
+
+**预估工作量 / Estimated Effort**: 1.5小时 / 1.5 hours
+
+##### 3. WdtWmsConfigController
+**路由 / Routes**: `/api/WdtWms/Config`
+**需求 / Requirements**: (同上结构)
+
+**预估工作量 / Estimated Effort**: 1.5小时 / 1.5 hours
+
+##### 4. WdtErpFlagshipConfigController
+**路由 / Routes**: `/api/WdtErpFlagship/Config`
+**需求 / Requirements**: (同上结构)
+
+**预估工作量 / Estimated Effort**: 1.5小时 / 1.5 hours
+
+##### 5. PostCollectionConfigController
+**路由 / Routes**: `/api/PostCollection/Config`
+**需求 / Requirements**:
+- 创建 `PostCollectionConfig` 实体 (包含URL, DeviceId, EmployeeNumber等)
+- 创建相关Repository和DTOs
+- 创建控制器
+
+**预估工作量 / Estimated Effort**: 1.5小时 / 1.5 hours
+
+##### 6. PostProcessingCenterConfigController
+**路由 / Routes**: `/api/PostProcessingCenter/Config`
+**需求 / Requirements**: (同上结构)
+
+**预估工作量 / Estimated Effort**: 1.5小时 / 1.5 hours
+
+##### 7. WcsConfigController
+**路由 / Routes**: `/api/Wcs/Config`
+**需求 / Requirements**:
+- 创建 `WcsConfig` 实体 (包含BaseUrl, Timeout等)
+- 创建相关Repository和DTOs
+- 创建控制器
+
+**预估工作量 / Estimated Effort**: 1.5小时 / 1.5 hours
+
+**总计工作量 / Total Effort**: 约9.5小时 / ~9.5 hours
+
+#### 🔄 热更新机制实现 / Hot Reload Mechanism Implementation
+
+**需求 / Requirements**:
+1. 创建配置变更事件系统 / Create config change event system
+2. 每个API客户端监听自己的配置变更 / Each API client listens to its config changes
+3. 配置更新时自动重启连接/刷新配置 / Auto restart connections on config update
+4. 添加配置版本号机制 / Add config versioning
+
+**实现方案 / Implementation Approach**:
+```csharp
+// 配置变更事件接口
+public interface IConfigurationChangeNotifier<TConfig>
+{
+    event EventHandler<TConfig>? ConfigChanged;
+    void NotifyConfigChanged(TConfig newConfig);
+}
+
+// 在Repository中触发事件
+public class LiteDbDwsConfigRepository : IConfigurationChangeNotifier<DwsConfig>
+{
+    public event EventHandler<DwsConfig>? ConfigChanged;
+    
+    public async Task<bool> UpdateAsync(DwsConfig config)
+    {
+        var success = await _collection.UpdateAsync(config);
+        if (success)
+        {
+            ConfigChanged?.Invoke(this, config);
+        }
+        return success;
+    }
+}
+
+// 在客户端中订阅事件
+public class DwsAdapter
+{
+    public DwsAdapter(IConfigurationChangeNotifier<DwsConfig> configNotifier)
+    {
+        configNotifier.ConfigChanged += OnConfigChanged;
+    }
+    
+    private void OnConfigChanged(object? sender, DwsConfig newConfig)
+    {
+        _logger.LogInformation("DWS配置已更新，重启连接...");
+        RestartConnection(newConfig);
+    }
+}
+```
+
+**预估工作量 / Estimated Effort**: 2-3小时 / 2-3 hours
+
+#### 📦 配置迁移到LiteDB / Configuration Migration to LiteDB
+
+**需求 / Requirements**:
+1. 扫描appsettings.json中的所有API配置
+2. 创建迁移脚本将配置导入LiteDB
+3. 删除appsettings.json中的API配置
+4. 验证所有客户端从LiteDB读取配置
+
+**预估工作量 / Estimated Effort**: 2小时 / 2 hours
+
+---
+
+### 🟡 中优先级：ERP客户端重建 / Medium Priority: Rebuild ERP Clients
+
+**背景 / Background**:
+在删除BaseErpApiClient后，需要重建两个旺店通API客户端。
+
+After deleting BaseErpApiClient, need to rebuild two WDT API clients.
+
+#### 📝 待重建的客户端 / Clients to Rebuild
+
+##### 1. WdtWmsApiClient
+**位置 / Location**: `Infrastructure/ApiClients/WdtWms/WdtWmsApiClient.cs`
+**要求 / Requirements**:
+- 直接实现 `IWcsApiAdapter` 接口
+- 实现4个方法：ScanParcelAsync, RequestChuteAsync, UploadImageAsync, NotifyChuteLandingAsync
+- ScanParcelAsync 返回"不支持"
+- RequestChuteAsync 保留原有业务逻辑
+- UploadImageAsync 返回"不支持"
+- NotifyChuteLandingAsync 返回"不支持"
+
+**预估工作量 / Estimated Effort**: 1小时 / 1 hour
+
+##### 2. WdtErpFlagshipApiClient
+**位置 / Location**: `Infrastructure/ApiClients/WdtErpFlagship/WdtErpFlagshipApiClient.cs`
+**要求 / Requirements**: (同上)
+
+**预估工作量 / Estimated Effort**: 1小时 / 1 hour
+
+**总计工作量 / Total Effort**: 约2小时 / ~2 hours
+
+---
+
+### 📈 技术债务优先级建议 / Technical Debt Priority Recommendation
+
+**建议实施顺序 / Recommended Implementation Order**:
+
+1. **Phase 1 (紧急 / Urgent)**: ERP客户端重建 (~2小时)
+   - 恢复项目完整性
+   - 确保所有API客户端可用
+   
+2. **Phase 2 (高优先级 / High Priority)**: SorterConfigController (~30分钟)
+   - 与DwsConfigController配对
+   - 完成设备配置管理
+   
+3. **Phase 3 (中优先级 / Medium Priority)**: 其他6个API配置端点 (~9小时)
+   - 系统性创建所有配置端点
+   - 遵循DwsConfigController模式
+   
+4. **Phase 4 (中优先级 / Medium Priority)**: 热更新机制 (~2-3小时)
+   - 实现事件系统
+   - 连接自动重启
+   
+5. **Phase 5 (低优先级 / Low Priority)**: 配置迁移 (~2小时)
+   - 从appsettings.json迁移到LiteDB
+   - 清理遗留配置
+
+**总预估工作量 / Total Estimated Effort**: 约15.5-16.5小时 / ~15.5-16.5 hours
+
+---
+
+### 💡 实施建议 / Implementation Recommendations
+
+1. **分阶段PR / Phased PRs**:
+   - PR 1: ERP客户端重建 + SorterConfigController (当前PR可以完成)
+   - PR 2: 其他6个API配置端点
+   - PR 3: 热更新机制 + 配置迁移
+
+2. **使用DwsConfigController作为模板 / Use DwsConfigController as Template**:
+   - 已实现完整的CRUD操作
+   - 包含完整的Swagger文档
+   - 有参数验证和错误处理
+
+3. **测试策略 / Testing Strategy**:
+   - 每个配置端点都要测试CRUD操作
+   - 验证热更新功能
+   - 确保配置持久化到LiteDB
+
+---
 These constants have the same numeric values but completely different semantics and should remain independent.
 
 ---
