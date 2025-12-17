@@ -67,6 +67,31 @@ public class PostalSoapRequestBuilder
     }
 
     /// <summary>
+    /// 构建落格回调的SOAP请求 (notifyChuteLanding)
+    /// Build SOAP request for chute landing notification
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string BuildChuteLandingRequest(PostalChuteLandingRequestParameters parameters)
+    {
+        var arg0 = new StringBuilder()
+            .Append("#HEAD::")
+            .Append(parameters.SequenceId).Append("::")
+            .Append(parameters.DeviceId).Append("::")
+            .Append(parameters.Barcode).Append("::")
+            .Append(parameters.ChuteId).Append("::")
+            .Append(parameters.LandingTime.ToString("yyyy-MM-dd HH:mm:ss")).Append("::")
+            .Append(parameters.EmployeeNumber).Append("::")
+            .Append(parameters.OrganizationNumber).Append("::")
+            .Append(parameters.Status).Append("::")
+            .Append(parameters.ReservedField1).Append("::")
+            .Append(parameters.ReservedField2)
+            .Append("||#END")
+            .ToString();
+
+        return BuildSoapEnvelope("notifyChuteLanding", arg0);
+    }
+
+    /// <summary>
     /// 构建SOAP信封
     /// Build SOAP envelope
     /// </summary>
@@ -152,4 +177,22 @@ public class PostalChuteQueryRequestParameters
     public required string CompanyName { get; init; }
     public required string DeviceBarcode { get; init; }
     public string ReservedField4 { get; init; } = "";
+}
+
+/// <summary>
+/// 落格回调请求参数
+/// Chute landing notification request parameters
+/// </summary>
+public class PostalChuteLandingRequestParameters
+{
+    public required string SequenceId { get; init; }
+    public required string DeviceId { get; init; }
+    public required string Barcode { get; init; }
+    public required string ChuteId { get; init; }
+    public required DateTime LandingTime { get; init; }
+    public required string EmployeeNumber { get; init; }
+    public required string OrganizationNumber { get; init; }
+    public string Status { get; init; } = "1"; // 1=成功落格，0=失败
+    public string ReservedField1 { get; init; } = "";
+    public string ReservedField2 { get; init; } = "";
 }

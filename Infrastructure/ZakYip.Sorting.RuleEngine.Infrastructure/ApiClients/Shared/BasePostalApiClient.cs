@@ -348,4 +348,109 @@ public abstract class BasePostalApiClient : IWcsApiAdapter
             DurationMs = 0
         };
     }
+
+    /// <summary>
+    /// 落格回调 - 通知邮政系统包裹已经落入指定格口
+    /// Chute landing callback - Notify postal system that parcel has landed in the specified chute
+    /// 对应参考代码中的落格回调接口
+    /// </summary>
+    public async Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        var requestTime = _clock.LocalNow;
+        
+        try
+        {
+            Logger.LogDebug("开始落格回调（{ClientType}），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}", 
+                ClientTypeName, parcelId, chuteId, barcode);
+
+            var seqNum = GetNextSequenceNumber();
+            var yearMonth = _clock.LocalNow.ToString("yyyyMM");
+            var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
+
+            // 构造落格回调的SOAP请求
+            // 根据参考代码，落格回调需要通知系统包裹已落入格口
+            var landingParameters = new PostalChuteLandingRequestParameters
+            {
+                SequenceId = sequenceId,
+                DeviceId = DeviceId,
+                Barcode = barcode,
+                ChuteId = chuteId,
+                LandingTime = _clock.LocalNow,
+                EmployeeNumber = EmployeeNumber,
+                OrganizationNumber = OrganizationNumber
+            };
+
+            var soapRequest = SoapRequestBuilder.BuildChuteLandingRequest(landingParameters);
+
+            using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
+
+            // 发送SOAP请求
+            var response = await HttpClient.PostAsync("", content, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            responseContent = Regex.Unescape(responseContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation(
+                    "落格回调成功（{ClientType}），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}, 状态码: {StatusCode}",
+                    ClientTypeName, parcelId, chuteId, barcode, response.StatusCode);
+
+                return new WcsApiResponse
+                {
+                    Success = true,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Chute landing notification sent successfully to {ClientTypeName}",
+                    Data = responseContent,
+                    ParcelId = parcelId,
+                    RequestBody = soapRequest,
+                    ResponseBody = responseContent,
+                    RequestTime = requestTime,
+                    ResponseTime = _clock.LocalNow,
+                    ResponseStatusCode = (int)response.StatusCode
+                };
+            }
+            else
+            {
+                Logger.LogWarning(
+                    "落格回调失败（{ClientType}），包裹ID: {ParcelId}, 格口: {ChuteId}, 状态码: {StatusCode}, 响应: {Response}",
+                    ClientTypeName, parcelId, chuteId, response.StatusCode, responseContent);
+
+                return new WcsApiResponse
+                {
+                    Success = false,
+                    Code = ((int)response.StatusCode).ToString(),
+                    Message = $"Chute landing notification error: {response.StatusCode}",
+                    Data = responseContent,
+                    ParcelId = parcelId,
+                    RequestBody = soapRequest,
+                    ResponseBody = responseContent,
+                    ErrorMessage = $"Chute landing notification error: {response.StatusCode}",
+                    RequestTime = requestTime,
+                    ResponseTime = _clock.LocalNow,
+                    ResponseStatusCode = (int)response.StatusCode
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "落格回调异常（{ClientType}），包裹ID: {ParcelId}, 格口: {ChuteId}", 
+                ClientTypeName, parcelId, chuteId);
+
+            return new WcsApiResponse
+            {
+                Success = false,
+                Code = HttpStatusCodes.Error,
+                Message = ex.Message,
+                Data = ex.ToString(),
+                ErrorMessage = ex.Message,
+                ParcelId = parcelId,
+                RequestTime = requestTime,
+                ResponseTime = _clock.LocalNow
+            };
+        }
+    }
 }

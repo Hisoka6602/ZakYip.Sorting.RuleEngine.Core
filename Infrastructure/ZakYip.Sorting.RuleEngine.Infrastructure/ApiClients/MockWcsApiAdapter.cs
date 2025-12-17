@@ -130,6 +130,38 @@ public class MockWcsApiAdapter : IWcsApiAdapter
     }
 
     /// <summary>
+    /// 落格回调（模拟实现）
+    /// Chute landing notification (mock implementation)
+    /// </summary>
+    public Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "模拟落格回调: 包裹ID={ParcelId}, 格口ID={ChuteId}, 条码={Barcode}",
+            parcelId, chuteId, barcode);
+
+        var response = new WcsApiResponse
+        {
+            Success = true,
+            Code = "200",
+            Message = "模拟落格回调成功 / Mock chute landing notification successful",
+            Data = JsonSerializer.Serialize(new { parcelId, chuteId, barcode, landed = true }, JsonOptions),
+            ParcelId = parcelId,
+            RequestUrl = "/api/mock/chute-landing",
+            RequestBody = JsonSerializer.Serialize(new { parcelId, chuteId, barcode }, JsonOptions),
+            RequestTime = _clock.LocalNow,
+            ResponseTime = _clock.LocalNow,
+            ResponseStatusCode = 200,
+            DurationMs = 10
+        };
+
+        return Task.FromResult(response);
+    }
+
+    /// <summary>
     /// 生成随机格口号（从配置的格口数组中选择）
     /// Generate random chute number (selected from configured chute array)
     /// 使用 Random.Shared 以确保线程安全和更好的性能
