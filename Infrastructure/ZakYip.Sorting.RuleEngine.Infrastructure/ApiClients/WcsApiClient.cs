@@ -506,4 +506,122 @@ public class WcsApiClient : IWcsApiAdapter
                 formattedCurl);
         }
     }
+
+    /// <summary>
+    /// 落格回调 - 通知WCS系统包裹已落入指定格口
+    /// Chute landing callback - Notify WCS system that parcel has landed in the specified chute
+    /// </summary>
+    public async Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var requestTime = _clock.LocalNow;
+        const string requestUrl = "/api/wcs/chute-landing"; // This should be defined in WcsEndpoints
+        
+        HttpResponseMessage? response = null;
+        string? responseContent = null;
+        string? formattedCurl = null;
+        string? requestHeaders = null;
+        string? responseHeaders = null;
+        string requestBody = string.Empty;
+        
+        try
+        {
+            _logger.LogDebug("开始落格回调，包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}", 
+                parcelId, chuteId, barcode);
+
+            // 构造请求体
+            var requestData = new
+            {
+                parcelId,
+                chuteId,
+                barcode,
+                landingTime = _clock.LocalNow
+            };
+
+            requestBody = System.Text.Json.JsonSerializer.Serialize(requestData, _jsonOptions);
+            using var content = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
+
+            // 生成格式化的curl命令
+            var headers = new Dictionary<string, string>
+            {
+                ["Content-Type"] = "application/json"
+            };
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl("POST", requestUrl, headers, requestBody);
+
+            // 创建请求
+            using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
+            {
+                Content = content
+            };
+            requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
+
+            // 发送POST请求
+            response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
+
+            stopwatch.Stop();
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "落格回调成功，包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}, 状态码: {StatusCode}, 耗时: {Duration}ms",
+                    parcelId, chuteId, barcode, response.StatusCode, stopwatch.ElapsedMilliseconds);
+
+                return CreateSuccessResponse(
+                    "Chute landing notification sent successfully",
+                    responseContent,
+                    parcelId,
+                    requestUrl,
+                    requestBody,
+                    requestHeaders,
+                    requestTime,
+                    (int)response.StatusCode,
+                    responseHeaders,
+                    stopwatch.ElapsedMilliseconds,
+                    formattedCurl);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "落格回调失败，包裹ID: {ParcelId}, 格口: {ChuteId}, 状态码: {StatusCode}, 响应: {Response}, 耗时: {Duration}ms",
+                    parcelId, chuteId, response.StatusCode, responseContent, stopwatch.ElapsedMilliseconds);
+
+                return CreateErrorResponse(
+                    $"Chute landing notification error: {response.StatusCode}",
+                    responseContent,
+                    parcelId,
+                    requestUrl,
+                    requestBody,
+                    requestHeaders,
+                    requestTime,
+                    (int)response.StatusCode,
+                    responseHeaders,
+                    stopwatch.ElapsedMilliseconds,
+                    formattedCurl);
+            }
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "落格回调异常，包裹ID: {ParcelId}, 格口: {ChuteId}, 耗时: {Duration}ms", 
+                parcelId, chuteId, stopwatch.ElapsedMilliseconds);
+
+            return CreateExceptionResponse(
+                ex,
+                parcelId,
+                requestUrl,
+                requestBody,
+                requestHeaders,
+                requestTime,
+                response,
+                responseHeaders,
+                stopwatch.ElapsedMilliseconds,
+                formattedCurl);
+        }
+    }
 }

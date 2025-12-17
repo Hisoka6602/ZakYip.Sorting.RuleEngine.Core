@@ -125,6 +125,43 @@ public abstract class BaseErpApiClient : IWcsApiAdapter
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 落格回调（大部分ERP系统不支持此功能）
+    /// Chute landing notification - Not supported in most ERP systems
+    /// </summary>
+    public virtual async Task<WcsApiResponse> NotifyChuteLandingAsync(
+        string parcelId,
+        string chuteId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var requestTime = _clock.LocalNow;
+        
+        Logger.LogWarning("{ClientType}不支持落格回调功能，包裹ID: {ParcelId}, 格口: {ChuteId}", 
+            ClientTypeName, parcelId, chuteId);
+        
+        await Task.CompletedTask;
+        stopwatch.Stop();
+        
+        return new WcsApiResponse
+        {
+            Success = true,
+            Code = HttpStatusCodes.Success,
+            Message = $"{ClientTypeName}不支持落格回调功能",
+            Data = "{\"info\":\"Feature not supported\"}",
+            ParcelId = parcelId,
+            RequestUrl = "N/A",
+            RequestBody = $"{{\"parcelId\":\"{parcelId}\",\"chuteId\":\"{chuteId}\",\"barcode\":\"{barcode}\"}}",
+            RequestHeaders = "{}",
+            RequestTime = requestTime,
+            ResponseTime = _clock.LocalNow,
+            DurationMs = stopwatch.ElapsedMilliseconds,
+            FormattedCurl = $"# Feature not supported by {FeatureNotSupportedText}"
+        };
+    }
+
+    /// <summary>
     /// 创建异常响应的辅助方法
     /// Helper method to create exception response
     /// </summary>
