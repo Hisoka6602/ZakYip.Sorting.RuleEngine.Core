@@ -1,0 +1,40 @@
+using LiteDB;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+
+namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
+
+/// <summary>
+/// 邮政处理中心配置的LiteDB仓储实现
+/// LiteDB repository implementation for Postal Processing Center configuration
+/// </summary>
+public class LiteDbPostProcessingCenterConfigRepository : BaseLiteDbRepository<PostProcessingCenterConfig, long>, IPostProcessingCenterConfigRepository
+{
+    private const string CollectionName = "post_processing_center_configs";
+
+    public LiteDbPostProcessingCenterConfigRepository(ILiteDatabase database) 
+        : base(database, CollectionName)
+    {
+    }
+
+    protected override void EnsureIndexes()
+    {
+        var collection = GetCollection();
+        collection.EnsureIndex(x => x.ConfigId, unique: true);
+        collection.EnsureIndex(x => x.IsEnabled);
+    }
+
+    protected override long GetEntityId(PostProcessingCenterConfig entity) => entity.ConfigId;
+
+    protected override PostProcessingCenterConfig UpdateTimestamp(PostProcessingCenterConfig entity) =>
+        entity with { UpdatedAt = Clock.LocalNow };
+
+    public Task<IEnumerable<PostProcessingCenterConfig>> GetEnabledConfigsAsync()
+    {
+        var collection = GetCollection();
+        var configs = collection
+            .Find(x => x.IsEnabled)
+            .ToList();
+        return Task.FromResult<IEnumerable<PostProcessingCenterConfig>>(configs);
+    }
+}
