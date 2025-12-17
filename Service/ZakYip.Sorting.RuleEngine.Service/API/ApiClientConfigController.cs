@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
@@ -7,6 +8,9 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
+using ZakYip.Sorting.RuleEngine.Service.Configuration;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -24,17 +28,24 @@ public class ApiClientConfigController : ControllerBase
     private readonly JushuitanErpApiClient? _jushuitanErpApiClient;
     private readonly WdtWmsApiClient? _wdtWmsApiClient;
     private readonly WdtErpFlagshipApiClient? _wdtErpFlagshipApiClient;
+    private readonly PostCollectionApiClient? _postCollectionApiClient;
+    private readonly PostProcessingCenterApiClient? _postProcessingCenterApiClient;
+    private readonly AppSettings _appSettings;
 
     public ApiClientConfigController(
         ILogger<ApiClientConfigController> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IOptions<AppSettings> appSettings)
     {
         _logger = logger;
+        _appSettings = appSettings.Value;
         
         // Try to get clients from DI, they may not be registered
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
         _wdtWmsApiClient = serviceProvider.GetService<WdtWmsApiClient>();
         _wdtErpFlagshipApiClient = serviceProvider.GetService<WdtErpFlagshipApiClient>();
+        _postCollectionApiClient = serviceProvider.GetService<PostCollectionApiClient>();
+        _postProcessingCenterApiClient = serviceProvider.GetService<PostProcessingCenterApiClient>();
     }
 
     /// <summary>
@@ -350,5 +361,155 @@ public class ApiClientConfigController : ControllerBase
         var firstPart = secret.Substring(0, 3);
         var lastPart = secret.Substring(secret.Length - 3);
         return $"{firstPart}***{lastPart}";
+    }
+
+    /// <summary>
+    /// 获取邮政分揽投机构 API配置
+    /// Get Postal Collection API configuration
+    /// </summary>
+    /// <returns>当前配置</returns>
+    [HttpGet("postcollection")]
+    [SwaggerOperation(
+        Summary = "获取邮政分揽投机构 API配置",
+        Description = "获取当前邮政分揽投机构 API客户端的配置参数",
+        OperationId = "GetPostCollectionConfig",
+        Tags = new[] { "ApiClientConfig" }
+    )]
+    [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<PostCollectionConfigRequest>))]
+    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<PostCollectionConfigRequest>))]
+    [ProducesResponseType(typeof(ApiResponse<PostCollectionConfigRequest>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<PostCollectionConfigRequest>), 404)]
+    public ActionResult<ApiResponse<PostCollectionConfigRequest>> GetPostCollectionConfig()
+    {
+        try
+        {
+            var config = new PostCollectionConfigRequest
+            {
+                BaseUrl = _appSettings.PostCollectionApi.BaseUrl,
+                TimeoutSeconds = _appSettings.PostCollectionApi.TimeoutSeconds,
+                Enabled = _appSettings.PostCollectionApi.Enabled
+            };
+
+            return Ok(ApiResponse<PostCollectionConfigRequest>.SuccessResult(config));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取邮政分揽投机构配置时发生错误");
+            return StatusCode(500, ApiResponse<PostCollectionConfigRequest>.FailureResult(
+                "获取配置失败", "GET_CONFIG_FAILED"));
+        }
+    }
+
+    /// <summary>
+    /// 更新邮政分揽投机构 API配置
+    /// Update Postal Collection API configuration
+    /// 注意：配置更改仅影响当前运行实例，重启后将从appsettings.json重新加载
+    /// Note: Configuration changes only affect the current running instance, will reload from appsettings.json after restart
+    /// </summary>
+    /// <param name="request">配置请求</param>
+    /// <returns>更新结果</returns>
+    [HttpPut("postcollection")]
+    [SwaggerOperation(
+        Summary = "更新邮政分揽投机构 API配置",
+        Description = "更新邮政分揽投机构 API客户端的配置参数",
+        OperationId = "UpdatePostCollectionConfig",
+        Tags = new[] { "ApiClientConfig" }
+    )]
+    [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
+    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [ProducesResponseType(typeof(ApiResponse<string>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<string>), 404)]
+    public ActionResult<ApiResponse<string>> UpdatePostCollectionConfig([FromBody] PostCollectionConfigRequest request)
+    {
+        try
+        {
+            _appSettings.PostCollectionApi.BaseUrl = request.BaseUrl;
+            _appSettings.PostCollectionApi.TimeoutSeconds = request.TimeoutSeconds;
+            _appSettings.PostCollectionApi.Enabled = request.Enabled;
+
+            _logger.LogInformation("成功更新邮政分揽投机构 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新邮政分揽投机构配置时发生错误");
+            return StatusCode(500, ApiResponse<string>.FailureResult(
+                "更新配置失败", "UPDATE_CONFIG_FAILED"));
+        }
+    }
+
+    /// <summary>
+    /// 获取邮政处理中心 API配置
+    /// Get Postal Processing Center API configuration
+    /// </summary>
+    /// <returns>当前配置</returns>
+    [HttpGet("postprocessingcenter")]
+    [SwaggerOperation(
+        Summary = "获取邮政处理中心 API配置",
+        Description = "获取当前邮政处理中心 API客户端的配置参数",
+        OperationId = "GetPostProcessingCenterConfig",
+        Tags = new[] { "ApiClientConfig" }
+    )]
+    [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<PostProcessingCenterConfigRequest>))]
+    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<PostProcessingCenterConfigRequest>))]
+    [ProducesResponseType(typeof(ApiResponse<PostProcessingCenterConfigRequest>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<PostProcessingCenterConfigRequest>), 404)]
+    public ActionResult<ApiResponse<PostProcessingCenterConfigRequest>> GetPostProcessingCenterConfig()
+    {
+        try
+        {
+            var config = new PostProcessingCenterConfigRequest
+            {
+                BaseUrl = _appSettings.PostProcessingCenterApi.BaseUrl,
+                TimeoutSeconds = _appSettings.PostProcessingCenterApi.TimeoutSeconds,
+                Enabled = _appSettings.PostProcessingCenterApi.Enabled
+            };
+
+            return Ok(ApiResponse<PostProcessingCenterConfigRequest>.SuccessResult(config));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取邮政处理中心配置时发生错误");
+            return StatusCode(500, ApiResponse<PostProcessingCenterConfigRequest>.FailureResult(
+                "获取配置失败", "GET_CONFIG_FAILED"));
+        }
+    }
+
+    /// <summary>
+    /// 更新邮政处理中心 API配置
+    /// Update Postal Processing Center API configuration
+    /// 注意：配置更改仅影响当前运行实例，重启后将从appsettings.json重新加载
+    /// Note: Configuration changes only affect the current running instance, will reload from appsettings.json after restart
+    /// </summary>
+    /// <param name="request">配置请求</param>
+    /// <returns>更新结果</returns>
+    [HttpPut("postprocessingcenter")]
+    [SwaggerOperation(
+        Summary = "更新邮政处理中心 API配置",
+        Description = "更新邮政处理中心 API客户端的配置参数",
+        OperationId = "UpdatePostProcessingCenterConfig",
+        Tags = new[] { "ApiClientConfig" }
+    )]
+    [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
+    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [ProducesResponseType(typeof(ApiResponse<string>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<string>), 404)]
+    public ActionResult<ApiResponse<string>> UpdatePostProcessingCenterConfig([FromBody] PostProcessingCenterConfigRequest request)
+    {
+        try
+        {
+            _appSettings.PostProcessingCenterApi.BaseUrl = request.BaseUrl;
+            _appSettings.PostProcessingCenterApi.TimeoutSeconds = request.TimeoutSeconds;
+            _appSettings.PostProcessingCenterApi.Enabled = request.Enabled;
+
+            _logger.LogInformation("成功更新邮政处理中心 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新邮政处理中心配置时发生错误");
+            return StatusCode(500, ApiResponse<string>.FailureResult(
+                "更新配置失败", "UPDATE_CONFIG_FAILED"));
+        }
     }
 }

@@ -9,6 +9,8 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
 using Newtonsoft.Json;
@@ -29,6 +31,8 @@ public class ApiClientTestController : ControllerBase
     private readonly JushuitanErpApiClient? _jushuitanErpApiClient;
     private readonly WdtWmsApiClient? _wdtWmsApiClient;
     private readonly WdtErpFlagshipApiClient? _wdtErpFlagshipApiClient;
+    private readonly PostCollectionApiClient? _postCollectionApiClient;
+    private readonly PostProcessingCenterApiClient? _postProcessingCenterApiClient;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
 
@@ -42,6 +46,8 @@ public class ApiClientTestController : ControllerBase
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
         _wdtWmsApiClient = serviceProvider.GetService<WdtWmsApiClient>();
         _wdtErpFlagshipApiClient = serviceProvider.GetService<WdtErpFlagshipApiClient>();
+        _postCollectionApiClient = serviceProvider.GetService<PostCollectionApiClient>();
+        _postProcessingCenterApiClient = serviceProvider.GetService<PostProcessingCenterApiClient>();
         
         // Get database contexts for logging
         _mysqlContext = serviceProvider.GetService<MySqlLogDbContext>();
@@ -272,6 +278,66 @@ public class ApiClientTestController : ControllerBase
         {
             _logger.LogError(ex, "保存API测试日志时发生错误");
         }
+    }
+
+    /// <summary>
+    /// 测试邮政分揽投机构 API
+    /// Test Postal Collection API
+    /// </summary>
+    /// <param name="request">测试请求</param>
+    /// <returns>测试结果</returns>
+    [HttpPost("postcollection")]
+    [SwaggerOperation(
+        Summary = "测试邮政分揽投机构 API",
+        Description = "远程测试邮政分揽投机构 API客户端，发送测试数据并记录访问信息",
+        OperationId = "TestPostCollectionApi",
+        Tags = new[] { "ApiClientTest" }
+    )]
+    [SwaggerResponse(200, "测试成功", typeof(ApiResponse<ApiClientTestResponse>))]
+    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<ApiClientTestResponse>))]
+    [SwaggerResponse(500, "测试失败", typeof(ApiResponse<ApiClientTestResponse>))]
+    [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
+    public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestPostCollectionApi(
+        [FromBody] ApiClientTestRequest request)
+    {
+        return await TestApiClientAsync(
+            _postCollectionApiClient,
+            "PostCollection",
+            "邮政分揽投机构",
+            request,
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// 测试邮政处理中心 API
+    /// Test Postal Processing Center API
+    /// </summary>
+    /// <param name="request">测试请求</param>
+    /// <returns>测试结果</returns>
+    [HttpPost("postprocessingcenter")]
+    [SwaggerOperation(
+        Summary = "测试邮政处理中心 API",
+        Description = "远程测试邮政处理中心 API客户端，发送测试数据并记录访问信息",
+        OperationId = "TestPostProcessingCenterApi",
+        Tags = new[] { "ApiClientTest" }
+    )]
+    [SwaggerResponse(200, "测试成功", typeof(ApiResponse<ApiClientTestResponse>))]
+    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<ApiClientTestResponse>))]
+    [SwaggerResponse(500, "测试失败", typeof(ApiResponse<ApiClientTestResponse>))]
+    [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
+    public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestPostProcessingCenterApi(
+        [FromBody] ApiClientTestRequest request)
+    {
+        return await TestApiClientAsync(
+            _postProcessingCenterApiClient,
+            "PostProcessingCenter",
+            "邮政处理中心",
+            request,
+            (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
 
     /// <summary>
