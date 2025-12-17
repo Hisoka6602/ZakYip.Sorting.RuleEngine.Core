@@ -14,24 +14,24 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 /// 参考: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostInApi.cs
 /// 使用SOAP协议进行通信，直接实现IWcsApiAdapter接口
 /// Uses SOAP protocol, directly implements IWcsApiAdapter interface
+/// 配置从LiteDB加载，支持热更新
+/// Configuration loaded from LiteDB with hot reload support
 /// </summary>
 public class PostCollectionApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<PostCollectionApiClient> _logger;
     private readonly ISystemClock _clock;
+    private readonly IPostCollectionConfigRepository _configRepository;
     
     // 使用线程安全的实例级序列号
     private long _sequenceNumber;
     private readonly object _sequenceLock = new();
 
-    // Configuration parameters - should be injected via options pattern in production
-    private const string WorkshopCode = "WS20140010";
-    private const string DeviceId = "20140010";
-    private const string CompanyName = "广东泽业科技有限公司";
-    private const string DeviceBarcode = "141562320001131";
-    private const string OrganizationNumber = "20140011";
-    private const string EmployeeNumber = "00818684";
+    // 缓存配置以避免每次请求都查询数据库
+    private PostCollectionConfig? _cachedConfig;
+    private DateTime _configCacheTime = DateTime.MinValue;
+    private readonly TimeSpan _configCacheExpiry = TimeSpan.FromMinutes(5);
     
     // SOAP namespaces
     private const string SoapEnvelopeNamespace = "http://schemas.xmlsoap.org/soap/envelope/";
@@ -40,12 +40,61 @@ public class PostCollectionApiClient : IWcsApiAdapter
     public PostCollectionApiClient(
         HttpClient httpClient,
         ILogger<PostCollectionApiClient> logger,
-        ISystemClock clock)
+        ISystemClock clock,
+        IPostCollectionConfigRepository configRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _clock = clock;
+        _configRepository = configRepository;
         _sequenceNumber = new DateTimeOffset(_clock.UtcNow).ToUnixTimeMilliseconds();
+    }
+
+    /// <summary>
+    /// 获取配置，使用缓存以提高性能
+    /// Get configuration with caching for performance
+    /// </summary>
+    private async Task<PostCollectionConfig> GetConfigAsync()
+    {
+        // 检查缓存是否有效
+        if (_cachedConfig != null && _clock.LocalNow - _configCacheTime < _configCacheExpiry)
+        {
+            return _cachedConfig;
+        }
+
+        // 从数据库加载配置
+        var config = await _configRepository.GetByIdAsync(PostCollectionConfig.SingletonId).ConfigureAwait(false);
+        
+        if (config == null)
+        {
+            // 如果配置不存在，创建默认配置
+            _logger.LogWarning("邮政分揽投机构配置不存在，使用默认配置");
+            config = new PostCollectionConfig
+            {
+                ConfigId = PostCollectionConfig.SingletonId,
+                Name = "邮政分揽投机构默认配置",
+                Url = "http://localhost:8081/postal-collection", // 需要配置实际URL
+                WorkshopCode = "WS20140010",
+                DeviceId = "20140010",
+                CompanyName = "广东泽业科技有限公司",
+                DeviceBarcode = "141562320001131",
+                OrganizationNumber = "20140011",
+                EmployeeNumber = "00818684",
+                TimeoutMs = 5000,
+                IsEnabled = true,
+                Description = "默认配置 - 请通过API更新",
+                CreatedAt = _clock.LocalNow,
+                UpdatedAt = _clock.LocalNow
+            };
+            
+            await _configRepository.AddAsync(config).ConfigureAwait(false);
+        }
+
+        // 更新缓存
+        _cachedConfig = config;
+        _configCacheTime = _clock.LocalNow;
+
+        return config;
     }
 
     private long GetNextSequenceNumber()
@@ -68,6 +117,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
         
         try
         {
+            // 加载配置
+            var config = await GetConfigAsync().ConfigureAwait(false);
+
             // Skip NoRead barcodes
             if (barcode.Contains("NoRead", StringComparison.OrdinalIgnoreCase))
             {
@@ -88,9 +140,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // 构造SOAP请求
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
-                .Append(DeviceId).Append("::")
+                .Append(config.DeviceId).Append("::")
                 .Append(barcode).Append("::")
-                .Append(EmployeeNumber).Append("::")
+                .Append(config.EmployeeNumber).Append("::")
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append("2::001::0000::0000::0::0::0::0::0::0::0")
                 .Append("||#END")
@@ -99,7 +151,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
-            var response = await _httpClient.PostAsync("", content, cancellationToken).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
 
@@ -174,33 +226,36 @@ public class PostCollectionApiClient : IWcsApiAdapter
         {
             _logger.LogDebug("请求格口（邮政分揽投机构），包裹ID: {ParcelId}, 条码: {Barcode}", 
                 parcelId, dwsData.Barcode);
+            // 加载配置
+            var config = await GetConfigAsync().ConfigureAwait(false);
+
 
             // 先提交扫描信息
             await ScanParcelAsync(dwsData.Barcode, cancellationToken).ConfigureAwait(false);
 
             var seqNum = GetNextSequenceNumber();
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
-            var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
+            var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造格口查询SOAP请求
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
-                .Append(DeviceId).Append("::")
+                .Append(config.DeviceId).Append("::")
                 .Append(dwsData.Barcode).Append("::")
                 .Append("0:: :: :: ::")
                 .Append(_clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss")).Append("::")
-                .Append(EmployeeNumber).Append("::")
-                .Append(OrganizationNumber).Append("::")
-                .Append(CompanyName).Append("::")
-                .Append(DeviceBarcode).Append("::")
+                .Append(config.EmployeeNumber).Append("::")
+                .Append(config.OrganizationNumber).Append("::")
+                .Append(config.CompanyName).Append("::")
+                .Append(config.DeviceBarcode).Append("::")
                 .Append("||#END")
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
-            var response = await _httpClient.PostAsync("", content, cancellationToken).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
             
@@ -317,23 +372,26 @@ public class PostCollectionApiClient : IWcsApiAdapter
         
         try
         {
+            // 加载配置
+            var config = await GetConfigAsync().ConfigureAwait(false);
+
             _logger.LogDebug("落格回调（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}", 
                 parcelId, chuteId, barcode);
 
             var seqNum = GetNextSequenceNumber();
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
-            var sequenceId = $"{yearMonth}{WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
+            var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造落格回调SOAP请求
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
-                .Append(DeviceId).Append("::")
+                .Append(config.DeviceId).Append("::")
                 .Append(barcode).Append("::")
                 .Append(chuteId).Append("::")
                 .Append(_clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss")).Append("::")
-                .Append(EmployeeNumber).Append("::")
-                .Append(OrganizationNumber).Append("::")
+                .Append(config.EmployeeNumber).Append("::")
+                .Append(config.OrganizationNumber).Append("::")
                 .Append("1::::") // Status: 1=成功落格
                 .Append("||#END")
                 .ToString();
@@ -341,7 +399,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("notifyChuteLanding", arg0);
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
-            var response = await _httpClient.PostAsync("", content, cancellationToken).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
 
