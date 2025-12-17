@@ -13,7 +13,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("DWS超时配置管理接口 / DWS timeout configuration management API")]
+[SwaggerTag("DWS管理 / DWS Management")]
 public class DwsTimeoutController : ControllerBase
 {
     private readonly ISystemClock _clock;
@@ -41,7 +41,7 @@ public class DwsTimeoutController : ControllerBase
         Summary = "获取DWS超时配置 / Get DWS timeout configuration",
         Description = "获取系统中唯一的DWS超时配置（单例模式）/ Get the unique DWS timeout configuration in the system (singleton pattern)",
         OperationId = "GetDwsTimeoutConfig",
-        Tags = new[] { "DwsTimeout" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "成功返回DWS超时配置", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
@@ -78,7 +78,7 @@ public class DwsTimeoutController : ControllerBase
         Summary = "更新DWS超时配置 / Update DWS timeout configuration",
         Description = "更新DWS数据接收超时配置，如果不存在则创建（单例模式，全量更新）/ Update DWS timeout configuration, create if not exists (singleton pattern, full update)",
         OperationId = "UpdateDwsTimeoutConfig",
-        Tags = new[] { "DwsTimeout" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]
     [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<DwsTimeoutConfigResponseDto>))]

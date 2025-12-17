@@ -16,7 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("分拣机配置管理接口")]
+[SwaggerTag("分拣机管理 / Sorting Management")]
 public class SorterConfigController : ControllerBase
 {
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
@@ -45,7 +45,7 @@ _repository = repository;
         Summary = "获取分拣机配置",
         Description = "获取系统中唯一的分拣机配置（单例模式）",
         OperationId = "GetSorterConfig",
-        Tags = new[] { "SorterConfig" }
+        Tags = new[] { "分拣机管理 / Sorting Management" }
     )]
     [SwaggerResponse(200, "成功返回分拣机配置", typeof(ApiResponse<SorterConfigResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<SorterConfigResponseDto>))]
@@ -82,7 +82,7 @@ _repository = repository;
         Summary = "更新分拣机配置",
         Description = "更新分拣机配置，如果不存在则创建（单例模式，全量更新）",
         OperationId = "UpdateSorterConfig",
-        Tags = new[] { "SorterConfig" }
+        Tags = new[] { "分拣机管理 / Sorting Management" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<SorterConfigResponseDto>))]
     [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<SorterConfigResponseDto>))]

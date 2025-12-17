@@ -11,7 +11,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("包裹处理接口，提供包裹的单个和批量处理功能")]
+[SwaggerTag("包裹管理 / Parcel Management")]
 public class ParcelController : ControllerBase
 {
     private readonly IParcelProcessingService _parcelProcessingService;
@@ -54,7 +54,7 @@ public class ParcelController : ControllerBase
         Summary = "处理单个包裹",
         Description = "根据包裹信息和分拣规则，为包裹分配目标格口",
         OperationId = "ProcessParcel",
-        Tags = new[] { "Parcel" }
+        Tags = new[] { "包裹管理 / Parcel Management" }
     )]
     [SwaggerResponse(200, "包裹处理成功", typeof(ParcelProcessResponse))]
     [SwaggerResponse(400, "包裹处理失败", typeof(ParcelProcessResponse))]
@@ -131,7 +131,7 @@ public class ParcelController : ControllerBase
         Summary = "批量处理包裹",
         Description = "批量处理多个包裹，为每个包裹分配目标格口。返回每个包裹的处理结果。",
         OperationId = "ProcessParcels",
-        Tags = new[] { "Parcel" }
+        Tags = new[] { "包裹管理 / Parcel Management" }
     )]
     [SwaggerResponse(200, "批量处理完成", typeof(IEnumerable<ParcelProcessResponse>))]
     [SwaggerResponse(500, "服务器内部错误")]

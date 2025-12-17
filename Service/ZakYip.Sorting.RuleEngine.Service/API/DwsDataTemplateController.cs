@@ -15,7 +15,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("DWS数据模板管理接口")]
+[SwaggerTag("DWS管理 / DWS Management")]
 public class DwsDataTemplateController : ControllerBase
 {
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
@@ -41,7 +41,7 @@ _repository = repository;
         Summary = "获取DWS数据模板",
         Description = "获取系统中唯一的DWS数据解析模板（单例模式）",
         OperationId = "GetDwsDataTemplate",
-        Tags = new[] { "DwsDataTemplate" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "成功返回DWS数据模板", typeof(ApiResponse<DwsDataTemplateResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsDataTemplateResponseDto>))]
@@ -78,7 +78,7 @@ _repository = repository;
         Summary = "更新DWS数据模板",
         Description = "更新DWS数据模板，如果不存在则创建（单例模式，全量更新）",
         OperationId = "UpdateDwsDataTemplate",
-        Tags = new[] { "DwsDataTemplate" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "模板更新成功", typeof(ApiResponse<DwsDataTemplateResponseDto>))]
     [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<DwsDataTemplateResponseDto>))]
