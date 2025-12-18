@@ -345,6 +345,11 @@ try
                 // Register Sorter configuration repository
                 services.AddScoped<ISorterConfigRepository, LiteDbSorterConfigRepository>();
                 
+                // 注册邮政API配置仓储
+                // Register Postal API configuration repositories
+                services.AddScoped<IPostCollectionConfigRepository, LiteDbPostCollectionConfigRepository>();
+                services.AddScoped<IPostProcessingCenterConfigRepository, LiteDbPostProcessingCenterConfigRepository>();
+                
                 // 注册DWS数据解析器
                 // Register DWS data parser
                 services.AddSingleton<IDwsDataParser, DwsDataParser>();
