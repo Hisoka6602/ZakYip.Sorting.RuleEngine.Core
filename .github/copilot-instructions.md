@@ -2,6 +2,14 @@
 
 本文档定义了本项目的 C# 编码规范和最佳实践。所有代码和注释必须遵守这些规范。
 
+
+# 语言与风格
+- 所有输出（包含 PR 总结、Review 评论、解释说明）使用简体中文
+- 输出的提示与异常信息使用中文
+- 代码注释使用中文，类名/变量名/字段名使用英文
+- 修改会覆盖旧实现时，明确指出需要删除的多余实现，避免重复与“影分身”
+
+
 This document defines the C# coding standards and best practices for this project. All code and comments must follow these standards.
 
 ## 1. 使用 required + init 实现更安全的对象创建 / Use required + init for Safer Object Creation
