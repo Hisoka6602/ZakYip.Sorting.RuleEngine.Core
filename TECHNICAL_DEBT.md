@@ -46,6 +46,7 @@ This document records identified technical debt in the project. Before opening a
 | **API控制器整合** | **0 项** | **✅ 无 None** | **✅ 已完成！(Swagger逻辑分组)** |
 | **API配置端点缺失** | **7 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 | **ERP客户端待重建** | **2 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
+| **ConfigId迁移未完成** | **1 项 (35个编译错误)** | **🟡 中 Medium** | **📋 待修复 (见 TD-CONFIG-001)** |
 
 > **🎉 最新更新 / Latest Update (2025-12-18)**: 
 > - ⚠️ **警告债务重新评估** / **Warning Debt Re-assessment**: 发现 2068 个警告需要手动修复，不能通过 .editorconfig 抑制
@@ -329,6 +330,157 @@ After deleting BaseErpApiClient, need to rebuild two WDT API clients.
 
 ---
 These constants have the same numeric values but completely different semantics and should remain independent.
+
+---
+
+## 📝 新增技术债务 / New Technical Debt
+
+### TD-CONFIG-001: LiteDB ConfigId迁移未完成工作 / LiteDB ConfigId Migration Incomplete Work
+
+**创建日期 / Created**: 2025-12-18  
+**类别 / Category**: 代码迁移未完成 / Incomplete Code Migration  
+**严重程度 / Severity**: 🟡 中 Medium  
+**状态 / Status**: 📋 待修复 / To Fix  
+**预估工作量 / Estimated Effort**: 约2小时 / ~2 hours
+
+#### 背景 / Background
+
+在PR "Convert LiteDB Config entity keys from long to string with standardized naming" 中，我们将所有LiteDB配置实体的ConfigId从`long`类型改为`string`类型，并移除了冗余的`Name`字段。核心架构已经完成迁移，但仍有部分文件需要完成更新以确保系统完全编译通过。
+
+In the PR "Convert LiteDB Config entity keys from long to string with standardized naming", we converted all LiteDB config entity ConfigIds from `long` to `string` type and removed the redundant `Name` field. The core architecture migration is complete, but some files still need updates to ensure the system compiles fully.
+
+#### 已完成工作 / Completed Work ✅
+
+1. **Domain层 (8个实体)** - ConfigId改为string，移除Name字段
+   - PostCollectionConfig, PostProcessingCenterConfig, WdtWmsConfig, JushuitanErpConfig
+   - WdtErpFlagshipConfig, DwsConfig, SorterConfig, DwsTimeoutConfig
+
+2. **Infrastructure层 (9个Repository)** - 支持string主键
+   - BaseLiteDbRepository更新以支持string/long BsonValue转换
+   - 所有Config repositories已更新泛型类型参数
+
+3. **Domain接口 (3个)** - 更新为string类型
+   - IConfigRepository<T>, ISorterConfigRepository, IDwsTimeoutConfigRepository
+
+4. **Application层** - Mapper和部分DTO已更新
+   - DwsConfigMapper, SorterConfigMapper已移除Name字段
+   - DwsConfigUpdateRequest, SorterConfigUpdateRequest, 及Response DTOs已更新
+
+5. **Event和EventHandler** - 已完全更新
+   - DwsConfigChangedEvent, SorterConfigChangedEvent改为string ConfigId
+   - 对应的EventHandlers已更新
+
+6. **Controller** - 部分已更新
+   - DwsConfigController, SorterConfigController事件发布已更新
+
+#### 待完成工作 / Remaining Work 🔄
+
+##### 1. ApiClientConfigController 更新 (高优先级)
+**文件**: `Service/ZakYip.Sorting.RuleEngine.Service/API/ApiClientConfigController.cs`  
+**工作项**:
+- [ ] 移除所有GET方法中`config.Name`的映射 (约10处)
+- [ ] 移除所有UPDATE方法中`request.Name`的赋值 (约6处)
+
+**涉及方法**:
+- `GetJushuitanErpConfig()` - 行102
+- `UpdateJushuitanErpConfig()` - 行157
+- `GetWdtWmsConfig()` - 行226
+- `UpdateWdtWmsConfig()` - 行278
+- `GetWdtErpFlagshipConfig()` - 行344
+- `UpdateWdtErpFlagshipConfig()` - 行400
+- `GetPostCollectionConfig()` - 行486
+- `UpdatePostCollectionConfig()` - 行538
+- `GetPostProcessingCenterConfig()` - 行604
+- `UpdatePostProcessingCenterConfig()` - 行656
+
+**预估工作量**: 30分钟
+
+##### 2. API Config Request DTOs 更新 (高优先级)
+**文件位置**: `Application/ZakYip.Sorting.RuleEngine.Application/DTOs/Requests/`  
+**需要更新的DTOs**:
+- [ ] `PostCollectionConfigRequest.cs` - 移除Name字段（如果存在）
+- [ ] `PostCollectionFullConfigRequest.cs` - 移除Name字段（如果存在）
+- [ ] `PostProcessingCenterConfigRequest.cs` - 移除Name字段（如果存在）
+- [ ] `PostProcessingCenterFullConfigRequest.cs` - 移除Name字段（如果存在）
+- [ ] `WdtWmsConfigRequest.cs` - 移除Name字段（如果存在）
+- [ ] `WdtErpFlagshipConfigRequest.cs` - 移除Name字段（如果存在）
+- [ ] `JushuitanErpConfigRequest.cs` - 移除Name字段（如果存在）
+
+**预估工作量**: 15分钟
+
+##### 3. 测试文件更新 (中优先级)
+**需要更新的测试文件**:
+- [ ] `Tests/ZakYip.Sorting.RuleEngine.Tests/Infrastructure/Repositories/LiteDbDwsConfigRepositoryTests.cs`
+  - 更新所有测试方法使用string类型ConfigId（如"TestDwsConfig1"）替代long类型（如1001L）
+  - 移除所有Name字段断言
+  - 已部分完成：AddAsync_ShouldAddConfig_Successfully 已更新
+  - 待更新：其余8个测试方法
+
+- [ ] `Tests/ZakYip.Sorting.RuleEngine.Tests/Infrastructure/Repositories/LiteDbIdExposureTests.cs`
+  - 更新ConfigId使用string类型
+  - 行36, 48: 将1001L改为"TestDwsConfig1"
+
+- [ ] `Tests/ZakYip.Sorting.RuleEngine.Tests/Controllers/ApiClientConfigControllerTests.cs`
+  - 更新SingletonId使用（应已自动工作，因为SingletonId现在是string常量）
+  - 验证测试是否需要其他调整
+
+- [ ] 其他可能需要更新的测试文件
+  - `ApiClients/ApiClientRequiredFieldsTests.cs`
+  - `ApiClients/JushuitanErpApiClientTests.cs`
+  - `ApiClients/WdtWmsApiClientTests.cs`
+
+**预估工作量**: 1小时
+
+##### 4. Console测试项目更新 (低优先级)
+**文件**: `Tests/ZakYip.Sorting.RuleEngine.WdtErpFlagshipApiClient.ConsoleTest/Program.cs`  
+**问题**: 构造函数参数不匹配，引用了旧的Parameters属性
+**工作项**:
+- [ ] 更新API客户端实例化代码以使用新的Repository-based架构
+- [ ] 移除对Parameters属性的引用
+
+**预估工作量**: 15分钟
+
+#### 修复步骤 / Fix Steps
+
+1. **Phase 1**: 修复ApiClientConfigController（30分钟）
+   - 批量查找替换`Name = config.Name`相关代码
+   - 批量查找替换`Name = request.Name`相关代码
+   - 验证编译通过
+
+2. **Phase 2**: 更新Request DTOs（15分钟）
+   - 检查并移除每个DTO的Name字段
+   - 更新相关映射逻辑
+
+3. **Phase 3**: 更新测试文件（1小时）
+   - 系统性更新所有测试使用string ConfigId
+   - 移除Name字段相关断言
+   - 运行测试确保通过
+
+4. **Phase 4**: 修复Console项目（15分钟）
+   - 更新测试项目代码
+   - 验证编译
+
+#### 验证清单 / Verification Checklist
+
+完成修复后，确保：
+- [ ] 解决方案编译无错误（`dotnet build`）
+- [ ] 所有单元测试通过（`dotnet test`）
+- [ ] 配置相关API端点功能正常
+- [ ] API Swagger文档更新正确
+- [ ] 没有遗留的Name字段引用
+
+#### 影响范围 / Impact Scope
+
+- **编译错误**: 当前约35个编译错误需要修复
+- **受影响的API**: 所有配置管理API端点（GET/PUT）
+- **受影响的测试**: 约15个测试方法需要更新
+- **风险等级**: 🟡 中 - 不影响运行时的核心业务逻辑，但阻止编译
+
+#### 相关PR / Related PR
+
+- PR: "Convert LiteDB Config entity keys from long to string with standardized naming"
+- 分支: `copilot/update-litedb-keys-string`
+- 提交: cc972fd, eee5dd9
 
 ---
 
