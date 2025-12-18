@@ -10,38 +10,6 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 /// </summary>
 public class WcsApiResponse : BaseApiCommunication
 {
-    private long _parcelIdLong;
-
-    /// <summary>
-    /// 包裹Id（long类型主键）/ Parcel ID (long primary key)
-    /// </summary>
-    public long ParcelIdLong
-    {
-        get => _parcelIdLong;
-        init => _parcelIdLong = value;
-    }
-
-    /// <summary>
-    /// 包裹Id字符串（覆盖基类属性）
-    /// Parcel ID string (overrides base class property)
-    /// </summary>
-    /// <remarks>
-    /// 自动与 <see cref="ParcelIdLong"/> 保持同步
-    /// Automatically kept in sync with <see cref="ParcelIdLong"/>
-    /// </remarks>
-    public new string ParcelId
-    {
-        get => _parcelIdLong.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        set
-        {
-            if (!long.TryParse(value, out var parsed))
-            {
-                throw new ArgumentException("Invalid ParcelId value.", nameof(value));
-            }
-            _parcelIdLong = parsed;
-        }
-    }
-
     /// <summary>
     /// 请求状态，表示请求的处理结果状态（成功、失败等）
     /// Request status, indicating the result status of the request (success, failure, etc.)
