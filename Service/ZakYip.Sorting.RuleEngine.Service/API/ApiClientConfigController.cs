@@ -35,6 +35,9 @@ public class ApiClientConfigController : ControllerBase
     private readonly ISystemClock _clock;
     private readonly IPostCollectionConfigRepository _postCollectionConfigRepository;
     private readonly IPostProcessingCenterConfigRepository _postProcessingCenterConfigRepository;
+    private readonly IJushuitanErpConfigRepository _jushuitanErpConfigRepository;
+    private readonly IWdtWmsConfigRepository _wdtWmsConfigRepository;
+    private readonly IWdtErpFlagshipConfigRepository _wdtErpFlagshipConfigRepository;
 
     public ApiClientConfigController(
         ILogger<ApiClientConfigController> logger,
@@ -42,13 +45,19 @@ public class ApiClientConfigController : ControllerBase
         IOptions<AppSettings> appSettings,
         ISystemClock clock,
         IPostCollectionConfigRepository postCollectionConfigRepository,
-        IPostProcessingCenterConfigRepository postProcessingCenterConfigRepository)
+        IPostProcessingCenterConfigRepository postProcessingCenterConfigRepository,
+        IJushuitanErpConfigRepository jushuitanErpConfigRepository,
+        IWdtWmsConfigRepository wdtWmsConfigRepository,
+        IWdtErpFlagshipConfigRepository wdtErpFlagshipConfigRepository)
     {
         _logger = logger;
         _appSettings = appSettings.Value;
         _clock = clock;
         _postCollectionConfigRepository = postCollectionConfigRepository;
         _postProcessingCenterConfigRepository = postProcessingCenterConfigRepository;
+        _jushuitanErpConfigRepository = jushuitanErpConfigRepository;
+        _wdtWmsConfigRepository = wdtWmsConfigRepository;
+        _wdtErpFlagshipConfigRepository = wdtErpFlagshipConfigRepository;
         
         // Try to get clients from DI, they may not be registered
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
@@ -66,40 +75,47 @@ public class ApiClientConfigController : ControllerBase
     [HttpGet("jushuitanerp")]
     [SwaggerOperation(
         Summary = "获取聚水潭ERP API配置",
-        Description = "获取当前聚水潭ERP API客户端的配置参数",
+        Description = "获取当前聚水潭ERP API客户端的配置参数（从LiteDB读取）",
         OperationId = "GetJushuitanErpConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<JushuitanErpConfigRequest>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<JushuitanErpConfigRequest>))]
+    [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<JushuitanErpConfigRequest>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<JushuitanErpConfigRequest>))]
     [ProducesResponseType(typeof(ApiResponse<JushuitanErpConfigRequest>), 200)]
     [ProducesResponseType(typeof(ApiResponse<JushuitanErpConfigRequest>), 404)]
-    public ActionResult<ApiResponse<JushuitanErpConfigRequest>> GetJushuitanErpConfig()
+    [ProducesResponseType(typeof(ApiResponse<JushuitanErpConfigRequest>), 500)]
+    public async Task<ActionResult<ApiResponse<JushuitanErpConfigRequest>>> GetJushuitanErpConfig()
     {
         try
         {
-            if (_jushuitanErpApiClient == null)
+            var config = await _jushuitanErpConfigRepository.GetByIdAsync(JushuitanErpConfig.SingletonId).ConfigureAwait(false);
+            
+            if (config == null)
             {
                 return NotFound(ApiResponse<JushuitanErpConfigRequest>.FailureResult(
-                    "聚水潭ERP ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    "聚水潭ERP配置不存在", "CONFIG_NOT_FOUND"));
             }
 
-            var config = new JushuitanErpConfigRequest
+            var dto = new JushuitanErpConfigRequest
             {
-                Url = _jushuitanErpApiClient.Parameters.Url,
-                TimeOut = _jushuitanErpApiClient.Parameters.TimeOut,
-                AppKey = MaskSecret(_jushuitanErpApiClient.Parameters.AppKey),
-                AppSecret = MaskSecret(_jushuitanErpApiClient.Parameters.AppSecret),
-                AccessToken = MaskSecret(_jushuitanErpApiClient.Parameters.AccessToken),
-                Version = _jushuitanErpApiClient.Parameters.Version,
-                IsUploadWeight = _jushuitanErpApiClient.Parameters.IsUploadWeight,
-                Type = _jushuitanErpApiClient.Parameters.Type,
-                IsUnLid = _jushuitanErpApiClient.Parameters.IsUnLid,
-                Channel = _jushuitanErpApiClient.Parameters.Channel,
-                DefaultWeight = _jushuitanErpApiClient.Parameters.DefaultWeight
+                Name = config.Name,
+                Url = config.Url,
+                TimeoutMs = config.TimeoutMs,
+                AppKey = MaskSecret(config.AppKey),
+                AppSecret = MaskSecret(config.AppSecret),
+                AccessToken = MaskSecret(config.AccessToken),
+                Version = config.Version,
+                IsUploadWeight = config.IsUploadWeight,
+                Type = config.Type,
+                IsUnLid = config.IsUnLid,
+                Channel = config.Channel,
+                DefaultWeight = config.DefaultWeight,
+                IsEnabled = config.IsEnabled,
+                Description = config.Description
             };
 
-            return Ok(ApiResponse<JushuitanErpConfigRequest>.SuccessResult(config));
+            return Ok(ApiResponse<JushuitanErpConfigRequest>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
@@ -118,40 +134,65 @@ public class ApiClientConfigController : ControllerBase
     [HttpPut("jushuitanerp")]
     [SwaggerOperation(
         Summary = "更新聚水潭ERP API配置",
-        Description = "更新聚水潭ERP API客户端的配置参数",
+        Description = "更新聚水潭ERP API客户端的配置参数（保存到LiteDB，支持热更新）",
         OperationId = "UpdateJushuitanErpConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<string>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<string>))]
     [ProducesResponseType(typeof(ApiResponse<string>), 200)]
     [ProducesResponseType(typeof(ApiResponse<string>), 404)]
-    public ActionResult<ApiResponse<string>> UpdateJushuitanErpConfig([FromBody] JushuitanErpConfigRequest request)
+    [ProducesResponseType(typeof(ApiResponse<string>), 500)]
+    public async Task<ActionResult<ApiResponse<string>>> UpdateJushuitanErpConfig([FromBody] JushuitanErpConfigRequest request)
     {
         try
         {
-            if (_jushuitanErpApiClient == null)
+            var existingConfig = await _jushuitanErpConfigRepository.GetByIdAsync(JushuitanErpConfig.SingletonId).ConfigureAwait(false);
+            
+            if (existingConfig == null)
             {
                 return NotFound(ApiResponse<string>.FailureResult(
-                    "聚水潭ERP ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    "聚水潭ERP配置不存在", "CONFIG_NOT_FOUND"));
             }
 
-            _jushuitanErpApiClient.Parameters.Url = request.Url;
-            _jushuitanErpApiClient.Parameters.TimeOut = request.TimeOut;
-            _jushuitanErpApiClient.Parameters.AppKey = request.AppKey;
-            _jushuitanErpApiClient.Parameters.AppSecret = request.AppSecret;
-            _jushuitanErpApiClient.Parameters.AccessToken = request.AccessToken;
-            _jushuitanErpApiClient.Parameters.Version = request.Version;
-            _jushuitanErpApiClient.Parameters.IsUploadWeight = request.IsUploadWeight;
-            _jushuitanErpApiClient.Parameters.Type = request.Type;
-            _jushuitanErpApiClient.Parameters.IsUnLid = request.IsUnLid;
-            _jushuitanErpApiClient.Parameters.Channel = request.Channel;
-            _jushuitanErpApiClient.Parameters.DefaultWeight = request.DefaultWeight;
+            var updatedConfig = existingConfig with
+            {
+                Name = request.Name,
+                Url = request.Url,
+                TimeoutMs = request.TimeoutMs,
+                AppKey = request.AppKey,
+                AppSecret = request.AppSecret,
+                AccessToken = request.AccessToken,
+                Version = request.Version,
+                IsUploadWeight = request.IsUploadWeight,
+                Type = request.Type,
+                IsUnLid = request.IsUnLid,
+                Channel = request.Channel,
+                DefaultWeight = request.DefaultWeight,
+                IsEnabled = request.IsEnabled,
+                Description = request.Description,
+                UpdatedAt = _clock.LocalNow
+            };
+
+            var success = await _jushuitanErpConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            
+            if (!success)
+            {
+                return StatusCode(500, ApiResponse<string>.FailureResult(
+                    "更新配置失败", "UPDATE_FAILED"));
+            }
 
             _logger.LogInformation("成功更新聚水潭ERP API配置");
             return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
         }
         catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新聚水潭ERP配置时发生错误");
+            return StatusCode(500, ApiResponse<string>.FailureResult(
+                "更新配置失败", "UPDATE_CONFIG_FAILED"));
+        }
+    }
         {
             _logger.LogError(ex, "更新聚水潭ERP配置时发生错误");
             return StatusCode(500, ApiResponse<string>.FailureResult(
@@ -167,37 +208,44 @@ public class ApiClientConfigController : ControllerBase
     [HttpGet("wdtwms")]
     [SwaggerOperation(
         Summary = "获取旺店通WMS API配置",
-        Description = "获取当前旺店通WMS API客户端的配置参数",
+        Description = "获取当前旺店通WMS API客户端的配置参数（从LiteDB读取）",
         OperationId = "GetWdtWmsConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<WdtWmsConfigRequest>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<WdtWmsConfigRequest>))]
+    [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<WdtWmsConfigRequest>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<WdtWmsConfigRequest>))]
     [ProducesResponseType(typeof(ApiResponse<WdtWmsConfigRequest>), 200)]
     [ProducesResponseType(typeof(ApiResponse<WdtWmsConfigRequest>), 404)]
-    public ActionResult<ApiResponse<WdtWmsConfigRequest>> GetWdtWmsConfig()
+    [ProducesResponseType(typeof(ApiResponse<WdtWmsConfigRequest>), 500)]
+    public async Task<ActionResult<ApiResponse<WdtWmsConfigRequest>>> GetWdtWmsConfig()
     {
         try
         {
-            if (_wdtWmsApiClient == null)
+            var config = await _wdtWmsConfigRepository.GetByIdAsync(WdtWmsConfig.SingletonId).ConfigureAwait(false);
+            
+            if (config == null)
             {
                 return NotFound(ApiResponse<WdtWmsConfigRequest>.FailureResult(
-                    "旺店通WMS ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    "旺店通WMS配置不存在", "CONFIG_NOT_FOUND"));
             }
 
-            var config = new WdtWmsConfigRequest
+            var dto = new WdtWmsConfigRequest
             {
-                Url = _wdtWmsApiClient.Parameters.Url,
-                Sid = MaskSecret(_wdtWmsApiClient.Parameters.Sid),
-                AppKey = MaskSecret(_wdtWmsApiClient.Parameters.AppKey),
-                AppSecret = MaskSecret(_wdtWmsApiClient.Parameters.AppSecret),
-                Method = _wdtWmsApiClient.Parameters.Method,
-                TimeOut = _wdtWmsApiClient.Parameters.TimeOut,
-                MustIncludeBoxBarcode = _wdtWmsApiClient.Parameters.MustIncludeBoxBarcode,
-                DefaultWeight = _wdtWmsApiClient.Parameters.DefaultWeight
+                Name = config.Name,
+                Url = config.Url,
+                Sid = MaskSecret(config.Sid),
+                AppKey = MaskSecret(config.AppKey),
+                AppSecret = MaskSecret(config.AppSecret),
+                Method = config.Method,
+                TimeoutMs = config.TimeoutMs,
+                MustIncludeBoxBarcode = config.MustIncludeBoxBarcode,
+                DefaultWeight = config.DefaultWeight,
+                IsEnabled = config.IsEnabled,
+                Description = config.Description
             };
 
-            return Ok(ApiResponse<WdtWmsConfigRequest>.SuccessResult(config));
+            return Ok(ApiResponse<WdtWmsConfigRequest>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
@@ -216,32 +264,51 @@ public class ApiClientConfigController : ControllerBase
     [HttpPut("wdtwms")]
     [SwaggerOperation(
         Summary = "更新旺店通WMS API配置",
-        Description = "更新旺店通WMS API客户端的配置参数",
+        Description = "更新旺店通WMS API客户端的配置参数（保存到LiteDB，支持热更新）",
         OperationId = "UpdateWdtWmsConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<string>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<string>))]
     [ProducesResponseType(typeof(ApiResponse<string>), 200)]
     [ProducesResponseType(typeof(ApiResponse<string>), 404)]
-    public ActionResult<ApiResponse<string>> UpdateWdtWmsConfig([FromBody] WdtWmsConfigRequest request)
+    [ProducesResponseType(typeof(ApiResponse<string>), 500)]
+    public async Task<ActionResult<ApiResponse<string>>> UpdateWdtWmsConfig([FromBody] WdtWmsConfigRequest request)
     {
         try
         {
-            if (_wdtWmsApiClient == null)
+            var existingConfig = await _wdtWmsConfigRepository.GetByIdAsync(WdtWmsConfig.SingletonId).ConfigureAwait(false);
+            
+            if (existingConfig == null)
             {
                 return NotFound(ApiResponse<string>.FailureResult(
-                    "旺店通WMS ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    "旺店通WMS配置不存在", "CONFIG_NOT_FOUND"));
             }
 
-            _wdtWmsApiClient.Parameters.Url = request.Url;
-            _wdtWmsApiClient.Parameters.Sid = request.Sid;
-            _wdtWmsApiClient.Parameters.AppKey = request.AppKey;
-            _wdtWmsApiClient.Parameters.AppSecret = request.AppSecret;
-            _wdtWmsApiClient.Parameters.Method = request.Method;
-            _wdtWmsApiClient.Parameters.TimeOut = request.TimeOut;
-            _wdtWmsApiClient.Parameters.MustIncludeBoxBarcode = request.MustIncludeBoxBarcode;
-            _wdtWmsApiClient.Parameters.DefaultWeight = request.DefaultWeight;
+            var updatedConfig = existingConfig with
+            {
+                Name = request.Name,
+                Url = request.Url,
+                Sid = request.Sid,
+                AppKey = request.AppKey,
+                AppSecret = request.AppSecret,
+                Method = request.Method,
+                TimeoutMs = request.TimeoutMs,
+                MustIncludeBoxBarcode = request.MustIncludeBoxBarcode,
+                DefaultWeight = request.DefaultWeight,
+                IsEnabled = request.IsEnabled,
+                Description = request.Description,
+                UpdatedAt = _clock.LocalNow
+            };
+
+            var success = await _wdtWmsConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            
+            if (!success)
+            {
+                return StatusCode(500, ApiResponse<string>.FailureResult(
+                    "更新配置失败", "UPDATE_FAILED"));
+            }
 
             _logger.LogInformation("成功更新旺店通WMS API配置");
             return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
@@ -262,41 +329,48 @@ public class ApiClientConfigController : ControllerBase
     [HttpGet("wdterpflagship")]
     [SwaggerOperation(
         Summary = "获取旺店通ERP旗舰版 API配置",
-        Description = "获取当前旺店通ERP旗舰版 API客户端的配置参数",
+        Description = "获取当前旺店通ERP旗舰版 API客户端的配置参数（从LiteDB读取）",
         OperationId = "GetWdtErpFlagshipConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<WdtErpFlagshipConfigRequest>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<WdtErpFlagshipConfigRequest>))]
+    [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<WdtErpFlagshipConfigRequest>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<WdtErpFlagshipConfigRequest>))]
     [ProducesResponseType(typeof(ApiResponse<WdtErpFlagshipConfigRequest>), 200)]
     [ProducesResponseType(typeof(ApiResponse<WdtErpFlagshipConfigRequest>), 404)]
-    public ActionResult<ApiResponse<WdtErpFlagshipConfigRequest>> GetWdtErpFlagshipConfig()
+    [ProducesResponseType(typeof(ApiResponse<WdtErpFlagshipConfigRequest>), 500)]
+    public async Task<ActionResult<ApiResponse<WdtErpFlagshipConfigRequest>>> GetWdtErpFlagshipConfig()
     {
         try
         {
-            if (_wdtErpFlagshipApiClient == null)
+            var config = await _wdtErpFlagshipConfigRepository.GetByIdAsync(WdtErpFlagshipConfig.SingletonId).ConfigureAwait(false);
+            
+            if (config == null)
             {
                 return NotFound(ApiResponse<WdtErpFlagshipConfigRequest>.FailureResult(
-                    "旺店通ERP旗舰版 ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    "旺店通ERP旗舰版配置不存在", "CONFIG_NOT_FOUND"));
             }
 
-            var config = new WdtErpFlagshipConfigRequest
+            var dto = new WdtErpFlagshipConfigRequest
             {
-                Url = _wdtErpFlagshipApiClient.Parameters.Url,
-                Key = MaskSecret(_wdtErpFlagshipApiClient.Parameters.Key),
-                Appsecret = MaskSecret(_wdtErpFlagshipApiClient.Parameters.Appsecret),
-                Sid = MaskSecret(_wdtErpFlagshipApiClient.Parameters.Sid),
-                Method = _wdtErpFlagshipApiClient.Parameters.Method,
-                V = _wdtErpFlagshipApiClient.Parameters.V,
-                Salt = MaskSecret(_wdtErpFlagshipApiClient.Parameters.Salt),
-                PackagerId = _wdtErpFlagshipApiClient.Parameters.PackagerId,
-                PackagerNo = _wdtErpFlagshipApiClient.Parameters.PackagerNo,
-                OperateTableName = _wdtErpFlagshipApiClient.Parameters.OperateTableName,
-                Force = _wdtErpFlagshipApiClient.Parameters.Force,
-                TimeOut = _wdtErpFlagshipApiClient.Parameters.TimeOut
+                Name = config.Name,
+                Url = config.Url,
+                Key = MaskSecret(config.Key),
+                Appsecret = MaskSecret(config.Appsecret),
+                Sid = MaskSecret(config.Sid),
+                Method = config.Method,
+                V = config.V,
+                Salt = MaskSecret(config.Salt),
+                PackagerId = config.PackagerId,
+                PackagerNo = config.PackagerNo,
+                OperateTableName = config.OperateTableName,
+                Force = config.Force,
+                TimeoutMs = config.TimeoutMs,
+                IsEnabled = config.IsEnabled,
+                Description = config.Description
             };
 
-            return Ok(ApiResponse<WdtErpFlagshipConfigRequest>.SuccessResult(config));
+            return Ok(ApiResponse<WdtErpFlagshipConfigRequest>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
@@ -315,36 +389,55 @@ public class ApiClientConfigController : ControllerBase
     [HttpPut("wdterpflagship")]
     [SwaggerOperation(
         Summary = "更新旺店通ERP旗舰版 API配置",
-        Description = "更新旺店通ERP旗舰版 API客户端的配置参数",
+        Description = "更新旺店通ERP旗舰版 API客户端的配置参数（保存到LiteDB，支持热更新）",
         OperationId = "UpdateWdtErpFlagshipConfig",
         Tags = new[] { "ApiClientConfig" }
     )]
     [SwaggerResponse(200, "配置更新成功", typeof(ApiResponse<string>))]
-    [SwaggerResponse(404, "ApiClient未配置", typeof(ApiResponse<string>))]
+    [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<string>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<string>))]
     [ProducesResponseType(typeof(ApiResponse<string>), 200)]
     [ProducesResponseType(typeof(ApiResponse<string>), 404)]
-    public ActionResult<ApiResponse<string>> UpdateWdtErpFlagshipConfig([FromBody] WdtErpFlagshipConfigRequest request)
+    [ProducesResponseType(typeof(ApiResponse<string>), 500)]
+    public async Task<ActionResult<ApiResponse<string>>> UpdateWdtErpFlagshipConfig([FromBody] WdtErpFlagshipConfigRequest request)
     {
         try
         {
-            if (_wdtErpFlagshipApiClient == null)
+            var existingConfig = await _wdtErpFlagshipConfigRepository.GetByIdAsync(WdtErpFlagshipConfig.SingletonId).ConfigureAwait(false);
+            
+            if (existingConfig == null)
             {
                 return NotFound(ApiResponse<string>.FailureResult(
-                    "旺店通ERP旗舰版 ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
+                    "旺店通ERP旗舰版配置不存在", "CONFIG_NOT_FOUND"));
             }
 
-            _wdtErpFlagshipApiClient.Parameters.Url = request.Url;
-            _wdtErpFlagshipApiClient.Parameters.Key = request.Key;
-            _wdtErpFlagshipApiClient.Parameters.Appsecret = request.Appsecret;
-            _wdtErpFlagshipApiClient.Parameters.Sid = request.Sid;
-            _wdtErpFlagshipApiClient.Parameters.Method = request.Method;
-            _wdtErpFlagshipApiClient.Parameters.V = request.V;
-            _wdtErpFlagshipApiClient.Parameters.Salt = request.Salt;
-            _wdtErpFlagshipApiClient.Parameters.PackagerId = request.PackagerId;
-            _wdtErpFlagshipApiClient.Parameters.PackagerNo = request.PackagerNo;
-            _wdtErpFlagshipApiClient.Parameters.OperateTableName = request.OperateTableName;
-            _wdtErpFlagshipApiClient.Parameters.Force = request.Force;
-            _wdtErpFlagshipApiClient.Parameters.TimeOut = request.TimeOut;
+            var updatedConfig = existingConfig with
+            {
+                Name = request.Name,
+                Url = request.Url,
+                Key = request.Key,
+                Appsecret = request.Appsecret,
+                Sid = request.Sid,
+                Method = request.Method,
+                V = request.V,
+                Salt = request.Salt,
+                PackagerId = request.PackagerId,
+                PackagerNo = request.PackagerNo,
+                OperateTableName = request.OperateTableName,
+                Force = request.Force,
+                TimeoutMs = request.TimeoutMs,
+                IsEnabled = request.IsEnabled,
+                Description = request.Description,
+                UpdatedAt = _clock.LocalNow
+            };
+
+            var success = await _wdtErpFlagshipConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            
+            if (!success)
+            {
+                return StatusCode(500, ApiResponse<string>.FailureResult(
+                    "更新配置失败", "UPDATE_FAILED"));
+            }
 
             _logger.LogInformation("成功更新旺店通ERP旗舰版 API配置");
             return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));

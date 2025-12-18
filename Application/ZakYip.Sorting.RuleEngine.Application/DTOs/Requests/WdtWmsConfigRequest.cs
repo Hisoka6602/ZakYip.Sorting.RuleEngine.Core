@@ -6,28 +6,46 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 /// </summary>
 public record WdtWmsConfigRequest
 {
-    public required string Url { get; init; }
+    /// <summary>
+    /// 配置名称
+    /// Configuration name
+    /// </summary>
+    public required string Name { get; set; }
     
-    public required string Sid { get; init; }
+    public required string Url { get; set; }
     
-    public required string AppKey { get; init; }
+    public required string Sid { get; set; }
     
-    public required string AppSecret { get; init; }
+    public required string AppKey { get; set; }
     
-    public string Method { get; init; } = "wms.logistics.Consign.weigh";
+    public required string AppSecret { get; set; }
+    
+    public string Method { get; set; } = "wms.logistics.Consign.weigh";
 
     /// <summary>
     /// 超时时间（毫秒）
     /// </summary>
-    public int TimeOut { get; init; } = 5000;
+    public int TimeoutMs { get; set; } = 5000;
 
     /// <summary>
     /// 表示是否必须包含包装条码
     /// </summary>
-    public bool MustIncludeBoxBarcode { get; init; } = false;
+    public bool MustIncludeBoxBarcode { get; set; } = false;
 
     /// <summary>
     /// 默认重量（当无重量数据时使用）
     /// </summary>
-    public double DefaultWeight { get; init; } = 0.0;
+    public double DefaultWeight { get; set; } = 0.0;
+    
+    /// <summary>
+    /// 是否启用
+    /// Whether enabled
+    /// </summary>
+    public bool IsEnabled { get; set; } = true;
+    
+    /// <summary>
+    /// 备注说明
+    /// Description
+    /// </summary>
+    public string? Description { get; set; }
 }
