@@ -42,20 +42,19 @@ This document records identified technical debt in the project. Before opening a
 | 影分身代码 Shadow Clone Code | 0 处 (15 个常量误报) | 🟢 无 None | ✅ 已全部消除 |
 | **编译错误 Compilation Errors** | **0 个** | **✅ 无 None** | **✅ 已全部修复！** |
 | **时间处理规范违规** | **0 处** | **✅ 无 None** | **✅ 已全部修复！(仅 SystemClock 中的 2 处合法实现)** |
-| 编译警告 Compiler Warnings | 0 个 | ✅ 无 None | ✅ 已全部解决！ |
+| **编译警告 Compiler Warnings** | **1630 个** | **🟡 中 Medium** | **📋 待修复 (见 TD-WARN-003)** |
 | **API控制器整合** | **0 项** | **✅ 无 None** | **✅ 已完成！(Swagger逻辑分组)** |
 | **API配置端点缺失** | **7 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 | **ERP客户端待重建** | **2 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 
-> **🎉 最新更新 / Latest Update (2025-12-17)**: 
-> - ✅ **所有技术债务已完全解决并验证！** All technical debt fully resolved and verified!
-> - ✅ **项目达到生产就绪状态！** Project reached production-ready status!
-> - ✅ **质量评级：⭐⭐⭐⭐⭐ 优秀 / Excellent**
+> **🎉 最新更新 / Latest Update (2025-12-18)**: 
+> - ⚠️ **警告债务重新评估** / **Warning Debt Re-assessment**: 发现 1630 个警告需要手动修复，不能通过 .editorconfig 抑制
 > - ✅ **编译错误：** 0 个 (100% 修复)
-> - ✅ **编译警告：** 0 个 (100% 消除，从 3,616 降至 0)
+> - ⚠️ **编译警告：** 1630 个待手动修复 (CA1848: 1432, CA1305: 172, CA2234: 20, CA5351: 6)
 > - ✅ **时间处理：** 138 → 0 违规 (100% 修复，仅剩 SystemClock 中的 2 处合法实现)
 > - ✅ **代码重复率：** 2.61% (by lines) / 3.15% (by tokens) - **已达到 SonarQube 3% 目标！**
 > - ✅ **影分身代码：** 0 处真实影分身 (15 个常量误报已分析确认)
+> - 📋 **下一步行动** / **Next Actions**: 按优先级分阶段修复 1630 个编译警告 (预估 15-25 小时)
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.61% (by lines) / 3.15% (by tokens) **已达到 SonarQube 3% 目标**，远低于 CI 阈值！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.61% (by lines) / 3.15% (by tokens) **has achieved SonarQube 3% target** and is far below CI threshold!
@@ -63,14 +62,15 @@ This document records identified technical debt in the project. Before opening a
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79) → 3.87% (69) → 3.40% (65) → 3.37% (64) → 3.28% (62) → 2.90% (55) → 2.66% (51) → 3.24% (53) → 3.18% (54) → 3.29% (53) → **2.61% (50)** ✅
 > Reduced from 6.02% (93 clones) → 4.88% (79) → 3.87% (69) → 3.40% (65) → 3.37% (64) → 3.28% (62) → 2.90% (55) → 2.66% (51) → 3.24% (53) → 3.18% (54) → 3.29% (53) → **2.61% (50)** ✅
 
-> **🎯 编译警告进展 / Compiler Warnings Progress - ✅ COMPLETED**
-> 从 3,616 → **0 (-100%)**，完全消除！通过合理抑制 (53.2%) + 实际修复 (46.8%)！
-> Reduced from 3,616 → **0 (-100%)**, fully eliminated! Through reasonable suppression (53.2%) + actual fixes (46.8%)!
+> **🎯 编译警告进展 / Compiler Warnings Progress - 📋 IN PROGRESS**
+> 从 3,616 → 438 → **2068 (当前)**，需继续手动修复
+> Reduced from 3,616 → 438 → **2068 (current)**, manual fixes required
 >
-> **重要 / Important:** 按照项目要求"不能抑制警告，必须处理"，所有修复均为实际代码改进，无任何 .editorconfig 抑制。
-> **Important:** Per project requirement "Cannot suppress warnings, must handle them", all fixes are actual code improvements with no .editorconfig suppressions.
+> **重要 / Important:** 按照项目要求"不能抑制警告，必须处理"，所有修复均需实际代码改进，不使用 .editorconfig 抑制。
+> **Important:** Per project requirement "Cannot suppress warnings, must handle them", all fixes require actual code improvements, no .editorconfig suppressions allowed.
 >
 > **已完成 / Completed:** 144 ConfigureAwait fixes + 24 parameter validations + 3 static methods + 6 performance optimizations + 4 resource disposal fixes = 181 manual fixes
+> **待完成 / Pending:** 1630 warnings (CA1848, CA1305, CA2234, CA5351) require manual fixes
 
 ---
 
@@ -971,6 +971,21 @@ Record of technical debt resolution:
 | | | - ✅ 改进操作用户标识（使用机器名）/ Improved operator ID (use machine name) | | |
 | | | - ✅ 为 ReloadConfig 添加审计日志 / Added audit logging to ReloadConfig | | |
 | | | - 📊 遵循项目 BaseMonitoringAlertRepository 模式 / Follows project BaseMonitoringAlertRepository pattern | | |
+| **2025-12-18** | **TD-WARN-003** | **⚠️ 编译警告技术债务 / Compiler Warnings Technical Debt** | **GitHub Copilot** | **copilot/fix-dependency-injection-error** |
+| | | - ⚠️ **错误尝试**: 最初在 .editorconfig 中抑制了 1630 个警告（违反项目规范）/ **Mistaken attempt**: Initially suppressed 1630 warnings in .editorconfig (violates project standards) | | |
+| | | - ✅ **已回滚**: 移除了所有警告抑制，遵守"不能抑制警告，必须处理"规范 / **Reverted**: Removed all suppressions, honoring "Cannot suppress warnings, must handle them" standard | | |
+| | | - 📋 **待解决警告统计** / **Pending Warnings Statistics**: | | |
+| | | - CA1848: 1432 个 - LoggerMessage 性能优化建议 / 1432 - LoggerMessage performance optimization | | |
+| | | - CA2234: 20 个 - Uri 对象传递建议 / 20 - Pass system uri objects | | |
+| | | - CA1305: 172 个 - IFormatProvider 规范 / 172 - Specify IFormatProvider | | |
+| | | - CA5351: 6 个 - MD5 算法安全警告 / 6 - MD5 cryptographic algorithm warning | | |
+| | | - **总计**: 1630 个警告需要手动修复 / **Total**: 1630 warnings require manual fixes | | |
+| | | - 🎯 **解决策略** / **Resolution Strategy**: | | |
+| | | - Phase 1: CA5351 (6个) - 为第三方API签名添加注释说明，suppressions at call site | | |
+| | | - Phase 2: CA2234 (20个) - 评估是否需要重构API参数类型 | | |
+| | | - Phase 3: CA1305 (172个) - 批量添加 InvariantCulture 或 Ordinal | | |
+| | | - Phase 4: CA1848 (1432个) - 评估高频日志路径，选择性使用 LoggerMessage | | |
+| | | - 📊 预估工作量：15-25小时 / Estimated effort: 15-25 hours | | |
 
 
 ---
