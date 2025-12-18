@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
@@ -16,6 +17,7 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 public class JushuitanErpApiClientTests
 {
     private readonly Mock<ILogger<JushuitanErpApiClient>> _loggerMock;
+    private readonly Mock<IJushuitanErpConfigRepository> _configRepoMock;
     private const string PartnerKey = "test_partner_key";
     private const string PartnerSecret = "test_partner_secret";
     private const string Token = "test_token";
@@ -23,6 +25,31 @@ public class JushuitanErpApiClientTests
     public JushuitanErpApiClientTests()
     {
         _loggerMock = new Mock<ILogger<JushuitanErpApiClient>>();
+        _configRepoMock = new Mock<IJushuitanErpConfigRepository>();
+        
+        // Setup mock config repository to return test configuration
+        var testConfig = new JushuitanErpConfig
+        {
+            ConfigId = JushuitanErpConfig.SingletonId,
+            Name = "Test Config",
+            Url = "https://api.jushuitan.com",
+            AppKey = PartnerKey,
+            AppSecret = PartnerSecret,
+            AccessToken = Token,
+            Version = 2,
+            TimeoutMs = 5000,
+            IsUploadWeight = true,
+            Type = 1,
+            IsUnLid = false,
+            Channel = string.Empty,
+            DefaultWeight = -1,
+            IsEnabled = true,
+            Description = "Test configuration",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+        _configRepoMock.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId, default))
+            .ReturnsAsync(testConfig);
     }
 
     private JushuitanErpApiClient CreateClient(HttpMessageHandler handler)
@@ -32,7 +59,7 @@ public class JushuitanErpApiClientTests
             BaseAddress = new Uri("https://api.jushuitan.com")
         };
         var clock = new MockSystemClock();
-        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, clock, PartnerKey, PartnerSecret, Token);
+        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, clock, _configRepoMock.Object);
     }
 
     [Fact]

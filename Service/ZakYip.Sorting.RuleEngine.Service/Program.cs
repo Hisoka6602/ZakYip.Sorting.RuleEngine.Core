@@ -241,12 +241,12 @@ try
                 {
                     var loggerWdt = sp.GetRequiredService<ILogger<WdtWmsApiClient>>();
                     var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
+                    var configRepo = sp.GetRequiredService<IWdtWmsConfigRepository>();
                     return new WdtWmsApiClient(
                         client,
                         loggerWdt,
                         clock,
-                        appSettings.WdtWmsApi.AppKey,
-                        appSettings.WdtWmsApi.AppSecret);
+                        configRepo);
                 });
 
                 // 注册聚水潭ERP API适配器
@@ -273,13 +273,12 @@ try
                 {
                     var loggerJst = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
                     var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
+                    var configRepo = sp.GetRequiredService<IJushuitanErpConfigRepository>();
                     return new JushuitanErpApiClient(
                         client,
                         loggerJst,
                         clock,
-                        appSettings.JushuitanErpApi.PartnerKey,
-                        appSettings.JushuitanErpApi.PartnerSecret,
-                        appSettings.JushuitanErpApi.Token);
+                        configRepo);
                 });
 
                 // 注册邮政处理中心API适配器

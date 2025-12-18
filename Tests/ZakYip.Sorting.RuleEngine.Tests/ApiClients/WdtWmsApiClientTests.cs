@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
@@ -16,12 +17,35 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 public class WdtWmsApiClientTests
 {
     private readonly Mock<ILogger<WdtWmsApiClient>> _loggerMock;
+    private readonly Mock<IWdtWmsConfigRepository> _configRepoMock;
     private const string AppKey = "test_app_key";
     private const string AppSecret = "test_app_secret";
 
     public WdtWmsApiClientTests()
     {
         _loggerMock = new Mock<ILogger<WdtWmsApiClient>>();
+        _configRepoMock = new Mock<IWdtWmsConfigRepository>();
+        
+        // Setup mock config repository to return test configuration
+        var testConfig = new WdtWmsConfig
+        {
+            ConfigId = WdtWmsConfig.SingletonId,
+            Name = "Test Config",
+            Url = "https://api.wdt.com",
+            Sid = "test_sid",
+            AppKey = AppKey,
+            AppSecret = AppSecret,
+            Method = "wms.logistics.Consign.weigh",
+            TimeoutMs = 5000,
+            MustIncludeBoxBarcode = false,
+            DefaultWeight = 0.0,
+            IsEnabled = true,
+            Description = "Test configuration",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+        _configRepoMock.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId, default))
+            .ReturnsAsync(testConfig);
     }
 
     private WdtWmsApiClient CreateClient(HttpMessageHandler handler)
@@ -31,7 +55,7 @@ public class WdtWmsApiClientTests
             BaseAddress = new Uri("https://api.wdt.com")
         };
         var clock = new MockSystemClock();
-        return new WdtWmsApiClient(httpClient, _loggerMock.Object, clock, AppKey, AppSecret);
+        return new WdtWmsApiClient(httpClient, _loggerMock.Object, clock, _configRepoMock.Object);
     }
 
     [Fact]
