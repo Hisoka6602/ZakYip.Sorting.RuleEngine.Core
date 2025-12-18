@@ -29,7 +29,7 @@ public class LiteDbDwsTimeoutConfigRepository : IDwsTimeoutConfigRepository
         collection.EnsureIndex(x => x.ConfigId, unique: true);
     }
 
-    public Task<DwsTimeoutConfig?> GetByIdAsync(long id)
+    public Task<DwsTimeoutConfig?> GetByIdAsync(string id)
     {
         var collection = _database.GetCollection<DwsTimeoutConfig>(CollectionName);
         var config = collection.FindById(new BsonValue(id));

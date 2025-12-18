@@ -7,17 +7,14 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 public record class SorterConfig
 {
     /// <summary>
-    /// 单例配置ID（固定为1）
-    /// Singleton configuration ID (Fixed as 1)
+    /// 单例配置ID（固定为"SorterConfigId"）
+    /// Singleton configuration ID (Fixed as "SorterConfigId")
     /// </summary>
-    public const long SingletonId = 1L;
+    public const string SingletonId = "SorterConfigId";
     
     /// 配置ID（主键）- 内部使用
     /// Configuration ID (Primary Key) - Internal use only
-    public long ConfigId { get; init; } = SingletonId;
-    /// 配置名称
-    /// Configuration name
-    public required string Name { get; init; }
+    public string ConfigId { get; init; } = SingletonId;
     /// 通信协议类型：TCP / HTTP / SignalR
     /// Communication protocol type: TCP / HTTP / SignalR
     public required string Protocol { get; init; }

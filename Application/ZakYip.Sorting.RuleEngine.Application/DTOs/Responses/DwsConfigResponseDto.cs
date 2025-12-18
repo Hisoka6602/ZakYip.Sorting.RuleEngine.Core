@@ -9,7 +9,6 @@ public record DwsConfigResponseDto
     // ID字段已移除，采用单例模式
     // ID field removed, using singleton pattern
     
-    public required string Name { get; init; }
     public required string Mode { get; init; }
     public required string Host { get; init; }
     public required int Port { get; init; }

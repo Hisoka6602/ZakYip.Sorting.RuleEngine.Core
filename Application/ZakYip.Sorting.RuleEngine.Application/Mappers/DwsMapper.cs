@@ -21,7 +21,6 @@ public static class DwsConfigMapper
         
         return new DwsConfigResponseDto
         {
-            Name = entity.Name,
             Mode = entity.Mode,
             Host = entity.Host,
             Port = entity.Port,
@@ -52,7 +51,6 @@ public static class DwsConfigMapper
         return new DwsConfig
         {
             ConfigId = DwsConfig.SingletonId,
-            Name = request.Name,
             Mode = request.Mode,
             Host = request.Host,
             Port = request.Port,

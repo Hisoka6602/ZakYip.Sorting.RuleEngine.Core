@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// 邮政处理中心配置的LiteDB仓储实现
 /// LiteDB repository implementation for Postal Processing Center configuration
 /// </summary>
-public class LiteDbPostProcessingCenterConfigRepository : BaseLiteDbRepository<PostProcessingCenterConfig, long>, IPostProcessingCenterConfigRepository
+public class LiteDbPostProcessingCenterConfigRepository : BaseLiteDbRepository<PostProcessingCenterConfig, string>, IPostProcessingCenterConfigRepository
 {
     private const string CollectionName = "post_processing_center_configs";
 
@@ -24,7 +24,7 @@ public class LiteDbPostProcessingCenterConfigRepository : BaseLiteDbRepository<P
         collection.EnsureIndex(x => x.IsEnabled);
     }
 
-    protected override long GetEntityId(PostProcessingCenterConfig entity) => entity.ConfigId;
+    protected override string GetEntityId(PostProcessingCenterConfig entity) => entity.ConfigId;
 
     protected override PostProcessingCenterConfig UpdateTimestamp(PostProcessingCenterConfig entity) =>
         entity with { UpdatedAt = Clock.LocalNow };

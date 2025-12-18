@@ -7,16 +7,16 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 public record class DwsTimeoutConfig
 {
     /// <summary>
-    /// 单例配置ID（固定为1）
-    /// Singleton configuration ID (Fixed as 1)
+    /// 单例配置ID（固定为"DwsTimeoutConfigId"）
+    /// Singleton configuration ID (Fixed as "DwsTimeoutConfigId")
     /// </summary>
-    public const long SingletonId = 1L;
+    public const string SingletonId = "DwsTimeoutConfigId";
     
     /// <summary>
     /// 配置ID（主键）- 内部使用
     /// Configuration ID (Primary Key) - Internal use only
     /// </summary>
-    public long ConfigId { get; init; } = SingletonId;
+    public string ConfigId { get; init; } = SingletonId;
     
     /// <summary>
     /// 是否启用超时检查

@@ -9,7 +9,6 @@ public record SorterConfigResponseDto
     // ID字段已移除，采用单例模式
     // ID field removed, using singleton pattern
     
-    public required string Name { get; init; }
     public required string Protocol { get; init; }
     
     /// <summary>

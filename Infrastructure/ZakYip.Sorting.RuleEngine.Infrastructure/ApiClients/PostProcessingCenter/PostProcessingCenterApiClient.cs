@@ -72,7 +72,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             config = new PostProcessingCenterConfig
             {
                 ConfigId = PostProcessingCenterConfig.SingletonId,
-                Name = "邮政处理中心默认配置",
                 Url = "http://localhost:8080/postal-processing", // 需要配置实际URL
                 WorkshopCode = "WS20140010",
                 DeviceId = "20140010",
