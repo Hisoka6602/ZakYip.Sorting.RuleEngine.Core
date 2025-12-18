@@ -350,6 +350,12 @@ try
                 services.AddScoped<IPostCollectionConfigRepository, LiteDbPostCollectionConfigRepository>();
                 services.AddScoped<IPostProcessingCenterConfigRepository, LiteDbPostProcessingCenterConfigRepository>();
                 
+                // 注册ERP API配置仓储
+                // Register ERP API configuration repositories
+                services.AddScoped<IJushuitanErpConfigRepository, LiteDbJushuitanErpConfigRepository>();
+                services.AddScoped<IWdtWmsConfigRepository, LiteDbWdtWmsConfigRepository>();
+                services.AddScoped<IWdtErpFlagshipConfigRepository, LiteDbWdtErpFlagshipConfigRepository>();
+                
                 // 注册DWS数据解析器
                 // Register DWS data parser
                 services.AddSingleton<IDwsDataParser, DwsDataParser>();
