@@ -94,14 +94,27 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     /// 插入或更新实体（Upsert）- 原子操作，避免竞态条件
     /// Insert or update entity (Upsert) - Atomic operation to avoid race conditions
     /// </summary>
+    /// <remarks>
+    /// LiteDB的Upsert方法返回值含义：
+    /// - true: 插入了新文档 (Insert)
+    /// - false: 更新了现有文档 (Update)
+    /// 两种情况都表示操作成功，因此此方法始终返回true表示操作成功。
+    /// 如果操作失败，LiteDB会抛出异常。
+    /// 
+    /// LiteDB Upsert return value meaning:
+    /// - true: Inserted a new document (Insert)
+    /// - false: Updated an existing document (Update)
+    /// Both cases indicate successful operation, so this method always returns true.
+    /// If the operation fails, LiteDB will throw an exception.
+    /// </remarks>
     public virtual Task<bool> UpsertAsync(TEntity entity)
     {
         var collection = Database.GetCollection<TEntity>(CollectionName);
         var updatedEntity = UpdateTimestamp(entity);
         var id = GetEntityId(updatedEntity);
         var bsonValue = ConvertToBsonValue(id);
-        var result = collection.Upsert(bsonValue, updatedEntity);
-        return Task.FromResult(result);
+        collection.Upsert(bsonValue, updatedEntity);
+        return Task.FromResult(true); // Upsert成功完成（插入或更新） / Upsert completed successfully (insert or update)
     }
 
     /// <summary>
