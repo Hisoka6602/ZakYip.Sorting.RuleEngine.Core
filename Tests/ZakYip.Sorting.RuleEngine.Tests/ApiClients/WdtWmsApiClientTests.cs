@@ -44,7 +44,7 @@ public class WdtWmsApiClientTests
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
-        _configRepoMock.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId, default))
+        _configRepoMock.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
             .ReturnsAsync(testConfig);
     }
 

@@ -48,7 +48,7 @@ public class JushuitanErpApiClientTests
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
-        _configRepoMock.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId, default))
+        _configRepoMock.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
             .ReturnsAsync(testConfig);
     }
 

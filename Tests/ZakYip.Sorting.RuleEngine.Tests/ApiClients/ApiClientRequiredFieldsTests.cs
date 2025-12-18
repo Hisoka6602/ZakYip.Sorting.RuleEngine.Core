@@ -224,7 +224,7 @@ public class ApiClientRequiredFieldsTests
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId, default))
+        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
             .ReturnsAsync(testConfig);
         
         var client = new JushuitanErpApiClient(httpClient, logger, new MockSystemClock(), mockConfigRepo.Object);
@@ -279,7 +279,7 @@ public class ApiClientRequiredFieldsTests
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId, default))
+        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
             .ReturnsAsync(testConfig);
         
         var client = new JushuitanErpApiClient(httpClient, logger, new MockSystemClock(), mockConfigRepo.Object);
@@ -343,7 +343,7 @@ public class ApiClientRequiredFieldsTests
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId, default))
+        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
             .ReturnsAsync(testConfig);
         
         var client = new WdtWmsApiClient(httpClient, logger, clock, mockConfigRepo.Object);
@@ -396,7 +396,7 @@ public class ApiClientRequiredFieldsTests
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId, default))
+        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
             .ReturnsAsync(testConfig);
         
         var client = new WdtWmsApiClient(httpClient, logger, clock, mockConfigRepo.Object);
