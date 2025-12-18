@@ -57,8 +57,8 @@ class MockWdtWmsConfigRepository : Domain.Interfaces.IWdtWmsConfigRepository
         DefaultWeight = 0.0,
         IsEnabled = true,
         Description = "Test configuration",
-        CreatedAt = DateTime.Now,
-        UpdatedAt = DateTime.Now
+        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0),
+        UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0)
     };
 
     public Task<bool> AddAsync(WdtWmsConfig config) => Task.FromResult(true);

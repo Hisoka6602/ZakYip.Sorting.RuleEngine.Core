@@ -44,8 +44,8 @@ public class WdtErpFlagshipApiClientTests
             TimeoutMs = 5000,
             IsEnabled = true,
             Description = "Test configuration",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0),
+            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0)
         };
         
         _mockConfigRepo = new Mock<IWdtErpFlagshipConfigRepository>();
