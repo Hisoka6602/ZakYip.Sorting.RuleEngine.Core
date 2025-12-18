@@ -293,13 +293,17 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             stopwatch.Stop();
             _logger.LogError(ex, "旺店通ERP旗舰版 - 请求格口异常，包裹ID: {ParcelId}", parcelId);
 
+            // 获取详细的异常信息，包括所有内部异常
+            // Get detailed exception message including all inner exceptions
+            var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+
             return new WcsApiResponse
             {
                 Success = false,
                 Code = HttpStatusCodes.Error,
-                Message = ex.Message,
+                Message = detailedMessage,
                 Data = ex.ToString(),
-                ErrorMessage = ex.Message,
+                ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestUrl = config.Url,
                 RequestHeaders = requestHeaders,

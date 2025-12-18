@@ -52,7 +52,9 @@ public class LiteDbSorterConfigRepository : ISorterConfigRepository
         
         // Upsert操作：如果存在则更新，否则插入
         // 使用显式ID参数确保正确的upsert操作
-        var result = collection.Upsert(new BsonValue(configWithTimestamp.ConfigId), configWithTimestamp);
-        return Task.FromResult(result);
+        // LiteDB的Upsert返回值：true=插入新文档，false=更新现有文档，两者都表示成功
+        // LiteDB Upsert return value: true=inserted new document, false=updated existing, both indicate success
+        collection.Upsert(new BsonValue(configWithTimestamp.ConfigId), configWithTimestamp);
+        return Task.FromResult(true); // 操作成功 / Operation succeeded
     }
 }
