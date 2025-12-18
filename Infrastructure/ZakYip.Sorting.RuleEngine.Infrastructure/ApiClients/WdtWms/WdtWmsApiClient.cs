@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -138,6 +139,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
         string? formattedCurl = null;
         string? requestHeaders = null;
         string? responseHeaders = null;
+        string? bizJson = null;
         
         try
         {
@@ -151,13 +153,13 @@ public class WdtWmsApiClient : IWcsApiAdapter
             {
                 outer_no = dwsData.Barcode,
                 weight = (double)dwsData.Weight,
-                length = (double)dwsData.Length,
+                length = (double)dwsData.Width,
                 width = (double)dwsData.Width,
                 height = (double)dwsData.Height,
                 volume = (double)dwsData.Volume
             };
 
-            var bizJson = JsonConvert.SerializeObject(bizData);
+            bizJson = JsonConvert.SerializeObject(bizData);
 
             var requestData = new Dictionary<string, string>
             {
