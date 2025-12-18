@@ -36,8 +36,7 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = 1001L,
-            Name = "Test DWS Config",
+            ConfigId = "TestDwsConfig1",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8081,
@@ -55,10 +54,9 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         
         // 验证可以通过ConfigId查询到配置
         // Verify config can be queried by ConfigId
-        var retrieved = await _repository.GetByIdAsync(1001L);
+        var retrieved = await _repository.GetByIdAsync("TestDwsConfig1");
         Assert.NotNull(retrieved);
-        Assert.Equal(1001L, retrieved.ConfigId);
-        Assert.Equal("Test DWS Config", retrieved.Name);
+        Assert.Equal("TestDwsConfig1", retrieved.ConfigId);
     }
 
     [Fact]

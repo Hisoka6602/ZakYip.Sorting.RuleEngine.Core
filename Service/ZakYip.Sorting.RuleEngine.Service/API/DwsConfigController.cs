@@ -250,7 +250,6 @@ public class DwsConfigController : ControllerBase
             var configChangedEvent = new DwsConfigChangedEvent
             {
                 ConfigId = updatedConfig.ConfigId,
-                Name = updatedConfig.Name,
                 Mode = updatedConfig.Mode,
                 Host = updatedConfig.Host,
                 Port = updatedConfig.Port,
@@ -416,7 +415,6 @@ public class DwsConfigController : ControllerBase
             var configChangedEvent = new DwsConfigChangedEvent
             {
                 ConfigId = config.ConfigId,
-                Name = config.Name,
                 Mode = config.Mode,
                 Host = config.Host,
                 Port = config.Port,

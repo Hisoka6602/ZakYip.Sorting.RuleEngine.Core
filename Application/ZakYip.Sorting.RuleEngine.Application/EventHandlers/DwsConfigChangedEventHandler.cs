@@ -54,8 +54,8 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
     {
         _logger.LogInformation(
             "处理DWS配置变更事件 / Handling DWS config changed event: " +
-            "ConfigId={ConfigId}, Name={Name}, Mode={Mode}, Host={Host}, Port={Port}, IsEnabled={IsEnabled}, Reason={Reason}",
-            notification.ConfigId, notification.Name, notification.Mode, 
+            "ConfigId={ConfigId}, Mode={Mode}, Host={Host}, Port={Port}, IsEnabled={IsEnabled}, Reason={Reason}",
+            notification.ConfigId, notification.Mode, 
             notification.Host, notification.Port, notification.IsEnabled, notification.Reason ?? "User update");
 
         try
@@ -63,7 +63,7 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
             // 记录配置变更日志 / Log configuration change
             await _logRepository.LogInfoAsync(
                 "DWS配置已变更 / DWS Configuration Changed",
-                $"配置名称 / Name: {notification.Name}, " +
+                $"配置ID / ConfigId: {notification.ConfigId}, " +
                 $"模式 / Mode: {notification.Mode}, " +
                 $"地址 / Host: {notification.Host}:{notification.Port}, " +
                 $"状态 / Enabled: {notification.IsEnabled}, " +

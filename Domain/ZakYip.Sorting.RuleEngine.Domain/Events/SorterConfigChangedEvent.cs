@@ -15,12 +15,7 @@ public readonly record struct SorterConfigChangedEvent : INotification
     /// <summary>
     /// 配置ID / Configuration ID
     /// </summary>
-    public required long ConfigId { get; init; }
-    
-    /// <summary>
-    /// 配置名称 / Configuration Name
-    /// </summary>
-    public required string Name { get; init; }
+    public required string ConfigId { get; init; }
     
     /// <summary>
     /// 通信协议类型 (TCP/HTTP/SignalR) / Protocol Type
