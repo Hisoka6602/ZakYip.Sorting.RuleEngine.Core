@@ -8,28 +8,37 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 /// 包含API请求和响应的完整信息
 /// Contains complete information about API request and response
 /// </summary>
-public class WcsApiResponse
+public class WcsApiResponse : BaseApiCommunication
 {
-    /// <summary>
-    /// 包裹Id / Parcel ID
-    /// </summary>
-    public required long ParcelId { get; init; }
+    private long _parcelIdLong;
 
     /// <summary>
-    /// 兼容旧代码的字符串包裹Id（已弃用）。内部与 <see cref="ParcelId"/> 同步。
-    /// Legacy string Parcel ID for backward compatibility (deprecated). Kept in sync with <see cref="ParcelId"/>.
+    /// 包裹Id（long类型主键）/ Parcel ID (long primary key)
     /// </summary>
-    [Obsolete("Use ParcelId (long) instead.")]
-    public string ParcelIdString
+    public long ParcelIdLong
     {
-        get => ParcelId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        init
+        get => _parcelIdLong;
+        init => _parcelIdLong = value;
+    }
+
+    /// <summary>
+    /// 包裹Id字符串（覆盖基类属性）
+    /// Parcel ID string (overrides base class property)
+    /// </summary>
+    /// <remarks>
+    /// 自动与 <see cref="ParcelIdLong"/> 保持同步
+    /// Automatically kept in sync with <see cref="ParcelIdLong"/>
+    /// </remarks>
+    public new string ParcelId
+    {
+        get => _parcelIdLong.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        set
         {
             if (!long.TryParse(value, out var parsed))
             {
                 throw new ArgumentException("Invalid ParcelId value.", nameof(value));
             }
-            ParcelId = parsed;
+            _parcelIdLong = parsed;
         }
     }
 
@@ -40,56 +49,40 @@ public class WcsApiResponse
     public ApiRequestStatus RequestStatus { get; set; } = ApiRequestStatus.Success;
 
     /// <summary>
-    /// 请求体内容，通常为 JSON 或其他格式的请求数据
-    /// Request body content, usually JSON or other format request data
+    /// 状态码（字符串格式，通常为HTTP状态码）
+    /// Status code (string format, usually HTTP status code)
     /// </summary>
-    public string RequestBody { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// 响应体内容，API 返回的结果数据
-    /// Response body content, result data returned by API
+    /// 请求是否成功
+    /// Whether the request was successful
     /// </summary>
-    public string ResponseBody { get; set; } = string.Empty;
+    public bool Success { get; set; }
 
     /// <summary>
-    /// 请求发起时间，记录请求开始的时间点
-    /// Request initiation time, recording when the request started
+    /// 错误消息（如果请求失败）
+    /// Error message (if request failed)
     /// </summary>
-    public DateTime RequestTime { get; set; } = DateTime.Now;
+    public string? ErrorMessage { get; set; }
 
     /// <summary>
-    /// 响应接收时间，记录请求完成收到响应的时间点
-    /// Response reception time, recording when the response was received
+    /// 响应消息（通用消息字段）
+    /// Response message (general message field)
     /// </summary>
-    public DateTime ResponseTime { get; set; }
+    public string? Message { get; set; }
 
     /// <summary>
-    /// 请求耗时，单位为毫秒，从请求发起到响应完成的时间间隔
-    /// Request duration in milliseconds, time interval from request initiation to response completion
+    /// 响应数据（用于API匹配等场景）
+    /// Response data (for API matching scenarios, etc.)
     /// </summary>
-    /// <remarks>
-    /// 使用 long 类型以避免溢出（int.MaxValue 约为 24.8 天）
-    /// Uses long type to avoid overflow (int.MaxValue is approximately 24.8 days)
-    /// </remarks>
-    public long ElapsedMilliseconds { get; set; }
+    public string? Data { get; set; }
 
     /// <summary>
     /// 查询参数字符串，包含 URL 中的查询参数信息
     /// Query parameter string, containing query parameter information in the URL
     /// </summary>
     public string QueryParams { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 请求头信息，包含所有请求头键值对的序列化字符串
-    /// Request header information, serialized string containing all request header key-value pairs
-    /// </summary>
-    public string Headers { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 请求的完整 URL 地址
-    /// Complete URL address of the request
-    /// </summary>
-    public string RequestUrl { get; init; } = string.Empty;
 
     /// <summary>
     /// 异常信息，记录请求过程中发生的异常详情（若有）
