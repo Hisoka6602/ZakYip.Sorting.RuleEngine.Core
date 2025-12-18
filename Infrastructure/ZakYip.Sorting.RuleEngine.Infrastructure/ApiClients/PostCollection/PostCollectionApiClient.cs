@@ -72,7 +72,6 @@ public class PostCollectionApiClient : IWcsApiAdapter
             config = new PostCollectionConfig
             {
                 ConfigId = PostCollectionConfig.SingletonId,
-                Name = "邮政分揽投机构默认配置",
                 Url = "http://localhost:8081/postal-collection", // 需要配置实际URL
                 WorkshopCode = "WS20140010",
                 DeviceId = "20140010",

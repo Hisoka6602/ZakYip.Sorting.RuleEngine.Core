@@ -12,7 +12,7 @@ public interface ISorterConfigRepository
     /// 获取分拣机配置（单例）
     /// Get sorter configuration (singleton)
     /// </summary>
-    Task<SorterConfig?> GetByIdAsync(long id);
+    Task<SorterConfig?> GetByIdAsync(string id);
 
     /// <summary>
     /// 添加或更新分拣机配置（Upsert）

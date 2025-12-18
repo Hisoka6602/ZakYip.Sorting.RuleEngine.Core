@@ -53,8 +53,8 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
     {
         _logger.LogInformation(
             "处理分拣机配置变更事件 / Handling Sorter config changed event: " +
-            "ConfigId={ConfigId}, Name={Name}, Protocol={Protocol}, Mode={Mode}, Host={Host}, Port={Port}, IsEnabled={IsEnabled}, Reason={Reason}",
-            notification.ConfigId, notification.Name, notification.Protocol, notification.ConnectionMode, 
+            "ConfigId={ConfigId}, Protocol={Protocol}, Mode={Mode}, Host={Host}, Port={Port}, IsEnabled={IsEnabled}, Reason={Reason}",
+            notification.ConfigId, notification.Protocol, notification.ConnectionMode, 
             notification.Host, notification.Port, notification.IsEnabled, notification.Reason ?? "User update");
 
         try
@@ -62,7 +62,7 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
             // 记录配置变更日志 / Log configuration change
             await _logRepository.LogInfoAsync(
                 "分拣机配置已变更 / Sorter Configuration Changed",
-                $"配置名称 / Name: {notification.Name}, " +
+                $"配置ID / ConfigId: {notification.ConfigId}, " +
                 $"协议 / Protocol: {notification.Protocol}, " +
                 $"模式 / Mode: {notification.ConnectionMode}, " +
                 $"地址 / Host: {notification.Host}:{notification.Port}, " +

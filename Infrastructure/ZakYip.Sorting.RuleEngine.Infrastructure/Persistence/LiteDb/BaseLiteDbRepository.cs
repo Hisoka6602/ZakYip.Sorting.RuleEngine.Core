@@ -9,7 +9,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// LiteDB repository base class - Provides common CRUD operations to avoid code duplication
 /// </summary>
 /// <typeparam name="TEntity">实体类型 / Entity type</typeparam>
-/// <typeparam name="TKey">主键类型 / Primary key type</typeparam>
+/// <typeparam name="TKey">主键类型（string或long） / Primary key type (string or long)</typeparam>
 public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
 {
     protected readonly ILiteDatabase Database;
@@ -51,7 +51,8 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     public virtual Task<TEntity?> GetByIdAsync(TKey id)
     {
         var collection = Database.GetCollection<TEntity>(CollectionName);
-        var entity = collection.FindById(new BsonValue(id));
+        var bsonValue = id is string strId ? new BsonValue(strId) : new BsonValue(id);
+        var entity = collection.FindById(bsonValue);
         return Task.FromResult(entity);
     }
 
@@ -73,7 +74,8 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     public virtual Task<bool> DeleteAsync(TKey id)
     {
         var collection = Database.GetCollection<TEntity>(CollectionName);
-        var result = collection.Delete(new BsonValue(id));
+        var bsonValue = id is string strId ? new BsonValue(strId) : new BsonValue(id);
+        var result = collection.Delete(bsonValue);
         return Task.FromResult(result);
     }
 

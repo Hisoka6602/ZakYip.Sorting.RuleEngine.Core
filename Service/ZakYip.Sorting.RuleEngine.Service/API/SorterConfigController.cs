@@ -215,7 +215,6 @@ public class SorterConfigController : ControllerBase
             var configChangedEvent = new SorterConfigChangedEvent
             {
                 ConfigId = updatedConfig.ConfigId,
-                Name = updatedConfig.Name,
                 Protocol = updatedConfig.Protocol,
                 ConnectionMode = updatedConfig.ConnectionMode,
                 Host = updatedConfig.Host,

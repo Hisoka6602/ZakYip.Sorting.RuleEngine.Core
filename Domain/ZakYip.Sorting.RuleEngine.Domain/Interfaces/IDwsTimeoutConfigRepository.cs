@@ -12,7 +12,7 @@ public interface IDwsTimeoutConfigRepository
     /// 获取DWS超时配置（单例）
     /// Get DWS timeout configuration (singleton)
     /// </summary>
-    Task<DwsTimeoutConfig?> GetByIdAsync(long id);
+    Task<DwsTimeoutConfig?> GetByIdAsync(string id);
 
     /// <summary>
     /// 添加或更新DWS超时配置（Upsert）

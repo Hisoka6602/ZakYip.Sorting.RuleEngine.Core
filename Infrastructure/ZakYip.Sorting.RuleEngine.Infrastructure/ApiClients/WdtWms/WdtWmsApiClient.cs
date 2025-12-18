@@ -65,7 +65,6 @@ public class WdtWmsApiClient : IWcsApiAdapter
             config = new WdtWmsConfig
             {
                 ConfigId = WdtWmsConfig.SingletonId,
-                Name = "旺店通WMS默认配置",
                 Url = string.Empty,
                 Sid = string.Empty,
                 AppKey = string.Empty,

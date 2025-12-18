@@ -7,17 +7,14 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 public record class DwsConfig
 {
     /// <summary>
-    /// 单例配置ID（固定为1）
-    /// Singleton configuration ID (Fixed as 1)
+    /// 单例配置ID（固定为"DwsConfigId"）
+    /// Singleton configuration ID (Fixed as "DwsConfigId")
     /// </summary>
-    public const long SingletonId = 1L;
+    public const string SingletonId = "DwsConfigId";
     
     /// 配置ID（主键）- 内部使用
     /// Configuration ID (Primary Key) - Internal use only
-    public long ConfigId { get; init; } = SingletonId;
-    /// 配置名称
-    /// Configuration name
-    public required string Name { get; init; }
+    public string ConfigId { get; init; } = SingletonId;
     /// 通信模式：Server（服务端）或 Client（客户端）
     /// Communication mode: Server or Client
     public required string Mode { get; init; }

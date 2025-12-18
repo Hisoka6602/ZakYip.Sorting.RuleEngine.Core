@@ -65,7 +65,6 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             config = new WdtErpFlagshipConfig
             {
                 ConfigId = WdtErpFlagshipConfig.SingletonId,
-                Name = "旺店通ERP旗舰版默认配置",
                 Url = string.Empty,
                 Key = string.Empty,
                 Appsecret = string.Empty,

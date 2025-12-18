@@ -33,7 +33,7 @@ public interface IConfigRepository<TConfig> where TConfig : class
     /// </summary>
     /// <param name="configId">配置ID / Configuration ID</param>
     /// <returns>配置对象，如果不存在则返回null / Configuration object, or null if not found</returns>
-    Task<TConfig?> GetByIdAsync(long configId);
+    Task<TConfig?> GetByIdAsync(string configId);
 
     /// <summary>
     /// 添加配置
@@ -57,7 +57,7 @@ public interface IConfigRepository<TConfig> where TConfig : class
     /// </summary>
     /// <param name="configId">配置ID / Configuration ID</param>
     /// <returns>是否删除成功 / Whether deletion was successful</returns>
-    Task<bool> DeleteAsync(long configId);
+    Task<bool> DeleteAsync(string configId);
 
     /// <summary>
     /// 插入或更新配置（Upsert）- 原子操作

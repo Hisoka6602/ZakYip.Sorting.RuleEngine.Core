@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// 旺店通WMS配置的LiteDB仓储实现
 /// LiteDB repository implementation for WDT WMS configuration
 /// </summary>
-public class LiteDbWdtWmsConfigRepository : BaseLiteDbRepository<WdtWmsConfig, long>, IWdtWmsConfigRepository
+public class LiteDbWdtWmsConfigRepository : BaseLiteDbRepository<WdtWmsConfig, string>, IWdtWmsConfigRepository
 {
     private const string CollectionName = "wdtwms_configs";
 
@@ -24,7 +24,7 @@ public class LiteDbWdtWmsConfigRepository : BaseLiteDbRepository<WdtWmsConfig, l
         collection.EnsureIndex(x => x.IsEnabled);
     }
 
-    protected override long GetEntityId(WdtWmsConfig entity) => entity.ConfigId;
+    protected override string GetEntityId(WdtWmsConfig entity) => entity.ConfigId;
 
     protected override WdtWmsConfig UpdateTimestamp(WdtWmsConfig entity) =>
         entity with { UpdatedAt = Clock.LocalNow };

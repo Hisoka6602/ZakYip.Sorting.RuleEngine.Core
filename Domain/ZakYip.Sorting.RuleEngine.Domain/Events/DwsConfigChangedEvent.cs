@@ -15,12 +15,7 @@ public readonly record struct DwsConfigChangedEvent : INotification
     /// <summary>
     /// 配置ID / Configuration ID
     /// </summary>
-    public required long ConfigId { get; init; }
-    
-    /// <summary>
-    /// 配置名称 / Configuration Name
-    /// </summary>
-    public required string Name { get; init; }
+    public required string ConfigId { get; init; }
     
     /// <summary>
     /// 连接模式 (Server/Client) / Connection Mode

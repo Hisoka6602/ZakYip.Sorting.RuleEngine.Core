@@ -6,7 +6,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 /// </summary>
 public record DwsConfigUpdateRequest
 {
-    public required string Name { get; init; }
     public required string Mode { get; init; }
     public required string Host { get; init; }
     public required int Port { get; init; }

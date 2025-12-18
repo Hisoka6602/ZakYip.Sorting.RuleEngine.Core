@@ -29,7 +29,7 @@ _database = database;
         collection.EnsureIndex(x => x.ConfigId, unique: true);
     }
 
-    public Task<SorterConfig?> GetByIdAsync(long id)
+    public Task<SorterConfig?> GetByIdAsync(string id)
     {
         var collection = _database.GetCollection<SorterConfig>(CollectionName);
         var config = collection.FindById(new BsonValue(id));

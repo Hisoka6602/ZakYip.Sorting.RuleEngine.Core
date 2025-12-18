@@ -65,7 +65,6 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             config = new JushuitanErpConfig
             {
                 ConfigId = JushuitanErpConfig.SingletonId,
-                Name = "聚水潭ERP默认配置",
                 Url = "https://openapi.jushuitan.com/open/orders/weight/send/upload",
                 AppKey = string.Empty,
                 AppSecret = string.Empty,

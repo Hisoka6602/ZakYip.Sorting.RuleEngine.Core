@@ -21,7 +21,6 @@ public static class SorterConfigMapper
         
         return new SorterConfigResponseDto
         {
-            Name = entity.Name,
             Protocol = entity.Protocol,
             ConnectionMode = entity.ConnectionMode,
             Host = entity.Host,
@@ -50,7 +49,6 @@ public static class SorterConfigMapper
         return new SorterConfig
         {
             ConfigId = SorterConfig.SingletonId,
-            Name = request.Name,
             Protocol = request.Protocol,
             ConnectionMode = request.ConnectionMode,
             Host = request.Host,

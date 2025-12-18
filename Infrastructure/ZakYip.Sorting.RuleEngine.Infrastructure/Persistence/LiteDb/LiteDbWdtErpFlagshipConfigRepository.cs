@@ -8,7 +8,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
 /// 旺店通ERP旗舰版配置的LiteDB仓储实现
 /// LiteDB repository implementation for WDT ERP Flagship configuration
 /// </summary>
-public class LiteDbWdtErpFlagshipConfigRepository : BaseLiteDbRepository<WdtErpFlagshipConfig, long>, IWdtErpFlagshipConfigRepository
+public class LiteDbWdtErpFlagshipConfigRepository : BaseLiteDbRepository<WdtErpFlagshipConfig, string>, IWdtErpFlagshipConfigRepository
 {
     private const string CollectionName = "wdterpflagship_configs";
 
@@ -24,7 +24,7 @@ public class LiteDbWdtErpFlagshipConfigRepository : BaseLiteDbRepository<WdtErpF
         collection.EnsureIndex(x => x.IsEnabled);
     }
 
-    protected override long GetEntityId(WdtErpFlagshipConfig entity) => entity.ConfigId;
+    protected override string GetEntityId(WdtErpFlagshipConfig entity) => entity.ConfigId;
 
     protected override WdtErpFlagshipConfig UpdateTimestamp(WdtErpFlagshipConfig entity) =>
         entity with { UpdatedAt = Clock.LocalNow };
