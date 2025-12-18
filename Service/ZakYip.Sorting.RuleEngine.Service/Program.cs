@@ -564,15 +564,6 @@ try
                         });
                     })
                     .WithName("HealthCheck");
-
-                    // 版本信息端点
-                    endpoints.MapGet("/version", () => Results.Ok(new
-                    {
-                        version = "1.12.0",
-                        name = "ZakYip.Sorting.RuleEngine.Core",
-                        description = "分拣规则引擎核心系统"
-                    }))
-                    .WithName("Version");
                     
                     // 详细健康检查端点 - 包含所有组件状态
                     endpoints.MapHealthChecks("/health/detail", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
