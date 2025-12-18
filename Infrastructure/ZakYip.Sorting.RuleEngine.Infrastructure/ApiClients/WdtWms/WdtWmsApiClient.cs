@@ -101,14 +101,19 @@ public class WdtWmsApiClient : IWcsApiAdapter
         
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "旺店通WMS不支持扫描包裹功能",
-            Data = "{\"info\":\"Feature not supported\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "旺店通WMS不支持扫描包裹功能 / WDT WMS does not support parcel scanning",
             ParcelId = barcode,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseBody = "{\"info\":\"Feature not supported\"}",
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
@@ -199,17 +204,15 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = true,
-                    Code = HttpStatusCodes.Success,
-                    Message = "请求格口成功",
-                    Data = responseContent,
-                    ResponseBody = responseContent,
+                    RequestStatus = ApiRequestStatus.Success,
+                    FormattedMessage = "请求格口成功 / Request chute succeeded",
                     ParcelId = parcelId,
                     RequestUrl = config.Url,
                     RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
+                    ResponseBody = responseContent,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -224,18 +227,16 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"请求格口失败: {response.StatusCode}",
-                    Data = responseContent,
-                    ResponseBody = responseContent,
+                    RequestStatus = ApiRequestStatus.Failure,
                     ErrorMessage = $"请求格口失败: {response.StatusCode}",
+                    FormattedMessage = $"请求格口失败 / Request chute failed: {response.StatusCode}",
                     ParcelId = parcelId,
                     RequestUrl = config.Url,
                     RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
+                    ResponseBody = responseContent,
                     ResponseStatusCode = (int)response.StatusCode,
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
@@ -255,16 +256,16 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                Success = false,
-                Code = HttpStatusCodes.Error,
-                Message = detailedMessage,
-                Data = ex.ToString(),
+                RequestStatus = ApiRequestStatus.Exception,
                 ErrorMessage = detailedMessage,
+                FormattedMessage = $"请求格口异常 / Request chute exception: {detailedMessage}",
                 ParcelId = parcelId,
                 RequestUrl = config.Url,
+                RequestBody = bizJson,
                 RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow,
+                ResponseBody = ex.ToString(),
                 ResponseStatusCode = response != null ? (int)response.StatusCode : null,
                 ResponseHeaders = responseHeaders,
                 DurationMs = stopwatch.ElapsedMilliseconds,
@@ -288,14 +289,19 @@ public class WdtWmsApiClient : IWcsApiAdapter
         
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "旺店通WMS不支持上传图片功能",
-            Data = "{\"info\":\"Feature not supported\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "旺店通WMS不支持上传图片功能 / WDT WMS does not support image upload",
             ParcelId = barcode,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseBody = "{\"info\":\"Feature not supported\"}",
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
@@ -313,14 +319,19 @@ public class WdtWmsApiClient : IWcsApiAdapter
         
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "旺店通WMS不支持落格回调功能",
-            Data = "{\"info\":\"Feature not supported\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "旺店通WMS不支持落格回调功能 / WDT WMS does not support chute landing callback",
             ParcelId = parcelId,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseBody = "{\"info\":\"Feature not supported\"}",
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
