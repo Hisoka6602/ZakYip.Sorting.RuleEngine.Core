@@ -18,15 +18,22 @@ public class LiteDbSorterConfigRepository : ISorterConfigRepository
         ILiteDatabase database,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
-_database = database;
-        EnsureIndexes();
+        _database = database;
         _clock = clock;
+        ConfigureIdMapping();
+        EnsureIndexes();
+    }
+
+    private void ConfigureIdMapping()
+    {
+        _database.Mapper.Entity<SorterConfig>()
+            .Id(x => x.ConfigId);
     }
 
     private void EnsureIndexes()
     {
-        var collection = _database.GetCollection<SorterConfig>(CollectionName);
-        collection.EnsureIndex(x => x.ConfigId, unique: true);
+        // ConfigId is now the primary key (_id), no need for a separate unique index
+        // No additional indexes needed for SorterConfig
     }
 
     public Task<SorterConfig?> GetByIdAsync(string id)
@@ -44,7 +51,8 @@ _database = database;
         var configWithTimestamp = config with { UpdatedAt = _clock.LocalNow };
         
         // Upsert操作：如果存在则更新，否则插入
-        var result = collection.Upsert(configWithTimestamp);
+        // 使用显式ID参数确保正确的upsert操作
+        var result = collection.Upsert(new BsonValue(configWithTimestamp.ConfigId), configWithTimestamp);
         return Task.FromResult(result);
     }
 }

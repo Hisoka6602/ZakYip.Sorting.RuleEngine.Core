@@ -20,7 +20,18 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     {
         Database = database;
         CollectionName = collectionName;
+        ConfigureIdMapping();
         EnsureIndexes();
+    }
+
+    /// <summary>
+    /// 配置ID映射 - 由子类实现以指定LiteDB的主键字段
+    /// Configure ID mapping - implemented by subclass to specify LiteDB primary key field
+    /// </summary>
+    protected virtual void ConfigureIdMapping()
+    {
+        // 默认不做任何配置，子类可以覆盖此方法来配置ID映射
+        // Default: no configuration, subclasses can override to configure ID mapping
     }
 
     /// <summary>
@@ -87,7 +98,9 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     {
         var collection = Database.GetCollection<TEntity>(CollectionName);
         var updatedEntity = UpdateTimestamp(entity);
-        var result = collection.Upsert(updatedEntity);
+        var id = GetEntityId(updatedEntity);
+        var bsonValue = id is string strId ? new BsonValue(strId) : new BsonValue(id);
+        var result = collection.Upsert(bsonValue, updatedEntity);
         return Task.FromResult(result);
     }
 

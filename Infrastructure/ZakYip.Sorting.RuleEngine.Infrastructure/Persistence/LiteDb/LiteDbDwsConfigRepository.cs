@@ -17,10 +17,16 @@ public class LiteDbDwsConfigRepository : BaseLiteDbRepository<DwsConfig, string>
     {
     }
 
+    protected override void ConfigureIdMapping()
+    {
+        Database.Mapper.Entity<DwsConfig>()
+            .Id(x => x.ConfigId);
+    }
+
     protected override void EnsureIndexes()
     {
         var collection = GetCollection();
-        collection.EnsureIndex(x => x.ConfigId, unique: true);
+        // ConfigId is now the primary key (_id), no need for a separate unique index
         collection.EnsureIndex(x => x.IsEnabled);
         collection.EnsureIndex(x => x.Mode);
     }
