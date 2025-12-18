@@ -62,7 +62,7 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     public virtual Task<TEntity?> GetByIdAsync(TKey id)
     {
         var collection = Database.GetCollection<TEntity>(CollectionName);
-        var bsonValue = id is string strId ? new BsonValue(strId) : new BsonValue(id);
+        var bsonValue = ConvertToBsonValue(id);
         var entity = collection.FindById(bsonValue);
         return Task.FromResult(entity);
     }
@@ -85,7 +85,7 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
     public virtual Task<bool> DeleteAsync(TKey id)
     {
         var collection = Database.GetCollection<TEntity>(CollectionName);
-        var bsonValue = id is string strId ? new BsonValue(strId) : new BsonValue(id);
+        var bsonValue = ConvertToBsonValue(id);
         var result = collection.Delete(bsonValue);
         return Task.FromResult(result);
     }
@@ -99,9 +99,18 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
         var collection = Database.GetCollection<TEntity>(CollectionName);
         var updatedEntity = UpdateTimestamp(entity);
         var id = GetEntityId(updatedEntity);
-        var bsonValue = id is string strId ? new BsonValue(strId) : new BsonValue(id);
+        var bsonValue = ConvertToBsonValue(id);
         var result = collection.Upsert(bsonValue, updatedEntity);
         return Task.FromResult(result);
+    }
+
+    /// <summary>
+    /// 将主键值转换为BsonValue类型
+    /// Convert primary key value to BsonValue type
+    /// </summary>
+    private BsonValue ConvertToBsonValue(TKey id)
+    {
+        return id is string strId ? new BsonValue(strId) : new BsonValue(id);
     }
 
     protected ILiteCollection<TEntity> GetCollection()
