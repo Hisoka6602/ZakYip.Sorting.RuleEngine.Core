@@ -172,27 +172,16 @@ public class ApiClientConfigController : ControllerBase
                 UpdatedAt = now
             };
 
-            bool success;
-            if (existingConfig == null)
-            {
-                success = await _jushuitanErpConfigRepository.AddAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("创建聚水潭ERP API配置成功");
-            }
-            else
-            {
-                success = await _jushuitanErpConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("更新聚水潭ERP API配置成功");
-            }
+            var success = await _jushuitanErpConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    existingConfig == null ? "创建配置失败" : "更新配置失败", 
-                    existingConfig == null ? "CREATE_FAILED" : "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            return Ok(ApiResponse<string>.SuccessResult(
-                existingConfig == null ? "配置创建成功" : "配置更新成功"));
+            _logger.LogInformation("成功保存聚水潭ERP API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -301,27 +290,16 @@ public class ApiClientConfigController : ControllerBase
                 UpdatedAt = now
             };
 
-            bool success;
-            if (existingConfig == null)
-            {
-                success = await _wdtWmsConfigRepository.AddAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("创建旺店通WMS API配置成功");
-            }
-            else
-            {
-                success = await _wdtWmsConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("更新旺店通WMS API配置成功");
-            }
+            var success = await _wdtWmsConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    existingConfig == null ? "创建配置失败" : "更新配置失败",
-                    existingConfig == null ? "CREATE_FAILED" : "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            return Ok(ApiResponse<string>.SuccessResult(
-                existingConfig == null ? "配置创建成功" : "配置更新成功"));
+            _logger.LogInformation("成功保存旺店通WMS API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -438,27 +416,16 @@ public class ApiClientConfigController : ControllerBase
                 UpdatedAt = now
             };
 
-            bool success;
-            if (existingConfig == null)
-            {
-                success = await _wdtErpFlagshipConfigRepository.AddAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("创建旺店通ERP旗舰版 API配置成功");
-            }
-            else
-            {
-                success = await _wdtErpFlagshipConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("更新旺店通ERP旗舰版 API配置成功");
-            }
+            var success = await _wdtErpFlagshipConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    existingConfig == null ? "创建配置失败" : "更新配置失败",
-                    existingConfig == null ? "CREATE_FAILED" : "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            return Ok(ApiResponse<string>.SuccessResult(
-                existingConfig == null ? "配置创建成功" : "配置更新成功"));
+            _logger.LogInformation("成功保存旺店通ERP旗舰版 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -583,27 +550,16 @@ public class ApiClientConfigController : ControllerBase
                 UpdatedAt = now
             };
 
-            bool success;
-            if (existingConfig == null)
-            {
-                success = await _postCollectionConfigRepository.AddAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("创建邮政分揽投机构 API配置成功");
-            }
-            else
-            {
-                success = await _postCollectionConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("更新邮政分揽投机构 API配置成功");
-            }
+            var success = await _postCollectionConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    existingConfig == null ? "创建配置失败" : "更新配置失败",
-                    existingConfig == null ? "CREATE_FAILED" : "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            return Ok(ApiResponse<string>.SuccessResult(
-                existingConfig == null ? "配置创建成功" : "配置更新成功"));
+            _logger.LogInformation("成功保存邮政分揽投机构 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -712,27 +668,16 @@ public class ApiClientConfigController : ControllerBase
                 UpdatedAt = now
             };
 
-            bool success;
-            if (existingConfig == null)
-            {
-                success = await _postProcessingCenterConfigRepository.AddAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("创建邮政处理中心 API配置成功");
-            }
-            else
-            {
-                success = await _postProcessingCenterConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("更新邮政处理中心 API配置成功");
-            }
+            var success = await _postProcessingCenterConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    existingConfig == null ? "创建配置失败" : "更新配置失败",
-                    existingConfig == null ? "CREATE_FAILED" : "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            return Ok(ApiResponse<string>.SuccessResult(
-                existingConfig == null ? "配置创建成功" : "配置更新成功"));
+            _logger.LogInformation("成功保存邮政处理中心 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {

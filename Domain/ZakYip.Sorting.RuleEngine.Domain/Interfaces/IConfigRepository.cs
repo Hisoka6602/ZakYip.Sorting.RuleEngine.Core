@@ -58,4 +58,12 @@ public interface IConfigRepository<TConfig> where TConfig : class
     /// <param name="configId">配置ID / Configuration ID</param>
     /// <returns>是否删除成功 / Whether deletion was successful</returns>
     Task<bool> DeleteAsync(long configId);
+
+    /// <summary>
+    /// 插入或更新配置（Upsert）- 原子操作
+    /// Insert or update configuration (Upsert) - Atomic operation
+    /// </summary>
+    /// <param name="config">配置对象 / Configuration object</param>
+    /// <returns>是否操作成功 / Whether operation was successful</returns>
+    Task<bool> UpsertAsync(TConfig config);
 }
