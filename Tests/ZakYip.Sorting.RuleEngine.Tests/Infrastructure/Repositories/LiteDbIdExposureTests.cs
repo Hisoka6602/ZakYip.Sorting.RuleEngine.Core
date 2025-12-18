@@ -44,7 +44,7 @@ public class LiteDbIdExposureTests : IDisposable
         };
         
         collection.Insert(config);
-        var retrievedConfig = collection.FindById(new BsonValue(1001L));
+        var retrievedConfig = collection.FindById(new BsonValue("TestDwsConfig1"));
 
         // Act
         var dto = retrievedConfig.ToResponseDto();
@@ -91,7 +91,6 @@ public class LiteDbIdExposureTests : IDisposable
         // Verify DTO only contains expected fields (singleton pattern does not include ConfigId)
         var expectedFields = new[]
         {
-            "Name",
             "Mode",
             "Host",
             "Port",
@@ -127,6 +126,7 @@ public class LiteDbIdExposureTests : IDisposable
         var template = new DwsDataTemplate
         {
             TemplateId = 1L,
+            Name = "Test Template",
             Template = "{Code},{Weight}",
             Delimiter = ",",
             IsJsonFormat = false,
