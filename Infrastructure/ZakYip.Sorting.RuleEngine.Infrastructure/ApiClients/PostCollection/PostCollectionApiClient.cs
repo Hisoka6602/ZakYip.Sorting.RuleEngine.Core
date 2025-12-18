@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 
@@ -195,13 +196,17 @@ public class PostCollectionApiClient : IWcsApiAdapter
         {
             _logger.LogError(ex, "扫描包裹异常（邮政分揽投机构），条码: {Barcode}", barcode);
 
+            // 获取详细的异常信息，包括所有内部异常
+            // Get detailed exception message including all inner exceptions
+            var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+
             return new WcsApiResponse
             {
                 Success = false,
                 Code = HttpStatusCodes.Error,
-                Message = ex.Message,
+                Message = detailedMessage,
                 Data = ex.ToString(),
-                ErrorMessage = ex.Message,
+                ErrorMessage = detailedMessage,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow
             };
@@ -316,13 +321,17 @@ public class PostCollectionApiClient : IWcsApiAdapter
             _logger.LogError(ex, "请求格口异常（邮政分揽投机构），包裹ID: {ParcelId}, 耗时: {Duration}ms", 
                 parcelId, stopwatch.ElapsedMilliseconds);
 
+            // 获取详细的异常信息，包括所有内部异常
+            // Get detailed exception message including all inner exceptions
+            var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+
             return new WcsApiResponse
             {
                 Success = false,
                 Code = HttpStatusCodes.Error,
-                Message = ex.Message,
+                Message = detailedMessage,
                 Data = ex.ToString(),
-                ErrorMessage = ex.Message,
+                ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow,
@@ -449,13 +458,17 @@ public class PostCollectionApiClient : IWcsApiAdapter
             _logger.LogError(ex, "落格回调异常（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}", 
                 parcelId, chuteId);
 
+            // 获取详细的异常信息，包括所有内部异常
+            // Get detailed exception message including all inner exceptions
+            var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+
             return new WcsApiResponse
             {
                 Success = false,
                 Code = HttpStatusCodes.Error,
-                Message = ex.Message,
+                Message = detailedMessage,
                 Data = ex.ToString(),
-                ErrorMessage = ex.Message,
+                ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow

@@ -121,25 +121,32 @@ public class WcsApiClient : IWcsApiAdapter
         string? responseHeaders,
         long durationMs,
         string? formattedCurl,
-        OcrData? ocrData = null) => new()
+        OcrData? ocrData = null)
     {
-        Success = false,
-        Code = HttpStatusCodes.Error,
-        Message = ex.Message,
-        Data = ex.ToString(),
-        ErrorMessage = ex.Message,
-        ParcelId = parcelId,
-        RequestUrl = requestUrl,
-        RequestBody = requestBody,
-        RequestHeaders = requestHeaders,
-        RequestTime = requestTime,
-        ResponseTime = _clock.LocalNow,
-        ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
-        ResponseHeaders = responseHeaders,
-        DurationMs = durationMs,
-        FormattedCurl = formattedCurl,
-        OcrData = ocrData
-    };
+        // 获取详细的异常信息，包括所有内部异常
+        // Get detailed exception message including all inner exceptions
+        var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+        
+        return new WcsApiResponse
+        {
+            Success = false,
+            Code = HttpStatusCodes.Error,
+            Message = detailedMessage,
+            Data = ex.ToString(),
+            ErrorMessage = detailedMessage,
+            ParcelId = parcelId,
+            RequestUrl = requestUrl,
+            RequestBody = requestBody,
+            RequestHeaders = requestHeaders,
+            RequestTime = requestTime,
+            ResponseTime = _clock.LocalNow,
+            ResponseStatusCode = response?.StatusCode != null ? (int)response.StatusCode : null,
+            ResponseHeaders = responseHeaders,
+            DurationMs = durationMs,
+            FormattedCurl = formattedCurl,
+            OcrData = ocrData
+        };
+    }
 
     /// <summary>
     /// 扫描包裹

@@ -11,6 +11,41 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 public static class ApiRequestHelper
 {
     /// <summary>
+    /// 获取详细的异常信息，包括所有内部异常
+    /// Get detailed exception message including all inner exceptions
+    /// </summary>
+    /// <param name="exception">异常对象 / Exception object</param>
+    /// <returns>详细的异常信息 / Detailed exception message</returns>
+    public static string GetDetailedExceptionMessage(Exception exception)
+    {
+        var messages = new StringBuilder();
+        var currentException = exception;
+        var depth = 0;
+
+        while (currentException != null)
+        {
+            if (depth > 0)
+            {
+                messages.Append(" --> ");
+            }
+
+            messages.Append(currentException.Message);
+
+            currentException = currentException.InnerException;
+            depth++;
+
+            // 防止无限循环，最多追踪10层
+            // Prevent infinite loop, max 10 levels
+            if (depth >= 10)
+            {
+                break;
+            }
+        }
+
+        return messages.ToString();
+    }
+
+    /// <summary>
     /// 生成格式化的Curl命令
     /// Generate formatted Curl command
     /// </summary>
