@@ -42,19 +42,21 @@ This document records identified technical debt in the project. Before opening a
 | 影分身代码 Shadow Clone Code | 0 处 (15 个常量误报) | 🟢 无 None | ✅ 已全部消除 |
 | **编译错误 Compilation Errors** | **0 个** | **✅ 无 None** | **✅ 已全部修复！** |
 | **时间处理规范违规** | **0 处** | **✅ 无 None** | **✅ 已全部修复！(仅 SystemClock 中的 2 处合法实现)** |
-| **编译警告 Compiler Warnings** | **1630 个** | **🟡 中 Medium** | **📋 待修复 (见 TD-WARN-003)** |
+| **编译警告 Compiler Warnings** | **2068 个** | **🟡 中 Medium** | **📋 待修复 (见 TD-WARN-003)** |
 | **API控制器整合** | **0 项** | **✅ 无 None** | **✅ 已完成！(Swagger逻辑分组)** |
 | **API配置端点缺失** | **7 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 | **ERP客户端待重建** | **2 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 
 > **🎉 最新更新 / Latest Update (2025-12-18)**: 
-> - ⚠️ **警告债务重新评估** / **Warning Debt Re-assessment**: 发现 1630 个警告需要手动修复，不能通过 .editorconfig 抑制
+> - ⚠️ **警告债务重新评估** / **Warning Debt Re-assessment**: 发现 2068 个警告需要手动修复，不能通过 .editorconfig 抑制
 > - ✅ **编译错误：** 0 个 (100% 修复)
-> - ⚠️ **编译警告：** 1630 个待手动修复 (CA1848: 1432, CA1305: 172, CA2234: 20, CA5351: 6)
+> - ⚠️ **编译警告：** 2068 个待手动修复
+>   - **核心待修复** (1604个): CA1848 (1432) + CA1305 (172)
+>   - **其他待评估** (464个): CA2007, CA1031, CA1062 等多种类型
 > - ✅ **时间处理：** 138 → 0 违规 (100% 修复，仅剩 SystemClock 中的 2 处合法实现)
 > - ✅ **代码重复率：** 2.61% (by lines) / 3.15% (by tokens) - **已达到 SonarQube 3% 目标！**
 > - ✅ **影分身代码：** 0 处真实影分身 (15 个常量误报已分析确认)
-> - 📋 **下一步行动** / **Next Actions**: 按优先级分阶段修复 1630 个编译警告 (预估 15-25 小时)
+> - 📋 **下一步行动** / **Next Actions**: 按优先级分阶段修复编译警告 (预估 20-30 小时)
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 2.61% (by lines) / 3.15% (by tokens) **已达到 SonarQube 3% 目标**，远低于 CI 阈值！
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 2.61% (by lines) / 3.15% (by tokens) **has achieved SonarQube 3% target** and is far below CI threshold!
@@ -63,14 +65,14 @@ This document records identified technical debt in the project. Before opening a
 > Reduced from 6.02% (93 clones) → 4.88% (79) → 3.87% (69) → 3.40% (65) → 3.37% (64) → 3.28% (62) → 2.90% (55) → 2.66% (51) → 3.24% (53) → 3.18% (54) → 3.29% (53) → **2.61% (50)** ✅
 
 > **🎯 编译警告进展 / Compiler Warnings Progress - 📋 IN PROGRESS**
-> 从 3,616 → 438 → **2068 (当前)**，需继续手动修复
-> Reduced from 3,616 → 438 → **2068 (current)**, manual fixes required
+> 从 3,616 → 438 → **2068 (当前)** 需继续手动修复
+> Reduced from 3,616 → 438 → **2068 (current)** manual fixes required
 >
 > **重要 / Important:** 按照项目要求"不能抑制警告，必须处理"，所有修复均需实际代码改进，不使用 .editorconfig 抑制。
 > **Important:** Per project requirement "Cannot suppress warnings, must handle them", all fixes require actual code improvements, no .editorconfig suppressions allowed.
 >
 > **已完成 / Completed:** 144 ConfigureAwait fixes + 24 parameter validations + 3 static methods + 6 performance optimizations + 4 resource disposal fixes = 181 manual fixes
-> **待完成 / Pending:** 1630 warnings (CA1848, CA1305, CA2234, CA5351) require manual fixes
+> **待完成 / Pending:** 2068 warnings across all projects, with 1604 core warnings (CA1848, CA1305) requiring immediate attention
 
 ---
 
@@ -972,20 +974,25 @@ Record of technical debt resolution:
 | | | - ✅ 为 ReloadConfig 添加审计日志 / Added audit logging to ReloadConfig | | |
 | | | - 📊 遵循项目 BaseMonitoringAlertRepository 模式 / Follows project BaseMonitoringAlertRepository pattern | | |
 | **2025-12-18** | **TD-WARN-003** | **⚠️ 编译警告技术债务 / Compiler Warnings Technical Debt** | **GitHub Copilot** | **copilot/fix-dependency-injection-error** |
-| | | - ⚠️ **错误尝试**: 最初在 .editorconfig 中抑制了 1630 个警告（违反项目规范）/ **Mistaken attempt**: Initially suppressed 1630 warnings in .editorconfig (violates project standards) | | |
+| | | - ⚠️ **错误尝试**: 最初在 .editorconfig 中抑制了 4 类警告（违反项目规范）/ **Mistaken attempt**: Initially suppressed 4 warning types in .editorconfig (violates project standards) | | |
 | | | - ✅ **已回滚**: 移除了所有警告抑制，遵守"不能抑制警告，必须处理"规范 / **Reverted**: Removed all suppressions, honoring "Cannot suppress warnings, must handle them" standard | | |
-| | | - 📋 **待解决警告统计** / **Pending Warnings Statistics**: | | |
+| | | - 📋 **当前警告统计（全项目）** / **Current Warnings Statistics (All Projects)**: | | |
+| | | - **总计**: 2068 个警告（Service + Infrastructure + Application + Tests 项目）/ **Total**: 2068 warnings (Service + Infrastructure + Application + Tests projects) | | |
+| | | - **核心待修复警告** / **Core Warnings Requiring Fixes**: | | |
 | | | - CA1848: 1432 个 - LoggerMessage 性能优化建议 / 1432 - LoggerMessage performance optimization | | |
-| | | - CA2234: 20 个 - Uri 对象传递建议 / 20 - Pass system uri objects | | |
 | | | - CA1305: 172 个 - IFormatProvider 规范 / 172 - Specify IFormatProvider | | |
-| | | - CA5351: 6 个 - MD5 算法安全警告 / 6 - MD5 cryptographic algorithm warning | | |
-| | | - **总计**: 1630 个警告需要手动修复 / **Total**: 1630 warnings require manual fixes | | |
+| | | - **核心小计**: 1604 个 / **Core Subtotal**: 1604 warnings | | |
+| | | - **其他待评估警告** (464个) / **Other Warnings to Evaluate** (464): | | |
+| | | - CA2007: ConfigureAwait 建议 / ConfigureAwait recommendations | | |
+| | | - CA1031: 捕获特定异常类型 / Catch specific exception types | | |
+| | | - CA1062: 参数验证 / Parameter validation | | |
+| | | - 其他多种类型 / Various other types | | |
 | | | - 🎯 **解决策略** / **Resolution Strategy**: | | |
-| | | - Phase 1: CA5351 (6个) - 为第三方API签名添加注释说明，suppressions at call site | | |
-| | | - Phase 2: CA2234 (20个) - 评估是否需要重构API参数类型 | | |
-| | | - Phase 3: CA1305 (172个) - 批量添加 InvariantCulture 或 Ordinal | | |
-| | | - Phase 4: CA1848 (1432个) - 评估高频日志路径，选择性使用 LoggerMessage | | |
-| | | - 📊 预估工作量：15-25小时 / Estimated effort: 15-25 hours | | |
+| | | - Phase 1: CA1305 (172个) - 批量添加 InvariantCulture 或 Ordinal / Batch add InvariantCulture or Ordinal | | |
+| | | - Phase 2: CA1848 (1432个) - 评估高频日志路径，选择性使用 LoggerMessage / Evaluate high-frequency logging paths, selectively use LoggerMessage | | |
+| | | - Phase 3: 其他 464 个警告 - 按类型优先级逐步修复 / Other 464 warnings - Fix progressively by type priority | | |
+| | | - 📊 预估工作量：20-30小时 / Estimated effort: 20-30 hours | | |
+| | | - 📝 **说明** / **Note**: 最初文档错误记录为 1630 个（CA1848 + CA1305 + CA2234:20 + CA5351:6），实际 CA2234 和 CA5351 已在之前修复，当前实际为 2068 个 / Initial documentation incorrectly recorded 1630 (CA1848 + CA1305 + CA2234:20 + CA5351:6), but CA2234 and CA5351 were already fixed previously, current actual count is 2068 | | |
 
 
 ---
