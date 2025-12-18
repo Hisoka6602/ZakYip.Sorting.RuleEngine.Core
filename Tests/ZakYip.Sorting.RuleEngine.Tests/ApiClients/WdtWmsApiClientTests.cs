@@ -18,6 +18,7 @@ public class WdtWmsApiClientTests
 {
     private readonly Mock<ILogger<WdtWmsApiClient>> _loggerMock;
     private readonly Mock<IWdtWmsConfigRepository> _configRepoMock;
+    private readonly MockSystemClock _clock;
     private const string AppKey = "test_app_key";
     private const string AppSecret = "test_app_secret";
 
@@ -25,6 +26,7 @@ public class WdtWmsApiClientTests
     {
         _loggerMock = new Mock<ILogger<WdtWmsApiClient>>();
         _configRepoMock = new Mock<IWdtWmsConfigRepository>();
+        _clock = new MockSystemClock();
         
         // Setup mock config repository to return test configuration
         var testConfig = new WdtWmsConfig
@@ -41,8 +43,8 @@ public class WdtWmsApiClientTests
             DefaultWeight = 0.0,
             IsEnabled = true,
             Description = "Test configuration",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
         _configRepoMock.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
             .ReturnsAsync(testConfig);
@@ -54,8 +56,7 @@ public class WdtWmsApiClientTests
         {
             BaseAddress = new Uri("https://api.wdt.com")
         };
-        var clock = new MockSystemClock();
-        return new WdtWmsApiClient(httpClient, _loggerMock.Object, clock, _configRepoMock.Object);
+        return new WdtWmsApiClient(httpClient, _loggerMock.Object, _clock, _configRepoMock.Object);
     }
 
     [Fact]

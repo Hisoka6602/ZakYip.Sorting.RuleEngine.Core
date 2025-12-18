@@ -4,6 +4,7 @@ using Moq.Protected;
 using System.Net;
 using System.Text;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
@@ -17,6 +18,63 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 /// </summary>
 public class ApiClientRequiredFieldsTests
 {
+    #region Helper Methods
+
+    private static Mock<IJushuitanErpConfigRepository> CreateMockJushuitanErpConfigRepository(MockSystemClock clock)
+    {
+        var mockConfigRepo = new Mock<IJushuitanErpConfigRepository>();
+        var testConfig = new JushuitanErpConfig
+        {
+            ConfigId = JushuitanErpConfig.SingletonId,
+            Name = "Test Config",
+            Url = "http://localhost:8080",
+            AppKey = "testKey",
+            AppSecret = "testSecret",
+            AccessToken = "testToken",
+            Version = 2,
+            TimeoutMs = 5000,
+            IsUploadWeight = true,
+            Type = 1,
+            IsUnLid = false,
+            Channel = string.Empty,
+            DefaultWeight = -1,
+            IsEnabled = true,
+            Description = "Test",
+            CreatedAt = clock.LocalNow,
+            UpdatedAt = clock.LocalNow
+        };
+        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
+            .ReturnsAsync(testConfig);
+        return mockConfigRepo;
+    }
+
+    private static Mock<IWdtWmsConfigRepository> CreateMockWdtWmsConfigRepository(MockSystemClock clock)
+    {
+        var mockConfigRepo = new Mock<IWdtWmsConfigRepository>();
+        var testConfig = new WdtWmsConfig
+        {
+            ConfigId = WdtWmsConfig.SingletonId,
+            Name = "Test Config",
+            Url = "http://localhost:8080",
+            Sid = "test_sid",
+            AppKey = "testKey",
+            AppSecret = "testSecret",
+            Method = "wms.logistics.Consign.weigh",
+            TimeoutMs = 5000,
+            MustIncludeBoxBarcode = false,
+            DefaultWeight = 0.0,
+            IsEnabled = true,
+            Description = "Test",
+            CreatedAt = clock.LocalNow,
+            UpdatedAt = clock.LocalNow
+        };
+        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
+            .ReturnsAsync(testConfig);
+        return mockConfigRepo;
+    }
+
+    #endregion
+
     #region WcsApiClient Tests
 
     [Fact]
@@ -201,33 +259,12 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<JushuitanErpApiClient>>();
+        var clock = new MockSystemClock();
         
-        // Setup mock config repository
-        var mockConfigRepo = new Mock<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IJushuitanErpConfigRepository>();
-        var testConfig = new JushuitanErpConfig
-        {
-            ConfigId = JushuitanErpConfig.SingletonId,
-            Name = "Test Config",
-            Url = "http://localhost:8080",
-            AppKey = "testKey",
-            AppSecret = "testSecret",
-            AccessToken = "testToken",
-            Version = 2,
-            TimeoutMs = 5000,
-            IsUploadWeight = true,
-            Type = 1,
-            IsUnLid = false,
-            Channel = string.Empty,
-            DefaultWeight = -1,
-            IsEnabled = true,
-            Description = "Test",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
-            .ReturnsAsync(testConfig);
+        // Setup mock config repository using helper method
+        var mockConfigRepo = CreateMockJushuitanErpConfigRepository(clock);
         
-        var client = new JushuitanErpApiClient(httpClient, logger, new MockSystemClock(), mockConfigRepo.Object);
+        var client = new JushuitanErpApiClient(httpClient, logger, clock, mockConfigRepo.Object);
 
         var dwsData = new DwsData
         {
@@ -256,33 +293,12 @@ public class ApiClientRequiredFieldsTests
         // Arrange
         var logger = Mock.Of<ILogger<JushuitanErpApiClient>>();
         var httpClient = new HttpClient();
+        var clock = new MockSystemClock();
         
-        // Setup mock config repository
-        var mockConfigRepo = new Mock<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IJushuitanErpConfigRepository>();
-        var testConfig = new JushuitanErpConfig
-        {
-            ConfigId = JushuitanErpConfig.SingletonId,
-            Name = "Test Config",
-            Url = "http://localhost:8080",
-            AppKey = "testKey",
-            AppSecret = "testSecret",
-            AccessToken = "testToken",
-            Version = 2,
-            TimeoutMs = 5000,
-            IsUploadWeight = true,
-            Type = 1,
-            IsUnLid = false,
-            Channel = string.Empty,
-            DefaultWeight = -1,
-            IsEnabled = true,
-            Description = "Test",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
-            .ReturnsAsync(testConfig);
+        // Setup mock config repository using helper method
+        var mockConfigRepo = CreateMockJushuitanErpConfigRepository(clock);
         
-        var client = new JushuitanErpApiClient(httpClient, logger, new MockSystemClock(), mockConfigRepo.Object);
+        var client = new JushuitanErpApiClient(httpClient, logger, clock, mockConfigRepo.Object);
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");
@@ -324,27 +340,8 @@ public class ApiClientRequiredFieldsTests
         var logger = Mock.Of<ILogger<WdtWmsApiClient>>();
         var clock = new MockSystemClock();
         
-        // Setup mock config repository
-        var mockConfigRepo = new Mock<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IWdtWmsConfigRepository>();
-        var testConfig = new WdtWmsConfig
-        {
-            ConfigId = WdtWmsConfig.SingletonId,
-            Name = "Test Config",
-            Url = "http://localhost:8080",
-            Sid = "test_sid",
-            AppKey = "testKey",
-            AppSecret = "testSecret",
-            Method = "wms.logistics.Consign.weigh",
-            TimeoutMs = 5000,
-            MustIncludeBoxBarcode = false,
-            DefaultWeight = 0.0,
-            IsEnabled = true,
-            Description = "Test",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
-            .ReturnsAsync(testConfig);
+        // Setup mock config repository using helper method
+        var mockConfigRepo = CreateMockWdtWmsConfigRepository(clock);
         
         var client = new WdtWmsApiClient(httpClient, logger, clock, mockConfigRepo.Object);
 
@@ -377,27 +374,8 @@ public class ApiClientRequiredFieldsTests
         var httpClient = new HttpClient();
         var clock = new MockSystemClock();
         
-        // Setup mock config repository
-        var mockConfigRepo = new Mock<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IWdtWmsConfigRepository>();
-        var testConfig = new WdtWmsConfig
-        {
-            ConfigId = WdtWmsConfig.SingletonId,
-            Name = "Test Config",
-            Url = "http://localhost:8080",
-            Sid = "test_sid",
-            AppKey = "testKey",
-            AppSecret = "testSecret",
-            Method = "wms.logistics.Consign.weigh",
-            TimeoutMs = 5000,
-            MustIncludeBoxBarcode = false,
-            DefaultWeight = 0.0,
-            IsEnabled = true,
-            Description = "Test",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
-        mockConfigRepo.Setup(x => x.GetByIdAsync(WdtWmsConfig.SingletonId))
-            .ReturnsAsync(testConfig);
+        // Setup mock config repository using helper method
+        var mockConfigRepo = CreateMockWdtWmsConfigRepository(clock);
         
         var client = new WdtWmsApiClient(httpClient, logger, clock, mockConfigRepo.Object);
 

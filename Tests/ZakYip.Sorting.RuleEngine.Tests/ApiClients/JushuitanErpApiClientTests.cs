@@ -18,6 +18,7 @@ public class JushuitanErpApiClientTests
 {
     private readonly Mock<ILogger<JushuitanErpApiClient>> _loggerMock;
     private readonly Mock<IJushuitanErpConfigRepository> _configRepoMock;
+    private readonly MockSystemClock _clock;
     private const string PartnerKey = "test_partner_key";
     private const string PartnerSecret = "test_partner_secret";
     private const string Token = "test_token";
@@ -26,6 +27,7 @@ public class JushuitanErpApiClientTests
     {
         _loggerMock = new Mock<ILogger<JushuitanErpApiClient>>();
         _configRepoMock = new Mock<IJushuitanErpConfigRepository>();
+        _clock = new MockSystemClock();
         
         // Setup mock config repository to return test configuration
         var testConfig = new JushuitanErpConfig
@@ -45,8 +47,8 @@ public class JushuitanErpApiClientTests
             DefaultWeight = -1,
             IsEnabled = true,
             Description = "Test configuration",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow,
+            UpdatedAt = _clock.LocalNow
         };
         _configRepoMock.Setup(x => x.GetByIdAsync(JushuitanErpConfig.SingletonId))
             .ReturnsAsync(testConfig);
@@ -58,8 +60,7 @@ public class JushuitanErpApiClientTests
         {
             BaseAddress = new Uri("https://api.jushuitan.com")
         };
-        var clock = new MockSystemClock();
-        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, clock, _configRepoMock.Object);
+        return new JushuitanErpApiClient(httpClient, _loggerMock.Object, _clock, _configRepoMock.Object);
     }
 
     [Fact]
