@@ -7,14 +7,20 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 public record JushuitanErpConfigRequest
 {
     /// <summary>
+    /// 配置名称
+    /// Configuration name
+    /// </summary>
+    public required string Name { get; init; }
+    
+    /// <summary>
     /// Url
     /// </summary>
-    public string Url { get; init; } = "https://openapi.jushuitan.com/open/orders/weight/send/upload";
+    public required string Url { get; init; }
 
     /// <summary>
     /// 超时时间（毫秒）
     /// </summary>
-    public int TimeOut { get; init; } = 5000;
+    public int TimeoutMs { get; init; } = 5000;
 
     /// <summary>
     /// AppKey
@@ -66,4 +72,16 @@ public record JushuitanErpConfigRequest
     /// 默认重量（当无重量数据时使用）
     /// </summary>
     public double DefaultWeight { get; init; } = -1;
+    
+    /// <summary>
+    /// 是否启用
+    /// Whether enabled
+    /// </summary>
+    public bool IsEnabled { get; init; } = true;
+    
+    /// <summary>
+    /// 备注说明
+    /// Description
+    /// </summary>
+    public string? Description { get; init; }
 }

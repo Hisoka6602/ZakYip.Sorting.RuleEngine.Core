@@ -6,6 +6,12 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 /// </summary>
 public record WdtWmsConfigRequest
 {
+    /// <summary>
+    /// 配置名称
+    /// Configuration name
+    /// </summary>
+    public required string Name { get; init; }
+    
     public required string Url { get; init; }
     
     public required string Sid { get; init; }
@@ -19,7 +25,7 @@ public record WdtWmsConfigRequest
     /// <summary>
     /// 超时时间（毫秒）
     /// </summary>
-    public int TimeOut { get; init; } = 5000;
+    public int TimeoutMs { get; init; } = 5000;
 
     /// <summary>
     /// 表示是否必须包含包装条码
@@ -30,4 +36,16 @@ public record WdtWmsConfigRequest
     /// 默认重量（当无重量数据时使用）
     /// </summary>
     public double DefaultWeight { get; init; } = 0.0;
+    
+    /// <summary>
+    /// 是否启用
+    /// Whether enabled
+    /// </summary>
+    public bool IsEnabled { get; init; } = true;
+    
+    /// <summary>
+    /// 备注说明
+    /// Description
+    /// </summary>
+    public string? Description { get; init; }
 }

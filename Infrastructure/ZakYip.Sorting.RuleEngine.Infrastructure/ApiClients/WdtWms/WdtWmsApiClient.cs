@@ -16,34 +16,78 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 /// WDT WMS API client implementation
 /// 直接实现IWcsApiAdapter接口，无基类继承
 /// Directly implements IWcsApiAdapter interface, no base class
+/// 配置从LiteDB加载，支持热更新
+/// Configuration loaded from LiteDB with hot reload support
 /// </summary>
 public class WdtWmsApiClient : IWcsApiAdapter
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<WdtWmsApiClient> _logger;
     private readonly ISystemClock _clock;
+    private readonly IWdtWmsConfigRepository _configRepository;
     
-    public WdtWmsApiParameters Parameters { get; set; }
+    // 缓存配置以避免每次请求都查询数据库
+    private WdtWmsConfig? _cachedConfig;
+    private DateTime _configCacheTime = DateTime.MinValue;
+    private readonly TimeSpan _configCacheExpiry = TimeSpan.FromMinutes(5);
 
     public WdtWmsApiClient(
         HttpClient httpClient,
         ILogger<WdtWmsApiClient> logger,
         ISystemClock clock,
-        string url = "",
-        string sid = "",
-        string appKey = "",
-        string appSecret = "")
+        IWdtWmsConfigRepository configRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _clock = clock;
-        Parameters = new WdtWmsApiParameters
+        _configRepository = configRepository;
+    }
+
+    /// <summary>
+    /// 获取配置，使用缓存以提高性能
+    /// Get configuration with caching for performance
+    /// </summary>
+    private async Task<WdtWmsConfig> GetConfigAsync()
+    {
+        // 检查缓存是否有效
+        if (_cachedConfig != null && _clock.LocalNow - _configCacheTime < _configCacheExpiry)
         {
-            Url = url,
-            Sid = sid,
-            AppKey = appKey,
-            AppSecret = appSecret
-        };
+            return _cachedConfig;
+        }
+
+        // 从数据库加载配置
+        var config = await _configRepository.GetByIdAsync(WdtWmsConfig.SingletonId).ConfigureAwait(false);
+        
+        if (config == null)
+        {
+            // 如果配置不存在，创建默认配置
+            _logger.LogWarning("旺店通WMS配置不存在，使用默认配置");
+            config = new WdtWmsConfig
+            {
+                ConfigId = WdtWmsConfig.SingletonId,
+                Name = "旺店通WMS默认配置",
+                Url = string.Empty,
+                Sid = string.Empty,
+                AppKey = string.Empty,
+                AppSecret = string.Empty,
+                Method = "wms.logistics.Consign.weigh",
+                TimeoutMs = 5000,
+                MustIncludeBoxBarcode = false,
+                DefaultWeight = 0.0,
+                IsEnabled = true,
+                Description = "默认配置 - 请通过API更新",
+                CreatedAt = _clock.LocalNow,
+                UpdatedAt = _clock.LocalNow
+            };
+            
+            await _configRepository.AddAsync(config).ConfigureAwait(false);
+        }
+
+        // 更新缓存
+        _cachedConfig = config;
+        _configCacheTime = _clock.LocalNow;
+
+        return config;
     }
 
     /// <summary>
@@ -82,6 +126,9 @@ public class WdtWmsApiClient : IWcsApiAdapter
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
 
+        // 加载配置（在try外面以便catch中可以使用）
+        var config = await GetConfigAsync().ConfigureAwait(false);
+
         HttpResponseMessage? response = null;
         string? responseContent = null;
         string? formattedCurl = null;
@@ -110,29 +157,29 @@ public class WdtWmsApiClient : IWcsApiAdapter
 
             var requestData = new Dictionary<string, string>
             {
-                { "method", Parameters.Method },
-                { "sid", Parameters.Sid },
-                { "appkey", Parameters.AppKey },
+                { "method", config.Method },
+                { "sid", config.Sid },
+                { "appkey", config.AppKey },
                 { "timestamp", timestamp },
                 { "v", "1.0" },
                 { "format", "json" },
                 { "body", bizJson }
             };
 
-            var sign = GenerateSign(requestData, Parameters.AppSecret);
+            var sign = GenerateSign(requestData, config.AppSecret);
             requestData.Add("sign", sign);
 
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(Parameters.TimeOut);
+            _httpClient.Timeout = TimeSpan.FromMilliseconds(config.TimeoutMs);
             var content = new FormUrlEncodedContent(requestData);
 
             var headers = new Dictionary<string, string>
             {
                 ["Content-Type"] = "application/x-www-form-urlencoded"
             };
-            formattedCurl = ApiRequestHelper.GenerateFormattedCurl("POST", Parameters.Url, headers, bizJson);
+            formattedCurl = ApiRequestHelper.GenerateFormattedCurl("POST", config.Url, headers, bizJson);
             requestHeaders = ApiRequestHelper.FormatHeaders(headers);
 
-            response = await _httpClient.PostAsync(Parameters.Url, content, cancellationToken).ConfigureAwait(false);
+            response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
@@ -159,7 +206,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                     Data = responseContent,
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
-                    RequestUrl = Parameters.Url,
+                    RequestUrl = config.Url,
                     RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
@@ -185,7 +232,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                     ResponseBody = responseContent,
                     ErrorMessage = $"请求格口失败: {response.StatusCode}",
                     ParcelId = parcelId,
-                    RequestUrl = Parameters.Url,
+                    RequestUrl = config.Url,
                     RequestBody = bizJson,
                     RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
@@ -211,7 +258,7 @@ public class WdtWmsApiClient : IWcsApiAdapter
                 Data = ex.ToString(),
                 ErrorMessage = ex.Message,
                 ParcelId = parcelId,
-                RequestUrl = Parameters.Url,
+                RequestUrl = config.Url,
                 RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow,

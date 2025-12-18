@@ -7,6 +7,12 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 public record WdtErpFlagshipConfigRequest
 {
     /// <summary>
+    /// 配置名称
+    /// Configuration name
+    /// </summary>
+    public required string Name { get; init; }
+    
+    /// <summary>
     /// API接口地址
     /// </summary>
     public required string Url { get; init; }
@@ -68,5 +74,17 @@ public record WdtErpFlagshipConfigRequest
     /// <summary>
     /// 超时时间（毫秒）
     /// </summary>
-    public int TimeOut { get; init; } = 5000;
+    public int TimeoutMs { get; init; } = 5000;
+    
+    /// <summary>
+    /// 是否启用
+    /// Whether enabled
+    /// </summary>
+    public bool IsEnabled { get; init; } = true;
+    
+    /// <summary>
+    /// 备注说明
+    /// Description
+    /// </summary>
+    public string? Description { get; init; }
 }

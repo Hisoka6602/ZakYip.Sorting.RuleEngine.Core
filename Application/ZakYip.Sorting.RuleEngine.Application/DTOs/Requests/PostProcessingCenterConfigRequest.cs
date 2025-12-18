@@ -7,23 +7,69 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 public record PostProcessingCenterConfigRequest
 {
     /// <summary>
+    /// 配置名称
+    /// Configuration name
+    /// </summary>
+    public required string Name { get; init; }
+    
+    /// <summary>
     /// API基础URL (SOAP端点，不含?wsdl)
     /// API Base URL (SOAP endpoint, without ?wsdl)
     /// </summary>
     /// <example>http://10.4.188.85/pcs-tc-nc-job/WyService/services/CommWY</example>
-    public required string BaseUrl { get; set; }
+    public required string Url { get; init; }
     
     /// <summary>
-    /// 超时时间（秒）
-    /// Timeout (seconds)
+    /// 车间代码
+    /// Workshop code
     /// </summary>
-    /// <example>30</example>
-    public int TimeoutSeconds { get; set; } = 30;
+    public required string WorkshopCode { get; init; }
+    
+    /// <summary>
+    /// 设备ID
+    /// Device ID
+    /// </summary>
+    public required string DeviceId { get; init; }
+    
+    /// <summary>
+    /// 公司名称
+    /// Company name
+    /// </summary>
+    public required string CompanyName { get; init; }
+    
+    /// <summary>
+    /// 设备条码
+    /// Device barcode
+    /// </summary>
+    public required string DeviceBarcode { get; init; }
+    
+    /// <summary>
+    /// 机构编号
+    /// Organization number
+    /// </summary>
+    public required string OrganizationNumber { get; init; }
+    
+    /// <summary>
+    /// 员工编号
+    /// Employee number
+    /// </summary>
+    public required string EmployeeNumber { get; init; }
+    
+    /// <summary>
+    /// 超时时间（毫秒）
+    /// Timeout (milliseconds)
+    /// </summary>
+    public int TimeoutMs { get; init; } = 5000;
     
     /// <summary>
     /// 是否启用
     /// Whether enabled
     /// </summary>
-    /// <example>false</example>
-    public bool Enabled { get; set; } = false;
+    public bool IsEnabled { get; init; } = true;
+    
+    /// <summary>
+    /// 备注说明
+    /// Description
+    /// </summary>
+    public string? Description { get; init; }
 }
