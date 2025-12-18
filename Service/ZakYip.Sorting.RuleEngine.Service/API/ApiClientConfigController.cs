@@ -150,14 +150,10 @@ public class ApiClientConfigController : ControllerBase
         {
             var existingConfig = await _jushuitanErpConfigRepository.GetByIdAsync(JushuitanErpConfig.SingletonId).ConfigureAwait(false);
             
-            if (existingConfig == null)
+            var now = _clock.LocalNow;
+            var updatedConfig = new JushuitanErpConfig
             {
-                return NotFound(ApiResponse<string>.FailureResult(
-                    "聚水潭ERP配置不存在", "CONFIG_NOT_FOUND"));
-            }
-
-            var updatedConfig = existingConfig with
-            {
+                ConfigId = JushuitanErpConfig.SingletonId,
                 Name = request.Name,
                 Url = request.Url,
                 TimeoutMs = request.TimeoutMs,
@@ -172,19 +168,20 @@ public class ApiClientConfigController : ControllerBase
                 DefaultWeight = request.DefaultWeight,
                 IsEnabled = request.IsEnabled,
                 Description = request.Description,
-                UpdatedAt = _clock.LocalNow
+                CreatedAt = existingConfig?.CreatedAt ?? now,
+                UpdatedAt = now
             };
 
-            var success = await _jushuitanErpConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            var success = await _jushuitanErpConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    "更新配置失败", "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            _logger.LogInformation("成功更新聚水潭ERP API配置");
-            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+            _logger.LogInformation("成功保存聚水潭ERP API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -274,14 +271,10 @@ public class ApiClientConfigController : ControllerBase
         {
             var existingConfig = await _wdtWmsConfigRepository.GetByIdAsync(WdtWmsConfig.SingletonId).ConfigureAwait(false);
             
-            if (existingConfig == null)
+            var now = _clock.LocalNow;
+            var updatedConfig = new WdtWmsConfig
             {
-                return NotFound(ApiResponse<string>.FailureResult(
-                    "旺店通WMS配置不存在", "CONFIG_NOT_FOUND"));
-            }
-
-            var updatedConfig = existingConfig with
-            {
+                ConfigId = WdtWmsConfig.SingletonId,
                 Name = request.Name,
                 Url = request.Url,
                 Sid = request.Sid,
@@ -293,19 +286,20 @@ public class ApiClientConfigController : ControllerBase
                 DefaultWeight = request.DefaultWeight,
                 IsEnabled = request.IsEnabled,
                 Description = request.Description,
-                UpdatedAt = _clock.LocalNow
+                CreatedAt = existingConfig?.CreatedAt ?? now,
+                UpdatedAt = now
             };
 
-            var success = await _wdtWmsConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            var success = await _wdtWmsConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    "更新配置失败", "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            _logger.LogInformation("成功更新旺店通WMS API配置");
-            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+            _logger.LogInformation("成功保存旺店通WMS API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -399,14 +393,10 @@ public class ApiClientConfigController : ControllerBase
         {
             var existingConfig = await _wdtErpFlagshipConfigRepository.GetByIdAsync(WdtErpFlagshipConfig.SingletonId).ConfigureAwait(false);
             
-            if (existingConfig == null)
+            var now = _clock.LocalNow;
+            var updatedConfig = new WdtErpFlagshipConfig
             {
-                return NotFound(ApiResponse<string>.FailureResult(
-                    "旺店通ERP旗舰版配置不存在", "CONFIG_NOT_FOUND"));
-            }
-
-            var updatedConfig = existingConfig with
-            {
+                ConfigId = WdtErpFlagshipConfig.SingletonId,
                 Name = request.Name,
                 Url = request.Url,
                 Key = request.Key,
@@ -422,19 +412,20 @@ public class ApiClientConfigController : ControllerBase
                 TimeoutMs = request.TimeoutMs,
                 IsEnabled = request.IsEnabled,
                 Description = request.Description,
-                UpdatedAt = _clock.LocalNow
+                CreatedAt = existingConfig?.CreatedAt ?? now,
+                UpdatedAt = now
             };
 
-            var success = await _wdtErpFlagshipConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            var success = await _wdtErpFlagshipConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    "更新配置失败", "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            _logger.LogInformation("成功更新旺店通ERP旗舰版 API配置");
-            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+            _logger.LogInformation("成功保存旺店通ERP旗舰版 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -540,14 +531,10 @@ public class ApiClientConfigController : ControllerBase
         {
             var existingConfig = await _postCollectionConfigRepository.GetByIdAsync(PostCollectionConfig.SingletonId).ConfigureAwait(false);
             
-            if (existingConfig == null)
+            var now = _clock.LocalNow;
+            var updatedConfig = new PostCollectionConfig
             {
-                return NotFound(ApiResponse<string>.FailureResult(
-                    "邮政分揽投机构配置不存在", "CONFIG_NOT_FOUND"));
-            }
-
-            var updatedConfig = existingConfig with
-            {
+                ConfigId = PostCollectionConfig.SingletonId,
                 Name = request.Name,
                 Url = request.Url,
                 WorkshopCode = request.WorkshopCode,
@@ -559,19 +546,20 @@ public class ApiClientConfigController : ControllerBase
                 TimeoutMs = request.TimeoutMs,
                 IsEnabled = request.IsEnabled,
                 Description = request.Description,
-                UpdatedAt = _clock.LocalNow
+                CreatedAt = existingConfig?.CreatedAt ?? now,
+                UpdatedAt = now
             };
 
-            var success = await _postCollectionConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            var success = await _postCollectionConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    "更新配置失败", "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            _logger.LogInformation("成功更新邮政分揽投机构 API配置");
-            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+            _logger.LogInformation("成功保存邮政分揽投机构 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {
@@ -661,14 +649,10 @@ public class ApiClientConfigController : ControllerBase
         {
             var existingConfig = await _postProcessingCenterConfigRepository.GetByIdAsync(PostProcessingCenterConfig.SingletonId).ConfigureAwait(false);
             
-            if (existingConfig == null)
+            var now = _clock.LocalNow;
+            var updatedConfig = new PostProcessingCenterConfig
             {
-                return NotFound(ApiResponse<string>.FailureResult(
-                    "邮政处理中心配置不存在", "CONFIG_NOT_FOUND"));
-            }
-
-            var updatedConfig = existingConfig with
-            {
+                ConfigId = PostProcessingCenterConfig.SingletonId,
                 Name = request.Name,
                 Url = request.Url,
                 WorkshopCode = request.WorkshopCode,
@@ -680,19 +664,20 @@ public class ApiClientConfigController : ControllerBase
                 TimeoutMs = request.TimeoutMs,
                 IsEnabled = request.IsEnabled,
                 Description = request.Description,
-                UpdatedAt = _clock.LocalNow
+                CreatedAt = existingConfig?.CreatedAt ?? now,
+                UpdatedAt = now
             };
 
-            var success = await _postProcessingCenterConfigRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
+            var success = await _postProcessingCenterConfigRepository.UpsertAsync(updatedConfig).ConfigureAwait(false);
             
             if (!success)
             {
                 return StatusCode(500, ApiResponse<string>.FailureResult(
-                    "更新配置失败", "UPDATE_FAILED"));
+                    "保存配置失败", "SAVE_FAILED"));
             }
 
-            _logger.LogInformation("成功更新邮政处理中心 API配置");
-            return Ok(ApiResponse<string>.SuccessResult("配置更新成功"));
+            _logger.LogInformation("成功保存邮政处理中心 API配置");
+            return Ok(ApiResponse<string>.SuccessResult("配置保存成功"));
         }
         catch (Exception ex)
         {

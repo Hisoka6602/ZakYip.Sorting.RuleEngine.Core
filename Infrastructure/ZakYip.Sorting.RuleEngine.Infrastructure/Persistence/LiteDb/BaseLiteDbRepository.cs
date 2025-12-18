@@ -77,6 +77,18 @@ public abstract class BaseLiteDbRepository<TEntity, TKey> where TEntity : class
         return Task.FromResult(result);
     }
 
+    /// <summary>
+    /// 插入或更新实体（Upsert）- 原子操作，避免竞态条件
+    /// Insert or update entity (Upsert) - Atomic operation to avoid race conditions
+    /// </summary>
+    public virtual Task<bool> UpsertAsync(TEntity entity)
+    {
+        var collection = Database.GetCollection<TEntity>(CollectionName);
+        var updatedEntity = UpdateTimestamp(entity);
+        var result = collection.Upsert(updatedEntity);
+        return Task.FromResult(result);
+    }
+
     protected ILiteCollection<TEntity> GetCollection()
     {
         return Database.GetCollection<TEntity>(CollectionName);
