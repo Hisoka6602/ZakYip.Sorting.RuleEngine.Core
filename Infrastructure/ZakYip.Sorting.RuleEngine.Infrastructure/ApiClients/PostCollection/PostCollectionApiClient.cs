@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -125,10 +126,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
             {
                 return new WcsApiResponse
                 {
-                    Success = true,
-                    Code = HttpStatusCodes.Success,
-                    Message = "NoRead barcode skipped",
-                    Data = "NoRead barcode skipped",
+                    RequestStatus = ApiRequestStatus.Success,
+                    FormattedMessage = "NoRead barcode skipped",
+                    ResponseBody = "NoRead barcode skipped",
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     DurationMs = 0
@@ -161,12 +161,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = true,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = "Parcel scanned successfully at postal collection institution",
-                    Data = responseContent,
-                    RequestBody = soapRequest,
+                    RequestStatus = ApiRequestStatus.Success,
+                    FormattedMessage = "Parcel scanned successfully at postal collection institution",
                     ResponseBody = responseContent,
+                    RequestBody = soapRequest,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode
@@ -179,12 +177,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Scan Error: {response.StatusCode}",
-                    Data = responseContent,
-                    RequestBody = soapRequest,
+                    RequestStatus = ApiRequestStatus.Failure,
+                    FormattedMessage = $"Scan Error: {response.StatusCode}",
                     ResponseBody = responseContent,
+                    RequestBody = soapRequest,
                     ErrorMessage = $"Scan Error: {response.StatusCode}",
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
@@ -202,10 +198,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                Success = false,
-                Code = HttpStatusCodes.Error,
-                Message = detailedMessage,
-                Data = ex.ToString(),
+                RequestStatus = ApiRequestStatus.Failure,
+                FormattedMessage = detailedMessage,
+                ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow
@@ -277,10 +272,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = true,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = "Chute requested successfully",
-                    Data = responseContent,
+                    RequestStatus = ApiRequestStatus.Success,
+                    FormattedMessage = "Chute requested successfully",
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
                     RequestBody = soapRequest,
@@ -299,10 +292,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Chute Request Error: {response.StatusCode}",
-                    Data = responseContent,
+                    RequestStatus = ApiRequestStatus.Failure,
+                    FormattedMessage = $"Chute Request Error: {response.StatusCode}",
                     ResponseBody = responseContent,
                     ErrorMessage = $"Chute Request Error: {response.StatusCode}",
                     ParcelId = parcelId,
@@ -327,10 +318,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                Success = false,
-                Code = HttpStatusCodes.Error,
-                Message = detailedMessage,
-                Data = ex.ToString(),
+                RequestStatus = ApiRequestStatus.Failure,
+                FormattedMessage = detailedMessage,
+                ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestTime = requestTime,
@@ -355,10 +345,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "邮政分揽投机构图片上传功能未实现",
-            Data = "{\"info\":\"Feature not implemented\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "邮政分揽投机构图片上传功能未实现",
+            ResponseBody = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
@@ -419,13 +408,11 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = true,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = "Chute landing notification sent successfully",
-                    Data = responseContent,
+                    RequestStatus = ApiRequestStatus.Success,
+                    FormattedMessage = "Chute landing notification sent successfully",
+                    ResponseBody = responseContent,
                     ParcelId = parcelId,
                     RequestBody = soapRequest,
-                    ResponseBody = responseContent,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode
@@ -439,13 +426,11 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"Chute landing notification error: {response.StatusCode}",
-                    Data = responseContent,
+                    RequestStatus = ApiRequestStatus.Failure,
+                    FormattedMessage = $"Chute landing notification error: {response.StatusCode}",
+                    ResponseBody = responseContent,
                     ParcelId = parcelId,
                     RequestBody = soapRequest,
-                    ResponseBody = responseContent,
                     ErrorMessage = $"Chute landing notification error: {response.StatusCode}",
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
@@ -464,10 +449,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                Success = false,
-                Code = HttpStatusCodes.Error,
-                Message = detailedMessage,
-                Data = ex.ToString(),
+                RequestStatus = ApiRequestStatus.Failure,
+                FormattedMessage = detailedMessage,
+                ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestTime = requestTime,

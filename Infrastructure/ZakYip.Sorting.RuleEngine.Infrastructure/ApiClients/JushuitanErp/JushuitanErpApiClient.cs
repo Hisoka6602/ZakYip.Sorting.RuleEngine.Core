@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -104,10 +105,9 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "聚水潭ERP不支持扫描包裹功能",
-            Data = "{\"info\":\"Feature not supported\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "聚水潭ERP不支持扫描包裹功能",
+            ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
@@ -208,10 +208,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = true,
-                    Code = HttpStatusCodes.Success,
-                    Message = "请求格口成功",
-                    Data = responseContent,
+                    RequestStatus = ApiRequestStatus.Success,
+                    FormattedMessage = "请求格口成功",
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
                     RequestUrl = config.Url,
@@ -233,10 +231,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
                 return new WcsApiResponse
                 {
-                    Success = false,
-                    Code = ((int)response.StatusCode).ToString(),
-                    Message = $"请求格口失败: {response.StatusCode}",
-                    Data = responseContent,
+                    RequestStatus = ApiRequestStatus.Failure,
+                    FormattedMessage = $"请求格口失败: {response.StatusCode}",
                     ResponseBody = responseContent,
                     ErrorMessage = $"请求格口失败: {response.StatusCode}",
                     ParcelId = parcelId,
@@ -264,10 +260,9 @@ public class JushuitanErpApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                Success = false,
-                Code = HttpStatusCodes.Error,
-                Message = detailedMessage,
-                Data = ex.ToString(),
+                RequestStatus = ApiRequestStatus.Failure,
+                FormattedMessage = detailedMessage,
+                ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestUrl = config.Url,
@@ -297,10 +292,9 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "聚水潭ERP不支持上传图片功能",
-            Data = "{\"info\":\"Feature not supported\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "聚水潭ERP不支持上传图片功能",
+            ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
@@ -322,10 +316,9 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         return Task.FromResult(new WcsApiResponse
         {
-            Success = true,
-            Code = HttpStatusCodes.Success,
-            Message = "聚水潭ERP不支持落格回调功能",
-            Data = "{\"info\":\"Feature not supported\"}",
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "聚水潭ERP不支持落格回调功能",
+            ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = parcelId,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,

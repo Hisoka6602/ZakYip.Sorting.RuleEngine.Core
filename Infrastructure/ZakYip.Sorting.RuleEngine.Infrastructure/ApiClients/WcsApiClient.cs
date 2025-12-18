@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -53,10 +54,8 @@ public class WcsApiClient : IWcsApiAdapter
         string? formattedCurl,
         OcrData? ocrData = null) => new()
     {
-        Success = true,
-        Code = statusCode.ToString(),
-        Message = message,
-        Data = responseContent,
+        RequestStatus = ApiRequestStatus.Success,
+        FormattedMessage = message,
         ResponseBody = responseContent,
         ParcelId = parcelId,
         RequestUrl = requestUrl,
@@ -88,12 +87,10 @@ public class WcsApiClient : IWcsApiAdapter
         string? formattedCurl,
         OcrData? ocrData = null) => new()
     {
-        Success = false,
-        Code = statusCode.ToString(),
-        Message = message,
-        Data = responseContent,
-        ResponseBody = responseContent,
+        RequestStatus = ApiRequestStatus.Failure,
+        FormattedMessage = message,
         ErrorMessage = message,
+        ResponseBody = responseContent,
         ParcelId = parcelId,
         RequestUrl = requestUrl,
         RequestBody = requestBody,
@@ -129,11 +126,10 @@ public class WcsApiClient : IWcsApiAdapter
         
         return new WcsApiResponse
         {
-            Success = false,
-            Code = HttpStatusCodes.Error,
-            Message = detailedMessage,
-            Data = ex.ToString(),
+            RequestStatus = ApiRequestStatus.Exception,
+            FormattedMessage = $"请求异常 / Request exception: {detailedMessage}",
             ErrorMessage = detailedMessage,
+            ResponseBody = ex.ToString(),
             ParcelId = parcelId,
             RequestUrl = requestUrl,
             RequestBody = requestBody,
