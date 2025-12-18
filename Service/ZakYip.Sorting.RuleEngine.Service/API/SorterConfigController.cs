@@ -6,6 +6,7 @@ using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -22,15 +23,18 @@ public class SorterConfigController : ControllerBase
     private readonly ISorterConfigRepository _configRepository;
     private readonly ILogger<SorterConfigController> _logger;
     private readonly ISystemClock _clock;
+    private readonly IPublisher _publisher;
 
     public SorterConfigController(
         ISorterConfigRepository configRepository,
         ILogger<SorterConfigController> logger,
-        ISystemClock clock)
+        ISystemClock clock,
+        IPublisher publisher)
     {
         _configRepository = configRepository;
         _logger = logger;
         _clock = clock;
+        _publisher = publisher;
     }
 
     /// <summary>
@@ -207,8 +211,24 @@ public class SorterConfigController : ControllerBase
                     "保存配置失败", "SAVE_FAILED"));
             }
 
-            // TODO: 发布配置变更事件，触发热更新 / Publish configuration changed event to trigger hot reload
-            // Similar to DwsConfigChangedEvent
+            // 发布配置变更事件，触发热更新 / Publish configuration changed event to trigger hot reload
+            var configChangedEvent = new SorterConfigChangedEvent
+            {
+                ConfigId = updatedConfig.ConfigId,
+                Name = updatedConfig.Name,
+                Protocol = updatedConfig.Protocol,
+                ConnectionMode = updatedConfig.ConnectionMode,
+                Host = updatedConfig.Host,
+                Port = updatedConfig.Port,
+                IsEnabled = updatedConfig.IsEnabled,
+                UpdatedAt = updatedConfig.UpdatedAt,
+                Reason = existingConfig == null 
+                    ? ConfigChangeReasons.ConfigurationCreated 
+                    : ConfigChangeReasons.ConfigurationUpdated
+            };
+            
+            await _publisher.Publish(configChangedEvent, default).ConfigureAwait(false);
+            _logger.LogInformation("分拣机配置变更事件已发布，等待热更新生效 / Sorter config changed event published, waiting for hot reload");
 
             var dto = new SorterConfigResponseDto
             {
