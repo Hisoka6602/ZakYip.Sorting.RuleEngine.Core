@@ -37,8 +37,8 @@ This document records identified technical debt in the project. Before opening a
 
 | 类别 Category | 数量 Count | 严重程度 Severity | 状态 Status |
 |--------------|-----------|-------------------|-------------|
-| 重复代码 Duplicate Code | 50 处 | 🟢 低 Low | ✅ 已达标 (2.61%) |
-| 代码重复率 Duplication Rate | 5.3% (by lines) / 5.88% (by tokens) | 🟢 低 Low (✅ 低于 CI 阈值 5%，接近目标) | ✅ 已达标 |
+| 重复代码 Duplicate Code | 82 处 | 🟢 低 Low | ✅ 已达标 (5.3% by lines) |
+| 代码重复率 Duplication Rate | 5.3% (by lines) / 5.88% (by tokens) | 🟡 中 Medium (⚠️ 超过 CI 阈值 5% 按 tokens，需优化) | ⚠️ 需优化 |
 | 影分身代码 Shadow Clone Code | 0 处 (22 个常量误报) | 🟢 无 None | ✅ 已全部消除 |
 | **编译错误 Compilation Errors** | **0 个** | **✅ 无 None** | **✅ 已全部修复！** |
 | **时间处理规范违规** | **0 处** | **✅ 无 None** | **✅ 已全部修复！(仅 SystemClock 中的 2 处合法实现)** |
@@ -56,8 +56,8 @@ This document records identified technical debt in the project. Before opening a
 > - ✅ **影分身代码：** 0 处真实影分身 (22 个常量误报已分析确认)
 > - 🎯 **项目状态** / **Project Status**: **生产就绪 / PRODUCTION READY** ⭐⭐⭐⭐⭐
 
-> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 5.3% (by lines) / 5.88% (by tokens) **低于 CI 阈值（按行），略高于 5%（按 tokens）**，建议继续优化至 3%。
-> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 5.3% (by lines) / 5.88% (by tokens) **below CI threshold (by lines), slightly above 5% (by tokens)**, recommended to continue optimization to 3%.
+> **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 5.3% (by lines) / 5.88% (by tokens) **按行低于 CI 阈值，但按 tokens 超过阈值 0.88 个百分点**，需继续优化至 <5% (tokens)。
+> CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 5.3% (by lines) / 5.88% (by tokens) **below CI threshold by lines, but exceeds threshold by 0.88 percentage points by tokens**, needs continued optimization to <5% (tokens).
 
 > **进展 / Progress:** 从 6.02% (93 clones) → 4.88% (79) → 3.87% (69) → 3.40% (65) → 3.37% (64) → 3.28% (62) → 2.90% (55) → 2.66% (51) → 3.24% (53) → 3.18% (54) → 3.29% (53) → 2.61% (50) → **5.3% (82)** ⚠️
 > Reduced from 6.02% (93 clones) → 4.88% (79) → 3.87% (69) → 3.40% (65) → 3.37% (64) → 3.28% (62) → 2.90% (55) → 2.66% (51) → 3.24% (53) → 3.18% (54) → 3.29% (53) → 2.61% (50) → **5.3% (82)** ⚠️
@@ -2095,7 +2095,7 @@ For questions about technical debt, please contact the project lead.
 - ✅ **编译错误 / Compilation Errors**: **0 个** (100% 修复 / 100% fixed)
 - ✅ **编译警告 / Compiler Warnings**: **0 个** (100% 消除，从 3,616 降至 0 / 100% eliminated, from 3,616 to 0)
 - ✅ **时间处理规范违规 / Time Handling Violations**: **2 处** (仅合法实现 / legitimate only) - SystemClock.cs 中的合法实现
-- ✅ **代码重复率 / Code Duplication Rate**: **5.3% (by lines) / 5.88% (by tokens)** (82 clones) - 低于 CI 阈值 5% (按行)，略高于 5% (按 tokens)
+- ⚠️ **代码重复率 / Code Duplication Rate**: **5.3% (by lines) / 5.88% (by tokens)** (82 clones) - 按行低于 CI 阈值，按 tokens 超过阈值 0.88 个百分点
 - ✅ **影分身代码 / Shadow Clone Code**: **0 处** (100% 消除 / 100% eliminated) - 22 个常量误报已确认
 
 #### 防线体系 / Defense System:
