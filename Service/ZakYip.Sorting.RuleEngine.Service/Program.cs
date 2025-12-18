@@ -155,6 +155,10 @@ try
                         // 使用MySQL监控告警仓储
                         services.AddScoped<IMonitoringAlertRepository, MySqlMonitoringAlertRepository>();
                         logger.Info("使用MySQL监控告警仓储");
+                        
+                        // 使用MySQL配置审计日志仓储
+                        services.AddScoped<IConfigurationAuditLogRepository, MySqlConfigurationAuditLogRepository>();
+                        logger.Info("使用MySQL配置审计日志仓储");
                     }
                     catch (Exception ex)
                     {
@@ -165,6 +169,10 @@ try
                         // 降级使用SQLite监控告警仓储
                         services.AddScoped<IMonitoringAlertRepository, SqliteMonitoringAlertRepository>();
                         logger.Info("降级使用SQLite监控告警仓储");
+                        
+                        // 降级使用SQLite配置审计日志仓储
+                        services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
+                        logger.Info("降级使用SQLite配置审计日志仓储");
                     }
                 }
                 else
@@ -176,6 +184,10 @@ try
                     // 使用SQLite监控告警仓储
                     services.AddScoped<IMonitoringAlertRepository, SqliteMonitoringAlertRepository>();
                     logger.Info("使用SQLite监控告警仓储");
+                    
+                    // 使用SQLite配置审计日志仓储
+                    services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
+                    logger.Info("使用SQLite配置审计日志仓储");
                 }
 
                 // 配置HttpClient用于WCS API

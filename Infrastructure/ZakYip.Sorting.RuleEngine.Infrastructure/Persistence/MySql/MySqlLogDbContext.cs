@@ -73,4 +73,10 @@ public class MySqlLogDbContext : BaseLogDbContext
         entity.Property(e => e.ThresholdValue).HasPrecision(18, 2);
         entity.Property(e => e.AdditionalData).HasColumnType("text");
     }
+    
+    protected override void ConfigureConfigurationAuditLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ConfigurationAuditLog> entity)
+    {
+        entity.Property(e => e.ContentBefore).HasColumnType("text");
+        entity.Property(e => e.ContentAfter).HasColumnType("text");
+    }
 }

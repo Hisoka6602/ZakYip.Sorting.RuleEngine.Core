@@ -1,8 +1,12 @@
+using System.Text.Json;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -18,17 +22,23 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 public class DwsConfigController : ControllerBase
 {
     private readonly IDwsConfigRepository _configRepository;
+    private readonly IConfigurationAuditLogRepository _auditLogRepository;
     private readonly ILogger<DwsConfigController> _logger;
     private readonly ISystemClock _clock;
+    private readonly IPublisher _publisher;
 
     public DwsConfigController(
         IDwsConfigRepository configRepository,
+        IConfigurationAuditLogRepository auditLogRepository,
         ILogger<DwsConfigController> logger,
-        ISystemClock clock)
+        ISystemClock clock,
+        IPublisher publisher)
     {
         _configRepository = configRepository;
+        _auditLogRepository = auditLogRepository;
         _logger = logger;
         _clock = clock;
+        _publisher = publisher;
     }
 
     /// <summary>
@@ -205,9 +215,54 @@ public class DwsConfigController : ControllerBase
                     "保存配置失败", "SAVE_FAILED"));
             }
 
-            // TODO: 触发配置重载事件，通知DWS适配器重启连接
-            // This will be implemented when the event system is added
-            _logger.LogInformation("DWS配置已更新，等待热更新生效...");
+            // 保存审计日志 / Save audit log
+            var operationType = existingConfig == null ? "Create" : "Update";
+            var contentBefore = existingConfig != null 
+                ? JsonSerializer.Serialize(existingConfig, new JsonSerializerOptions { WriteIndented = false })
+                : null;
+            var contentAfter = JsonSerializer.Serialize(updatedConfig, new JsonSerializerOptions { WriteIndented = false });
+            
+            var auditLog = new ConfigurationAuditLog
+            {
+                ConfigurationType = nameof(DwsConfig),
+                ConfigurationId = updatedConfig.ConfigId,
+                OperationType = operationType,
+                ContentBefore = contentBefore,
+                ContentAfter = contentAfter,
+                ChangeReason = existingConfig == null 
+                    ? ConfigChangeReasons.ConfigurationCreated 
+                    : ConfigChangeReasons.ConfigurationUpdated,
+                OperatorUser = User?.Identity?.Name ?? Environment.MachineName,
+                OperatorIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                CreatedAt = now,
+                Remarks = $"DWS配置{operationType}：{updatedConfig.Name}"
+            };
+            
+            var auditSaved = await _auditLogRepository.AddAsync(auditLog).ConfigureAwait(false);
+            if (!auditSaved)
+            {
+                _logger.LogWarning(
+                    "DWS配置审计日志保存失败 / Failed to save DWS config audit log: Operation={Operation}, ConfigId={ConfigId}",
+                    operationType, updatedConfig.ConfigId);
+            }
+
+            // 发布配置变更事件，触发热更新 / Publish configuration changed event to trigger hot reload
+            var configChangedEvent = new DwsConfigChangedEvent
+            {
+                ConfigId = updatedConfig.ConfigId,
+                Name = updatedConfig.Name,
+                Mode = updatedConfig.Mode,
+                Host = updatedConfig.Host,
+                Port = updatedConfig.Port,
+                IsEnabled = updatedConfig.IsEnabled,
+                UpdatedAt = updatedConfig.UpdatedAt,
+                Reason = existingConfig == null 
+                    ? ConfigChangeReasons.ConfigurationCreated 
+                    : ConfigChangeReasons.ConfigurationUpdated
+            };
+            
+            await _publisher.Publish(configChangedEvent, default).ConfigureAwait(false);
+            _logger.LogInformation("DWS配置变更事件已发布，等待热更新生效 / DWS config changed event published, waiting for hot reload");
 
             var dto = new DwsConfigResponseDto
             {
@@ -342,21 +397,68 @@ public class DwsConfigController : ControllerBase
     )]
     [SwaggerResponse(200, "重载成功", typeof(ApiResponse<object>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<object>))]
-    public ActionResult<ApiResponse<object>> ReloadConfig()
+    public async Task<ActionResult<ApiResponse<object>>> ReloadConfig()
     {
         try
         {
-            // TODO: 触发配置重载事件
-            _logger.LogInformation("手动触发DWS配置重载");
+            _logger.LogInformation("手动触发DWS配置重载 / Manually triggering DWS configuration reload");
+
+            // 获取当前配置 / Get current configuration
+            var config = await _configRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
+            if (config == null)
+            {
+                return NotFound(ApiResponse<object>.FailureResult(
+                    "DWS配置不存在，无法重载 / DWS configuration not found, cannot reload", 
+                    "CONFIG_NOT_FOUND"));
+            }
+
+            // 发布配置变更事件，触发重载 / Publish configuration changed event to trigger reload
+            var configChangedEvent = new DwsConfigChangedEvent
+            {
+                ConfigId = config.ConfigId,
+                Name = config.Name,
+                Mode = config.Mode,
+                Host = config.Host,
+                Port = config.Port,
+                IsEnabled = config.IsEnabled,
+                UpdatedAt = _clock.LocalNow,
+                Reason = ConfigChangeReasons.ManualReloadTriggered
+            };
+            
+            await _publisher.Publish(configChangedEvent, default).ConfigureAwait(false);
+            _logger.LogInformation("DWS配置重载事件已发布 / DWS config reload event published");
+
+            // 保存审计日志：记录手动重载操作 / Save audit log: record manual reload operation
+            var auditLog = new ConfigurationAuditLog
+            {
+                ConfigurationType = nameof(DwsConfig),
+                ConfigurationId = config.ConfigId,
+                OperationType = "Reload",
+                ContentBefore = null,
+                ContentAfter = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = false }),
+                ChangeReason = ConfigChangeReasons.ManualReloadTriggered,
+                OperatorUser = User?.Identity?.Name ?? Environment.MachineName,
+                OperatorIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                CreatedAt = _clock.LocalNow,
+                Remarks = $"DWS配置手动重载：{config.Name}"
+            };
+            
+            var auditSaved = await _auditLogRepository.AddAsync(auditLog).ConfigureAwait(false);
+            if (!auditSaved)
+            {
+                _logger.LogWarning(
+                    "DWS配置重载审计日志保存失败 / Failed to save DWS config reload audit log: ConfigId={ConfigId}",
+                    config.ConfigId);
+            }
 
             return Ok(ApiResponse<object>.SuccessResult(
-                new { reloadedAt = _clock.LocalNow }));
+                new { reloadedAt = _clock.LocalNow, message = "配置重载已触发 / Configuration reload triggered" }));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "触发DWS配置重载失败");
+            _logger.LogError(ex, "触发DWS配置重载失败 / Failed to trigger DWS configuration reload");
             return StatusCode(500, ApiResponse<object>.FailureResult(
-                $"触发重载失败: {ex.Message}", "RELOAD_FAILED"));
+                $"触发重载失败 / Reload trigger failed: {ex.Message}", "RELOAD_FAILED"));
         }
     }
 }

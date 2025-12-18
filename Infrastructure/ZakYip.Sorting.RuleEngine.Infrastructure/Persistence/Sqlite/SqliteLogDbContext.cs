@@ -83,4 +83,12 @@ public class SqliteLogDbContext : BaseLogDbContext
         // SQLite 不需要显式指定文本列类型
         entity.Property(e => e.AdditionalData);
     }
+    
+    protected override void ConfigureConfigurationAuditLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ConfigurationAuditLog> entity)
+    {
+        // SQLite doesn't require explicit text column type specification
+        // SQLite 不需要显式指定文本列类型
+        entity.Property(e => e.ContentBefore);
+        entity.Property(e => e.ContentAfter);
+    }
 }
