@@ -193,12 +193,6 @@ public class ApiClientConfigController : ControllerBase
                 "更新配置失败", "UPDATE_CONFIG_FAILED"));
         }
     }
-        {
-            _logger.LogError(ex, "更新聚水潭ERP配置时发生错误");
-            return StatusCode(500, ApiResponse<string>.FailureResult(
-                "更新配置失败", "UPDATE_CONFIG_FAILED"));
-        }
-    }
 
     /// <summary>
     /// 获取旺店通WMS API配置
