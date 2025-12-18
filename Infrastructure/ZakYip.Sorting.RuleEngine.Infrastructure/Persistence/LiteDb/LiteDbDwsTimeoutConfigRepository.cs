@@ -20,13 +20,20 @@ public class LiteDbDwsTimeoutConfigRepository : IDwsTimeoutConfigRepository
     {
         _database = database;
         _clock = clock;
+        ConfigureIdMapping();
         EnsureIndexes();
+    }
+
+    private void ConfigureIdMapping()
+    {
+        _database.Mapper.Entity<DwsTimeoutConfig>()
+            .Id(x => x.ConfigId);
     }
 
     private void EnsureIndexes()
     {
-        var collection = _database.GetCollection<DwsTimeoutConfig>(CollectionName);
-        collection.EnsureIndex(x => x.ConfigId, unique: true);
+        // ConfigId is now the primary key (_id), no need for a separate unique index
+        // No additional indexes needed for DwsTimeoutConfig
     }
 
     public Task<DwsTimeoutConfig?> GetByIdAsync(string id)
@@ -57,7 +64,8 @@ public class LiteDbDwsTimeoutConfigRepository : IDwsTimeoutConfigRepository
         }
         
         // Upsert操作：如果存在则更新，否则插入
-        var result = collection.Upsert(configToSave);
+        // 使用显式ID参数确保正确的upsert操作
+        var result = collection.Upsert(new BsonValue(configToSave.ConfigId), configToSave);
         return Task.FromResult(result);
     }
 }
