@@ -11,13 +11,30 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 public static class ApiRequestHelper
 {
     /// <summary>
+    /// 异常嵌套追踪的最大深度
+    /// Maximum depth for exception nesting tracking
+    /// </summary>
+    private const int MaxExceptionDepth = 10;
+
+    /// <summary>
     /// 获取详细的异常信息，包括所有内部异常
     /// Get detailed exception message including all inner exceptions
     /// </summary>
-    /// <param name="exception">异常对象 / Exception object</param>
-    /// <returns>详细的异常信息 / Detailed exception message</returns>
-    public static string GetDetailedExceptionMessage(Exception exception)
+    /// <param name="exception">
+    /// 异常对象；如果为 null，则返回空字符串。
+    /// Exception object; if null, an empty string is returned.
+    /// </param>
+    /// <returns>
+    /// 详细的异常信息；如果 <paramref name="exception"/> 为 null，则返回空字符串。
+    /// Detailed exception message; if <paramref name="exception"/> is null, an empty string is returned.
+    /// </returns>
+    public static string GetDetailedExceptionMessage(Exception? exception)
     {
+        if (exception == null)
+        {
+            return string.Empty;
+        }
+
         var messages = new StringBuilder();
         var currentException = exception;
         var depth = 0;
@@ -34,9 +51,9 @@ public static class ApiRequestHelper
             currentException = currentException.InnerException;
             depth++;
 
-            // 防止无限循环，最多追踪10层
-            // Prevent infinite loop, max 10 levels
-            if (depth >= 10)
+            // 防止无限循环，最多追踪指定层数
+            // Prevent infinite loop, max specified levels
+            if (depth >= MaxExceptionDepth)
             {
                 break;
             }

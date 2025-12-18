@@ -4,30 +4,44 @@
 
 `WcsApiResponse` 类已经被重构为新的结构，以更好地组织API请求和响应信息。这个重构涉及：
 1. 字段重命名和重组
-2. `ParcelId` 从 `string` 改为 `long`
-3. 添加新的必需字段（`RequestStatus`, `Method`）
+2. `ParcelId` 从 `string` 改为 `long`（提供 `ParcelIdString` 向后兼容属性）
+3. 添加新字段（`RequestStatus`, `Method` 等，都有默认值）
 4. 移除旧字段（`Success`, `Code`, `Message`, `Data`, `ErrorMessage` 等）
+5. `ElapsedMilliseconds` 保持为 `long` 类型（避免溢出）
 
 The `WcsApiResponse` class has been refactored to a new structure for better organization of API request and response information. This refactoring involves:
 1. Field renaming and reorganization
-2. `ParcelId` changed from `string` to `long`
-3. Added new required fields (`RequestStatus`, `Method`)
+2. `ParcelId` changed from `string` to `long` (with `ParcelIdString` backward compatibility property)
+3. Added new fields (`RequestStatus`, `Method`, etc., all with default values)
 4. Removed old fields (`Success`, `Code`, `Message`, `Data`, `ErrorMessage`, etc.)
+5. `ElapsedMilliseconds` kept as `long` type (to avoid overflow)
+
+## 向后兼容性改进 / Backward Compatibility Improvements
+
+为减少迁移难度，已实施以下改进：
+- 所有新增字段都提供了默认值，不再是 `required`
+- 提供 `ParcelIdString` 废弃属性用于字符串到 long 的自动转换
+- `ElapsedMilliseconds` 保持 `long` 类型以避免潜在的溢出问题
+
+To ease migration, the following improvements have been made:
+- All new fields have default values and are no longer `required`
+- Deprecated `ParcelIdString` property provided for automatic string-to-long conversion
+- `ElapsedMilliseconds` kept as `long` to avoid potential overflow issues
 
 ## 新旧字段映射 / Old-New Field Mapping
 
 | 旧字段 / Old Field | 新字段 / New Field | 说明 / Notes |
 |-------------------|-------------------|--------------|
-| `ParcelId` (string) | `ParcelId` (long) | 类型改变 / Type changed |
+| `ParcelId` (string) | `ParcelId` (long) | 类型改变，提供 ParcelIdString 向后兼容 / Type changed, ParcelIdString provided for backward compatibility |
 | `Success` (bool) | `RequestStatus` (enum) | true → Success, false → Failure |
 | `Code` (string) | `FormattedMessage` | 合并到消息中 / Merged into message |
 | `Message` (string) | `FormattedMessage` | 重命名 / Renamed |
 | `Data` (string) | `ResponseBody` | 重命名 / Renamed |
 | `ErrorMessage` (string) | `Exception` | 重命名 / Renamed |
 | `RequestHeaders` (string) | `Headers` | 重命名 / Renamed |
-| `DurationMs` (long) | `ElapsedMilliseconds` (int) | 重命名且类型改变 / Renamed and type changed |
+| `DurationMs` (long) | `ElapsedMilliseconds` (long) | 重命名（保持 long 以避免溢出） / Renamed (keep long to avoid overflow) |
 | `FormattedCurl` (string) | `CurlData` | 重命名 / Renamed |
-| (无 / none) | `Method` (required string) | 新增必需字段 / New required field |
+| (无 / none) | `Method` (string) | 新增字段（有默认值） / New field (with default value) |
 | (无 / none) | `QueryParams` (string) | 新增字段 / New field |
 | (继承 BaseApiCommunication) | (直接定义) | 不再继承基类 / No longer inherits base class |
 
