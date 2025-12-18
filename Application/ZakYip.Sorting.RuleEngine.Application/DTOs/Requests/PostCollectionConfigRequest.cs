@@ -10,7 +10,7 @@ public record PostCollectionConfigRequest
     /// 配置名称
     /// Configuration name
     /// </summary>
-    public required string Name { get; init; }
+    public string Name { get; init; } = "邮政分揽投机构配置";
     
     /// <summary>
     /// API基础URL (SOAP端点，不含?wsdl)

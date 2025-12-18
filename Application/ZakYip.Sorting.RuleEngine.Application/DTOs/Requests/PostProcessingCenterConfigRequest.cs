@@ -10,7 +10,7 @@ public record PostProcessingCenterConfigRequest
     /// 配置名称
     /// Configuration name
     /// </summary>
-    public required string Name { get; init; }
+    public string Name { get; init; } = "邮政处理中心配置";
     
     /// <summary>
     /// API基础URL (SOAP端点，不含?wsdl)

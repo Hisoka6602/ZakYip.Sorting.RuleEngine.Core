@@ -10,7 +10,7 @@ public record WdtWmsConfigRequest
     /// 配置名称
     /// Configuration name
     /// </summary>
-    public required string Name { get; init; }
+    public string Name { get; init; } = "旺店通WMS配置";
     
     public required string Url { get; init; }
     
