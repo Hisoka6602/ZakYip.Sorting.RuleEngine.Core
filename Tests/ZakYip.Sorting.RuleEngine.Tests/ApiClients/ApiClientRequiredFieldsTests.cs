@@ -26,7 +26,6 @@ public class ApiClientRequiredFieldsTests
         var testConfig = new JushuitanErpConfig
         {
             ConfigId = JushuitanErpConfig.SingletonId,
-            Name = "Test Config",
             Url = "http://localhost:8080",
             AppKey = "testKey",
             AppSecret = "testSecret",
@@ -54,7 +53,6 @@ public class ApiClientRequiredFieldsTests
         var testConfig = new WdtWmsConfig
         {
             ConfigId = WdtWmsConfig.SingletonId,
-            Name = "Test Config",
             Url = "http://localhost:8080",
             Sid = "test_sid",
             AppKey = "testKey",

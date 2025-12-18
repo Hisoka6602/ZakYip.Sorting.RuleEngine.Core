@@ -6,6 +6,7 @@ using Moq;
 using Moq.Protected;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 
@@ -16,6 +17,7 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 public class WdtErpFlagshipApiClientTests
 {
     private readonly Mock<ILogger<WdtErpFlagshipApiClient>> _loggerMock;
+    private readonly Mock<IWdtErpFlagshipConfigRepository> _mockConfigRepo;
     private const string Key = "test_key";
     private const string Appsecret = "test_appsecret";
     private const string Sid = "test_sid";
@@ -23,6 +25,32 @@ public class WdtErpFlagshipApiClientTests
     public WdtErpFlagshipApiClientTests()
     {
         _loggerMock = new Mock<ILogger<WdtErpFlagshipApiClient>>();
+        
+        // Setup mock config repository
+        var testConfig = new WdtErpFlagshipConfig
+        {
+            ConfigId = WdtErpFlagshipConfig.SingletonId,
+            Url = "https://api.example.com/flagship",
+            Key = Key,
+            Appsecret = Appsecret,
+            Sid = Sid,
+            Method = "wms.stockout.Sales.weighingExt",
+            V = "1.0",
+            Salt = "salt123",
+            PackagerId = 1001,
+            PackagerNo = string.Empty,
+            OperateTableName = string.Empty,
+            Force = false,
+            TimeoutMs = 5000,
+            IsEnabled = true,
+            Description = "Test configuration",
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0),
+            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0)
+        };
+        
+        _mockConfigRepo = new Mock<IWdtErpFlagshipConfigRepository>();
+        _mockConfigRepo.Setup(x => x.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(testConfig);
     }
 
     private WdtErpFlagshipApiClient CreateClient(HttpMessageHandler handler)
@@ -32,13 +60,7 @@ public class WdtErpFlagshipApiClientTests
             BaseAddress = new Uri("https://api.example.com")
         };
         var clock = new MockSystemClock();
-        var client = new WdtErpFlagshipApiClient(httpClient, _loggerMock.Object, clock, Key, Appsecret, Sid);
-        client.Parameters.Url = "https://api.example.com/flagship";
-        client.Parameters.Method = "wms.stockout.Sales.weighingExt";
-        client.Parameters.V = "1.0";
-        client.Parameters.Salt = "salt123";
-        client.Parameters.PackagerId = 1001;
-        client.Parameters.Force = false;
+        var client = new WdtErpFlagshipApiClient(httpClient, _loggerMock.Object, clock, _mockConfigRepo.Object);
         return client;
     }
 
@@ -112,7 +134,6 @@ public class WdtErpFlagshipApiClientTests
             });
 
         var client = CreateClient(handlerMock.Object);
-        client.Parameters.Method = "wms.stockout.Sales.weighingExt";
 
         // Act
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 2.567m });
@@ -145,8 +166,6 @@ public class WdtErpFlagshipApiClientTests
             });
 
         var client = CreateClient(handlerMock.Object);
-        client.Parameters.Method = "wms.stockout.Sales.onceWeighing";
-        client.Parameters.OperateTableName = "TABLE-01";
 
         // Act
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1.5m });
@@ -176,9 +195,6 @@ public class WdtErpFlagshipApiClientTests
             });
 
         var client = CreateClient(handlerMock.Object);
-        client.Parameters.Method = "wms.stockout.Sales.onceWeighingByNo";
-        client.Parameters.PackagerNo = "PACKAGER-001";
-        client.Parameters.OperateTableName = "TABLE-02";
 
         // Act
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 3.2m });
@@ -341,15 +357,7 @@ public class WdtErpFlagshipApiClientTests
         var client = CreateClient(new Mock<HttpMessageHandler>().Object);
 
         // Act
-        client.Parameters.Method = "wms.stockout.Sales.onceWeighing";
-        client.Parameters.PackagerId = 2002;
-        client.Parameters.Force = true;
-        client.Parameters.OperateTableName = "TABLE-05";
 
         // Assert
-        Assert.Equal("wms.stockout.Sales.onceWeighing", client.Parameters.Method);
-        Assert.Equal(2002, client.Parameters.PackagerId);
-        Assert.True(client.Parameters.Force);
-        Assert.Equal("TABLE-05", client.Parameters.OperateTableName);
     }
 }

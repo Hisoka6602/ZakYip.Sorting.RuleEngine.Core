@@ -7,12 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 public record JushuitanErpConfigRequest
 {
     /// <summary>
-    /// 配置名称
-    /// Configuration name
-    /// </summary>
-    public string Name { get; init; } = "聚水潭ERP配置";
-    
-    /// <summary>
     /// Url
     /// </summary>
     public required string Url { get; init; }

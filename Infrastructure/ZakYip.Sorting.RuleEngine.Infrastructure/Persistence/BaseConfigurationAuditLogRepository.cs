@@ -50,7 +50,7 @@ public abstract class BaseConfigurationAuditLogRepository<TContext> : IConfigura
 
     public virtual async Task<IEnumerable<ConfigurationAuditLog>> GetByConfigurationAsync(
         string configurationType,
-        long configurationId,
+        string configurationId,
         int pageSize = 50,
         int pageNumber = 1)
     {

@@ -99,7 +99,6 @@ public class ApiClientConfigController : ControllerBase
 
             var dto = new JushuitanErpConfigRequest
             {
-                Name = config.Name,
                 Url = config.Url,
                 TimeoutMs = config.TimeoutMs,
                 AppKey = MaskSecret(config.AppKey),
@@ -154,7 +153,6 @@ public class ApiClientConfigController : ControllerBase
             var updatedConfig = new JushuitanErpConfig
             {
                 ConfigId = JushuitanErpConfig.SingletonId,
-                Name = request.Name,
                 Url = request.Url,
                 TimeoutMs = request.TimeoutMs,
                 AppKey = request.AppKey,
@@ -223,7 +221,6 @@ public class ApiClientConfigController : ControllerBase
 
             var dto = new WdtWmsConfigRequest
             {
-                Name = config.Name,
                 Url = config.Url,
                 Sid = MaskSecret(config.Sid),
                 AppKey = MaskSecret(config.AppKey),
@@ -275,7 +272,6 @@ public class ApiClientConfigController : ControllerBase
             var updatedConfig = new WdtWmsConfig
             {
                 ConfigId = WdtWmsConfig.SingletonId,
-                Name = request.Name,
                 Url = request.Url,
                 Sid = request.Sid,
                 AppKey = request.AppKey,
@@ -341,7 +337,6 @@ public class ApiClientConfigController : ControllerBase
 
             var dto = new WdtErpFlagshipConfigRequest
             {
-                Name = config.Name,
                 Url = config.Url,
                 Key = MaskSecret(config.Key),
                 Appsecret = MaskSecret(config.Appsecret),
@@ -397,7 +392,6 @@ public class ApiClientConfigController : ControllerBase
             var updatedConfig = new WdtErpFlagshipConfig
             {
                 ConfigId = WdtErpFlagshipConfig.SingletonId,
-                Name = request.Name,
                 Url = request.Url,
                 Key = request.Key,
                 Appsecret = request.Appsecret,
@@ -483,7 +477,6 @@ public class ApiClientConfigController : ControllerBase
 
             var dto = new PostCollectionConfigRequest
             {
-                Name = config.Name,
                 Url = config.Url,
                 WorkshopCode = config.WorkshopCode,
                 DeviceId = config.DeviceId,
@@ -535,7 +528,6 @@ public class ApiClientConfigController : ControllerBase
             var updatedConfig = new PostCollectionConfig
             {
                 ConfigId = PostCollectionConfig.SingletonId,
-                Name = request.Name,
                 Url = request.Url,
                 WorkshopCode = request.WorkshopCode,
                 DeviceId = request.DeviceId,
@@ -601,7 +593,6 @@ public class ApiClientConfigController : ControllerBase
 
             var dto = new PostProcessingCenterConfigRequest
             {
-                Name = config.Name,
                 Url = config.Url,
                 WorkshopCode = config.WorkshopCode,
                 DeviceId = config.DeviceId,
@@ -653,7 +644,6 @@ public class ApiClientConfigController : ControllerBase
             var updatedConfig = new PostProcessingCenterConfig
             {
                 ConfigId = PostProcessingCenterConfig.SingletonId,
-                Name = request.Name,
                 Url = request.Url,
                 WorkshopCode = request.WorkshopCode,
                 DeviceId = request.DeviceId,

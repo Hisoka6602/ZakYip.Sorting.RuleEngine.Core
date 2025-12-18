@@ -180,25 +180,27 @@ class Program
 class MockPostProcessingCenterConfigRepository : Domain.Interfaces.IPostProcessingCenterConfigRepository
 {
     public Task<bool> AddAsync(Domain.Entities.PostProcessingCenterConfig config) => Task.FromResult(true);
-    public Task<bool> DeleteAsync(long configId) => Task.FromResult(true);
+    public Task<bool> DeleteAsync(string configId) => Task.FromResult(true);
     public Task<IEnumerable<Domain.Entities.PostProcessingCenterConfig>> GetAllAsync() => 
         Task.FromResult(Enumerable.Empty<Domain.Entities.PostProcessingCenterConfig>());
-    public Task<Domain.Entities.PostProcessingCenterConfig?> GetByIdAsync(long configId) => 
+    public Task<Domain.Entities.PostProcessingCenterConfig?> GetByIdAsync(string configId) => 
         Task.FromResult<Domain.Entities.PostProcessingCenterConfig?>(null); // Will trigger default config creation
     public Task<IEnumerable<Domain.Entities.PostProcessingCenterConfig>> GetEnabledConfigsAsync() => 
         Task.FromResult(Enumerable.Empty<Domain.Entities.PostProcessingCenterConfig>());
     public Task<bool> UpdateAsync(Domain.Entities.PostProcessingCenterConfig config) => Task.FromResult(true);
+    public Task<bool> UpsertAsync(Domain.Entities.PostProcessingCenterConfig config) => Task.FromResult(true);
 }
 
 class MockPostCollectionConfigRepository : Domain.Interfaces.IPostCollectionConfigRepository
 {
     public Task<bool> AddAsync(Domain.Entities.PostCollectionConfig config) => Task.FromResult(true);
-    public Task<bool> DeleteAsync(long configId) => Task.FromResult(true);
+    public Task<bool> DeleteAsync(string configId) => Task.FromResult(true);
     public Task<IEnumerable<Domain.Entities.PostCollectionConfig>> GetAllAsync() => 
         Task.FromResult(Enumerable.Empty<Domain.Entities.PostCollectionConfig>());
-    public Task<Domain.Entities.PostCollectionConfig?> GetByIdAsync(long configId) => 
+    public Task<Domain.Entities.PostCollectionConfig?> GetByIdAsync(string configId) => 
         Task.FromResult<Domain.Entities.PostCollectionConfig?>(null); // Will trigger default config creation
     public Task<IEnumerable<Domain.Entities.PostCollectionConfig>> GetEnabledConfigsAsync() => 
         Task.FromResult(Enumerable.Empty<Domain.Entities.PostCollectionConfig>());
     public Task<bool> UpdateAsync(Domain.Entities.PostCollectionConfig config) => Task.FromResult(true);
+    public Task<bool> UpsertAsync(Domain.Entities.PostCollectionConfig config) => Task.FromResult(true);
 }

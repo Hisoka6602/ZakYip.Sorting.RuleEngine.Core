@@ -33,8 +33,7 @@ public class LiteDbIdExposureTests : IDisposable
         var collection = _database.GetCollection<DwsConfig>("dws_configs");
         var config = new DwsConfig
         {
-            ConfigId = 1001L,
-            Name = "Test Config",
+            ConfigId = "TestDwsConfig1",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8081,
@@ -45,7 +44,7 @@ public class LiteDbIdExposureTests : IDisposable
         };
         
         collection.Insert(config);
-        var retrievedConfig = collection.FindById(new BsonValue(1001L));
+        var retrievedConfig = collection.FindById(new BsonValue("TestDwsConfig1"));
 
         // Act
         var dto = retrievedConfig.ToResponseDto();
@@ -53,7 +52,6 @@ public class LiteDbIdExposureTests : IDisposable
 
         // Assert
         Assert.NotNull(dto);
-        Assert.Equal("Test Config", dto.Name);
         
         // 验证JSON中不包含 _id 或 ConfigId 字段（单例模式不暴露ID）
         // Verify JSON does not contain _id or ConfigId field (singleton pattern does not expose ID)
@@ -68,8 +66,7 @@ public class LiteDbIdExposureTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = 1002L,
-            Name = "Test Config 2",
+            ConfigId = "TestDwsConfig2",
             Mode = "Client",
             Host = "192.168.1.1",
             Port = 8082,
@@ -94,7 +91,6 @@ public class LiteDbIdExposureTests : IDisposable
         // Verify DTO only contains expected fields (singleton pattern does not include ConfigId)
         var expectedFields = new[]
         {
-            "Name",
             "Mode",
             "Host",
             "Port",
@@ -146,7 +142,6 @@ public class LiteDbIdExposureTests : IDisposable
 
         // Assert - 单例模式不暴露TemplateId
         // Singleton pattern does not expose TemplateId
-        Assert.Equal("Test Template", dto.Name);
         Assert.DoesNotContain("\"_id\"", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\"TemplateId\"", json, StringComparison.OrdinalIgnoreCase);
     }

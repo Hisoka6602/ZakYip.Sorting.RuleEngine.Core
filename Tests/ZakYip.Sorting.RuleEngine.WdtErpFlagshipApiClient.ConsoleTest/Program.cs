@@ -11,7 +11,11 @@ class Program
     private const string KEY = "your-key";
     private const string APPSECRET = "your-appsecret";
     private const string SID = "your-sid";
-    private const int TIMEOUT_SECONDS = 30;
+    private const string METHOD = "wms.stockout.Sales.weighingExt";
+    private const string VERSION = "1.0";
+    private const string SALT = "salt123";
+    private const int PACKAGER_ID = 1001;
+    private const int TIMEOUT_MS = 30000;
     
     static async Task Main(string[] args)
     {
@@ -24,21 +28,14 @@ class Program
         });
         
         var logger = loggerFactory.CreateLogger<Infrastructure.ApiClients.WdtErpFlagship.WdtErpFlagshipApiClient>();
-        var httpClient = new HttpClient { BaseAddress = new Uri(BASE_URL), Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS) };
+        var httpClient = new HttpClient { Timeout = TimeSpan.FromMilliseconds(TIMEOUT_MS) };
         
         var clock = new Infrastructure.Services.SystemClock();
-        var client = new Infrastructure.ApiClients.WdtErpFlagship.WdtErpFlagshipApiClient(httpClient, logger, clock, KEY, APPSECRET, SID);
-        
-        // Configure additional parameters
-        client.Parameters.Url = BASE_URL;
-        client.Parameters.Method = "wms.stockout.Sales.weighingExt";
-        client.Parameters.V = "1.0";
-        client.Parameters.Salt = "salt123";
-        client.Parameters.PackagerId = 1001;
-        client.Parameters.Force = false;
+        var mockRepo = new MockWdtErpFlagshipConfigRepository();
+        var client = new Infrastructure.ApiClients.WdtErpFlagship.WdtErpFlagshipApiClient(httpClient, logger, clock, mockRepo);
         
         Console.WriteLine($"URL: {BASE_URL}");
-        Console.WriteLine($"Method: {client.Parameters.Method}\n");
+        Console.WriteLine($"Method: {METHOD}\n");
         
         // Test scan parcel (not supported)
         var scanResult = await client.ScanParcelAsync("TEST-WDT-ERP-001");
@@ -68,4 +65,40 @@ class Program
         Console.WriteLine("Test completed. Press any key...");
         Console.ReadKey();
     }
+}
+
+// Mock repository for testing
+class MockWdtErpFlagshipConfigRepository : Domain.Interfaces.IWdtErpFlagshipConfigRepository
+{
+    private readonly WdtErpFlagshipConfig _config = new()
+    {
+        ConfigId = WdtErpFlagshipConfig.SingletonId,
+        Url = "https://api.example.com/flagship",
+        Key = "your-key",
+        Appsecret = "your-appsecret",
+        Sid = "your-sid",
+        Method = "wms.stockout.Sales.weighingExt",
+        V = "1.0",
+        Salt = "salt123",
+        PackagerId = 1001,
+        PackagerNo = string.Empty,
+        OperateTableName = string.Empty,
+        Force = false,
+        TimeoutMs = 30000,
+        IsEnabled = true,
+        Description = "Test configuration",
+        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0),
+        UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0)
+    };
+
+    public Task<bool> AddAsync(WdtErpFlagshipConfig config) => Task.FromResult(true);
+    public Task<bool> DeleteAsync(string configId) => Task.FromResult(true);
+    public Task<IEnumerable<WdtErpFlagshipConfig>> GetAllAsync() => 
+        Task.FromResult<IEnumerable<WdtErpFlagshipConfig>>(new[] { _config });
+    public Task<WdtErpFlagshipConfig?> GetByIdAsync(string configId) => 
+        Task.FromResult<WdtErpFlagshipConfig?>(_config);
+    public Task<IEnumerable<WdtErpFlagshipConfig>> GetEnabledConfigsAsync() => 
+        Task.FromResult<IEnumerable<WdtErpFlagshipConfig>>(new[] { _config });
+    public Task<bool> UpdateAsync(WdtErpFlagshipConfig config) => Task.FromResult(true);
+    public Task<bool> UpsertAsync(WdtErpFlagshipConfig config) => Task.FromResult(true);
 }

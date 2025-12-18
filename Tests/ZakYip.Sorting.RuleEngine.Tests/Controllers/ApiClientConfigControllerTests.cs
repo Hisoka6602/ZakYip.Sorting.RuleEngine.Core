@@ -68,7 +68,6 @@ public class ApiClientConfigControllerTests
         // Arrange
         var request = new JushuitanErpConfigRequest
         {
-            Name = "聚水潭ERP配置",
             Url = "https://api.test.com",
             TimeoutMs = 5000,
             AppKey = "test_key",
@@ -100,7 +99,6 @@ public class ApiClientConfigControllerTests
 
         _mockJushuitanErpRepo.Verify(r => r.UpsertAsync(It.Is<JushuitanErpConfig>(c =>
             c.ConfigId == JushuitanErpConfig.SingletonId &&
-            c.Name == request.Name &&
             c.Url == request.Url &&
             c.CreatedAt == _mockClock.LocalNow &&
             c.UpdatedAt == _mockClock.LocalNow
@@ -115,7 +113,6 @@ public class ApiClientConfigControllerTests
         var existingConfig = new JushuitanErpConfig
         {
             ConfigId = JushuitanErpConfig.SingletonId,
-            Name = "旧配置",
             Url = "https://old-api.test.com",
             TimeoutMs = 3000,
             AppKey = "old_key",
@@ -135,7 +132,6 @@ public class ApiClientConfigControllerTests
 
         var request = new JushuitanErpConfigRequest
         {
-            Name = "更新后的配置",
             Url = "https://new-api.test.com",
             TimeoutMs = 5000,
             AppKey = "new_key",
@@ -167,7 +163,6 @@ public class ApiClientConfigControllerTests
 
         _mockJushuitanErpRepo.Verify(r => r.UpsertAsync(It.Is<JushuitanErpConfig>(c =>
             c.ConfigId == JushuitanErpConfig.SingletonId &&
-            c.Name == request.Name &&
             c.Url == request.Url &&
             c.CreatedAt == existingCreatedAt && // CreatedAt should be preserved
             c.UpdatedAt == _mockClock.LocalNow // UpdatedAt should be current time
@@ -180,7 +175,6 @@ public class ApiClientConfigControllerTests
         // Arrange
         var request = new JushuitanErpConfigRequest
         {
-            Name = "测试配置",
             Url = "https://api.test.com",
             TimeoutMs = 5000,
             AppKey = "test_key",
@@ -220,7 +214,6 @@ public class ApiClientConfigControllerTests
         // Arrange
         var request = new JushuitanErpConfigRequest
         {
-            Name = "测试配置",
             Url = "https://api.test.com",
             TimeoutMs = 5000,
             AppKey = "test_key",
@@ -261,11 +254,10 @@ public class ApiClientConfigControllerTests
         // Arrange
         var request = new PostCollectionConfigRequest
         {
-            Name = "邮政分揽投机构配置",
             Url = "https://post.test.com",
             WorkshopCode = "WS001",
             DeviceId = "DEV001",
-            CompanyName = "测试公司",
+            CompanyName = "Test Company",
             DeviceBarcode = "BAR001",
             OrganizationNumber = "ORG001",
             EmployeeNumber = "EMP001",
@@ -290,7 +282,6 @@ public class ApiClientConfigControllerTests
 
         _mockPostCollectionRepo.Verify(r => r.UpsertAsync(It.Is<PostCollectionConfig>(c =>
             c.ConfigId == PostCollectionConfig.SingletonId &&
-            c.Name == request.Name &&
             c.Url == request.Url &&
             c.WorkshopCode == request.WorkshopCode &&
             c.CreatedAt == _mockClock.LocalNow
@@ -305,11 +296,10 @@ public class ApiClientConfigControllerTests
         var existingConfig = new PostCollectionConfig
         {
             ConfigId = PostCollectionConfig.SingletonId,
-            Name = "旧配置",
             Url = "https://old.test.com",
             WorkshopCode = "OLD",
             DeviceId = "OLD",
-            CompanyName = "旧公司",
+            CompanyName = "Old Company",
             DeviceBarcode = "OLD",
             OrganizationNumber = "OLD",
             EmployeeNumber = "OLD",
@@ -322,11 +312,10 @@ public class ApiClientConfigControllerTests
 
         var request = new PostCollectionConfigRequest
         {
-            Name = "新配置",
             Url = "https://new.test.com",
             WorkshopCode = "NEW",
             DeviceId = "NEW",
-            CompanyName = "新公司",
+            CompanyName = "New Company",
             DeviceBarcode = "NEW",
             OrganizationNumber = "NEW",
             EmployeeNumber = "NEW",
@@ -364,7 +353,6 @@ public class ApiClientConfigControllerTests
         var config = new JushuitanErpConfig
         {
             ConfigId = JushuitanErpConfig.SingletonId,
-            Name = "测试配置",
             Url = "https://api.test.com",
             TimeoutMs = 5000,
             AppKey = "test_key_12345",
@@ -393,7 +381,6 @@ public class ApiClientConfigControllerTests
         var response = Assert.IsType<ApiResponse<JushuitanErpConfigRequest>>(okResult.Value);
         Assert.True(response.Success);
         Assert.NotNull(response.Data);
-        Assert.Equal("测试配置", response.Data.Name);
         
         // Verify secrets are masked
         Assert.Equal("tes***345", response.Data.AppKey);

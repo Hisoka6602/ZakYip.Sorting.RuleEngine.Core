@@ -26,7 +26,7 @@ public record class ConfigurationAuditLog
     /// <summary>
     /// 配置ID / Configuration ID
     /// </summary>
-    public required long ConfigurationId { get; init; }
+    public required string ConfigurationId { get; init; }
     
     /// <summary>
     /// 操作类型 / Operation Type

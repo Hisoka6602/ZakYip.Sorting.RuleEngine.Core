@@ -68,7 +68,6 @@ public class SorterConfigController : ControllerBase
 
             var dto = new SorterConfigResponseDto
             {
-                Name = config.Name,
                 Protocol = config.Protocol,
                 ConnectionMode = config.ConnectionMode,
                 Host = config.Host,
@@ -140,12 +139,6 @@ public class SorterConfigController : ControllerBase
         try
         {
             // 验证参数
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                return BadRequest(ApiResponse<SorterConfigResponseDto>.FailureResult(
-                    "配置名称不能为空", "INVALID_NAME"));
-            }
-
             if (request.Protocol != "TCP" && request.Protocol != "HTTP" && request.Protocol != "SignalR")
             {
                 return BadRequest(ApiResponse<SorterConfigResponseDto>.FailureResult(
@@ -177,7 +170,6 @@ public class SorterConfigController : ControllerBase
             var updatedConfig = new SorterConfig
             {
                 ConfigId = SorterConfig.SingletonId,
-                Name = request.Name,
                 Protocol = request.Protocol,
                 ConnectionMode = request.ConnectionMode,
                 Host = request.Host,
@@ -196,13 +188,13 @@ public class SorterConfigController : ControllerBase
             
             if (existingConfig == null)
             {
-                _logger.LogInformation("创建分拣机配置成功: {Name}, Protocol={Protocol}, Mode={Mode}, Host={Host}, Port={Port}", 
-                    request.Name, request.Protocol, request.ConnectionMode, request.Host, request.Port);
+                _logger.LogInformation("创建分拣机配置成功: Protocol={Protocol}, Mode={Mode}, Host={Host}, Port={Port}", 
+                    request.Protocol, request.ConnectionMode, request.Host, request.Port);
             }
             else
             {
-                _logger.LogInformation("更新分拣机配置成功: {Name}, Protocol={Protocol}, Mode={Mode}, Host={Host}, Port={Port}", 
-                    request.Name, request.Protocol, request.ConnectionMode, request.Host, request.Port);
+                _logger.LogInformation("更新分拣机配置成功: Protocol={Protocol}, Mode={Mode}, Host={Host}, Port={Port}", 
+                    request.Protocol, request.ConnectionMode, request.Host, request.Port);
             }
 
             if (!success)
@@ -231,7 +223,6 @@ public class SorterConfigController : ControllerBase
 
             var dto = new SorterConfigResponseDto
             {
-                Name = updatedConfig.Name,
                 Protocol = updatedConfig.Protocol,
                 ConnectionMode = updatedConfig.ConnectionMode,
                 Host = updatedConfig.Host,

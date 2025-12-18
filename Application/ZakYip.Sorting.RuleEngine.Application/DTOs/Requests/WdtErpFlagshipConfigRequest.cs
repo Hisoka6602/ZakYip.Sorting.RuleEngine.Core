@@ -7,12 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 public record WdtErpFlagshipConfigRequest
 {
     /// <summary>
-    /// 配置名称
-    /// Configuration name
-    /// </summary>
-    public string Name { get; init; } = "旺店通ERP旗舰版配置";
-    
-    /// <summary>
     /// API接口地址
     /// </summary>
     public required string Url { get; init; }
