@@ -10,7 +10,7 @@ public record JushuitanErpConfigRequest
     /// 配置名称
     /// Configuration name
     /// </summary>
-    public required string Name { get; init; }
+    public string Name { get; init; } = "聚水潭ERP配置";
     
     /// <summary>
     /// Url
