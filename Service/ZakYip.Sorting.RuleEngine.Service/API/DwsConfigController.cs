@@ -12,13 +12,13 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
-/// DWS配置管理控制器
-/// DWS Configuration Management Controller
+/// DWS管理控制器
+/// DWS Management Controller
 /// </summary>
 [ApiController]
 [Route("api/Dws/Config")]
 [Produces("application/json")]
-[SwaggerTag("DWS TCP配置管理接口，支持热更新 / DWS TCP Configuration Management with Hot Reload")]
+[SwaggerTag("DWS管理 / DWS Management")]
 public class DwsConfigController : ControllerBase
 {
     private readonly IDwsConfigRepository _configRepository;
@@ -54,7 +54,7 @@ public class DwsConfigController : ControllerBase
         Summary = "获取DWS TCP配置",
         Description = "获取当前DWS通信配置，包括模式(Server/Client)、主机地址、端口等信息",
         OperationId = "GetDwsConfig",
-        Tags = new[] { "DWS Configuration" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "成功返回配置", typeof(ApiResponse<DwsConfigResponseDto>))]
     [SwaggerResponse(404, "配置不存在", typeof(ApiResponse<DwsConfigResponseDto>))]
@@ -136,7 +136,7 @@ public class DwsConfigController : ControllerBase
         Summary = "更新DWS TCP配置",
         Description = "更新DWS通信配置并触发热更新。配置更新后，系统会自动重启DWS连接，无需重启应用。支持Server和Client两种模式。",
         OperationId = "UpdateDwsConfig",
-        Tags = new[] { "DWS Configuration" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "更新成功", typeof(ApiResponse<DwsConfigResponseDto>))]
     [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<DwsConfigResponseDto>))]
@@ -305,7 +305,7 @@ public class DwsConfigController : ControllerBase
         Summary = "重置DWS配置",
         Description = "将DWS配置重置为默认值。默认配置：Server模式，监听0.0.0.0:8001",
         OperationId = "ResetDwsConfig",
-        Tags = new[] { "DWS Configuration" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "重置成功", typeof(ApiResponse<DwsConfigResponseDto>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<DwsConfigResponseDto>))]
@@ -393,7 +393,7 @@ public class DwsConfigController : ControllerBase
         Summary = "手动触发配置重载",
         Description = "手动触发DWS配置重载，重启TCP连接。通常在更新配置后自动触发，此端点用于特殊情况下的手动重载。",
         OperationId = "ReloadDwsConfig",
-        Tags = new[] { "DWS Configuration" }
+        Tags = new[] { "DWS管理 / DWS Management" }
     )]
     [SwaggerResponse(200, "重载成功", typeof(ApiResponse<object>))]
     [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<object>))]
