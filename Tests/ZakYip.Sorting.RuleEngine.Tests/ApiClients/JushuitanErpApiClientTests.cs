@@ -33,7 +33,6 @@ public class JushuitanErpApiClientTests
         var testConfig = new JushuitanErpConfig
         {
             ConfigId = JushuitanErpConfig.SingletonId,
-            Name = "Test Config",
             Url = "https://api.jushuitan.com",
             AppKey = PartnerKey,
             AppSecret = PartnerSecret,

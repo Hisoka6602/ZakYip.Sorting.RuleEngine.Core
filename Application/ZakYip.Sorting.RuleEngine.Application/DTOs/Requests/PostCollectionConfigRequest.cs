@@ -7,12 +7,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 public record PostCollectionConfigRequest
 {
     /// <summary>
-    /// 配置名称
-    /// Configuration name
-    /// </summary>
-    public string Name { get; init; } = "邮政分揽投机构配置";
-    
-    /// <summary>
     /// API基础URL (SOAP端点，不含?wsdl)
     /// API Base URL (SOAP endpoint, without ?wsdl)
     /// </summary>

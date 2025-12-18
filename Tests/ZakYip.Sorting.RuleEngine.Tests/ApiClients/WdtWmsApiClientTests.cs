@@ -32,7 +32,6 @@ public class WdtWmsApiClientTests
         var testConfig = new WdtWmsConfig
         {
             ConfigId = WdtWmsConfig.SingletonId,
-            Name = "Test Config",
             Url = "https://api.wdt.com",
             Sid = "test_sid",
             AppKey = AppKey,

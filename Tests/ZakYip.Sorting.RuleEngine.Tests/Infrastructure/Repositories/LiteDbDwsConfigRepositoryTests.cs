@@ -65,8 +65,7 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Arrange
         var config = new DwsConfig
         {
-            ConfigId = 1002L,
-            Name = "Test Config 2",
+            ConfigId = "TestDwsConfig2",
             Mode = "Client",
             Host = "192.168.1.100",
             Port = 8082,
@@ -78,12 +77,11 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         await _repository.AddAsync(config);
 
         // Act
-        var result = await _repository.GetByIdAsync(1002L);
+        var result = await _repository.GetByIdAsync("TestDwsConfig2");
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(1002L, result.ConfigId);
-        Assert.Equal("Test Config 2", result.Name);
+        Assert.Equal("TestDwsConfig2", result.ConfigId);
     }
 
     [Fact]
@@ -103,7 +101,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         var config = new DwsConfig
         {
             ConfigId = 1003L,
-            Name = "Original Name",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8083,
@@ -118,7 +115,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Update config
         var updatedConfig = config with 
         { 
-            Name = "Updated Name",
             Port = 9999
         };
 
@@ -132,7 +128,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         // Verify update was successful
         var retrieved = await _repository.GetByIdAsync(1003L);
         Assert.NotNull(retrieved);
-        Assert.Equal("Updated Name", retrieved.Name);
         Assert.Equal(9999, retrieved.Port);
     }
 
@@ -143,7 +138,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         var config = new DwsConfig
         {
             ConfigId = 1004L,
-            Name = "Config to Delete",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8084,
@@ -188,7 +182,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         var enabledConfig = new DwsConfig
         {
             ConfigId = 1005L,
-            Name = "Enabled Config",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8085,
@@ -201,7 +194,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         var disabledConfig = new DwsConfig
         {
             ConfigId = 1006L,
-            Name = "Disabled Config",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8086,
@@ -231,7 +223,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         var config1 = new DwsConfig
         {
             ConfigId = 1007L,
-            Name = "Config 1",
             Mode = "Server",
             Host = "0.0.0.0",
             Port = 8087,
@@ -244,7 +235,6 @@ public class LiteDbDwsConfigRepositoryTests : IDisposable
         var config2 = new DwsConfig
         {
             ConfigId = 1008L,
-            Name = "Config 2",
             Mode = "Client",
             Host = "192.168.1.1",
             Port = 8088,

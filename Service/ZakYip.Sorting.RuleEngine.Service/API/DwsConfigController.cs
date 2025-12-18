@@ -73,7 +73,6 @@ public class DwsConfigController : ControllerBase
 
             var dto = new DwsConfigResponseDto
             {
-                Name = config.Name,
                 Mode = config.Mode,
                 Host = config.Host,
                 Port = config.Port,
@@ -147,12 +146,6 @@ public class DwsConfigController : ControllerBase
         try
         {
             // 验证参数
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                return BadRequest(ApiResponse<DwsConfigResponseDto>.FailureResult(
-                    "配置名称不能为空", "INVALID_NAME"));
-            }
-
             if (request.Mode != "Server" && request.Mode != "Client")
             {
                 return BadRequest(ApiResponse<DwsConfigResponseDto>.FailureResult(
@@ -178,7 +171,6 @@ public class DwsConfigController : ControllerBase
             var updatedConfig = new DwsConfig
             {
                 ConfigId = DwsConfig.SingletonId,
-                Name = request.Name,
                 Mode = request.Mode,
                 Host = request.Host,
                 Port = request.Port,
@@ -199,14 +191,14 @@ public class DwsConfigController : ControllerBase
             if (existingConfig == null)
             {
                 success = await _configRepository.AddAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("创建DWS配置成功: {Name}, Mode={Mode}, Host={Host}, Port={Port}", 
-                    request.Name, request.Mode, request.Host, request.Port);
+                _logger.LogInformation("创建DWS配置成功: Mode={Mode}, Host={Host}, Port={Port}", 
+                    request.Mode, request.Host, request.Port);
             }
             else
             {
                 success = await _configRepository.UpdateAsync(updatedConfig).ConfigureAwait(false);
-                _logger.LogInformation("更新DWS配置成功: {Name}, Mode={Mode}, Host={Host}, Port={Port}", 
-                    request.Name, request.Mode, request.Host, request.Port);
+                _logger.LogInformation("更新DWS配置成功: Mode={Mode}, Host={Host}, Port={Port}", 
+                    request.Mode, request.Host, request.Port);
             }
 
             if (!success)
@@ -235,7 +227,7 @@ public class DwsConfigController : ControllerBase
                 OperatorUser = User?.Identity?.Name ?? Environment.MachineName,
                 OperatorIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 CreatedAt = now,
-                Remarks = $"DWS配置{operationType}：{updatedConfig.Name}"
+                Remarks = $"DWS配置{operationType}"
             };
             
             var auditSaved = await _auditLogRepository.AddAsync(auditLog).ConfigureAwait(false);
@@ -265,7 +257,6 @@ public class DwsConfigController : ControllerBase
 
             var dto = new DwsConfigResponseDto
             {
-                Name = updatedConfig.Name,
                 Mode = updatedConfig.Mode,
                 Host = updatedConfig.Host,
                 Port = updatedConfig.Port,
@@ -316,7 +307,6 @@ public class DwsConfigController : ControllerBase
             var defaultConfig = new DwsConfig
             {
                 ConfigId = DwsConfig.SingletonId,
-                Name = "DWS默认配置",
                 Mode = "Server",
                 Host = "0.0.0.0",
                 Port = 8001,
@@ -353,7 +343,6 @@ public class DwsConfigController : ControllerBase
 
             var dto = new DwsConfigResponseDto
             {
-                Name = defaultConfig.Name,
                 Mode = defaultConfig.Mode,
                 Host = defaultConfig.Host,
                 Port = defaultConfig.Port,
@@ -438,7 +427,7 @@ public class DwsConfigController : ControllerBase
                 OperatorUser = User?.Identity?.Name ?? Environment.MachineName,
                 OperatorIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 CreatedAt = _clock.LocalNow,
-                Remarks = $"DWS配置手动重载：{config.Name}"
+                Remarks = "DWS配置手动重载"
             };
             
             var auditSaved = await _auditLogRepository.AddAsync(auditLog).ConfigureAwait(false);

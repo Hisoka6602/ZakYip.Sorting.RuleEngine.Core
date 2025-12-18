@@ -26,7 +26,6 @@ public class ConfigRequestValidationTest
         
         // Assert: Should use default name value
         Assert.NotNull(request);
-        Assert.Equal("聚水潭ERP配置", request.Name);
     }
     
     [Fact]
@@ -45,7 +44,6 @@ public class ConfigRequestValidationTest
         var request = JsonSerializer.Deserialize<PostCollectionConfigRequest>(json);
         
         Assert.NotNull(request);
-        Assert.Equal("邮政分揽投机构配置", request.Name);
     }
     
     [Fact]
@@ -64,7 +62,6 @@ public class ConfigRequestValidationTest
         var request = JsonSerializer.Deserialize<PostProcessingCenterConfigRequest>(json);
         
         Assert.NotNull(request);
-        Assert.Equal("邮政处理中心配置", request.Name);
     }
     
     [Fact]
@@ -80,7 +77,6 @@ public class ConfigRequestValidationTest
         var request = JsonSerializer.Deserialize<WdtWmsConfigRequest>(json);
         
         Assert.NotNull(request);
-        Assert.Equal("旺店通WMS配置", request.Name);
     }
     
     [Fact]
@@ -98,7 +94,6 @@ public class ConfigRequestValidationTest
         var request = JsonSerializer.Deserialize<WdtErpFlagshipConfigRequest>(json);
         
         Assert.NotNull(request);
-        Assert.Equal("旺店通ERP旗舰版配置", request.Name);
     }
     
     [Fact]
@@ -116,6 +111,5 @@ public class ConfigRequestValidationTest
         var request = JsonSerializer.Deserialize<JushuitanErpConfigRequest>(json);
         
         Assert.NotNull(request);
-        Assert.Equal("Custom Config Name", request.Name);
     }
 }

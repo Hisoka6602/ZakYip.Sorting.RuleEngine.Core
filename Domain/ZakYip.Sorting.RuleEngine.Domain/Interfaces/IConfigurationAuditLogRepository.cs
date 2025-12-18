@@ -24,7 +24,7 @@ public interface IConfigurationAuditLogRepository
     /// <returns>审计日志列表 / Audit log list</returns>
     Task<IEnumerable<ConfigurationAuditLog>> GetByConfigurationAsync(
         string configurationType, 
-        long configurationId,
+        string configurationId,
         int pageSize = 50,
         int pageNumber = 1);
     

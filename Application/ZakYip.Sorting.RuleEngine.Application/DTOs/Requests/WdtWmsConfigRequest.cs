@@ -6,12 +6,6 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 /// </summary>
 public record WdtWmsConfigRequest
 {
-    /// <summary>
-    /// 配置名称
-    /// Configuration name
-    /// </summary>
-    public string Name { get; init; } = "旺店通WMS配置";
-    
     public required string Url { get; init; }
     
     public required string Sid { get; init; }
