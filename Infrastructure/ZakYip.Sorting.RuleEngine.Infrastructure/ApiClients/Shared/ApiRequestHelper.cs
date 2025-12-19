@@ -103,7 +103,6 @@ public static class ApiRequestHelper
     /// - XML 属性中的双引号必须写成 ""（即 xmlns=""...""）
     /// - 命令前添加 chcp 65001>nul & 确保中文不乱码
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string GenerateWindowsCmdCurl(
         string method,
         string url,
@@ -161,7 +160,6 @@ public static class ApiRequestHelper
     /// - 双引号 → "" (在双引号字符串内部，双引号本身需要双写)
     /// - 换行符和回车符被替换为空格（确保单行命令）
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string EscapeForWindowsCmd(string input)
     {
         var sb = new StringBuilder(input.Length + (input.Length / 10)); // 预留一些空间用于转义字符
