@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -109,10 +109,10 @@ public static class ApiRequestHelper
         string? body = null)
     {
         var curlBuilder = new StringBuilder();
-        
+
         // 添加 chcp 65001>nul & 确保中文不乱码
         curlBuilder.Append("chcp 65001>nul & ");
-        
+
         // 构建 curl 命令
         curlBuilder.Append("curl -X ");
         curlBuilder.Append(method.ToUpper());
@@ -127,8 +127,17 @@ public static class ApiRequestHelper
             {
                 curlBuilder.Append(" -H \"");
                 curlBuilder.Append(header.Key);
-                curlBuilder.Append(": ");
-                curlBuilder.Append(header.Value);
+
+                if (string.IsNullOrEmpty(header.Value))
+                {
+                    curlBuilder.Append(':'); // 中文注释：空 SOAPAction 按 WSDL 输出为 SOAPAction:
+                }
+                else
+                {
+                    curlBuilder.Append(": ");
+                    curlBuilder.Append(EscapeForWindowsCmd(header.Value));
+                }
+
                 curlBuilder.Append('"');
             }
         }
@@ -161,39 +170,39 @@ public static class ApiRequestHelper
     /// </remarks>
     private static string EscapeForWindowsCmd(string input)
     {
-        var sb = new StringBuilder(input.Length + (input.Length / 10)); // 预留一些空间用于转义字符
-        
+        var sb = new StringBuilder(input.Length + (input.Length / 10));
+
         foreach (var ch in input)
         {
             switch (ch)
             {
-                case '<':
-                    sb.Append("^<");
-                    break;
-                case '>':
-                    sb.Append("^>");
-                    break;
-                case '|':
-                    sb.Append("^|");
-                    break;
-                case '&':
-                    sb.Append("^&");
-                    break;
                 case '"':
-                    // 在双引号字符串内部，双引号本身需要双写
+                    // 中文注释：CMD 双引号参数内部需要用双写双引号表示字面量双引号
                     sb.Append("\"\"");
                     break;
+
+                case '%':
+                    // 中文注释：CMD 会进行环境变量展开，百分号需要双写避免被展开
+                    sb.Append("%%");
+                    break;
+
+                case '^':
+                    // 中文注释：CMD 转义符本身需要转义，避免破坏后续字符
+                    sb.Append("^^");
+                    break;
+
                 case '\r':
                 case '\n':
-                    // 换行符和回车符替换为空格，确保单行命令
+                    // 中文注释：保持单行命令
                     sb.Append(' ');
                     break;
+
                 default:
                     sb.Append(ch);
                     break;
             }
         }
-        
+
         return sb.ToString();
     }
 
@@ -204,13 +213,13 @@ public static class ApiRequestHelper
     public static async Task<string> GenerateFormattedCurlFromRequestAsync(HttpRequestMessage request)
     {
         var headers = new Dictionary<string, string>();
-        
+
         // 添加请求头
         foreach (var header in request.Headers)
         {
             headers[header.Key] = string.Join(", ", header.Value);
         }
-        
+
         // 添加Content头
         if (request.Content?.Headers != null)
         {
@@ -240,9 +249,9 @@ public static class ApiRequestHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string FormatHeaders(Dictionary<string, string> headers)
     {
-        return JsonSerializer.Serialize(headers, new JsonSerializerOptions 
-        { 
-            WriteIndented = false 
+        return JsonSerializer.Serialize(headers, new JsonSerializerOptions
+        {
+            WriteIndented = false
         });
     }
 
@@ -254,12 +263,12 @@ public static class ApiRequestHelper
     public static string GetFormattedHeadersFromRequest(HttpRequestMessage request)
     {
         var headers = new Dictionary<string, string>();
-        
+
         foreach (var header in request.Headers)
         {
             headers[header.Key] = string.Join(", ", header.Value);
         }
-        
+
         if (request.Content?.Headers != null)
         {
             foreach (var header in request.Content.Headers)
@@ -279,12 +288,12 @@ public static class ApiRequestHelper
     public static string GetFormattedHeadersFromResponse(HttpResponseMessage response)
     {
         var headers = new Dictionary<string, string>();
-        
+
         foreach (var header in response.Headers)
         {
             headers[header.Key] = string.Join(", ", header.Value);
         }
-        
+
         if (response.Content?.Headers != null)
         {
             foreach (var header in response.Content.Headers)

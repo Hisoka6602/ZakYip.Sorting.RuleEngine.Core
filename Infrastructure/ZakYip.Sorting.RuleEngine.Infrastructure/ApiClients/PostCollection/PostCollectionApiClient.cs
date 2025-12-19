@@ -1,10 +1,10 @@
-using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Domain.Constants;
-using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -25,18 +25,21 @@ public class PostCollectionApiClient : IWcsApiAdapter
     private readonly ILogger<PostCollectionApiClient> _logger;
     private readonly ISystemClock _clock;
     private readonly IPostCollectionConfigRepository _configRepository;
-    
+
     // 使用线程安全的实例级序列号
     private long _sequenceNumber;
+
     private readonly object _sequenceLock = new();
 
     // 缓存配置以避免每次请求都查询数据库
     private PostCollectionConfig? _cachedConfig;
+
     private DateTime _configCacheTime = DateTime.MinValue;
     private readonly TimeSpan _configCacheExpiry = TimeSpan.FromMinutes(5);
-    
+
     // SOAP namespaces
     private const string SoapEnvelopeNamespace = "http://schemas.xmlsoap.org/soap/envelope/";
+
     private const string WebServiceNamespace = "http://serverNs.webservice.pcs.jdpt.chinapost.cn/";
 
     public PostCollectionApiClient(
@@ -66,7 +69,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
         // 从数据库加载配置
         var config = await _configRepository.GetByIdAsync(PostCollectionConfig.SingletonId).ConfigureAwait(false);
-        
+
         if (config == null)
         {
             // 如果配置不存在，创建默认配置
@@ -87,7 +90,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 CreatedAt = _clock.LocalNow,
                 UpdatedAt = _clock.LocalNow
             };
-            
+
             await _configRepository.AddAsync(config).ConfigureAwait(false);
         }
 
@@ -116,7 +119,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        
+
         try
         {
             // 加载配置
@@ -128,17 +131,20 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 stopwatch.Stop();
                 const string notApplicableUrl = "SKIPPED://noread-barcode";
                 var skipMessage = "NoRead barcode skipped";
-                
+
                 // 生成示例curl命令，展示如果处理该条码时的请求格式
                 // Generate example curl command showing what the request would look like if processed
                 var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
                 var skipCurl = ApiRequestHelper.GenerateFormattedCurl(
                     "POST",
                     notApplicableUrl,
-                    new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    new Dictionary<string, string>
+                    {
+                        ["Content-Type"] = "application/json"
+                    },
                     exampleBody);
                 skipCurl = $"# NoRead barcode skipped - Example request format:\n{skipCurl}";
-                
+
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Success,
@@ -171,29 +177,29 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
-            
+
             // 生成请求头信息用于日志记录
             var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
-            
+
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getYJSM\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
-            
+
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
-            
+
             stopwatch.Stop();
-            
+
             // 获取响应头信息
             var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
@@ -220,7 +226,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             }
             else
             {
-                _logger.LogWarning("扫描包裹失败（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}", 
+                _logger.LogWarning("扫描包裹失败（邮政分揽投机构），条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
                 return new WcsApiResponse
@@ -250,10 +256,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
-            
+
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
@@ -265,18 +271,18 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("||#END")
                 .ToString();
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
-            
+
             // 生成请求头信息
             var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
-            
+
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getYJSM\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
@@ -313,14 +319,13 @@ public class PostCollectionApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        
+
         try
         {
-            _logger.LogDebug("请求格口（邮政分揽投机构），包裹ID: {ParcelId}, 条码: {Barcode}", 
+            _logger.LogDebug("请求格口（邮政分揽投机构），包裹ID: {ParcelId}, 条码: {Barcode}",
                 parcelId, dwsData.Barcode);
             // 加载配置
             var config = await GetConfigAsync().ConfigureAwait(false);
-
 
             // 先提交扫描信息
             await ScanParcelAsync(dwsData.Barcode, cancellationToken).ConfigureAwait(false);
@@ -345,29 +350,29 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
-            
+
             // 生成请求头信息用于日志记录
             var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getLTGKCX\"";
-            
+
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getLTGKCX\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
-            
+
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
-            
+
             stopwatch.Stop();
-            
+
             // 获取响应头信息
             var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
@@ -428,21 +433,21 @@ public class PostCollectionApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "请求格口异常（邮政分揽投机构），包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            _logger.LogError(ex, "请求格口异常（邮政分揽投机构），包裹ID: {ParcelId}, 耗时: {Duration}ms",
                 parcelId, stopwatch.ElapsedMilliseconds);
 
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
-            
+
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
             var seqNum = GetNextSequenceNumber();
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
-            
+
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
@@ -457,18 +462,18 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("||#END")
                 .ToString();
             var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
-            
+
             // 生成请求头信息
             var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getLTGKCX\"";
-            
+
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getLTGKCX\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
@@ -508,20 +513,20 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
         const string notApplicableUrl = "NOT_IMPLEMENTED://upload-image";
         var notImplementedMessage = "邮政分揽投机构图片上传功能未实现 / Postal collection institution image upload feature not implemented";
-        
+
         // 生成示例curl命令，展示如果实现该功能时的请求格式
         // Generate example curl command showing what the request would look like if implemented
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> 
-            { 
+            new Dictionary<string, string>
+            {
                 ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
                 ["X-Barcode"] = barcode
             },
             $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
         curlCommand = $"# Feature not implemented - Example request format:\n{curlCommand}";
-        
+
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
@@ -552,13 +557,13 @@ public class PostCollectionApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        
+
         try
         {
             // 加载配置
             var config = await GetConfigAsync().ConfigureAwait(false);
 
-            _logger.LogDebug("落格回调（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}", 
+            _logger.LogDebug("落格回调（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}",
                 parcelId, chuteId, barcode);
 
             var seqNum = GetNextSequenceNumber();
@@ -580,29 +585,29 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("notifyChuteLanding", arg0);
-            
+
             // 生成请求头信息用于日志记录
             var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"notifyChuteLanding\"";
-            
+
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"notifyChuteLanding\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
-            
+
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
-            
+
             stopwatch.Stop();
-            
+
             // 获取响应头信息
             var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
@@ -657,21 +662,21 @@ public class PostCollectionApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "落格回调异常（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}", 
+            _logger.LogError(ex, "落格回调异常（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}",
                 parcelId, chuteId);
 
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
-            
+
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
             var seqNum = GetNextSequenceNumber();
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
-            
+
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
@@ -685,18 +690,18 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("||#END")
                 .ToString();
             var soapRequest = BuildSoapEnvelope("notifyChuteLanding", arg0);
-            
+
             // 生成请求头信息
             var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"notifyChuteLanding\"";
-            
+
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"notifyChuteLanding\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
