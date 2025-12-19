@@ -17,16 +17,16 @@ public static class ApiRequestHelper
     private const int MaxExceptionDepth = 10;
 
     /// <summary>
-    /// 获取详细的异常信息，包括所有内部异常
-    /// Get detailed exception message including all inner exceptions
+    /// 获取详细的异常信息，包括异常类型和所有内部异常
+    /// Get detailed exception message including exception types and all inner exceptions
     /// </summary>
     /// <param name="exception">
     /// 异常对象；如果为 null，则返回空字符串。
     /// Exception object; if null, an empty string is returned.
     /// </param>
     /// <returns>
-    /// 详细的异常信息；如果 <paramref name="exception"/> 为 null，则返回空字符串。
-    /// Detailed exception message; if <paramref name="exception"/> is null, an empty string is returned.
+    /// 详细的异常信息，格式：[异常类型] 消息 --> [内部异常类型] 内部消息
+    /// Detailed exception message in format: [ExceptionType] Message --> [InnerExceptionType] Inner Message
     /// </returns>
     public static string GetDetailedExceptionMessage(Exception? exception)
     {
@@ -46,6 +46,11 @@ public static class ApiRequestHelper
                 messages.Append(" --> ");
             }
 
+            // 包含异常类型，使错误信息更清晰明确
+            // Include exception type to make error message clearer and more specific
+            messages.Append('[');
+            messages.Append(currentException.GetType().Name);
+            messages.Append("] ");
             messages.Append(currentException.Message);
 
             currentException = currentException.InnerException;
