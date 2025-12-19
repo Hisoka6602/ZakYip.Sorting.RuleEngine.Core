@@ -14,6 +14,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCent
 /// 邮政处理中心API客户端实现
 /// Postal Processing Center API client implementation
 /// 参考: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostApi.cs
+/// 方法映射 / Method Mapping:
+/// - NotifyChuteLandingAsync → PostApi.UploadInBackground
 /// 使用SOAP协议进行通信，直接实现IWcsApiAdapter接口
 /// Uses SOAP protocol, directly implements IWcsApiAdapter interface
 /// 配置从LiteDB加载，支持热更新
@@ -578,6 +580,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// <summary>
     /// 落格回调 - 通知邮政处理中心包裹已落入指定格口
     /// Chute landing callback (notifyChuteLanding)
+    /// 对应参考代码 PostApi.UploadInBackground 方法
+    /// Corresponds to PostApi.UploadInBackground method in reference code
     /// </summary>
     public async Task<WcsApiResponse> NotifyChuteLandingAsync(
         string parcelId,

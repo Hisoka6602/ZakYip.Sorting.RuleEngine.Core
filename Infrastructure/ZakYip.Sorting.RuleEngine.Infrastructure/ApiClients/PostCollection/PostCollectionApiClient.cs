@@ -14,6 +14,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 /// 邮政分揽投机构API客户端实现
 /// Postal Collection/Delivery Institution API client implementation
 /// 参考: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostInApi.cs
+/// 方法映射 / Method Mapping:
+/// - NotifyChuteLandingAsync → PostInApi.UploadInBackground
 /// 使用SOAP协议进行通信，直接实现IWcsApiAdapter接口
 /// Uses SOAP protocol, directly implements IWcsApiAdapter interface
 /// 配置从LiteDB加载，支持热更新
@@ -548,6 +550,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
     /// <summary>
     /// 落格回调 - 通知邮政分揽投机构包裹已落入指定格口
     /// Chute landing callback (notifyChuteLanding)
+    /// 对应参考代码 PostInApi.UploadInBackground 方法
+    /// Corresponds to PostInApi.UploadInBackground method in reference code
     /// </summary>
     public async Task<WcsApiResponse> NotifyChuteLandingAsync(
         string parcelId,
