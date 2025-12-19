@@ -107,12 +107,18 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "旺店通ERP旗舰版不支持扫描包裹功能",
+            FormattedMessage = "旺店通ERP旗舰版不支持扫描包裹功能 / WDT ERP Flagship does not support parcel scanning",
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
@@ -244,7 +250,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Success,
-                    FormattedMessage = "请求格口成功",
+                    FormattedMessage = "请求格口成功 / Request chute succeeded",
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
                     RequestUrl = config.Url,
@@ -267,7 +273,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Failure,
-                    FormattedMessage = $"请求格口失败: {response.StatusCode}",
+                    FormattedMessage = $"请求格口失败 / Request chute failed: {response.StatusCode}",
                     ResponseBody = responseContent,
                     ErrorMessage = $"请求格口失败: {response.StatusCode}",
                     ParcelId = parcelId,
@@ -295,7 +301,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
@@ -328,12 +334,18 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "旺店通ERP旗舰版不支持上传图片功能",
+            FormattedMessage = "旺店通ERP旗舰版不支持上传图片功能 / WDT ERP Flagship does not support image upload",
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
@@ -352,12 +364,18 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "旺店通ERP旗舰版不支持落格回调功能",
+            FormattedMessage = "旺店通ERP旗舰版不支持落格回调功能 / WDT ERP Flagship does not support chute landing callback",
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = parcelId,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 

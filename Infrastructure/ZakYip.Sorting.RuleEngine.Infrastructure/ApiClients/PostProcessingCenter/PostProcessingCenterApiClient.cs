@@ -126,9 +126,16 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     RequestStatus = ApiRequestStatus.Success,
                     FormattedMessage = "NoRead barcode skipped",
                     ResponseBody = "NoRead barcode skipped",
+                    ParcelId = barcode,
+                    RequestUrl = string.Empty,
+                    RequestBody = null,
+                    RequestHeaders = null,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    DurationMs = 0
+                    ResponseStatusCode = 200,
+                    ResponseHeaders = null,
+                    DurationMs = 0,
+                    FormattedCurl = null
                 };
             }
 
@@ -141,11 +148,18 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Failure,
-                    FormattedMessage = "邮政处理中心API已禁用",
+                    FormattedMessage = "邮政处理中心API已禁用 / Postal processing center API disabled",
                     ResponseBody = "API disabled",
+                    ParcelId = barcode,
+                    RequestUrl = string.Empty,
+                    RequestBody = null,
+                    RequestHeaders = null,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    DurationMs = 0
+                    ResponseStatusCode = 200,
+                    ResponseHeaders = null,
+                    DurationMs = 0,
+                    FormattedCurl = null
                 };
             }
 
@@ -212,7 +226,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
@@ -332,7 +346,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
@@ -360,12 +374,18 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "邮政处理中心图片上传功能未实现",
+            FormattedMessage = "邮政处理中心图片上传功能未实现 / Postal processing center image upload feature not implemented",
             ResponseBody = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
@@ -463,7 +483,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,

@@ -129,9 +129,16 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     RequestStatus = ApiRequestStatus.Success,
                     FormattedMessage = "NoRead barcode skipped",
                     ResponseBody = "NoRead barcode skipped",
+                    ParcelId = barcode,
+                    RequestUrl = string.Empty,
+                    RequestBody = null,
+                    RequestHeaders = null,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    DurationMs = 0
+                    ResponseStatusCode = 200,
+                    ResponseHeaders = null,
+                    DurationMs = 0,
+                    FormattedCurl = null
                 };
             }
 
@@ -198,7 +205,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
@@ -318,7 +325,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
@@ -346,12 +353,18 @@ public class PostCollectionApiClient : IWcsApiAdapter
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "邮政分揽投机构图片上传功能未实现",
+            FormattedMessage = "邮政分揽投机构图片上传功能未实现 / Postal collection institution image upload feature not implemented",
             ResponseBody = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,
+            RequestUrl = string.Empty,
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 0
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 0,
+            FormattedCurl = null
         });
     }
 
@@ -449,7 +462,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
             return new WcsApiResponse
             {
-                RequestStatus = ApiRequestStatus.Failure,
+                RequestStatus = ApiRequestStatus.Exception,
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
