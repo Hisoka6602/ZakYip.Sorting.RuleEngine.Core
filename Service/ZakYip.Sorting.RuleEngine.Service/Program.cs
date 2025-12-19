@@ -38,6 +38,19 @@ try
 {
     logger.Info("应用程序启动中...");
 
+    // 预读取配置以获取 MiniApi.Urls 设置
+    // Pre-read configuration to get MiniApi.Urls settings
+    var configuration = new ConfigurationBuilder()
+        .SetBasePath(Directory.GetCurrentDirectory())
+        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true, reloadOnChange: true)
+        .AddEnvironmentVariables()
+        .AddCommandLine(args)
+        .Build();
+    
+    var appSettingsForUrls = configuration.GetSection("AppSettings").Get<AppSettings>() 
+        ?? new AppSettings();
+
     var host = Host.CreateDefaultBuilder(args)
 #if !DEBUG
         // 仅在Release模式下配置Windows服务
@@ -50,6 +63,24 @@ try
         .UseNLog()
         .ConfigureWebHostDefaults(webBuilder =>
         {
+            // 配置监听URL（在ConfigureWebHostDefaults开始时立即配置）
+            // Configure listen URLs (configure immediately at the start of ConfigureWebHostDefaults)
+            if (appSettingsForUrls.MiniApi?.Urls != null && appSettingsForUrls.MiniApi.Urls.Length > 0)
+            {
+                // 检查是否通过命令行参数指定了URLs
+                // Check if URLs are specified via command line arguments
+                var urlsFromArgs = configuration["urls"];
+                if (string.IsNullOrEmpty(urlsFromArgs))
+                {
+                    logger.Info("从配置文件应用监听地址: {Urls}", string.Join(", ", appSettingsForUrls.MiniApi.Urls));
+                    webBuilder.UseUrls(appSettingsForUrls.MiniApi.Urls);
+                }
+                else
+                {
+                    logger.Info("使用命令行指定的监听地址: {Urls}", urlsFromArgs);
+                }
+            }
+
             webBuilder.ConfigureServices((context, services) =>
             {
                 var configuration = context.Configuration;
@@ -617,22 +648,6 @@ try
                 options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
                 options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
                 options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
-            });
-
-            // 配置监听URL（仅当未通过命令行参数指定时才使用配置文件中的URL）
-            // Configure listen URLs (only use config file URLs if not specified via command line)
-            webBuilder.ConfigureAppConfiguration((context, config) =>
-            {
-                var tempConfig = config.Build();
-                var appSettings = tempConfig.GetSection("AppSettings").Get<AppSettings>() 
-                    ?? new AppSettings();
-                var urls = tempConfig["urls"];
-                if (string.IsNullOrEmpty(urls) && 
-                    appSettings.MiniApi?.Urls != null && 
-                    appSettings.MiniApi.Urls.Length > 0)
-                {
-                    webBuilder.UseUrls(appSettings.MiniApi.Urls);
-                }
             });
         })
         .Build();
