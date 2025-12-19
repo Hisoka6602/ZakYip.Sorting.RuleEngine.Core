@@ -52,7 +52,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
         _logger = logger;
         _clock = clock;
         _configRepository = configRepository;
-        _sequenceNumber = new DateTimeOffset(_clock.UtcNow).ToUnixTimeMilliseconds();
+        _sequenceNumber = 1;
     }
 
     /// <summary>
