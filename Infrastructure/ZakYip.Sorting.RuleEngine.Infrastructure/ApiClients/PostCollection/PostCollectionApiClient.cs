@@ -42,6 +42,11 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
     private const string WebServiceNamespace = "http://serverNs.webservice.pcs.jdpt.chinapost.cn/";
 
+    // 落格回调参数常量 / Chute landing callback parameter constants
+    // 参照 PostInApi.UploadInBackground 的参数格式
+    private const string PlaceholderZero = "0";  // 占位符字段 / Placeholder field value
+    private const string SuccessStatus = "1";     // 成功落格状态 / Success landing status
+
     public PostCollectionApiClient(
         HttpClient httpClient,
         ILogger<PostCollectionApiClient> logger,
@@ -580,23 +585,23 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
                 .Append(barcode).Append("::")
-                .Append("0").Append("::")  // 参数3
-                .Append("0").Append("::")  // 参数4
+                .Append(PlaceholderZero).Append("::")  // 参数3
+                .Append(PlaceholderZero).Append("::")  // 参数4
                 .Append(config.EmployeeNumber).Append("::")
-                .Append("0").Append("::")  // 参数6
+                .Append(PlaceholderZero).Append("::")  // 参数6
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
-                .Append("0").Append("::")  // routingDirection
-                .Append("0").Append("::")  // mailType
+                .Append(PlaceholderZero).Append("::")  // routingDirection
+                .Append(PlaceholderZero).Append("::")  // mailType
                 .Append(chuteId).Append("::")
-                .Append("1").Append("::")  // Status: 1=成功落格
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0")  // sortingSchemeCode
+                .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero)  // sortingSchemeCode
                 .Append("||#END")
                 .ToString();
 
@@ -693,23 +698,23 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
                 .Append(barcode).Append("::")
-                .Append("0").Append("::")  // 参数3
-                .Append("0").Append("::")  // 参数4
+                .Append(PlaceholderZero).Append("::")  // 参数3
+                .Append(PlaceholderZero).Append("::")  // 参数4
                 .Append(config.EmployeeNumber).Append("::")
-                .Append("0").Append("::")  // 参数6
+                .Append(PlaceholderZero).Append("::")  // 参数6
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
-                .Append("0").Append("::")  // routingDirection
-                .Append("0").Append("::")  // mailType
+                .Append(PlaceholderZero).Append("::")  // routingDirection
+                .Append(PlaceholderZero).Append("::")  // mailType
                 .Append(chuteId).Append("::")
-                .Append("1").Append("::")  // Status: 1=成功落格
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0").Append("::")
-                .Append("0")  // sortingSchemeCode
+                .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero).Append("::")
+                .Append(PlaceholderZero)  // sortingSchemeCode
                 .Append("||#END")
                 .ToString();
             var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
