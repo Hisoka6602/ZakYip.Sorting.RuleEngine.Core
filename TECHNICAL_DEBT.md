@@ -77,16 +77,17 @@ This document records identified technical debt in the project. Before opening a
 
 ## 🔄 影分身代码清理记录 / Shadow Clone Code Cleanup Log
 
-### ✅ 已消除的影分身 / Eliminated Shadow Clones (2025-12-11)
+### ✅ 已消除的影分身 / Eliminated Shadow Clones
 
 | 日期 Date | 类型 Type | 描述 Description | 解决方案 Solution |
 |-----------|----------|------------------|-------------------|
+| 2025-12-19 | Configuration | 第三方API配置类（8个文件）ThirdPartyApiSettings, WdtWmsApiSettings, JushuitanErpApiSettings 等 | 删除 appsettings.json 配置类，统一从 LiteDB 读取 / Deleted appsettings.json config classes, unified to LiteDB |
 | 2025-12-11 | DTO | ParcelCreationResponse ↔ DwsDataResponse (100%相似) | 抽取 OperationResponseBase 基类 / Extracted OperationResponseBase base class |
 | 2025-12-11 | Options | CircuitBreakerSettings (Service ↔ Infrastructure, 100%相似) | 统一使用 Infrastructure.DatabaseCircuitBreakerSettings / Unified to Infrastructure.DatabaseCircuitBreakerSettings |
 | 2025-12-11 | Options | LogFileCleanupSettings (Service ↔ Infrastructure, 100%相似) | 统一使用 Infrastructure.LogFileCleanupSettings / Unified to Infrastructure.LogFileCleanupSettings |
 
-**总计消除 / Total Eliminated**: 3 组影分身 / 3 shadow clone groups
-**净减少代码行数 / Net Lines Reduced**: ~100 行 / ~100 lines
+**总计消除 / Total Eliminated**: 11 个影分身（8个配置类 + 3个前期消除）/ 11 shadow clones (8 config classes + 3 previous)
+**净减少代码行数 / Net Lines Reduced**: ~150 行 / ~150 lines
 
 ### 🔍 分析的误报 / Analyzed False Positives (2025-12-11)
 

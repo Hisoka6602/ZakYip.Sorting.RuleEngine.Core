@@ -27,53 +27,11 @@ public class AppSettings
     public SqliteSettings Sqlite { get; set; } = new();
 
     /// <summary>
-    /// WCS API配置
-    /// WCS API configuration
-    /// </summary>
-    public ThirdPartyApiSettings WcsApi { get; set; } = new();
-
-    /// <summary>
     /// 激活的WCS API适配器类型
     /// Active wcs API adapter type
     /// 可选值: WcsApiClient, WdtWmsApiClient, JushuitanErpApiClient, PostCollectionApiClient, PostProcessingCenterApiClient
     /// </summary>
     public string ActiveApiAdapter { get; set; } = "WcsApiClient";
-
-    /// <summary>
-    /// 旺店通WMS API配置
-    /// WDT WMS API configuration
-    /// </summary>
-    public WdtWmsApiSettings WdtWmsApi { get; set; } = new();
-
-    /// <summary>
-    /// 聚水潭ERP API配置
-    /// Jushuituan ERP API configuration
-    /// </summary>
-    public JushuitanErpApiSettings JushuitanErpApi { get; set; } = new();
-
-    /// <summary>
-    /// 邮政处理中心API配置
-    /// Postal Processing Center API configuration
-    /// </summary>
-    public PostProcessingCenterApiSettings PostProcessingCenterApi { get; set; } = new();
-
-    /// <summary>
-    /// 邮政分揽投机构API配置
-    /// Postal Collection Institution API configuration
-    /// </summary>
-    public PostCollectionApiSettings PostCollectionApi { get; set; } = new();
-
-    /// <summary>
-    /// 邮政处理中心API完整配置
-    /// Postal Processing Center API Full configuration
-    /// </summary>
-    public PostProcessingCenterFullApiSettings PostProcessingCenterFullApi { get; set; } = new();
-
-    /// <summary>
-    /// 邮政分揽投机构API完整配置
-    /// Postal Collection Institution API Full configuration
-    /// </summary>
-    public PostCollectionFullApiSettings PostCollectionFullApi { get; set; } = new();
 
     /// <summary>
     /// MiniAPI配置

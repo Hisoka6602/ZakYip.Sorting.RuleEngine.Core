@@ -1,8 +1,29 @@
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.WcsApiClient.ConsoleTest;
+
+// Simple test config repository implementation for console test
+file class TestWcsApiConfigRepository : IWcsApiConfigRepository
+{
+    private readonly WcsApiConfig _config;
+
+    public TestWcsApiConfigRepository(WcsApiConfig config)
+    {
+        _config = config;
+    }
+
+    public Task<WcsApiConfig?> GetByIdAsync(string configId) => Task.FromResult<WcsApiConfig?>(_config);
+    public Task<bool> AddAsync(WcsApiConfig entity) => Task.FromResult(true);
+    public Task<bool> UpdateAsync(WcsApiConfig entity) => Task.FromResult(true);
+    public Task<bool> DeleteAsync(string id) => Task.FromResult(true);
+    public Task<bool> UpsertAsync(WcsApiConfig entity) => Task.FromResult(true);
+    public Task<IEnumerable<WcsApiConfig>> GetAllAsync() => Task.FromResult<IEnumerable<WcsApiConfig>>(new[] { _config });
+    public Task<IEnumerable<WcsApiConfig>> GetEnabledConfigsAsync() => 
+        Task.FromResult<IEnumerable<WcsApiConfig>>(_config.IsEnabled ? new[] { _config } : Array.Empty<WcsApiConfig>());
+}
 
 class Program
 {
@@ -26,7 +47,22 @@ class Program
         if (!string.IsNullOrEmpty(API_KEY)) httpClient.DefaultRequestHeaders.Add("X-API-Key", API_KEY);
         
         var clock = new Infrastructure.Services.SystemClock();
-        var client = new Infrastructure.ApiClients.WcsApiClient(httpClient, logger, clock);
+        
+        // Create test config repository
+        var testConfig = new WcsApiConfig
+        {
+            ConfigId = WcsApiConfig.SingletonId,
+            Url = BASE_URL,
+            ApiKey = API_KEY,
+            TimeoutMs = TIMEOUT_SECONDS * 1000,
+            IsEnabled = true,
+            Description = "Console test config",
+            CreatedAt = clock.LocalNow,
+            UpdatedAt = clock.LocalNow
+        };
+        var configRepo = new TestWcsApiConfigRepository(testConfig);
+        
+        var client = new Infrastructure.ApiClients.WcsApiClient(httpClient, logger, clock, configRepo);
         
         Console.WriteLine($"URL: {BASE_URL}\n");
         

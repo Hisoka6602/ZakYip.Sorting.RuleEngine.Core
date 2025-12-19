@@ -13,6 +13,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// <summary>
 /// WCS API客户端实现
 /// WCS API client implementation
+/// 配置从LiteDB加载，支持热更新
+/// Configuration loaded from LiteDB with hot reload support
 /// </summary>
 public class WcsApiClient : IWcsApiAdapter
 {
@@ -20,21 +22,88 @@ public class WcsApiClient : IWcsApiAdapter
     private readonly ILogger<WcsApiClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ISystemClock _clock;
+    private readonly IWcsApiConfigRepository _configRepository;
+    
+    // 缓存配置以避免每次请求都查询数据库
+    // 使用 SemaphoreSlim 保证线程安全
+    private WcsApiConfig? _cachedConfig;
+    private DateTime _configCacheTime = DateTime.MinValue;
+    private readonly TimeSpan _configCacheExpiry = TimeSpan.FromMinutes(5);
+    private readonly SemaphoreSlim _configLock = new(1, 1);
 
     public WcsApiClient(
         HttpClient httpClient,
         ILogger<WcsApiClient> logger,
-        ISystemClock clock)
+        ISystemClock clock,
+        IWcsApiConfigRepository configRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _clock = clock;
+        _configRepository = configRepository;
         
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false
         };
+    }
+    
+    /// <summary>
+    /// 获取配置，使用缓存以提高性能（线程安全）
+    /// Get configuration with caching for performance (thread-safe)
+    /// </summary>
+    private async Task<WcsApiConfig> GetConfigAsync()
+    {
+        // 快速检查缓存（无锁）
+        if (_cachedConfig != null && _clock.LocalNow - _configCacheTime < _configCacheExpiry)
+        {
+            return _cachedConfig;
+        }
+
+        // 使用锁保护配置加载
+        await _configLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            // 双重检查：其他线程可能已经加载了配置
+            if (_cachedConfig != null && _clock.LocalNow - _configCacheTime < _configCacheExpiry)
+            {
+                return _cachedConfig;
+            }
+
+            // 从数据库加载配置
+            var config = await _configRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
+            
+            if (config == null)
+            {
+                // 如果配置不存在，创建默认配置
+                _logger.LogWarning("WCS API配置不存在，使用默认配置");
+                config = new WcsApiConfig
+                {
+                    ConfigId = WcsApiConfig.SingletonId,
+                    Url = "http://localhost:8080/wcs", // 默认URL，需要通过API更新
+                    ApiKey = null,
+                    TimeoutMs = 30000,
+                    DisableSslValidation = false,
+                    IsEnabled = true,
+                    Description = "默认配置 - 请通过API更新",
+                    CreatedAt = _clock.LocalNow,
+                    UpdatedAt = _clock.LocalNow
+                };
+                
+                await _configRepository.AddAsync(config).ConfigureAwait(false);
+            }
+
+            // 更新缓存
+            _cachedConfig = config;
+            _configCacheTime = _clock.LocalNow;
+
+            return config;
+        }
+        finally
+        {
+            _configLock.Release();
+        }
     }
 
     /// <summary>
@@ -155,9 +224,14 @@ public class WcsApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        // 加载配置
+        var config = await GetConfigAsync().ConfigureAwait(false);
+        
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        var requestUrl = WcsEndpoints.ParcelScan;
+        
+        // 使用配置中的URL构建完整请求URL
+        var requestUrl = $"{config.Url.TrimEnd('/')}/{WcsEndpoints.ParcelScan.TrimStart('/')}";
         
         // 构造请求数据
         var requestData = new
@@ -175,7 +249,7 @@ public class WcsApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug("开始扫描包裹，条码: {Barcode}", barcode);
+            _logger.LogDebug("开始扫描包裹，条码: {Barcode}, URL: {Url}", barcode, requestUrl);
 
             var content = new StringContent(json, Encoding.UTF8, ContentTypes.ApplicationJson);
 
@@ -184,6 +258,12 @@ public class WcsApiClient : IWcsApiAdapter
             {
                 Content = content
             };
+            
+            // 如果配置了ApiKey，添加到请求头
+            if (!string.IsNullOrEmpty(config.ApiKey))
+            {
+                request.Headers.Add("X-API-Key", config.ApiKey);
+            }
             
             formattedCurl = await ApiRequestHelper.GenerateFormattedCurlFromRequestAsync(request);
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
@@ -263,9 +343,14 @@ public class WcsApiClient : IWcsApiAdapter
         OcrData? ocrData = null,
         CancellationToken cancellationToken = default)
     {
+        // 加载配置
+        var config = await GetConfigAsync().ConfigureAwait(false);
+        
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        var requestUrl = WcsEndpoints.ChuteRequest;
+        
+        // 使用配置中的URL构建完整请求URL
+        var requestUrl = $"{config.Url.TrimEnd('/')}/{WcsEndpoints.ChuteRequest.TrimStart('/')}";
         
         // 构造请求数据 - 包含DWS数据
         var requestData = new
@@ -299,7 +384,7 @@ public class WcsApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug("开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}", parcelId, dwsData.Barcode);
+            _logger.LogDebug("开始请求格口，包裹ID: {ParcelId}, 条码: {Barcode}, URL: {Url}", parcelId, dwsData.Barcode, requestUrl);
 
             var content = new StringContent(json, Encoding.UTF8, ContentTypes.ApplicationJson);
 
@@ -308,6 +393,12 @@ public class WcsApiClient : IWcsApiAdapter
             {
                 Content = content
             };
+            
+            // 如果配置了ApiKey，添加到请求头
+            if (!string.IsNullOrEmpty(config.ApiKey))
+            {
+                request.Headers.Add("X-API-Key", config.ApiKey);
+            }
             
             formattedCurl = await ApiRequestHelper.GenerateFormattedCurlFromRequestAsync(request);
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
@@ -390,9 +481,14 @@ public class WcsApiClient : IWcsApiAdapter
         string contentType = ImageFileDefaults.DefaultContentType,
         CancellationToken cancellationToken = default)
     {
+        // 加载配置
+        var config = await GetConfigAsync().ConfigureAwait(false);
+        
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        var requestUrl = WcsEndpoints.ImageUpload;
+        
+        // 使用配置中的URL构建完整请求URL
+        var requestUrl = $"{config.Url.TrimEnd('/')}/{WcsEndpoints.ImageUpload.TrimStart('/')}";
         
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -403,8 +499,8 @@ public class WcsApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug("开始上传图片，条码: {Barcode}, 图片大小: {Size} bytes, 类型: {ContentType}", 
-                barcode, imageData.Length, contentType);
+            _logger.LogDebug("开始上传图片，条码: {Barcode}, 图片大小: {Size} bytes, 类型: {ContentType}, URL: {Url}", 
+                barcode, imageData.Length, contentType, requestUrl);
 
             // 构造multipart/form-data请求
             using var formContent = new MultipartFormDataContent();
@@ -433,6 +529,12 @@ public class WcsApiClient : IWcsApiAdapter
             {
                 Content = formContent
             };
+            
+            // 如果配置了ApiKey，添加到请求头
+            if (!string.IsNullOrEmpty(config.ApiKey))
+            {
+                request.Headers.Add("X-API-Key", config.ApiKey);
+            }
             
             // 注意：对于multipart/form-data，我们简化FormattedCurl（因为包含二进制数据）
             var boundaryParam = formContent.Headers.ContentType?.Parameters.FirstOrDefault(p => p.Name == "boundary");
@@ -523,9 +625,15 @@ public class WcsApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        // 加载配置
+        var config = await GetConfigAsync().ConfigureAwait(false);
+        
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        const string requestUrl = "/api/wcs/chute-landing"; // This should be defined in WcsEndpoints
+        
+        // 使用配置中的URL构建完整请求URL
+        const string endpoint = "/api/wcs/chute-landing"; // This should be defined in WcsEndpoints
+        var requestUrl = $"{config.Url.TrimEnd('/')}/{endpoint.TrimStart('/')}";
         
         HttpResponseMessage? response = null;
         string? responseContent = null;
@@ -536,8 +644,8 @@ public class WcsApiClient : IWcsApiAdapter
         
         try
         {
-            _logger.LogDebug("开始落格回调，包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}", 
-                parcelId, chuteId, barcode);
+            _logger.LogDebug("开始落格回调，包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}, URL: {Url}", 
+                parcelId, chuteId, barcode, requestUrl);
 
             // 构造请求体
             var requestData = new
@@ -563,6 +671,13 @@ public class WcsApiClient : IWcsApiAdapter
             {
                 Content = content
             };
+            
+            // 如果配置了ApiKey，添加到请求头
+            if (!string.IsNullOrEmpty(config.ApiKey))
+            {
+                request.Headers.Add("X-API-Key", config.ApiKey);
+            }
+            
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
             // 发送POST请求
