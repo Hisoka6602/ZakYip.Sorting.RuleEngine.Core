@@ -1,58 +1,54 @@
+using NLog;
 using LiteDB;
+using NLog.Web;
+using MySqlConnector;
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.OpenApi.Models;
-using MySqlConnector;
-using Microsoft.Extensions.Options;
-using NLog;
-using NLog.Web;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
-using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
-using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
-using ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.ApiCommunicationLogs;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Application.Services;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using ZakYip.Sorting.RuleEngine.Service.Configuration;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Sharding;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
-using ZakYip.Sorting.RuleEngine.Service.Configuration;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
+using ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
+using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.ApiCommunicationLogs;
 
 // 配置NLog
 var logger = LogManager.Setup().LoadConfigurationFromFile("nlog.config").GetCurrentClassLogger();
+// 中文注释：强制修正工作目录，避免相对路径（如 appsettings.json）解析到 System32
+Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 
 try
 {
     logger.Info("应用程序启动中...");
 
-    // 预读取配置以获取 MiniApi.Urls 设置
-    // Pre-read configuration to get MiniApi.Urls settings
-    var aspnetCoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-    logger.Info("当前 ASPNETCORE_ENVIRONMENT: {Environment}", aspnetCoreEnvironment);
-    
     var configuration = new ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-        .AddJsonFile($"appsettings.{aspnetCoreEnvironment}.json", optional: true, reloadOnChange: true)
         .AddEnvironmentVariables()
         .AddCommandLine(args)
         .Build();
-    
+
     var appSettingsForUrls = configuration.GetSection("AppSettings").Get<AppSettings>();
-    
+
     if (appSettingsForUrls == null)
     {
         logger.Warn("配置文件中未找到 AppSettings 节点或反序列化失败，已使用默认配置值。");
@@ -84,7 +80,7 @@ try
             {
                 // 检查是否通过命令行参数指定了URLs
                 // Check if URLs are specified via command line arguments
-                var urlsFromArgs = args.Any(a => a.StartsWith("--urls=", StringComparison.OrdinalIgnoreCase) || 
+                var urlsFromArgs = args.Any(a => a.StartsWith("--urls=", StringComparison.OrdinalIgnoreCase) ||
                                                   a.Equals("--urls", StringComparison.OrdinalIgnoreCase));
                 if (!urlsFromArgs)
                 {
@@ -100,36 +96,36 @@ try
             webBuilder.ConfigureServices((context, services) =>
             {
                 var configuration = context.Configuration;
-                
+
                 // 配置应用设置（需要提前读取以配置URL）
                 // Load application settings early to configure URLs
-                var appSettings = configuration.GetSection("AppSettings").Get<AppSettings>() 
+                var appSettings = configuration.GetSection("AppSettings").Get<AppSettings>()
                     ?? new AppSettings();
 
                 // 注册配置
                 services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
-                
+
                 // 注册分片配置
                 services.Configure<ShardingSettings>(configuration.GetSection("AppSettings:Sharding"));
-                
+
                 // 注册日志文件清理配置
                 services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.LogFileCleanupSettings>(
                     configuration.GetSection("AppSettings:LogFileCleanup"));
-                
+
                 // 注册数据库熔断器配置
                 services.Configure<ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DatabaseCircuitBreakerSettings>(
                     configuration.GetSection("AppSettings:MySql:CircuitBreaker"));
-                
+
                 // 注册IDwsTimeoutSettings接口（用于Application层，从LiteDB加载）
                 // Register IDwsTimeoutSettings interface (for Application layer, loaded from LiteDB)
-                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDwsTimeoutSettings, 
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDwsTimeoutSettings,
                     ZakYip.Sorting.RuleEngine.Infrastructure.Configuration.DwsTimeoutSettingsFromDb>();
 
                 // 注册数据库方言
                 // Register database dialects
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.MySqlDialect>();
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Dialects.SqliteDialect>();
-                
+
                 // 根据配置选择主数据库方言
                 // Select primary database dialect based on configuration
                 if (appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString))
@@ -152,35 +148,35 @@ try
                     {
                         Directory.CreateDirectory(dbPath);
                     }
-                    
+
                     var db = new LiteDatabase(appSettings.LiteDb.ConnectionString);
-                    
+
                     // 配置实体ID映射
                     // Configure entity ID mapping
                     ConfigureLiteDbEntityMapping(db.Mapper);
-                    
+
                     return db;
                 });
 
                 // 配置日志数据库（带熔断器的弹性日志仓储）
                 ConfigureSqliteLogging(services, appSettings);
-                
+
                 if (appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString))
                 {
                     try
                     {
                         logger.Info("尝试配置MySQL数据库连接...");
-                        
+
                         // 使用配置的服务器版本或默认版本，避免在服务配置阶段连接数据库
                         // Use configured server version or default version to avoid connecting to database during service configuration
                         var serverVersion = !string.IsNullOrEmpty(appSettings.MySql.ServerVersion)
                             ? ServerVersion.Parse(appSettings.MySql.ServerVersion)
                             : new MySqlServerVersion(new Version(8, 0, 21)); // 默认使用MySQL 8.0.21，作为最低兼容版本。可通过配置使用更高版本（如8.0.33），但默认选择8.0.21以确保与大多数生产环境兼容。
-                        
+
                         services.AddDbContext<MySqlLogDbContext>(options =>
                             ConfigureMySqlDbContext(options, appSettings.MySql.ConnectionString, serverVersion, appSettings.MySql.ConnectionPool),
                             ServiceLifetime.Scoped);
-                        
+
                         // 如果启用了分片功能，也注册ShardedLogDbContext
                         // Register ShardedLogDbContext if sharding is enabled
                         var shardingEnabled = configuration.GetValue<bool>("AppSettings:Sharding:Enabled");
@@ -191,18 +187,18 @@ try
                                 ServiceLifetime.Scoped);
                             logger.Info("分片数据库上下文已注册");
                         }
-                        
+
                         logger.Info("MySQL数据库连接配置成功，使用弹性日志仓储");
                         // 使用带熔断器的弹性日志仓储
                         services.AddScoped<ILogRepository, ResilientLogRepository>();
-                        
+
                         // 注册MySQL表存在性检查器
                         services.AddScoped<ITableExistenceChecker, MySqlTableExistenceChecker>();
-                        
+
                         // 使用MySQL监控告警仓储
                         services.AddScoped<IMonitoringAlertRepository, MySqlMonitoringAlertRepository>();
                         logger.Info("使用MySQL监控告警仓储");
-                        
+
                         // 使用MySQL配置审计日志仓储
                         services.AddScoped<IConfigurationAuditLogRepository, MySqlConfigurationAuditLogRepository>();
                         logger.Info("使用MySQL配置审计日志仓储");
@@ -212,11 +208,11 @@ try
                         // MySQL配置失败，使用SQLite仓储
                         logger.Warn(ex, "MySQL数据库连接配置失败，降级使用SQLite仓储: {Message}", ex.Message);
                         services.AddScoped<ILogRepository, SqliteLogRepository>();
-                        
+
                         // 降级使用SQLite监控告警仓储
                         services.AddScoped<IMonitoringAlertRepository, SqliteMonitoringAlertRepository>();
                         logger.Info("降级使用SQLite监控告警仓储");
-                        
+
                         // 降级使用SQLite配置审计日志仓储
                         services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
                         logger.Info("降级使用SQLite配置审计日志仓储");
@@ -227,11 +223,11 @@ try
                     logger.Info("MySQL未启用或连接字符串为空，使用SQLite仓储");
                     // MySQL未启用，直接使用SQLite仓储
                     services.AddScoped<ILogRepository, SqliteLogRepository>();
-                    
+
                     // 使用SQLite监控告警仓储
                     services.AddScoped<IMonitoringAlertRepository, SqliteMonitoringAlertRepository>();
                     logger.Info("使用SQLite监控告警仓储");
-                    
+
                     // 使用SQLite配置审计日志仓储
                     services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
                     logger.Info("使用SQLite配置审计日志仓储");
@@ -243,7 +239,7 @@ try
                 {
                     client.BaseAddress = new Uri(appSettings.WcsApi.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(appSettings.WcsApi.TimeoutSeconds);
-                    
+
                     if (!string.IsNullOrEmpty(appSettings.WcsApi.ApiKey))
                     {
                         client.DefaultRequestHeaders.Add("X-API-Key", appSettings.WcsApi.ApiKey);
@@ -252,7 +248,7 @@ try
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
                     var handler = new HttpClientHandler();
-                    
+
                     // ⚠️ WARNING: Only disable SSL validation in development/testing environments
                     // 警告：仅在开发/测试环境禁用SSL验证
                     if (appSettings.WcsApi.DisableSslValidation)
@@ -260,7 +256,7 @@ try
                         logger.Warn("WCS API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
                         handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
                     }
-                    
+
                     return handler;
                 });
 
@@ -273,7 +269,7 @@ try
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
                     var handler = new HttpClientHandler();
-                    
+
                     // ⚠️ WARNING: Only disable SSL validation in development/testing environments
                     // 警告：仅在开发/测试环境禁用SSL验证
                     if (appSettings.WdtWmsApi.DisableSslValidation)
@@ -281,7 +277,7 @@ try
                         logger.Warn("WdtWms API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
                         handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
                     }
-                    
+
                     return handler;
                 })
                 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
@@ -305,7 +301,7 @@ try
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
                     var handler = new HttpClientHandler();
-                    
+
                     // ⚠️ WARNING: Only disable SSL validation in development/testing environments
                     // 警告：仅在开发/测试环境禁用SSL验证
                     if (appSettings.JushuitanErpApi.DisableSslValidation)
@@ -313,7 +309,7 @@ try
                         logger.Warn("Jushuitán ERP API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
                         handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
                     }
-                    
+
                     return handler;
                 })
                 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
@@ -355,7 +351,7 @@ try
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<JushuitanErpApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostProcessingCenterApiClient>());
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<PostCollectionApiClient>());
-                
+
                 // 注册模拟适配器（用于自动应答模式）
                 // Register mock adapter (for auto-response mode)
                 services.AddSingleton<MockWcsApiAdapter>();
@@ -380,28 +376,28 @@ try
                 // IMonitoringAlertRepository is now registered above based on database configuration (MySQL or SQLite)
                 services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
                 services.AddScoped<ICommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.CommunicationLogRepository>();
-                
+
                 // 注册DWS相关仓储
                 // Register DWS-related repositories
                 services.AddScoped<IDwsConfigRepository, LiteDbDwsConfigRepository>();
                 services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
                 services.AddScoped<IDwsTimeoutConfigRepository, LiteDbDwsTimeoutConfigRepository>();
-                
+
                 // 注册分拣机配置仓储
                 // Register Sorter configuration repository
                 services.AddScoped<ISorterConfigRepository, LiteDbSorterConfigRepository>();
-                
+
                 // 注册邮政API配置仓储
                 // Register Postal API configuration repositories
                 services.AddScoped<IPostCollectionConfigRepository, LiteDbPostCollectionConfigRepository>();
                 services.AddScoped<IPostProcessingCenterConfigRepository, LiteDbPostProcessingCenterConfigRepository>();
-                
+
                 // 注册ERP API配置仓储
                 // Register ERP API configuration repositories
                 services.AddScoped<IJushuitanErpConfigRepository, LiteDbJushuitanErpConfigRepository>();
                 services.AddScoped<IWdtWmsConfigRepository, LiteDbWdtWmsConfigRepository>();
                 services.AddScoped<IWdtErpFlagshipConfigRepository, LiteDbWdtErpFlagshipConfigRepository>();
-                
+
                 // 注册DWS数据解析器
                 // Register DWS data parser
                 services.AddSingleton<IDwsDataParser, DwsDataParser>();
@@ -418,7 +414,7 @@ try
                 // 注册系统时钟（单例模式）
                 // Register system clock (Singleton mode)
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
-                
+
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();
@@ -427,33 +423,33 @@ try
                 services.AddSingleton<RuleValidationService>();
                 services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
                 services.AddSingleton<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
-                
+
                 // 注册配置热更新服务（单例）
                 // Register configuration hot-reload service (Singleton)
                 services.AddSingleton<ConfigCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
-                
+
                 // 注册适配器管理器（单例）
                 // Register adapter managers (Singleton)
                 services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
                 services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
-                
+
                 // 注册包裹活动追踪器（用于空闲检测）
                 services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
-                
+
                 // 注册配置缓存服务
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Infrastructure.Services.ConfigurationCacheService>();
-                
+
                 // 注册监控Hub通知器
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Service.Hubs.MonitoringHubNotifier>();
-                
+
                 // 注册事件驱动服务
                 services.AddSingleton<ParcelOrchestrationService>();
-                services.AddMediatR(cfg => 
+                services.AddMediatR(cfg =>
                 {
                     cfg.RegisterServicesFromAssembly(typeof(ZakYip.Sorting.RuleEngine.Application.Services.RuleEngineService).Assembly);
                 });
-                
+
                 // 注册后台服务
                 services.AddHostedService<ParcelQueueProcessorService>();
                 services.AddHostedService<DwsTimeoutCheckerService>();
@@ -488,7 +484,7 @@ try
                         options.SerializerSettings.DateFormatString = "yyyy-MM-dd HH:mm:ss";
                     });
                 services.AddEndpointsApiExplorer();
-                
+
                 // 添加SignalR服务
                 services.AddSignalR(options =>
                 {
@@ -500,7 +496,7 @@ try
                     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
                     options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
                 });
-                
+
                 if (appSettings.MiniApi.EnableSwagger)
                 {
                     services.AddSwaggerGen(c =>
@@ -511,7 +507,7 @@ try
                             Version = "v1",
                             Description = "ZakYip 分拣规则引擎核心系统 API - 提供包裹分拣、规则管理、格口管理、日志查询等功能"
                         });
-                        
+
                         // 启用XML文档注释 - Service项目
                         var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
                         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -519,7 +515,7 @@ try
                         {
                             c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
                         }
-                        
+
                         // 启用XML文档注释 - Domain项目
                         var domainXmlFile = "ZakYip.Sorting.RuleEngine.Domain.xml";
                         var domainXmlPath = Path.Combine(AppContext.BaseDirectory, domainXmlFile);
@@ -527,7 +523,7 @@ try
                         {
                             c.IncludeXmlComments(domainXmlPath, includeControllerXmlComments: true);
                         }
-                        
+
                         // 启用XML文档注释 - Application项目
                         var applicationXmlFile = "ZakYip.Sorting.RuleEngine.Application.xml";
                         var applicationXmlPath = Path.Combine(AppContext.BaseDirectory, applicationXmlFile);
@@ -535,10 +531,10 @@ try
                         {
                             c.IncludeXmlComments(applicationXmlPath, includeControllerXmlComments: true);
                         }
-                        
+
                         // 启用数据注解
                         c.EnableAnnotations();
-                        
+
                         // 添加枚举架构过滤器，用于显示枚举值的描述
                         c.SchemaFilter<ZakYip.Sorting.RuleEngine.Service.Filters.EnumSchemaFilter>();
                     });
@@ -558,7 +554,7 @@ try
 
             webBuilder.Configure((context, app) =>
             {
-                var appSettings = context.Configuration.GetSection("AppSettings").Get<AppSettings>() 
+                var appSettings = context.Configuration.GetSection("AppSettings").Get<AppSettings>()
                     ?? new AppSettings();
 
                 // 初始化 SystemClockProvider 用于静态上下文
@@ -568,7 +564,7 @@ try
                     () => clockForProvider.LocalNow,
                     () => clockForProvider.UtcNow
                 );
-                
+
                 // 验证 SystemClockProvider 已初始化
                 // Validate SystemClockProvider is initialized
                 if (!ZakYip.Sorting.RuleEngine.Domain.Services.SystemClockProvider.IsInitialized)
@@ -580,7 +576,7 @@ try
                 InitializeDatabases(app.ApplicationServices, appSettings);
 
                 // 配置HTTP管道
-                
+
                 // 添加API请求日志中间件
                 app.UseMiddleware<ZakYip.Sorting.RuleEngine.Infrastructure.Middleware.ApiRequestLoggingMiddleware>();
 
@@ -599,12 +595,12 @@ try
                 app.UseEndpoints(endpoints =>
                 {
                     endpoints.MapControllers();
-                    
+
                     // 映射SignalR Hub端点
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.SortingHub>("/hubs/sorting");
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.DwsHub>("/hubs/dws");
                     endpoints.MapHub<ZakYip.Sorting.RuleEngine.Service.Hubs.MonitoringHub>("/hubs/monitoring");
-                    
+
                     // 健康检查端点 - 简单版本
                     endpoints.MapGet("/health", () =>
                     {
@@ -616,7 +612,7 @@ try
                         });
                     })
                     .WithName("HealthCheck");
-                    
+
                     // 详细健康检查端点 - 包含所有组件状态
                     endpoints.MapHealthChecks("/health/detail", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
                     {
@@ -683,25 +679,25 @@ try
             try
             {
                 logger.Info("检测到Windows平台，开始配置防火墙和端口规则 | Windows platform detected, starting firewall and port configuration");
-                
+
                 // 获取配置
                 var configuration = host.Services.GetRequiredService<IConfiguration>();
                 var appSettings = configuration.GetSection("AppSettings").Get<ZakYip.Sorting.RuleEngine.Service.Configuration.AppSettings>();
-                
+
                 if (appSettings?.MiniApi?.Urls != null && appSettings.MiniApi.Urls.Length > 0)
                 {
                     // 提取需要的端口
                     var ports = ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager.ExtractPortsFromUrls(appSettings.MiniApi.Urls);
-                    
+
                     if (ports.Any())
                     {
                         logger.Info("检测到需要开放的端口: {Ports} | Detected ports to open: {Ports}", string.Join(", ", ports));
-                        
+
                         // 创建防火墙管理器并配置
                         var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
                         var firewallLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager>();
                         var firewallManager = new ZakYip.Sorting.RuleEngine.Infrastructure.Services.WindowsFirewallManager(firewallLogger);
-                        
+
                         var success = await firewallManager.EnsureFirewallConfiguredAsync(ports).ConfigureAwait(false);
                         if (success)
                         {
@@ -711,7 +707,7 @@ try
                         {
                             logger.Warn("防火墙配置未完全成功，请检查日志 | Firewall configuration not fully successful, please check logs");
                         }
-                        
+
                         // 配置网络适配器（启用巨帧和最大传输缓存）
                         logger.Info("开始配置网络适配器 | Starting network adapter configuration");
                         var adapterSuccess = await firewallManager.ConfigureNetworkAdaptersAsync().ConfigureAwait(false);
@@ -764,29 +760,29 @@ static void ConfigureLiteDbEntityMapping(BsonMapper mapper)
     // Configure entity ID mapping: Map business ID fields to LiteDB's _id field
     // 这样可以确保通过业务ID（如ConfigId）进行查询、更新和删除操作
     // This ensures queries, updates, and deletes work with business IDs (like ConfigId)
-    
+
     // 单例配置实体 - 使用固定ID
     // Singleton configuration entities - Use fixed IDs
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsConfig>()
         .Id(x => x.ConfigId);
-    
+
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.DwsDataTemplate>()
         .Id(x => x.TemplateId);
-    
+
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig>()
         .Id(x => x.ConfigId);
-    
+
     // 其他实体 - 使用自动生成或业务ID
     // Other entities - Use auto-generated or business IDs
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SortingRule>()
         .Id(x => x.RuleId);
-    
+
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.MonitoringAlert>()
         .Id(x => x.AlertId);
-    
+
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.PerformanceMetric>()
         .Id(x => x.MetricId);
-    
+
     // 注意：Chute 使用 ChuteId (long) 作为主键，这是自增ID
     // Note: Chute uses ChuteId (long) as primary key, which is auto-increment
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.Chute>()
@@ -810,9 +806,9 @@ static void ConfigureMySqlDbContext(DbContextOptionsBuilder options, string conn
         ConnectionIdleTimeout = (uint)poolSettings.ConnectionIdleTimeoutSeconds,
         ConnectionTimeout = (uint)poolSettings.ConnectionTimeoutSeconds
     };
-    
+
     options.UseMySql(builder.ConnectionString, serverVersion);
-    
+
     // 配置安全日志选项 / Configure secure logging options
     DatabaseConfigurationHelper.ConfigureSecureLogging(options);
 }
@@ -831,11 +827,11 @@ static void ConfigureSqliteLogging(IServiceCollection services, AppSettings appS
     services.AddDbContext<SqliteLogDbContext>(options =>
     {
         options.UseSqlite(appSettings.Sqlite.ConnectionString);
-        
+
         // 配置安全日志选项 / Configure secure logging options
         DatabaseConfigurationHelper.ConfigureSecureLogging(options);
     });
-    
+
     services.AddScoped<ILogRepository, SqliteLogRepository>();
 }
 
@@ -849,39 +845,39 @@ static bool EnsureMySqlDatabaseExists(string connectionString, NLog.Logger logge
         // 解析连接字符串获取数据库名称
         var builder = new MySqlConnector.MySqlConnectionStringBuilder(connectionString);
         var databaseName = builder.Database;
-        
+
         if (string.IsNullOrEmpty(databaseName))
         {
             logger.Error("MySQL连接字符串中未指定数据库名称");
             return false;
         }
-        
+
         // 创建不包含数据库名称的连接字符串，用于连接到MySQL服务器
         builder.Database = "";
         var serverConnectionString = builder.ConnectionString;
-        
+
         logger.Info("检查MySQL服务器连接: {Server}:{Port}", builder.Server, builder.Port);
-        
+
         // 验证数据库名称，防止SQL注入
         if (!System.Text.RegularExpressions.Regex.IsMatch(databaseName, @"^[a-zA-Z0-9_]+$"))
         {
             logger.Error("数据库名称包含非法字符: {Database}", databaseName);
             return false;
         }
-        
+
         // 连接到MySQL服务器（不指定数据库）
         using (var connection = new MySqlConnector.MySqlConnection(serverConnectionString))
         {
             connection.Open();
             logger.Info("成功连接到MySQL服务器");
-            
+
             // 检查数据库是否存在
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = @databaseName";
                 command.Parameters.AddWithValue("@databaseName", databaseName);
                 var result = command.ExecuteScalar();
-                
+
                 if (result == null)
                 {
                     // 数据库不存在，创建它
@@ -899,7 +895,7 @@ static bool EnsureMySqlDatabaseExists(string connectionString, NLog.Logger logge
                 }
             }
         }
-        
+
         return true;
     }
     catch (Exception ex)
@@ -926,14 +922,14 @@ static void InitializeDatabases(IServiceProvider services, AppSettings appSettin
             if (mysqlContext != null)
             {
                 logger.Info("尝试应用MySQL数据库迁移...");
-                
+
                 // 首先确保数据库存在
                 if (!EnsureMySqlDatabaseExists(appSettings.MySql.ConnectionString, logger))
                 {
                     logger.Warn("无法确保MySQL数据库存在");
                     throw new InvalidOperationException("无法确保MySQL数据库存在");
                 }
-                
+
                 // 检查数据库连接
                 var canConnect = mysqlContext.Database.CanConnect();
                 if (!canConnect)
@@ -941,7 +937,7 @@ static void InitializeDatabases(IServiceProvider services, AppSettings appSettin
                     logger.Warn("无法连接到MySQL数据库");
                     throw new InvalidOperationException("无法连接到MySQL数据库");
                 }
-                
+
                 // 自动应用数据库迁移（这会创建表如果不存在）
                 mysqlContext.Database.Migrate();
                 logger.Info("MySQL数据库迁移成功");
@@ -991,7 +987,7 @@ static void InitializeDatabases(IServiceProvider services, AppSettings appSettin
 /// HTTP客户端配置辅助类 - 提取重复的HTTP处理器配置
 /// HTTP Client Configuration Helper - Extracts duplicate HTTP handler configuration
 /// </summary>
-file static class HttpClientConfigurationHelper
+internal static class HttpClientConfigurationHelper
 {
     /// <summary>
     /// 创建配置好的SocketsHttpHandler，用于邮政API等SOAP服务
@@ -1005,7 +1001,7 @@ file static class HttpClientConfigurationHelper
             SslOptions = new System.Net.Security.SslClientAuthenticationOptions
             {
                 // Allow all SSL/TLS versions for maximum compatibility with postal API servers
-                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
                                      System.Security.Authentication.SslProtocols.Tls13,
                 // Bypass certificate validation (as configured in original code)
                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
@@ -1025,7 +1021,7 @@ file static class HttpClientConfigurationHelper
 /// 数据库配置辅助类 - 提取重复的数据库日志配置
 /// Database Configuration Helper - Extracts duplicate database logging configuration
 /// </summary>
-file static class DatabaseConfigurationHelper
+internal static class DatabaseConfigurationHelper
 {
     /// <summary>
     /// 配置数据库上下文的安全日志选项
@@ -1043,7 +1039,7 @@ file static class DatabaseConfigurationHelper
         // 生产环境：禁用敏感数据日志，防止SQL语句和参数泄露
         options.EnableSensitiveDataLogging(false);
 #endif
-        
+
         // 配置日志：仅记录警告及以上级别，过滤SQL语句日志
         options.LogTo(
             message => System.Diagnostics.Debug.WriteLine(message),

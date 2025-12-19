@@ -80,13 +80,13 @@ public class AppSettings
     /// MiniAPI configuration
     /// </summary>
     public MiniApiSettings MiniApi { get; set; } = new();
-    
+
     /// <summary>
     /// 缓存配置
     /// Cache configuration
     /// </summary>
     public CacheSettings Cache { get; set; } = new();
-    
+
     /// <summary>
     /// 日志文件清理配置 / Log file cleanup configuration
     /// 使用基础设施层的 LogFileCleanupSettings 消除影分身
