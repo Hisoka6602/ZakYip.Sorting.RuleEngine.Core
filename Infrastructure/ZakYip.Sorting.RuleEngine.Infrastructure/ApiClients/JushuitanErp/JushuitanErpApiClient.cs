@@ -109,10 +109,11 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         // 生成示例curl命令，展示如果支持该操作时的请求格式
         // Generate example curl command showing what the request would look like if supported
         var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+        var headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" };
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            headers,
             exampleBody);
         curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
         
@@ -123,8 +124,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
             RequestUrl = notApplicableUrl,
-            RequestBody = null,
-            RequestHeaders = null,
+            RequestBody = exampleBody,
+            RequestHeaders = ApiRequestHelper.FormatHeaders(headers),
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseStatusCode = 200,
@@ -364,10 +365,11 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         // 生成示例curl命令，展示如果支持该操作时的请求格式
         // Generate example curl command showing what the request would look like if supported
         var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { parcelId, chuteId, barcode, timestamp = _clock.LocalNow });
+        var headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" };
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            headers,
             exampleBody);
         curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
         
@@ -378,8 +380,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = parcelId,
             RequestUrl = notApplicableUrl,
-            RequestBody = null,
-            RequestHeaders = null,
+            RequestBody = exampleBody,
+            RequestHeaders = ApiRequestHelper.FormatHeaders(headers),
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseStatusCode = 200,
