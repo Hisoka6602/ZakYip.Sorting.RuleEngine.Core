@@ -87,7 +87,7 @@ This document records identified technical debt in the project. Before opening a
 | 2025-12-11 | Options | LogFileCleanupSettings (Service ↔ Infrastructure, 100%相似) | 统一使用 Infrastructure.LogFileCleanupSettings / Unified to Infrastructure.LogFileCleanupSettings |
 
 **总计消除 / Total Eliminated**: 11 个影分身（8个配置类 + 3个前期消除）/ 11 shadow clones (8 config classes + 3 previous)
-**净减少代码行数 / Net Lines Reduced**: ~300 行 / ~300 lines
+**净减少代码行数 / Net Lines Reduced**: ~150 行 / ~150 lines
 
 ### 🔍 分析的误报 / Analyzed False Positives (2025-12-11)
 

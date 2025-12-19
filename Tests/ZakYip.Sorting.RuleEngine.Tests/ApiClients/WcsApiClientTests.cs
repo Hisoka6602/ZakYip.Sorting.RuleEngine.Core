@@ -26,6 +26,7 @@ public class WcsApiClientTests
         _configRepoMock = new Mock<IWcsApiConfigRepository>();
         
         // Setup default config
+        var clock = new MockSystemClock();
         var defaultConfig = new WcsApiConfig
         {
             ConfigId = WcsApiConfig.SingletonId,
@@ -33,8 +34,8 @@ public class WcsApiClientTests
             TimeoutMs = 30000,
             IsEnabled = true,
             Description = "Test config",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = clock.LocalNow,
+            UpdatedAt = clock.LocalNow
         };
         _configRepoMock.Setup(x => x.GetByIdAsync(It.IsAny<string>()))
             .ReturnsAsync(defaultConfig);
