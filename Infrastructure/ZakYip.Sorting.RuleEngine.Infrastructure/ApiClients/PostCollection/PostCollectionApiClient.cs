@@ -548,6 +548,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
     /// <summary>
     /// 落格回调 - 通知邮政分揽投机构包裹已落入指定格口
     /// Chute landing callback (notifyChuteLanding)
+    /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostInApi.UploadInBackground
+    /// Corresponding reference implementation: PostInApi.UploadInBackground
+    /// 参数拼接格式 / Parameter format: #HEAD::{sequenceId}::{deviceId}::{barcode}::{chuteId}::{timestamp}::{employeeNumber}::{organizationNumber}::{status}::::||#END
     /// </summary>
     public async Task<WcsApiResponse> NotifyChuteLandingAsync(
         string parcelId,
