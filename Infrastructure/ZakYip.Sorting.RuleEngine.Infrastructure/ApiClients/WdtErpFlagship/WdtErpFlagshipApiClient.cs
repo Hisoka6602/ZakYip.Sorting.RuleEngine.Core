@@ -116,7 +116,9 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             notApplicableUrl,
             headers,
             exampleBody);
-        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        // 添加注释说明功能不支持（使用 REM 命令保持单行格式）
+        // Add comment indicating feature not supported (using REM command to maintain single-line format)
+        curlCommand = $"REM Feature not supported - Example request format: && {curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -361,7 +363,9 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 ["X-Barcode"] = barcode
             },
             $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
-        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        // 添加注释说明功能不支持（使用 REM 命令保持单行格式）
+        // Add comment indicating feature not supported (using REM command to maintain single-line format)
+        curlCommand = $"REM Feature not supported - Example request format: && {curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -406,7 +410,9 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             notApplicableUrl,
             headers,
             exampleBody);
-        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        // 添加注释说明功能不支持（使用 REM 命令保持单行格式）
+        // Add comment indicating feature not supported (using REM command to maintain single-line format)
+        curlCommand = $"REM Feature not supported - Example request format: && {curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {

@@ -76,7 +76,6 @@ public static class ApiRequestHelper
     /// <param name="headers">请求头字典</param>
     /// <param name="body">请求体</param>
     /// <returns>格式化的Curl命令字符串</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GenerateFormattedCurl(
         string method,
         string url,
