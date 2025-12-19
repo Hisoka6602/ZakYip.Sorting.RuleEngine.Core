@@ -1,6 +1,6 @@
 # 技术债务文档 / Technical Debt Documentation
 
-🎉 **项目状态 / Project Status**: **✅ 生产就绪 / PRODUCTION READY** ⭐⭐⭐⭐⭐
+🎯 **项目状态 / Project Status**: **⏳ 进行中 / IN PROGRESS** (90%完成 / 90% complete)
 
 本文档记录项目中已识别的技术债务。每次开启 PR 前必须通读此文档，确保不会引入新的技术债务，并在可能的情况下解决现有债务。
 
@@ -40,21 +40,22 @@ This document records identified technical debt in the project. Before opening a
 | 重复代码 Duplicate Code | 82 处 | 🟢 低 Low | ✅ 已达标 (5.3% by lines) |
 | 代码重复率 Duplication Rate | 5.3% (by lines) / 5.88% (by tokens) | 🟡 中 Medium (⚠️ 超过 CI 阈值 5% 按 tokens，需优化) | ⚠️ 需优化 |
 | 影分身代码 Shadow Clone Code | 0 处 (22 个常量误报) | 🟢 无 None | ✅ 已全部消除 |
-| **编译错误 Compilation Errors** | **0 个** | **✅ 无 None** | **✅ 已全部修复！** |
+| **编译错误 Compilation Errors** | **45 个** | **🔴 高 High** | **⏳ 进行中 (见 TD-WCSAPI-002)** |
 | **时间处理规范违规** | **0 处** | **✅ 无 None** | **✅ 已全部修复！(仅 SystemClock 中的 2 处合法实现)** |
 | **编译警告 Compiler Warnings** | **0 个** | **✅ 无 None** | **✅ 已全部修复！** |
 | **API控制器整合** | **0 项** | **✅ 无 None** | **✅ 已完成！(Swagger逻辑分组)** |
 | **API配置端点缺失** | **7 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 | **ERP客户端待重建** | **2 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 | **ConfigId迁移未完成** | **0 项** | **✅ 无 None** | **✅ 已完成 (见 TD-CONFIG-001)** |
+| **WcsApiResponse字段赋值** | **3 个API客户端 + 45个测试错误** | **🔴 高 High** | **⏳ 进行中 90% (见 TD-WCSAPI-002)** |
 
-> **🎉 最新更新 / Latest Update (2025-12-18)**: 
-> - ✅ **编译错误：** 0 个 (100% 修复)
+> **🎉 最新更新 / Latest Update (2025-12-19)**: 
+> - ⏳ **编译错误：** 45 个 (90% 进度：API客户端3/6完成，测试文件80%完成，见 TD-WCSAPI-002)
 > - ✅ **编译警告：** 0 个 (100% 修复！所有警告已通过实际代码改进解决)
 > - ✅ **时间处理：** 138 → 0 违规 (100% 修复，仅剩 SystemClock 中的 2 处合法实现)
 > - ✅ **代码重复率：** 5.3% (by lines) / 5.88% (by tokens) - **低于 CI 阈值 5%（按行），略高于 5%（按 tokens）**
 > - ✅ **影分身代码：** 0 处真实影分身 (22 个常量误报已分析确认)
-> - 🎯 **项目状态** / **Project Status**: **生产就绪 / PRODUCTION READY** ⭐⭐⭐⭐⭐
+> - 🎯 **项目状态** / **Project Status**: **进行中 / IN PROGRESS** (90%完成，预计下个PR完成)
 
 > **注意 / Note:** CI 流水线阈值为 5%，SonarQube 目标为 3%。当前重复率 5.3% (by lines) / 5.88% (by tokens) **按行低于 CI 阈值，但按 tokens 超过阈值 0.88 个百分点**，需继续优化至 <5% (tokens)。
 > CI pipeline threshold is 5%, SonarQube target is 3%. Current duplication rate 5.3% (by lines) / 5.88% (by tokens) **below CI threshold by lines, but exceeds threshold by 0.88 percentage points by tokens**, needs continued optimization to <5% (tokens).
@@ -445,6 +446,215 @@ error CS9035: Required member 'WcsApiResponse.ParcelIdLong' must be set
 - **技术债务来源 / Debt Source**: PR #155 (copilot/fix-upsert-async-failure)
 - **修复PR / Fix PR**: copilot/fix-tech-debt-from-last-pr
 - **提交哈希 / Commit Hash**: 651d950
+
+---
+
+### TD-WCSAPI-002: WcsApiResponse字段赋值不完整和测试文件字段名更新 / Incomplete WcsApiResponse Field Assignments and Test File Field Name Updates
+
+**创建日期 / Created**: 2025-12-19  
+**类别 / Category**: API客户端字段赋值 + 测试代码更新 / API Client Field Assignment + Test Code Updates  
+**严重程度 / Severity**: 🔴 高 High (45个编译错误 / 45 compilation errors)  
+**状态 / Status**: ⏳ 进行中 / In Progress (约90%完成 / ~90% complete)  
+**预估工作量 / Estimated Effort**: 2-3小时 / 2-3 hours
+
+#### 背景 / Background
+
+在修复 TD-WCSAPI-001 后，发现多处 `new WcsApiResponse` 实例没有正确赋值所有必需字段。同时，测试文件中还在使用重构前的旧字段名（`Success`, `Message`, `Data`, `Code`），这些字段在新的结构中已被重命名或移除。
+
+After fixing TD-WCSAPI-001, multiple `new WcsApiResponse` instances were found to be missing required field assignments. Additionally, test files were still using legacy field names (`Success`, `Message`, `Data`, `Code`) from before the refactoring, which have been renamed or removed in the new structure.
+
+#### 问题详情 / Problem Details
+
+**1. API客户端缺失字段 / API Clients Missing Fields**
+
+多个API客户端的WcsApiResponse实例缺少必需字段：
+- `RequestUrl` - 请求URL
+- `RequestHeaders` - 请求头
+- `ResponseHeaders` - 响应头
+- `DurationMs` - 请求耗时
+- `FormattedCurl` - Curl命令（**硬性要求**：即使异常也必须生成）
+
+**影响的文件 / Affected Files:**
+- PostProcessingCenterApiClient.cs - 12个实例
+- PostCollectionApiClient.cs - 12个实例
+- MockWcsApiAdapter.cs - 4个实例
+- JushuitanErpApiClient.cs - 6个实例 ⏳ **待修复**
+- WdtWmsApiClient.cs - 6个实例 ⏳ **待修复**
+- WdtErpFlagshipApiClient.cs - 约6个实例 ⏳ **待修复**
+
+**2. 测试文件使用旧字段名 / Test Files Using Legacy Field Names**
+
+测试文件中约150+处使用了已废弃的字段名：
+- `.Success` → 应改为 `.RequestStatus == ApiRequestStatus.Success`
+- `.Message` → 应改为 `.FormattedMessage`
+- `.Data` → 应改为 `.ResponseBody`
+- `.Code` → 应改为 `.ResponseStatusCode`
+
+**影响的测试文件 / Affected Test Files:**
+- Services/ParcelProcessingServiceTests.cs - 约10处对象初始化器
+- Services/RuleEngineServiceTests.cs - 约20处对象初始化器
+- EventHandlers/DwsDataReceivedEventHandlerTests.cs - 约15处对象初始化器
+- 其他测试文件 - 约100+处已修复
+
+#### 已完成工作 / Completed Work ✅
+
+**API客户端修复 (3/6文件):**
+- ✅ PostProcessingCenterApiClient.cs - 所有12个实例已完整赋值
+  - ScanParcelAsync (5个实例：NoRead跳过、API禁用、成功、失败、异常)
+  - RequestChuteAsync (3个实例：成功、失败、异常)
+  - NotifyChuteLandingAsync (3个实例：成功、失败、异常)
+  - UploadImageAsync (1个实例：未实现)
+- ✅ PostCollectionApiClient.cs - 所有12个实例已完整赋值
+  - 相同的方法和实例数量
+- ✅ MockWcsApiAdapter.cs - 所有4个实例已完整赋值
+  - ScanParcelAsync, RequestChuteAsync, UploadImageAsync, NotifyChuteLandingAsync
+
+**测试文件批量修复 (约80%完成):**
+- ✅ 批量替换 `.Success` → `.RequestStatus == ApiRequestStatus.Success` (约100+处)
+- ✅ 批量替换 `.Message` → `.FormattedMessage` (约100+处)
+- ✅ 批量替换 `.Data` → `.ResponseBody` (约100+处)
+- ✅ 批量替换 `.Code` → `.ResponseStatusCode` (约70+处)
+- ✅ 添加 `using ZakYip.Sorting.RuleEngine.Domain.Enums;` 到所有需要的测试文件
+- ✅ 修复 TestDataBuilder.cs 对象初始化器
+- ✅ 修复 Assert.Equal 类型不匹配 (ResponseStatusCode 是 int?)
+
+**技术修复:**
+- ✅ 修复变量作用域冲突（ScanParcelAsync中的curlCommand变量）
+- ✅ 删除重复的CurlData字段赋值（保留FormattedCurl作为唯一字段）
+- ✅ 添加Stopwatch跟踪准确的DurationMs值
+- ✅ 修复空字符串URL问题（PostAsync("") → PostAsync(config.Url)）
+- ✅ 异常情况下也生成FormattedCurl命令
+
+**编译错误减少:**
+- 从初始的 157 个错误 → 45 个错误 (减少 71%)
+
+#### 待完成工作 / Remaining Work ⏳
+
+**1. API客户端字段完整性 (3/6文件待修复)**
+
+##### JushuitanErpApiClient.cs
+**预估工作量 / Estimated Effort**: 30-45分钟 / 30-45 minutes
+
+需要修复约6个WcsApiResponse实例的字段赋值：
+- 添加 RequestUrl, RequestHeaders, ResponseHeaders
+- 添加 DurationMs (使用Stopwatch)
+- 添加 FormattedCurl (包括异常情况)
+
+##### WdtWmsApiClient.cs
+**预估工作量 / Estimated Effort**: 30-45分钟 / 30-45 minutes
+
+需要修复约6个WcsApiResponse实例的字段赋值（同上）
+
+##### WdtErpFlagshipApiClient.cs
+**预估工作量 / Estimated Effort**: 30-45分钟 / 30-45 minutes
+
+需要修复约6个WcsApiResponse实例的字段赋值（同上）
+
+**2. 测试文件对象初始化器 (约45个错误)**
+
+需要手动修复以下测试文件中的对象初始化器：
+
+##### Services/ParcelProcessingServiceTests.cs
+**错误示例 / Error Examples:**
+```csharp
+// 错误 / Error
+new WcsApiResponse
+{
+    Success = true,
+    Code = "200",
+    Message = "Test",
+    Data = "Test Data"
+}
+
+// 正确 / Correct
+new WcsApiResponse
+{
+    RequestStatus = ApiRequestStatus.Success,
+    ResponseStatusCode = 200,
+    FormattedMessage = "Test",
+    ResponseBody = "Test Data",
+    ParcelId = "TEST",
+    RequestUrl = "http://test.com",
+    RequestHeaders = "Content-Type: application/json",
+    RequestTime = DateTime.Now,
+    ResponseTime = DateTime.Now,
+    DurationMs = 100,
+    FormattedCurl = "curl http://test.com"
+}
+```
+
+**受影响的文件 / Affected Files:**
+- `Tests/ZakYip.Sorting.RuleEngine.Tests/Services/ParcelProcessingServiceTests.cs` (约6-8处)
+- `Tests/ZakYip.Sorting.RuleEngine.Tests/Services/RuleEngineServiceTests.cs` (约20处)
+- `Tests/ZakYip.Sorting.RuleEngine.Tests/EventHandlers/DwsDataReceivedEventHandlerTests.cs` (约15处)
+
+**预估工作量 / Estimated Effort**: 30-45分钟 / 30-45 minutes
+
+#### 实施计划 / Implementation Plan
+
+**下一个PR的修复顺序 / Fix Order for Next PR:**
+
+1. **修复3个剩余API客户端** (1.5-2小时)
+   - JushuitanErpApiClient.cs
+   - WdtWmsApiClient.cs
+   - WdtErpFlagshipApiClient.cs
+   - 使用PostProcessingCenterApiClient.cs作为参考模板
+
+2. **修复测试文件对象初始化器** (30-45分钟)
+   - ParcelProcessingServiceTests.cs
+   - RuleEngineServiceTests.cs
+   - DwsDataReceivedEventHandlerTests.cs
+   - 使用TestDataBuilder.cs作为参考
+
+3. **验证编译** (5-10分钟)
+   - 目标：0个编译错误
+   - 目标：编译警告保持在0个
+
+**总预估工作量 / Total Estimated Effort**: 2-3小时 / 2-3 hours
+
+#### 技术要求 / Technical Requirements
+
+**必需字段清单 / Required Fields Checklist (13个):**
+
+来自 BaseApiCommunication (11个):
+- ParcelId ✅
+- RequestUrl ✅
+- RequestBody ✅
+- RequestHeaders ✅
+- RequestTime ✅
+- DurationMs ✅
+- ResponseTime ✅
+- ResponseBody ✅
+- ResponseStatusCode ✅
+- ResponseHeaders ✅
+- FormattedCurl ✅ **(硬性要求：异常情况下也必须生成)**
+
+WcsApiResponse 特有 (2个 + 可选):
+- RequestStatus ✅
+- FormattedMessage ✅
+- ErrorMessage (错误情况下必需)
+- OcrData (可选)
+
+**关键要求 / Key Requirements:**
+1. **FormattedCurl 必须在任何情况下赋值**，包括异常处理的catch块中
+2. FormattedCurl 必须是可在cmd中执行的有效curl命令
+3. 使用 Stopwatch 跟踪准确的 DurationMs
+4. 不要使用已废弃的 CurlData 字段
+
+#### 相关文档 / Related Documentation
+
+- **编码规范 / Coding Standards**: CODING_STANDARDS.md (第11-17条)
+- **参考实现 / Reference Implementation**: PostProcessingCenterApiClient.cs (完整示例)
+- **测试模板 / Test Template**: TestDataBuilder.cs (CreateMockWcsApiResponse方法)
+
+#### 相关PR / Related PRs
+
+- **当前PR / Current PR**: copilot/check-api-response-assignments
+- **源技术债务 / Source Debt**: TD-WCSAPI-001
+- **提交记录 / Commits**:
+  - 55d9fa3 - PostProcessingCenter和PostCollection修复
+  - 9cacfe9 - 变量作用域修复和MockWcsApiAdapter
+  - 40c56ea - 批量修复测试文件字段名
 
 ---
 

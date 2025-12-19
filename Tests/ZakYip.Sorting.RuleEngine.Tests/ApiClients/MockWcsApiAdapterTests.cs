@@ -40,7 +40,7 @@ public class MockWcsApiAdapterTests
         // Assert
         Assert.NotNull(response);
         Assert.True(response.Success);
-        Assert.Equal("200", response.Code);
+        Assert.Equal(200, response.ResponseStatusCode.Value);
         Assert.Equal(barcode, response.ParcelId);
         Assert.NotNull(response.Data);
     }
@@ -100,9 +100,9 @@ public class MockWcsApiAdapterTests
         // Assert
         Assert.NotNull(response);
         Assert.True(response.Success);
-        Assert.Equal("200", response.Code);
+        Assert.Equal(200, response.ResponseStatusCode.Value);
         Assert.Equal(parcelId, response.ParcelId);
-        Assert.Equal(200, response.ResponseStatusCode);
+        Assert.Equal(200, response.ResponseStatusCode.Value);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class MockWcsApiAdapterTests
         // Assert
         Assert.NotNull(response);
         Assert.True(response.Success);
-        Assert.Equal("200", response.Code);
+        Assert.Equal(200, response.ResponseStatusCode.Value);
         Assert.Equal(barcode, response.ParcelId);
     }
 

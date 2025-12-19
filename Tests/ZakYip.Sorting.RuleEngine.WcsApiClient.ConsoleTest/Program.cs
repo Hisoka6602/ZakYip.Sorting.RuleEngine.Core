@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
@@ -31,7 +32,7 @@ class Program
         
         // Test scan parcel
         var scanResult = await client.ScanParcelAsync("TEST-001");
-        Console.WriteLine($"Scan: {scanResult.Success} - {scanResult.Message}\n");
+        Console.WriteLine($"Scan: {scanResult.RequestStatus == ApiRequestStatus.Success} - {scanResult.FormattedMessage}\n");
         
         Console.WriteLine("Test completed. Press any key...");
         Console.ReadKey();

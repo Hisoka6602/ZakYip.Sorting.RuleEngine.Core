@@ -127,11 +127,20 @@ public static class TestDataBuilder
     {
         return new WcsApiResponse
         {
-            Success = success,
-            Code = code,
-            Message = message,
-            Data = data ?? "Test Data",
-            OcrData = ocrData
+            RequestStatus = success ? ApiRequestStatus.Success : ApiRequestStatus.Failure,
+            ResponseStatusCode = int.TryParse(code, out var statusCode) ? statusCode : 200,
+            FormattedMessage = message,
+            ResponseBody = data ?? "Test Data",
+            OcrData = ocrData,
+            ParcelId = "TEST",
+            RequestUrl = "http://test.com/api",
+            RequestBody = null,
+            RequestHeaders = null,
+            RequestTime = DateTime.Now,
+            ResponseTime = DateTime.Now,
+            ResponseHeaders = null,
+            DurationMs = 100,
+            FormattedCurl = "curl http://test.com/api"
         };
     }
 

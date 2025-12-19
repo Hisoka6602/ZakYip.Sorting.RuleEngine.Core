@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.DTOs;
@@ -75,7 +76,7 @@ public class ParcelProcessingServiceTests
         var response = await _service.ProcessParcelAsync(request);
 
         // Assert
-        Assert.True(response.Success);
+        Assert.True(response.RequestStatus == ApiRequestStatus.Success);
         Assert.Equal("PKG001", response.ParcelId);
         Assert.Equal(expectedChute, response.ChuteNumber);
         Assert.Null(response.ErrorMessage);
@@ -104,7 +105,7 @@ public class ParcelProcessingServiceTests
         var response = await _service.ProcessParcelAsync(request);
 
         // Assert
-        Assert.False(response.Success);
+        Assert.False(response.RequestStatus == ApiRequestStatus.Success);
         Assert.Equal("PKG002", response.ParcelId);
         Assert.Null(response.ChuteNumber);
     }
@@ -153,7 +154,7 @@ public class ParcelProcessingServiceTests
                 It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        Assert.True(response.Success);
+        Assert.True(response.RequestStatus == ApiRequestStatus.Success);
     }
 
     [Fact]
@@ -185,7 +186,7 @@ public class ParcelProcessingServiceTests
         var response = await _service.ProcessParcelAsync(request);
 
         // Assert
-        Assert.True(response.Success);
+        Assert.True(response.RequestStatus == ApiRequestStatus.Success);
         Assert.Equal("CHUTE-C01", response.ChuteNumber);
         _mockLogRepository.Verify(
             l => l.LogWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
@@ -214,7 +215,7 @@ public class ParcelProcessingServiceTests
         var response = await _service.ProcessParcelAsync(request);
 
         // Assert
-        Assert.False(response.Success);
+        Assert.False(response.RequestStatus == ApiRequestStatus.Success);
         Assert.Equal("PKG005", response.ParcelId);
         Assert.Equal(exceptionMessage, response.ErrorMessage);
         _mockLogRepository.Verify(
@@ -249,7 +250,7 @@ public class ParcelProcessingServiceTests
                 It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
-        Assert.True(response.Success);
+        Assert.True(response.RequestStatus == ApiRequestStatus.Success);
     }
 
     [Fact]
@@ -304,7 +305,7 @@ public class ParcelProcessingServiceTests
 
         // Assert
         Assert.Equal(3, responses.Count());
-        Assert.All(responses, r => Assert.True(r.Success));
+        Assert.All(responses, r => Assert.True(r.RequestStatus == ApiRequestStatus.Success));
         Assert.Contains(responses, r => r.ParcelId == "PKG101");
         Assert.Contains(responses, r => r.ParcelId == "PKG102");
         Assert.Contains(responses, r => r.ParcelId == "PKG103");
@@ -333,8 +334,8 @@ public class ParcelProcessingServiceTests
 
         // Assert
         Assert.Equal(2, responses.Count());
-        Assert.Single(responses, r => r.Success);
-        Assert.Single(responses, r => !r.Success);
+        Assert.Single(responses, r => r.RequestStatus == ApiRequestStatus.Success);
+        Assert.Single(responses, r => !r.RequestStatus == ApiRequestStatus.Success);
     }
 
     [Fact]

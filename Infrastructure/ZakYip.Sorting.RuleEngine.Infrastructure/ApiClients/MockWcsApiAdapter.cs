@@ -42,6 +42,9 @@ public class MockWcsApiAdapter : IWcsApiAdapter
         var chuteNumber = GenerateRandomChuteNumber();
         var responseData = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions);
         
+        // 生成curl命令（模拟接口示例）
+        var curlCommand = $"# Mock API - Example curl command:\ncurl -X POST 'http://localhost/api/mock/scan' -H 'Content-Type: application/json' -d '{{\"barcode\":\"{barcode}\"}}'";
+        
         var response = new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
@@ -49,14 +52,14 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             ParcelId = barcode,
             RequestUrl = "/api/mock/scan",
             RequestBody = null,
-            RequestHeaders = null,
+            RequestHeaders = "Content-Type: application/json",
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseBody = responseData,
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 10,
-            FormattedCurl = null
+            FormattedCurl = curlCommand
         };
 
         return Task.FromResult(response);
@@ -90,6 +93,9 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             weight = dwsData.Weight, 
             volume = dwsData.Volume 
         }, JsonOptions);
+        
+        // 生成curl命令（模拟接口示例）
+        var curlCommand = $"# Mock API - Example curl command:\ncurl -X POST 'http://localhost/api/mock/chute-request' -H 'Content-Type: application/json' -d '{requestBody}'";
 
         var response = new WcsApiResponse
         {
@@ -98,14 +104,14 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             ParcelId = parcelId,
             RequestUrl = "/api/mock/chute-request",
             RequestBody = requestBody,
-            RequestHeaders = null,
+            RequestHeaders = "Content-Type: application/json",
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseBody = responseBody,
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 10,
-            FormattedCurl = null,
+            FormattedCurl = curlCommand,
             OcrData = ocrData
         };
 
@@ -127,6 +133,9 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             barcode, imageData.Length);
 
         var responseBody = JsonSerializer.Serialize(new { uploaded = true, size = imageData.Length }, JsonOptions);
+        
+        // 生成curl命令（模拟接口示例）
+        var curlCommand = $"# Mock API - Example curl command:\ncurl -X POST 'http://localhost/api/mock/upload-image' -H 'Content-Type: multipart/form-data' -F 'file=@image.jpg' -F 'barcode={barcode}'";
 
         var response = new WcsApiResponse
         {
@@ -135,14 +144,14 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             ParcelId = barcode,
             RequestUrl = "/api/mock/upload-image",
             RequestBody = $"[Binary image data: {imageData.Length} bytes]",
-            RequestHeaders = null,
+            RequestHeaders = "Content-Type: multipart/form-data",
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseBody = responseBody,
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 10,
-            FormattedCurl = null
+            FormattedCurl = curlCommand
         };
 
         return Task.FromResult(response);
@@ -164,6 +173,9 @@ public class MockWcsApiAdapter : IWcsApiAdapter
 
         var requestBody = JsonSerializer.Serialize(new { parcelId, chuteId, barcode }, JsonOptions);
         var responseBody = JsonSerializer.Serialize(new { parcelId, chuteId, barcode, landed = true }, JsonOptions);
+        
+        // 生成curl命令（模拟接口示例）
+        var curlCommand = $"# Mock API - Example curl command:\ncurl -X POST 'http://localhost/api/mock/chute-landing' -H 'Content-Type: application/json' -d '{requestBody}'";
 
         var response = new WcsApiResponse
         {
@@ -172,14 +184,14 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             ParcelId = parcelId,
             RequestUrl = "/api/mock/chute-landing",
             RequestBody = requestBody,
-            RequestHeaders = null,
+            RequestHeaders = "Content-Type: application/json",
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseBody = responseBody,
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 10,
-            FormattedCurl = null
+            FormattedCurl = curlCommand
         };
 
         return Task.FromResult(response);

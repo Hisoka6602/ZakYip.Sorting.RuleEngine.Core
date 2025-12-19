@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -60,10 +61,10 @@ public class WcsApiClientTests
         var result = await client.ScanParcelAsync(barcode);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("Parcel scanned successfully", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("Parcel scanned successfully", result.FormattedMessage);
+        Assert.Contains("success", result.ResponseBody);
     }
 
     [Fact]
@@ -92,9 +93,9 @@ public class WcsApiClientTests
         var result = await client.ScanParcelAsync(barcode);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("400", result.Code);
-        Assert.Contains("Scan Error", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(400, result.ResponseStatusCode.Value);
+        Assert.Contains("Scan Error", result.FormattedMessage);
     }
 
     [Fact]
@@ -135,10 +136,10 @@ public class WcsApiClientTests
         var result = await client.RequestChuteAsync(parcelId, dwsData);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("Chute requested successfully", result.Message);
-        Assert.Contains("chuteNumber", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("Chute requested successfully", result.FormattedMessage);
+        Assert.Contains("chuteNumber", result.ResponseBody);
     }
 
     [Fact]
@@ -177,9 +178,9 @@ public class WcsApiClientTests
         var result = await client.RequestChuteAsync(parcelId, dwsData);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("404", result.Code);
-        Assert.Contains("Chute Request Error", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(404, result.ResponseStatusCode.Value);
+        Assert.Contains("Chute Request Error", result.FormattedMessage);
     }
 
     [Fact]
@@ -211,10 +212,10 @@ public class WcsApiClientTests
         var result = await client.UploadImageAsync(barcode, imageData);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("Image uploaded successfully", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("Image uploaded successfully", result.FormattedMessage);
+        Assert.Contains("success", result.ResponseBody);
     }
 
     [Fact]
@@ -246,10 +247,10 @@ public class WcsApiClientTests
         var result = await client.UploadImageAsync(barcode, imageData, "image/png");
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("Image uploaded successfully", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("Image uploaded successfully", result.FormattedMessage);
+        Assert.Contains("success", result.ResponseBody);
     }
 
     [Fact]
@@ -279,9 +280,9 @@ public class WcsApiClientTests
         var result = await client.UploadImageAsync(barcode, imageData);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("400", result.Code);
-        Assert.Contains("Image Upload Error", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(400, result.ResponseStatusCode.Value);
+        Assert.Contains("Image Upload Error", result.FormattedMessage);
     }
 
     [Fact]
@@ -305,9 +306,9 @@ public class WcsApiClientTests
         var result = await client.ScanParcelAsync(barcode);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("ERROR", result.Code);
-        Assert.Contains("Network error", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal("ERROR", result.ResponseStatusCode);
+        Assert.Contains("Network error", result.FormattedMessage);
     }
 
     [Fact]
@@ -341,9 +342,9 @@ public class WcsApiClientTests
         var result = await client.RequestChuteAsync(parcelId, dwsData);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("ERROR", result.Code);
-        Assert.Contains("Request timeout", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal("ERROR", result.ResponseStatusCode);
+        Assert.Contains("Request timeout", result.FormattedMessage);
     }
 
     [Fact]
@@ -368,8 +369,8 @@ public class WcsApiClientTests
         var result = await client.UploadImageAsync(barcode, imageData);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("ERROR", result.Code);
-        Assert.Contains("Upload failed", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal("ERROR", result.ResponseStatusCode);
+        Assert.Contains("Upload failed", result.FormattedMessage);
     }
 }

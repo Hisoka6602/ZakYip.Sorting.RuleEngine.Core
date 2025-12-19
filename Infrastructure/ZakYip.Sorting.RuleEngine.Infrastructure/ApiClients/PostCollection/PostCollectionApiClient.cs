@@ -114,6 +114,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
         
         try
@@ -124,18 +125,19 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // Skip NoRead barcodes
             if (barcode.Contains("NoRead", StringComparison.OrdinalIgnoreCase))
             {
+                stopwatch.Stop();
                 const string notApplicableUrl = "SKIPPED://noread-barcode";
                 var skipMessage = "NoRead barcode skipped";
                 
                 // 生成示例curl命令，展示如果处理该条码时的请求格式
                 // Generate example curl command showing what the request would look like if processed
                 var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
-                var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                var skipCurl = ApiRequestHelper.GenerateFormattedCurl(
                     "POST",
                     notApplicableUrl,
                     new Dictionary<string, string> { ["Content-Type"] = "application/json" },
                     exampleBody);
-                curlCommand = $"# NoRead barcode skipped - Example request format:\n{curlCommand}";
+                skipCurl = $"# NoRead barcode skipped - Example request format:\n{skipCurl}";
                 
                 return new WcsApiResponse
                 {
@@ -150,9 +152,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = 200,
                     ResponseHeaders = null,
-                    DurationMs = 0,
-                    FormattedCurl = curlCommand,
-                    CurlData = curlCommand
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = skipCurl,
                 };
             }
 
@@ -170,11 +171,31 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
+            
+            // 生成请求头信息用于日志记录
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
+            
+            // 生成curl命令
+            var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                config.Url,
+                new Dictionary<string, string> 
+                { 
+                    ["Content-Type"] = "text/xml; charset=utf-8",
+                    ["SOAPAction"] = "\"getYJSM\""
+                },
+                soapRequest);
+            
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
+            
+            stopwatch.Stop();
+            
+            // 获取响应头信息
+            var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
             if (response.IsSuccessStatusCode)
             {
@@ -185,10 +206,16 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     RequestStatus = ApiRequestStatus.Success,
                     FormattedMessage = "Parcel scanned successfully at postal collection institution",
                     ResponseBody = responseContent,
+                    ParcelId = barcode,
+                    RequestUrl = config.Url,
                     RequestBody = soapRequest,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    ResponseStatusCode = (int)response.StatusCode
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = curlCommand,
                 };
             }
             else
@@ -201,21 +228,58 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     RequestStatus = ApiRequestStatus.Failure,
                     FormattedMessage = $"Scan Error: {response.StatusCode}",
                     ResponseBody = responseContent,
-                    RequestBody = soapRequest,
                     ErrorMessage = $"Scan Error: {response.StatusCode}",
+                    ParcelId = barcode,
+                    RequestUrl = config.Url,
+                    RequestBody = soapRequest,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    ResponseStatusCode = (int)response.StatusCode
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = curlCommand,
                 };
             }
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
             _logger.LogError(ex, "扫描包裹异常（邮政分揽投机构），条码: {Barcode}", barcode);
 
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+            
+            // 加载配置以获取URL（如果可能）
+            var config = await GetConfigAsync().ConfigureAwait(false);
+            
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
+            var arg0 = new StringBuilder()
+                .Append("#HEAD::")
+                .Append(config.DeviceId).Append("::")
+                .Append(barcode).Append("::")
+                .Append(config.EmployeeNumber).Append("::")
+                .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
+                .Append("2::001::0000::0000::0::0::0::0::0::0::0")
+                .Append("||#END")
+                .ToString();
+            var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
+            
+            // 生成请求头信息
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
+            
+            // 生成curl命令（异常情况下也必须生成）
+            var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                config.Url,
+                new Dictionary<string, string> 
+                { 
+                    ["Content-Type"] = "text/xml; charset=utf-8",
+                    ["SOAPAction"] = "\"getYJSM\""
+                },
+                soapRequest);
+            curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
 
             return new WcsApiResponse
             {
@@ -223,8 +287,16 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 FormattedMessage = detailedMessage,
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
+                ParcelId = barcode,
+                RequestUrl = config.Url,
+                RequestBody = soapRequest,
+                RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
-                ResponseTime = _clock.LocalNow
+                ResponseTime = _clock.LocalNow,
+                ResponseStatusCode = null,
+                ResponseHeaders = null,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = curlCommand,
             };
         }
     }
@@ -273,6 +345,21 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
+            
+            // 生成请求头信息用于日志记录
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getLTGKCX\"";
+            
+            // 生成curl命令
+            var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                config.Url,
+                new Dictionary<string, string> 
+                { 
+                    ["Content-Type"] = "text/xml; charset=utf-8",
+                    ["SOAPAction"] = "\"getLTGKCX\""
+                },
+                soapRequest);
+            
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
@@ -280,6 +367,9 @@ public class PostCollectionApiClient : IWcsApiAdapter
             responseContent = Regex.Unescape(responseContent);
             
             stopwatch.Stop();
+            
+            // 获取响应头信息
+            var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
             // 提取格口信息
             var chute = ExtractChuteFromResponse(responseContent);
@@ -297,11 +387,15 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     FormattedMessage = "Chute requested successfully",
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
+                    RequestUrl = config.Url,
                     RequestBody = soapRequest,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = curlCommand,
                     OcrData = ocrData
                 };
             }
@@ -318,11 +412,15 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     ResponseBody = responseContent,
                     ErrorMessage = $"Chute Request Error: {response.StatusCode}",
                     ParcelId = parcelId,
+                    RequestUrl = config.Url,
                     RequestBody = soapRequest,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
                     ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = curlCommand,
                     OcrData = ocrData
                 };
             }
@@ -336,6 +434,44 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+            
+            // 加载配置以获取URL（如果可能）
+            var config = await GetConfigAsync().ConfigureAwait(false);
+            
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
+            var seqNum = GetNextSequenceNumber();
+            var yearMonth = _clock.LocalNow.ToString("yyyyMM");
+            var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
+            
+            var arg0 = new StringBuilder()
+                .Append("#HEAD::")
+                .Append(sequenceId).Append("::")
+                .Append(config.DeviceId).Append("::")
+                .Append(dwsData.Barcode).Append("::")
+                .Append("0:: :: :: ::")
+                .Append(_clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss")).Append("::")
+                .Append(config.EmployeeNumber).Append("::")
+                .Append(config.OrganizationNumber).Append("::")
+                .Append(config.CompanyName).Append("::")
+                .Append(config.DeviceBarcode).Append("::")
+                .Append("||#END")
+                .ToString();
+            var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
+            
+            // 生成请求头信息
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getLTGKCX\"";
+            
+            // 生成curl命令（异常情况下也必须生成）
+            var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                config.Url,
+                new Dictionary<string, string> 
+                { 
+                    ["Content-Type"] = "text/xml; charset=utf-8",
+                    ["SOAPAction"] = "\"getLTGKCX\""
+                },
+                soapRequest);
+            curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
 
             return new WcsApiResponse
             {
@@ -344,9 +480,15 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
+                RequestUrl = config.Url,
+                RequestBody = soapRequest,
+                RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow,
+                ResponseStatusCode = null,
+                ResponseHeaders = null,
                 DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = curlCommand,
                 OcrData = ocrData
             };
         }
@@ -395,7 +537,6 @@ public class PostCollectionApiClient : IWcsApiAdapter
             ResponseHeaders = null,
             DurationMs = 0,
             FormattedCurl = curlCommand,
-            CurlData = curlCommand
         });
     }
 
@@ -409,6 +550,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
         
         try
@@ -438,11 +580,31 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("notifyChuteLanding", arg0);
+            
+            // 生成请求头信息用于日志记录
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"notifyChuteLanding\"";
+            
+            // 生成curl命令
+            var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                config.Url,
+                new Dictionary<string, string> 
+                { 
+                    ["Content-Type"] = "text/xml; charset=utf-8",
+                    ["SOAPAction"] = "\"notifyChuteLanding\""
+                },
+                soapRequest);
+            
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
+            
+            stopwatch.Stop();
+            
+            // 获取响应头信息
+            var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
             if (response.IsSuccessStatusCode)
             {
@@ -456,10 +618,15 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     FormattedMessage = "Chute landing notification sent successfully",
                     ResponseBody = responseContent,
                     ParcelId = parcelId,
+                    RequestUrl = config.Url,
                     RequestBody = soapRequest,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    ResponseStatusCode = (int)response.StatusCode
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = curlCommand
                 };
             }
             else
@@ -473,23 +640,66 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     RequestStatus = ApiRequestStatus.Failure,
                     FormattedMessage = $"Chute landing notification error: {response.StatusCode}",
                     ResponseBody = responseContent,
-                    ParcelId = parcelId,
-                    RequestBody = soapRequest,
                     ErrorMessage = $"Chute landing notification error: {response.StatusCode}",
+                    ParcelId = parcelId,
+                    RequestUrl = config.Url,
+                    RequestBody = soapRequest,
+                    RequestHeaders = requestHeaders,
                     RequestTime = requestTime,
                     ResponseTime = _clock.LocalNow,
-                    ResponseStatusCode = (int)response.StatusCode
+                    ResponseStatusCode = (int)response.StatusCode,
+                    ResponseHeaders = responseHeaders,
+                    DurationMs = stopwatch.ElapsedMilliseconds,
+                    FormattedCurl = curlCommand
                 };
             }
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
             _logger.LogError(ex, "落格回调异常（邮政分揽投机构），包裹ID: {ParcelId}, 格口: {ChuteId}", 
                 parcelId, chuteId);
 
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
+            
+            // 加载配置以获取URL（如果可能）
+            var config = await GetConfigAsync().ConfigureAwait(false);
+            
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
+            var seqNum = GetNextSequenceNumber();
+            var yearMonth = _clock.LocalNow.ToString("yyyyMM");
+            var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
+            
+            var arg0 = new StringBuilder()
+                .Append("#HEAD::")
+                .Append(sequenceId).Append("::")
+                .Append(config.DeviceId).Append("::")
+                .Append(barcode).Append("::")
+                .Append(chuteId).Append("::")
+                .Append(_clock.LocalNow.ToString("yyyy-MM-dd HH:mm:ss")).Append("::")
+                .Append(config.EmployeeNumber).Append("::")
+                .Append(config.OrganizationNumber).Append("::")
+                .Append("1::::") // Status: 1=成功落格
+                .Append("||#END")
+                .ToString();
+            var soapRequest = BuildSoapEnvelope("notifyChuteLanding", arg0);
+            
+            // 生成请求头信息
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"notifyChuteLanding\"";
+            
+            // 生成curl命令（异常情况下也必须生成）
+            var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                "POST",
+                config.Url,
+                new Dictionary<string, string> 
+                { 
+                    ["Content-Type"] = "text/xml; charset=utf-8",
+                    ["SOAPAction"] = "\"notifyChuteLanding\""
+                },
+                soapRequest);
+            curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
 
             return new WcsApiResponse
             {
@@ -498,8 +708,15 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 ResponseBody = ex.ToString(),
                 ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
+                RequestUrl = config.Url,
+                RequestBody = soapRequest,
+                RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
-                ResponseTime = _clock.LocalNow
+                ResponseTime = _clock.LocalNow,
+                ResponseStatusCode = null,
+                ResponseHeaders = null,
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                FormattedCurl = curlCommand
             };
         }
     }
