@@ -132,12 +132,12 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 // 生成示例curl命令，展示如果处理该条码时的请求格式
                 // Generate example curl command showing what the request would look like if processed
                 var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
-                var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                var skipCurl = ApiRequestHelper.GenerateFormattedCurl(
                     "POST",
                     notApplicableUrl,
                     new Dictionary<string, string> { ["Content-Type"] = "application/json" },
                     exampleBody);
-                curlCommand = $"# NoRead barcode skipped - Example request format:\n{curlCommand}";
+                skipCurl = $"# NoRead barcode skipped - Example request format:\n{skipCurl}";
                 
                 return new WcsApiResponse
                 {
@@ -153,7 +153,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     ResponseStatusCode = 200,
                     ResponseHeaders = null,
                     DurationMs = stopwatch.ElapsedMilliseconds,
-                    FormattedCurl = curlCommand,
+                    FormattedCurl = skipCurl,
                 };
             }
 
