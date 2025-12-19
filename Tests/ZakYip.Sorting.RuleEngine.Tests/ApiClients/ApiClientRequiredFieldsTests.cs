@@ -72,6 +72,24 @@ public class ApiClientRequiredFieldsTests
         return mockConfigRepo;
     }
 
+    private static Mock<IWcsApiConfigRepository> CreateMockWcsApiConfigRepository(MockSystemClock clock)
+    {
+        var mockConfigRepo = new Mock<IWcsApiConfigRepository>();
+        var testConfig = new WcsApiConfig
+        {
+            ConfigId = WcsApiConfig.SingletonId,
+            Url = "http://localhost:8080",
+            TimeoutMs = 30000,
+            IsEnabled = true,
+            Description = "Test config",
+            CreatedAt = clock.LocalNow,
+            UpdatedAt = clock.LocalNow
+        };
+        mockConfigRepo.Setup(x => x.GetByIdAsync(WcsApiConfig.SingletonId))
+            .ReturnsAsync(testConfig);
+        return mockConfigRepo;
+    }
+
     #endregion
 
     #region WcsApiClient Tests
@@ -97,7 +115,9 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
+        var clock = new MockSystemClock();
+        var configRepo = CreateMockWcsApiConfigRepository(clock);
+        var client = new WcsApiClient(httpClient, logger, clock, configRepo.Object);
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");
@@ -134,7 +154,9 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
+        var clock = new MockSystemClock();
+        var configRepo = CreateMockWcsApiConfigRepository(clock);
+        var client = new WcsApiClient(httpClient, logger, clock, configRepo.Object);
 
         var dwsData = new DwsData
         {
@@ -181,7 +203,9 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
+        var clock = new MockSystemClock();
+        var configRepo = CreateMockWcsApiConfigRepository(clock);
+        var client = new WcsApiClient(httpClient, logger, clock, configRepo.Object);
 
         var imageData = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }; // Simple image bytes
 
@@ -216,7 +240,9 @@ public class ApiClientRequiredFieldsTests
             BaseAddress = new Uri("http://localhost:8080")
         };
         var logger = Mock.Of<ILogger<WcsApiClient>>();
-        var client = new WcsApiClient(httpClient, logger, new MockSystemClock());
+        var clock = new MockSystemClock();
+        var configRepo = CreateMockWcsApiConfigRepository(clock);
+        var client = new WcsApiClient(httpClient, logger, clock, configRepo.Object);
 
         // Act
         var result = await client.ScanParcelAsync("TEST12345");

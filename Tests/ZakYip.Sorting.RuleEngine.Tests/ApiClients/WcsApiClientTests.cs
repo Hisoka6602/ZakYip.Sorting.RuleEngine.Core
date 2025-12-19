@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 
@@ -17,10 +18,26 @@ namespace ZakYip.Sorting.RuleEngine.Tests.ApiClients;
 public class WcsApiClientTests
 {
     private readonly Mock<ILogger<WcsApiClient>> _loggerMock;
+    private readonly Mock<IWcsApiConfigRepository> _configRepoMock;
 
     public WcsApiClientTests()
     {
         _loggerMock = new Mock<ILogger<WcsApiClient>>();
+        _configRepoMock = new Mock<IWcsApiConfigRepository>();
+        
+        // Setup default config
+        var defaultConfig = new WcsApiConfig
+        {
+            ConfigId = WcsApiConfig.SingletonId,
+            Url = "https://api.example.com",
+            TimeoutMs = 30000,
+            IsEnabled = true,
+            Description = "Test config",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+        _configRepoMock.Setup(x => x.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(defaultConfig);
     }
 
     private WcsApiClient CreateClient(HttpMessageHandler handler)
@@ -30,7 +47,7 @@ public class WcsApiClientTests
             BaseAddress = new Uri("https://api.example.com")
         };
         var clock = new MockSystemClock();
-        return new WcsApiClient(httpClient, _loggerMock.Object, clock);
+        return new WcsApiClient(httpClient, _loggerMock.Object, clock, _configRepoMock.Object);
     }
 
     [Fact]
