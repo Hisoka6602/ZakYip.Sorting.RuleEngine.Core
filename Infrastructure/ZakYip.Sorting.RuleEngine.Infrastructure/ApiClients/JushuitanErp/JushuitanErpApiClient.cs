@@ -105,7 +105,16 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         const string notApplicableUrl = "NOT_SUPPORTED://scan-parcel";
         var notSupportedMessage = "聚水潭ERP不支持扫描包裹功能 / Jushuituan ERP does not support parcel scanning";
-        var curlCommand = $"# {notSupportedMessage}\n# Barcode: {barcode}\n# This API client does not support ScanParcel operation";
+        
+        // 生成示例curl命令，展示如果支持该操作时的请求格式
+        // Generate example curl command showing what the request would look like if supported
+        var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            exampleBody);
+        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -303,7 +312,19 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         const string notApplicableUrl = "NOT_SUPPORTED://upload-image";
         var notSupportedMessage = "聚水潭ERP不支持上传图片功能 / Jushuituan ERP does not support image upload";
-        var curlCommand = $"# {notSupportedMessage}\n# Barcode: {barcode}\n# This API client does not support UploadImage operation";
+        
+        // 生成示例curl命令，展示如果支持该操作时的请求格式
+        // Generate example curl command showing what the request would look like if supported
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> 
+            { 
+                ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
+                ["X-Barcode"] = barcode
+            },
+            $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
+        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -338,7 +359,16 @@ public class JushuitanErpApiClient : IWcsApiAdapter
         
         const string notApplicableUrl = "NOT_SUPPORTED://notify-chute-landing";
         var notSupportedMessage = "聚水潭ERP不支持落格回调功能 / Jushuituan ERP does not support chute landing callback";
-        var curlCommand = $"# {notSupportedMessage}\n# ParcelId: {parcelId}\n# This API client does not support NotifyChuteLanding operation";
+        
+        // 生成示例curl命令，展示如果支持该操作时的请求格式
+        // Generate example curl command showing what the request would look like if supported
+        var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { parcelId, chuteId, barcode, timestamp = _clock.LocalNow });
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            exampleBody);
+        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {

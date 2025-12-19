@@ -123,7 +123,16 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             {
                 const string notApplicableUrl = "SKIPPED://noread-barcode";
                 var skipMessage = "NoRead barcode skipped";
-                var curlCommand = $"# {skipMessage}\n# Barcode: {barcode}\n# No actual HTTP request made for NoRead barcodes";
+                
+                // 生成示例curl命令，展示如果处理该条码时的请求格式
+                // Generate example curl command showing what the request would look like if processed
+                var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+                var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                    "POST",
+                    notApplicableUrl,
+                    new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    exampleBody);
+                curlCommand = $"# NoRead barcode skipped - Example request format:\n{curlCommand}";
                 
                 return new WcsApiResponse
                 {
@@ -152,7 +161,16 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 _logger.LogWarning("邮政处理中心API已禁用");
                 const string notApplicableUrl = "DISABLED://api-disabled";
                 var disabledMessage = "邮政处理中心API已禁用 / Postal processing center API disabled";
-                var curlCommand = $"# {disabledMessage}\n# Barcode: {barcode}\n# API is disabled in configuration";
+                
+                // 生成示例curl命令，展示如果启用API时的请求格式
+                // Generate example curl command showing what the request would look like if enabled
+                var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+                var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                    "POST",
+                    notApplicableUrl,
+                    new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    exampleBody);
+                curlCommand = $"# API disabled - Example request format:\n{curlCommand}";
                 
                 return new WcsApiResponse
                 {
@@ -383,7 +401,19 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
         const string notApplicableUrl = "NOT_IMPLEMENTED://upload-image";
         var notImplementedMessage = "邮政处理中心图片上传功能未实现 / Postal processing center image upload feature not implemented";
-        var curlCommand = $"# {notImplementedMessage}\n# Barcode: {barcode}\n# This feature is planned but not yet implemented";
+        
+        // 生成示例curl命令，展示如果实现该功能时的请求格式
+        // Generate example curl command showing what the request would look like if implemented
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> 
+            { 
+                ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
+                ["X-Barcode"] = barcode
+            },
+            $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
+        curlCommand = $"# Feature not implemented - Example request format:\n{curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
