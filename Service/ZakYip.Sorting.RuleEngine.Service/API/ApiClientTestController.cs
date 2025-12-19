@@ -6,6 +6,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
@@ -186,13 +187,13 @@ public class ApiClientTestController : ControllerBase
             // Call the API
             var response = await callApiFunc(apiClient, request.Barcode, dwsData, null, HttpContext.RequestAborted);
 
-            // Create test response
+            // Create test response - map from WcsApiResponse to ApiClientTestResponse
             var testResponse = new ApiClientTestResponse
             {
-                Success = response.Success,
-                Code = response.Code,
-                Message = response.Message,
-                Data = response.Data,
+                Success = response.RequestStatus == ApiRequestStatus.Success,
+                Code = response.ResponseStatusCode?.ToString() ?? "ERROR",
+                Message = response.FormattedMessage ?? response.ErrorMessage ?? "无消息",
+                Data = response.ResponseBody,
                 ParcelId = response.ParcelId,
                 RequestUrl = response.RequestUrl,
                 RequestBody = response.RequestBody,
@@ -210,7 +211,7 @@ public class ApiClientTestController : ControllerBase
 
             _logger.LogInformation(
                 "{DisplayName} API测试完成，条码: {Barcode}, 结果: {Success}",
-                displayName, request.Barcode, response.Success);
+                displayName, request.Barcode, response.RequestStatus == ApiRequestStatus.Success);
 
             return Ok(ApiResponse<ApiClientTestResponse>.SuccessResult(testResponse));
         }

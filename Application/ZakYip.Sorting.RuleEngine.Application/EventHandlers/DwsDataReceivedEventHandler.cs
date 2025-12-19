@@ -54,20 +54,23 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             // 记录WCS API响应（主动调用的响应，直接记录，不通过事件）
             if (response != null)
             {
+                var isSuccess = response.RequestStatus == ApiRequestStatus.Success;
+                var message = response.FormattedMessage ?? response.ErrorMessage ?? "无消息";
+                
                 await _logRepository.LogInfoAsync(
                     $"WCS API响应已接收: {notification.ParcelId}",
-                    $"成功: {response.Success}, 消息: {response.Message}").ConfigureAwait(false);
+                    $"成功: {isSuccess}, 消息: {message}").ConfigureAwait(false);
                 
                 // 发布WCS API调用事件，包含完整的API响应数据
                 await _publisher.Publish(new WcsApiCalledEvent
                 {
                     ParcelId = notification.ParcelId,
                     ApiUrl = response.RequestUrl ?? "/api/chute/request",
-                    IsSuccess = response.Success,
+                    IsSuccess = isSuccess,
                     StatusCode = response.ResponseStatusCode,
                     DurationMs = response.DurationMs,
                     CalledAt = _clock.LocalNow,
-                    ErrorMessage = response.Success ? null : response.Message,
+                    ErrorMessage = isSuccess ? null : (response.ErrorMessage ?? message),
                     ApiResponse = response
                 }, cancellationToken);
             }

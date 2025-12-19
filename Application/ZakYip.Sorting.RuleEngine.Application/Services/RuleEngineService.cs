@@ -220,9 +220,9 @@ public class RuleEngineService : IRuleEngineService
 
                 case MatchingMethodType.ApiResponseMatch:
                     // 仅使用API响应内容，不使用OCR数据（thirdPartyResponse.OcrData）
-                    if (thirdPartyResponse?.Data != null)
+                    if (thirdPartyResponse?.ResponseBody != null)
                     {
-                        return _apiResponseMatcher.Evaluate(condition, thirdPartyResponse.Data);
+                        return _apiResponseMatcher.Evaluate(condition, thirdPartyResponse.ResponseBody);
                     }
                     return false;
 

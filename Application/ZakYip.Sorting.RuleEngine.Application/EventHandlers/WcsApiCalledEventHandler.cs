@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -91,7 +92,7 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
             ResponseStatusCode = response.ResponseStatusCode,
             ResponseHeaders = response.ResponseHeaders,
             FormattedCurl = response.FormattedCurl,
-            IsSuccess = response.Success,
+            IsSuccess = response.RequestStatus == ApiRequestStatus.Success,
             ErrorMessage = response.ErrorMessage
         };
     }

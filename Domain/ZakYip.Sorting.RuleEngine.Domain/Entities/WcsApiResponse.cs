@@ -8,6 +8,12 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 /// 包含API请求和响应的完整信息
 /// Contains complete information about API request and response
 /// </summary>
+/// <remarks>
+/// 所有BaseApiCommunication字段（ParcelId, RequestUrl, RequestBody, RequestHeaders, RequestTime,
+/// DurationMs, ResponseTime, ResponseBody, ResponseStatusCode, ResponseHeaders, FormattedCurl）
+/// 必须在所有API调用中赋值，无论成功或失败
+/// All BaseApiCommunication fields must be populated in all API calls, regardless of success or failure
+/// </remarks>
 public class WcsApiResponse : BaseApiCommunication
 {
     /// <summary>
@@ -17,52 +23,10 @@ public class WcsApiResponse : BaseApiCommunication
     public ApiRequestStatus RequestStatus { get; set; } = ApiRequestStatus.Success;
 
     /// <summary>
-    /// 状态码（字符串格式，通常为HTTP状态码）
-    /// Status code (string format, usually HTTP status code)
-    /// </summary>
-    public string Code { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 请求是否成功
-    /// Whether the request was successful
-    /// </summary>
-    public bool Success { get; set; }
-
-    /// <summary>
     /// 错误消息（如果请求失败）
     /// Error message (if request failed)
     /// </summary>
     public string? ErrorMessage { get; set; }
-
-    /// <summary>
-    /// 响应消息（通用消息字段）
-    /// Response message (general message field)
-    /// </summary>
-    public string? Message { get; set; }
-
-    /// <summary>
-    /// 响应数据（用于API匹配等场景）
-    /// Response data (for API matching scenarios, etc.)
-    /// </summary>
-    public string? Data { get; set; }
-
-    /// <summary>
-    /// 查询参数字符串，包含 URL 中的查询参数信息
-    /// Query parameter string, containing query parameter information in the URL
-    /// </summary>
-    public string QueryParams { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 异常信息，记录请求过程中发生的异常详情（若有）
-    /// Exception information, recording exception details during the request process (if any)
-    /// </summary>
-    public string Exception { get; set; } = string.Empty;
-
-    /// <summary>
-    /// API 请求方法(RequestChuteAsync、UploadImageAsync、NotifyChuteLandingAsync等)
-    /// API request method (RequestChuteAsync, UploadImageAsync, NotifyChuteLandingAsync, etc.)
-    /// </summary>
-    public string Method { get; init; } = string.Empty;
 
     /// <summary>
     /// Curl组装数据，内容可直接用于Curl访问

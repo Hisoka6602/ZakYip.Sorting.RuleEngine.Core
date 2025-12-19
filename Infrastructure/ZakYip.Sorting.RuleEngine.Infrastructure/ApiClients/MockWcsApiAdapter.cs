@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
@@ -39,17 +40,23 @@ public class MockWcsApiAdapter : IWcsApiAdapter
         _logger.LogInformation("模拟扫描包裹: {Barcode}", barcode);
 
         var chuteNumber = GenerateRandomChuteNumber();
+        var responseData = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions);
+        
         var response = new WcsApiResponse
         {
-            Success = true,
-            Code = "200",
-            Message = "模拟扫描成功 / Mock scan successful",
-            Data = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions),
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "模拟扫描成功 / Mock scan successful",
             ParcelId = barcode,
             RequestUrl = "/api/mock/scan",
+            RequestBody = null,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 10
+            ResponseBody = responseData,
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 10,
+            FormattedCurl = null
         };
 
         return Task.FromResult(response);
@@ -71,29 +78,35 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             "自动应答模式: 包裹 {ParcelId} 分配模拟格口号 {ChuteNumber}",
             parcelId, chuteNumber);
 
+        var requestBody = JsonSerializer.Serialize(new 
+        { 
+            parcelId, 
+            barcode = dwsData.Barcode 
+        }, JsonOptions);
+        
+        var responseBody = JsonSerializer.Serialize(new 
+        { 
+            chuteNumber, 
+            weight = dwsData.Weight, 
+            volume = dwsData.Volume 
+        }, JsonOptions);
+
         var response = new WcsApiResponse
         {
-            Success = true,
-            Code = "200",
-            Message = $"自动应答模式: 已分配模拟格口 {chuteNumber}",
-            Data = JsonSerializer.Serialize(new { chuteNumber }, JsonOptions),
-            ResponseBody = JsonSerializer.Serialize(new 
-            { 
-                chuteNumber, 
-                weight = dwsData.Weight, 
-                volume = dwsData.Volume 
-            }, JsonOptions),
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = $"自动应答模式: 已分配模拟格口 {chuteNumber} / Auto-response mode: Assigned mock chute {chuteNumber}",
             ParcelId = parcelId,
             RequestUrl = "/api/mock/chute-request",
-            RequestBody = JsonSerializer.Serialize(new 
-            { 
-                parcelId, 
-                barcode = dwsData.Barcode 
-            }, JsonOptions),
+            RequestBody = requestBody,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
+            ResponseBody = responseBody,
             ResponseStatusCode = 200,
-            DurationMs = 10
+            ResponseHeaders = null,
+            DurationMs = 10,
+            FormattedCurl = null,
+            OcrData = ocrData
         };
 
         return Task.FromResult(response);
@@ -113,17 +126,23 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             "模拟上传图片: {Barcode}, 大小: {Size} bytes",
             barcode, imageData.Length);
 
+        var responseBody = JsonSerializer.Serialize(new { uploaded = true, size = imageData.Length }, JsonOptions);
+
         var response = new WcsApiResponse
         {
-            Success = true,
-            Code = "200",
-            Message = "模拟图片上传成功 / Mock image upload successful",
-            Data = JsonSerializer.Serialize(new { uploaded = true, size = imageData.Length }, JsonOptions),
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "模拟图片上传成功 / Mock image upload successful",
             ParcelId = barcode,
             RequestUrl = "/api/mock/upload-image",
+            RequestBody = $"[Binary image data: {imageData.Length} bytes]",
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
-            DurationMs = 10
+            ResponseBody = responseBody,
+            ResponseStatusCode = 200,
+            ResponseHeaders = null,
+            DurationMs = 10,
+            FormattedCurl = null
         };
 
         return Task.FromResult(response);
@@ -143,19 +162,24 @@ public class MockWcsApiAdapter : IWcsApiAdapter
             "模拟落格回调: 包裹ID={ParcelId}, 格口ID={ChuteId}, 条码={Barcode}",
             parcelId, chuteId, barcode);
 
+        var requestBody = JsonSerializer.Serialize(new { parcelId, chuteId, barcode }, JsonOptions);
+        var responseBody = JsonSerializer.Serialize(new { parcelId, chuteId, barcode, landed = true }, JsonOptions);
+
         var response = new WcsApiResponse
         {
-            Success = true,
-            Code = "200",
-            Message = "模拟落格回调成功 / Mock chute landing notification successful",
-            Data = JsonSerializer.Serialize(new { parcelId, chuteId, barcode, landed = true }, JsonOptions),
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "模拟落格回调成功 / Mock chute landing notification successful",
             ParcelId = parcelId,
             RequestUrl = "/api/mock/chute-landing",
-            RequestBody = JsonSerializer.Serialize(new { parcelId, chuteId, barcode }, JsonOptions),
+            RequestBody = requestBody,
+            RequestHeaders = null,
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
+            ResponseBody = responseBody,
             ResponseStatusCode = 200,
-            DurationMs = 10
+            ResponseHeaders = null,
+            DurationMs = 10,
+            FormattedCurl = null
         };
 
         return Task.FromResult(response);
