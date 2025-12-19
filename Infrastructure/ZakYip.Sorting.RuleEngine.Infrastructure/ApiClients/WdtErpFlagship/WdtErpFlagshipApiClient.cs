@@ -321,6 +321,7 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
                 ErrorMessage = detailedMessage,
                 ParcelId = parcelId,
                 RequestUrl = config.Url,
+                RequestBody = null,
                 RequestHeaders = requestHeaders,
                 RequestTime = requestTime,
                 ResponseTime = _clock.LocalNow,

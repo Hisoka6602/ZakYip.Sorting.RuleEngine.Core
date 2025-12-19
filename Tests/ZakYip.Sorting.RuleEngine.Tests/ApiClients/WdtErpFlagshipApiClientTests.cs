@@ -256,7 +256,6 @@ public class WdtErpFlagshipApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("接口访问异常", result.FormattedMessage);
     }
 
@@ -282,7 +281,6 @@ public class WdtErpFlagshipApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("接口访问返回超时", result.FormattedMessage);
     }
 

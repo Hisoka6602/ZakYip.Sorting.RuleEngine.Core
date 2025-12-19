@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
@@ -39,10 +40,10 @@ public class MockWcsApiAdapterTests
 
         // Assert
         Assert.NotNull(response);
-        Assert.True(response.Success);
+        Assert.Equal(ApiRequestStatus.Success, response.RequestStatus);
         Assert.Equal(200, response.ResponseStatusCode.Value);
         Assert.Equal(barcode, response.ParcelId);
-        Assert.NotNull(response.Data);
+        Assert.NotNull(response.ResponseBody);
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public class MockWcsApiAdapterTests
         var response = await _adapter.ScanParcelAsync(barcode);
 
         // Assert
-        var data = JsonSerializer.Deserialize<JsonElement>(response.Data!);
+        var data = JsonSerializer.Deserialize<JsonElement>(response.ResponseBody!);
         Assert.True(data.TryGetProperty("chuteNumber", out var chuteNumberProp));
         var chuteNumber = int.Parse(chuteNumberProp.GetString()!);
         Assert.InRange(chuteNumber, 1, 20);
@@ -99,7 +100,7 @@ public class MockWcsApiAdapterTests
 
         // Assert
         Assert.NotNull(response);
-        Assert.True(response.Success);
+        Assert.Equal(ApiRequestStatus.Success, response.RequestStatus);
         Assert.Equal(200, response.ResponseStatusCode.Value);
         Assert.Equal(parcelId, response.ParcelId);
         Assert.Equal(200, response.ResponseStatusCode.Value);
@@ -122,7 +123,7 @@ public class MockWcsApiAdapterTests
         for (int i = 0; i < 50; i++)
         {
             var response = await _adapter.RequestChuteAsync($"PKG{i:D3}", dwsData);
-            var data = JsonSerializer.Deserialize<JsonElement>(response.Data!);
+            var data = JsonSerializer.Deserialize<JsonElement>(response.ResponseBody!);
             var chuteNumber = int.Parse(data.GetProperty("chuteNumber").GetString()!);
             chuteNumbers.Add(chuteNumber);
         }
@@ -187,7 +188,7 @@ public class MockWcsApiAdapterTests
 
         // Assert
         Assert.NotNull(response);
-        Assert.True(response.Success);
+        Assert.Equal(ApiRequestStatus.Success, response.RequestStatus);
         Assert.Equal(200, response.ResponseStatusCode.Value);
         Assert.Equal(barcode, response.ParcelId);
     }
@@ -203,7 +204,7 @@ public class MockWcsApiAdapterTests
         var response = await _adapter.UploadImageAsync(barcode, imageData);
 
         // Assert
-        var data = JsonSerializer.Deserialize<JsonElement>(response.Data!);
+        var data = JsonSerializer.Deserialize<JsonElement>(response.ResponseBody!);
         Assert.True(data.GetProperty("uploaded").GetBoolean());
         Assert.Equal(imageData.Length, data.GetProperty("size").GetInt32());
     }

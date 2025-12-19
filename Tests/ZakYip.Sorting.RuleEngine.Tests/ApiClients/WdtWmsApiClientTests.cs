@@ -198,7 +198,6 @@ public class WdtWmsApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("Network error", result.FormattedMessage);
     }
 }

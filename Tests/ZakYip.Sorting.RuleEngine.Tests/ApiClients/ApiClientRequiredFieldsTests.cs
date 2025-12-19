@@ -4,6 +4,7 @@ using Moq.Protected;
 using System.Net;
 using System.Text;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
@@ -222,7 +223,7 @@ public class ApiClientRequiredFieldsTests
 
         // Assert - Even on error, all fields should be populated
         Assert.NotNull(result);
-        Assert.False(result.Success);
+        Assert.NotEqual(ApiRequestStatus.Success, result.RequestStatus);
         Assert.True(result.DurationMs >= 0);
         Assert.False(string.IsNullOrEmpty(result.RequestBody));
         Assert.False(string.IsNullOrEmpty(result.RequestHeaders));

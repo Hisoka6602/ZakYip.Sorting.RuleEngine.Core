@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
@@ -62,8 +63,8 @@ public class DwsDataReceivedEventHandlerTests
 
         var apiResponse = new WcsApiResponse
         {
-            Success = true,
-            Message = "Upload successful"
+            RequestStatus = ApiRequestStatus.Success,
+            FormattedMessage = "Upload successful"
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
@@ -102,7 +103,7 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        var apiResponse = new WcsApiResponse { Success = true };
+        var apiResponse = new WcsApiResponse { RequestStatus = ApiRequestStatus.Success };
         _mockAdapter.Setup(a => a.RequestChuteAsync(
                 It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
@@ -141,9 +142,9 @@ public class DwsDataReceivedEventHandlerTests
 
         var apiResponse = new WcsApiResponse
         {
-            Success = true,
-            Code = "200",
-            Message = "Success"
+            RequestStatus = ApiRequestStatus.Success,
+            ResponseStatusCode = 200,
+            FormattedMessage = "Success"
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
@@ -184,9 +185,9 @@ public class DwsDataReceivedEventHandlerTests
 
         var apiResponse = new WcsApiResponse
         {
-            Success = false,
-            Code = "500",
-            Message = "Server error"
+            RequestStatus = ApiRequestStatus.Failure,
+            ResponseStatusCode = 500,
+            FormattedMessage = "Server error"
         };
 
         _mockAdapter.Setup(a => a.RequestChuteAsync(
@@ -297,7 +298,7 @@ public class DwsDataReceivedEventHandlerTests
             DwsData = dwsData 
         };
 
-        var apiResponse = new WcsApiResponse { Success = true };
+        var apiResponse = new WcsApiResponse { RequestStatus = ApiRequestStatus.Success };
         _mockAdapter.Setup(a => a.RequestChuteAsync(
                 It.IsAny<string>(), It.IsAny<DwsData>(), It.IsAny<OcrData?>(),
                 It.IsAny<CancellationToken>()))
