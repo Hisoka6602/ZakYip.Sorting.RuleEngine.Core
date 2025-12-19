@@ -235,50 +235,40 @@ try
 
                 // 配置HttpClient用于WCS API
                 // 注册所有API适配器实现
+                // 配置从LiteDB加载，HttpClient使用默认值
+                // Configuration loaded from LiteDB, HttpClient uses default values
                 services.AddHttpClient<WcsApiClient>(client =>
                 {
-                    client.BaseAddress = new Uri(appSettings.WcsApi.BaseUrl);
-                    client.Timeout = TimeSpan.FromSeconds(appSettings.WcsApi.TimeoutSeconds);
-
-                    if (!string.IsNullOrEmpty(appSettings.WcsApi.ApiKey))
-                    {
-                        client.DefaultRequestHeaders.Add("X-API-Key", appSettings.WcsApi.ApiKey);
-                    }
+                    // 提供默认的BaseAddress和Timeout
+                    // API客户端将从LiteDB加载实际配置
+                    // Provide default BaseAddress and Timeout
+                    // API client will load actual config from LiteDB
+                    client.BaseAddress = new Uri("http://localhost");
+                    client.Timeout = TimeSpan.FromSeconds(30);
                 })
-                .ConfigurePrimaryHttpMessageHandler(() =>
+                .AddTypedClient<WcsApiClient>((client, sp) =>
                 {
-                    var handler = new HttpClientHandler();
-
-                    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
-                    // 警告：仅在开发/测试环境禁用SSL验证
-                    if (appSettings.WcsApi.DisableSslValidation)
-                    {
-                        logger.Warn("WCS API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
-                        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
-                    }
-
-                    return handler;
+                    var loggerWcs = sp.GetRequiredService<ILogger<WcsApiClient>>();
+                    var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
+                    var configRepo = sp.GetRequiredService<IWcsApiConfigRepository>();
+                    return new WcsApiClient(
+                        client,
+                        loggerWcs,
+                        clock,
+                        configRepo);
                 });
 
                 // 注册旺店通WMS API适配器
-                services.AddHttpClient<WdtWmsApiClient>((sp, client) =>
+                // 配置从LiteDB加载，HttpClient使用默认值
+                // Configuration loaded from LiteDB, HttpClient uses default values
+                services.AddHttpClient<WdtWmsApiClient>(client =>
                 {
-                    client.BaseAddress = new Uri(appSettings.WdtWmsApi.BaseUrl);
-                    client.Timeout = TimeSpan.FromSeconds(appSettings.WdtWmsApi.TimeoutSeconds);
-                })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    var handler = new HttpClientHandler();
-
-                    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
-                    // 警告：仅在开发/测试环境禁用SSL验证
-                    if (appSettings.WdtWmsApi.DisableSslValidation)
-                    {
-                        logger.Warn("WdtWms API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
-                        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
-                    }
-
-                    return handler;
+                    // 提供默认的BaseAddress和Timeout
+                    // API客户端将从LiteDB加载实际配置
+                    // Provide default BaseAddress and Timeout
+                    // API client will load actual config from LiteDB
+                    client.BaseAddress = new Uri("http://localhost");
+                    client.Timeout = TimeSpan.FromSeconds(30);
                 })
                 .AddTypedClient<WdtWmsApiClient>((client, sp) =>
                 {
@@ -293,24 +283,16 @@ try
                 });
 
                 // 注册聚水潭ERP API适配器
-                services.AddHttpClient<JushuitanErpApiClient>((sp, client) =>
+                // 配置从LiteDB加载，HttpClient使用默认值
+                // Configuration loaded from LiteDB, HttpClient uses default values
+                services.AddHttpClient<JushuitanErpApiClient>(client =>
                 {
-                    client.BaseAddress = new Uri(appSettings.JushuitanErpApi.BaseUrl);
-                    client.Timeout = TimeSpan.FromSeconds(appSettings.JushuitanErpApi.TimeoutSeconds);
-                })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    var handler = new HttpClientHandler();
-
-                    // ⚠️ WARNING: Only disable SSL validation in development/testing environments
-                    // 警告：仅在开发/测试环境禁用SSL验证
-                    if (appSettings.JushuitanErpApi.DisableSslValidation)
-                    {
-                        logger.Warn("Jushuitán ERP API: SSL certificate validation is DISABLED. This should NEVER be used in production!");
-                        handler.ServerCertificateCustomValidationCallback = (m, c, ch, _) => true;
-                    }
-
-                    return handler;
+                    // 提供默认的BaseAddress和Timeout
+                    // API客户端将从LiteDB加载实际配置
+                    // Provide default BaseAddress and Timeout
+                    // API client will load actual config from LiteDB
+                    client.BaseAddress = new Uri("http://localhost");
+                    client.Timeout = TimeSpan.FromSeconds(30);
                 })
                 .AddTypedClient<JushuitanErpApiClient>((client, sp) =>
                 {
@@ -325,18 +307,30 @@ try
                 });
 
                 // 注册邮政处理中心API适配器
-                services.AddHttpClient<PostProcessingCenterApiClient>((sp, client) =>
+                // 配置从LiteDB加载，HttpClient使用默认值
+                // Configuration loaded from LiteDB, HttpClient uses default values
+                services.AddHttpClient<PostProcessingCenterApiClient>(client =>
                 {
-                    client.BaseAddress = new Uri(appSettings.PostProcessingCenterApi.BaseUrl);
-                    client.Timeout = TimeSpan.FromSeconds(appSettings.PostProcessingCenterApi.TimeoutSeconds);
+                    // 提供默认的BaseAddress和Timeout
+                    // API客户端将从LiteDB加载实际配置
+                    // Provide default BaseAddress and Timeout
+                    // API client will load actual config from LiteDB
+                    client.BaseAddress = new Uri("http://localhost");
+                    client.Timeout = TimeSpan.FromSeconds(30);
                 })
                 .ConfigurePrimaryHttpMessageHandler(() => HttpClientConfigurationHelper.CreatePostalApiHandler());
 
                 // 注册邮政分揽投机构API适配器
-                services.AddHttpClient<PostCollectionApiClient>((sp, client) =>
+                // 配置从LiteDB加载，HttpClient使用默认值
+                // Configuration loaded from LiteDB, HttpClient uses default values
+                services.AddHttpClient<PostCollectionApiClient>(client =>
                 {
-                    client.BaseAddress = new Uri(appSettings.PostCollectionApi.BaseUrl);
-                    client.Timeout = TimeSpan.FromSeconds(appSettings.PostCollectionApi.TimeoutSeconds);
+                    // 提供默认的BaseAddress和Timeout
+                    // API客户端将从LiteDB加载实际配置
+                    // Provide default BaseAddress and Timeout
+                    // API client will load actual config from LiteDB
+                    client.BaseAddress = new Uri("http://localhost");
+                    client.Timeout = TimeSpan.FromSeconds(30);
                 })
                 .ConfigurePrimaryHttpMessageHandler(() => HttpClientConfigurationHelper.CreatePostalApiHandler());
 
@@ -386,6 +380,10 @@ try
                 // 注册分拣机配置仓储
                 // Register Sorter configuration repository
                 services.AddScoped<ISorterConfigRepository, LiteDbSorterConfigRepository>();
+
+                // 注册WCS API配置仓储
+                // Register WCS API configuration repository
+                services.AddScoped<IWcsApiConfigRepository, LiteDbWcsApiConfigRepository>();
 
                 // 注册邮政API配置仓储
                 // Register Postal API configuration repositories
@@ -770,6 +768,9 @@ static void ConfigureLiteDbEntityMapping(BsonMapper mapper)
         .Id(x => x.TemplateId);
 
     mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig>()
+        .Id(x => x.ConfigId);
+    
+    mapper.Entity<ZakYip.Sorting.RuleEngine.Domain.Entities.WcsApiConfig>()
         .Id(x => x.ConfigId);
 
     // 其他实体 - 使用自动生成或业务ID

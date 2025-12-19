@@ -13,6 +13,8 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients;
 /// <summary>
 /// WCS API客户端实现
 /// WCS API client implementation
+/// 配置从LiteDB加载，支持热更新
+/// Configuration loaded from LiteDB with hot reload support
 /// </summary>
 public class WcsApiClient : IWcsApiAdapter
 {
@@ -20,21 +22,71 @@ public class WcsApiClient : IWcsApiAdapter
     private readonly ILogger<WcsApiClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ISystemClock _clock;
+    private readonly IWcsApiConfigRepository _configRepository;
+    
+    // 缓存配置以避免每次请求都查询数据库
+    private WcsApiConfig? _cachedConfig;
+    private DateTime _configCacheTime = DateTime.MinValue;
+    private readonly TimeSpan _configCacheExpiry = TimeSpan.FromMinutes(5);
 
     public WcsApiClient(
         HttpClient httpClient,
         ILogger<WcsApiClient> logger,
-        ISystemClock clock)
+        ISystemClock clock,
+        IWcsApiConfigRepository configRepository)
     {
         _httpClient = httpClient;
         _logger = logger;
         _clock = clock;
+        _configRepository = configRepository;
         
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false
         };
+    }
+    
+    /// <summary>
+    /// 获取配置，使用缓存以提高性能
+    /// Get configuration with caching for performance
+    /// </summary>
+    private async Task<WcsApiConfig> GetConfigAsync()
+    {
+        // 检查缓存是否有效
+        if (_cachedConfig != null && _clock.LocalNow - _configCacheTime < _configCacheExpiry)
+        {
+            return _cachedConfig;
+        }
+
+        // 从数据库加载配置
+        var config = await _configRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
+        
+        if (config == null)
+        {
+            // 如果配置不存在，创建默认配置
+            _logger.LogWarning("WCS API配置不存在，使用默认配置");
+            config = new WcsApiConfig
+            {
+                ConfigId = WcsApiConfig.SingletonId,
+                Url = "http://localhost:8080/wcs", // 默认URL，需要通过API更新
+                ApiKey = null,
+                TimeoutMs = 30000,
+                DisableSslValidation = false,
+                IsEnabled = true,
+                Description = "默认配置 - 请通过API更新",
+                CreatedAt = _clock.LocalNow,
+                UpdatedAt = _clock.LocalNow
+            };
+            
+            await _configRepository.AddAsync(config).ConfigureAwait(false);
+        }
+
+        // 更新缓存
+        _cachedConfig = config;
+        _configCacheTime = _clock.LocalNow;
+
+        return config;
     }
 
     /// <summary>
