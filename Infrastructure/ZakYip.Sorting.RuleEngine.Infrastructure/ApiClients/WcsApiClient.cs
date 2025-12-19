@@ -67,6 +67,7 @@ public class WcsApiClient : IWcsApiAdapter
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
         FormattedCurl = formattedCurl,
+        CurlData = formattedCurl ?? string.Empty,
         OcrData = ocrData
     };
 
@@ -101,6 +102,7 @@ public class WcsApiClient : IWcsApiAdapter
         ResponseHeaders = responseHeaders,
         DurationMs = durationMs,
         FormattedCurl = formattedCurl,
+        CurlData = formattedCurl ?? string.Empty,
         OcrData = ocrData
     };
 
@@ -140,6 +142,7 @@ public class WcsApiClient : IWcsApiAdapter
             ResponseHeaders = responseHeaders,
             DurationMs = durationMs,
             FormattedCurl = formattedCurl,
+            CurlData = formattedCurl ?? string.Empty,
             OcrData = ocrData
         };
     }

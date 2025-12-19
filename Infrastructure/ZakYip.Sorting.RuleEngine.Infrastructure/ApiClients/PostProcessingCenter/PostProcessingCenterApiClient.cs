@@ -121,13 +121,17 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             // Skip NoRead barcodes
             if (barcode.Contains("NoRead", StringComparison.OrdinalIgnoreCase))
             {
+                const string notApplicableUrl = "SKIPPED://noread-barcode";
+                var skipMessage = "NoRead barcode skipped";
+                var curlCommand = $"# {skipMessage}\n# Barcode: {barcode}\n# No actual HTTP request made for NoRead barcodes";
+                
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Success,
-                    FormattedMessage = "NoRead barcode skipped",
-                    ResponseBody = "NoRead barcode skipped",
+                    FormattedMessage = skipMessage,
+                    ResponseBody = skipMessage,
                     ParcelId = barcode,
-                    RequestUrl = string.Empty,
+                    RequestUrl = notApplicableUrl,
                     RequestBody = null,
                     RequestHeaders = null,
                     RequestTime = requestTime,
@@ -135,7 +139,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseStatusCode = 200,
                     ResponseHeaders = null,
                     DurationMs = 0,
-                    FormattedCurl = null
+                    FormattedCurl = curlCommand,
+                    CurlData = curlCommand
                 };
             }
 
@@ -145,13 +150,17 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             if (!config.IsEnabled)
             {
                 _logger.LogWarning("邮政处理中心API已禁用");
+                const string notApplicableUrl = "DISABLED://api-disabled";
+                var disabledMessage = "邮政处理中心API已禁用 / Postal processing center API disabled";
+                var curlCommand = $"# {disabledMessage}\n# Barcode: {barcode}\n# API is disabled in configuration";
+                
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Failure,
-                    FormattedMessage = "邮政处理中心API已禁用 / Postal processing center API disabled",
+                    FormattedMessage = disabledMessage,
                     ResponseBody = "API disabled",
                     ParcelId = barcode,
-                    RequestUrl = string.Empty,
+                    RequestUrl = notApplicableUrl,
                     RequestBody = null,
                     RequestHeaders = null,
                     RequestTime = requestTime,
@@ -159,7 +168,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseStatusCode = 200,
                     ResponseHeaders = null,
                     DurationMs = 0,
-                    FormattedCurl = null
+                    FormattedCurl = curlCommand,
+                    CurlData = curlCommand
                 };
             }
 
@@ -371,13 +381,17 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     {
         _logger.LogDebug("上传图片功能（邮政处理中心）当前未实现，条码: {Barcode}", barcode);
 
+        const string notApplicableUrl = "NOT_IMPLEMENTED://upload-image";
+        var notImplementedMessage = "邮政处理中心图片上传功能未实现 / Postal processing center image upload feature not implemented";
+        var curlCommand = $"# {notImplementedMessage}\n# Barcode: {barcode}\n# This feature is planned but not yet implemented";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "邮政处理中心图片上传功能未实现 / Postal processing center image upload feature not implemented",
+            FormattedMessage = notImplementedMessage,
             ResponseBody = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -385,7 +399,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 

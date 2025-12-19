@@ -103,13 +103,17 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     {
         _logger.LogWarning("聚水潭ERP不支持扫描包裹功能，条码: {Barcode}", barcode);
         
+        const string notApplicableUrl = "NOT_SUPPORTED://scan-parcel";
+        var notSupportedMessage = "聚水潭ERP不支持扫描包裹功能 / Jushuitantan ERP does not support parcel scanning";
+        var curlCommand = $"# {notSupportedMessage}\n# Barcode: {barcode}\n# This API client does not support ScanParcel operation";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "聚水潭ERP不支持扫描包裹功能 / Jushuitantan ERP does not support parcel scanning",
+            FormattedMessage = notSupportedMessage,
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -117,7 +121,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 
@@ -296,13 +301,17 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     {
         _logger.LogWarning("聚水潭ERP不支持上传图片功能，条码: {Barcode}", barcode);
         
+        const string notApplicableUrl = "NOT_SUPPORTED://upload-image";
+        var notSupportedMessage = "聚水潭ERP不支持上传图片功能 / Jushuitantan ERP does not support image upload";
+        var curlCommand = $"# {notSupportedMessage}\n# Barcode: {barcode}\n# This API client does not support UploadImage operation";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "聚水潭ERP不支持上传图片功能 / Jushuitantan ERP does not support image upload",
+            FormattedMessage = notSupportedMessage,
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -310,7 +319,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 
@@ -326,13 +336,17 @@ public class JushuitanErpApiClient : IWcsApiAdapter
     {
         _logger.LogWarning("聚水潭ERP不支持落格回调功能，包裹ID: {ParcelId}", parcelId);
         
+        const string notApplicableUrl = "NOT_SUPPORTED://notify-chute-landing";
+        var notSupportedMessage = "聚水潭ERP不支持落格回调功能 / Jushuitantan ERP does not support chute landing callback";
+        var curlCommand = $"# {notSupportedMessage}\n# ParcelId: {parcelId}\n# This API client does not support NotifyChuteLanding operation";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "聚水潭ERP不支持落格回调功能 / Jushuitantan ERP does not support chute landing callback",
+            FormattedMessage = notSupportedMessage,
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = parcelId,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -340,7 +354,8 @@ public class JushuitanErpApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 
