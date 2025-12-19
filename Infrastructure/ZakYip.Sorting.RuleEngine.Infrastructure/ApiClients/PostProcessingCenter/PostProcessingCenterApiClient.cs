@@ -151,7 +151,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = null,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand
                 };
             }
 
@@ -190,7 +189,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = null,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand
                 };
             }
 
@@ -253,7 +251,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand
                 };
             }
             else
@@ -277,7 +274,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand
                 };
             }
         }
@@ -336,7 +332,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 ResponseHeaders = null,
                 DurationMs = stopwatch.ElapsedMilliseconds,
                 FormattedCurl = curlCommand,
-                CurlData = curlCommand
             };
         }
     }
@@ -436,7 +431,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand,
                     OcrData = ocrData
                 };
             }
@@ -462,7 +456,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand,
                     OcrData = ocrData
                 };
             }
@@ -531,7 +524,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 ResponseHeaders = null,
                 DurationMs = stopwatch.ElapsedMilliseconds,
                 FormattedCurl = curlCommand,
-                CurlData = curlCommand,
                 OcrData = ocrData
             };
         }
@@ -580,7 +572,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             ResponseHeaders = null,
             DurationMs = 0,
             FormattedCurl = curlCommand,
-            CurlData = curlCommand
         });
     }
 
@@ -671,7 +662,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand
                 };
             }
             else
@@ -696,7 +686,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ResponseHeaders = responseHeaders,
                     DurationMs = stopwatch.ElapsedMilliseconds,
                     FormattedCurl = curlCommand,
-                    CurlData = curlCommand
                 };
             }
         }
@@ -763,7 +752,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 ResponseHeaders = null,
                 DurationMs = stopwatch.ElapsedMilliseconds,
                 FormattedCurl = curlCommand,
-                CurlData = curlCommand
             };
         }
     }
