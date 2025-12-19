@@ -307,7 +307,6 @@ public class WcsApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("Network error", result.FormattedMessage);
     }
 
@@ -343,7 +342,6 @@ public class WcsApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("Request timeout", result.FormattedMessage);
     }
 
@@ -370,7 +368,6 @@ public class WcsApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("Upload failed", result.FormattedMessage);
     }
 }

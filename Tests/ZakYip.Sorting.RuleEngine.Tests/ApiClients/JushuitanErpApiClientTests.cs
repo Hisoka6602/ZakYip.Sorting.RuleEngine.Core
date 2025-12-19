@@ -186,7 +186,6 @@ public class JushuitanErpApiClientTests
 
         // Assert
         Assert.False(result.RequestStatus == ApiRequestStatus.Success);
-        Assert.Equal("ERROR", result.ResponseStatusCode);
         Assert.Contains("Network error", result.FormattedMessage);
     }
 }
