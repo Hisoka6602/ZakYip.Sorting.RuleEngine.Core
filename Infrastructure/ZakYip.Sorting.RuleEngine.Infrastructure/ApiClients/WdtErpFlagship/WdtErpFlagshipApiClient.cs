@@ -104,13 +104,26 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
     {
         _logger.LogWarning("旺店通ERP旗舰版不支持扫描包裹功能，条码: {Barcode}", barcode);
         
+        const string notApplicableUrl = "NOT_SUPPORTED://scan-parcel";
+        var notSupportedMessage = "旺店通ERP旗舰版不支持扫描包裹功能 / WDT ERP Flagship does not support parcel scanning";
+        
+        // 生成示例curl命令，展示如果支持该操作时的请求格式
+        // Generate example curl command showing what the request would look like if supported
+        var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            exampleBody);
+        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "旺店通ERP旗舰版不支持扫描包裹功能 / WDT ERP Flagship does not support parcel scanning",
+            FormattedMessage = notSupportedMessage,
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -118,7 +131,8 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 
@@ -331,13 +345,29 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
     {
         _logger.LogWarning("旺店通ERP旗舰版不支持上传图片功能，条码: {Barcode}", barcode);
         
+        const string notApplicableUrl = "NOT_SUPPORTED://upload-image";
+        var notSupportedMessage = "旺店通ERP旗舰版不支持上传图片功能 / WDT ERP Flagship does not support image upload";
+        
+        // 生成示例curl命令，展示如果支持该操作时的请求格式
+        // Generate example curl command showing what the request would look like if supported
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> 
+            { 
+                ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
+                ["X-Barcode"] = barcode
+            },
+            $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
+        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "旺店通ERP旗舰版不支持上传图片功能 / WDT ERP Flagship does not support image upload",
+            FormattedMessage = notSupportedMessage,
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -345,7 +375,8 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 
@@ -361,13 +392,26 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
     {
         _logger.LogWarning("旺店通ERP旗舰版不支持落格回调功能，包裹ID: {ParcelId}", parcelId);
         
+        const string notApplicableUrl = "NOT_SUPPORTED://notify-chute-landing";
+        var notSupportedMessage = "旺店通ERP旗舰版不支持落格回调功能 / WDT ERP Flagship does not support chute landing callback";
+        
+        // 生成示例curl命令，展示如果支持该操作时的请求格式
+        // Generate example curl command showing what the request would look like if supported
+        var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { parcelId, chuteId, barcode, timestamp = _clock.LocalNow });
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            exampleBody);
+        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "旺店通ERP旗舰版不支持落格回调功能 / WDT ERP Flagship does not support chute landing callback",
+            FormattedMessage = notSupportedMessage,
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = parcelId,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -375,7 +419,8 @@ public class WdtErpFlagshipApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 

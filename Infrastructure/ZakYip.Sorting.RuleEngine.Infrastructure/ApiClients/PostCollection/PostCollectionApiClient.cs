@@ -124,13 +124,26 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // Skip NoRead barcodes
             if (barcode.Contains("NoRead", StringComparison.OrdinalIgnoreCase))
             {
+                const string notApplicableUrl = "SKIPPED://noread-barcode";
+                var skipMessage = "NoRead barcode skipped";
+                
+                // 生成示例curl命令，展示如果处理该条码时的请求格式
+                // Generate example curl command showing what the request would look like if processed
+                var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+                var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+                    "POST",
+                    notApplicableUrl,
+                    new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    exampleBody);
+                curlCommand = $"# NoRead barcode skipped - Example request format:\n{curlCommand}";
+                
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Success,
-                    FormattedMessage = "NoRead barcode skipped",
-                    ResponseBody = "NoRead barcode skipped",
+                    FormattedMessage = skipMessage,
+                    ResponseBody = skipMessage,
                     ParcelId = barcode,
-                    RequestUrl = string.Empty,
+                    RequestUrl = notApplicableUrl,
                     RequestBody = null,
                     RequestHeaders = null,
                     RequestTime = requestTime,
@@ -138,7 +151,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
                     ResponseStatusCode = 200,
                     ResponseHeaders = null,
                     DurationMs = 0,
-                    FormattedCurl = null
+                    FormattedCurl = curlCommand,
+                    CurlData = curlCommand
                 };
             }
 
@@ -350,13 +364,29 @@ public class PostCollectionApiClient : IWcsApiAdapter
     {
         _logger.LogDebug("上传图片功能（邮政分揽投机构）当前未实现，条码: {Barcode}", barcode);
 
+        const string notApplicableUrl = "NOT_IMPLEMENTED://upload-image";
+        var notImplementedMessage = "邮政分揽投机构图片上传功能未实现 / Postal collection institution image upload feature not implemented";
+        
+        // 生成示例curl命令，展示如果实现该功能时的请求格式
+        // Generate example curl command showing what the request would look like if implemented
+        var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
+            "POST",
+            notApplicableUrl,
+            new Dictionary<string, string> 
+            { 
+                ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
+                ["X-Barcode"] = barcode
+            },
+            $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
+        curlCommand = $"# Feature not implemented - Example request format:\n{curlCommand}";
+        
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
-            FormattedMessage = "邮政分揽投机构图片上传功能未实现 / Postal collection institution image upload feature not implemented",
+            FormattedMessage = notImplementedMessage,
             ResponseBody = "{\"info\":\"Feature not implemented\"}",
             ParcelId = barcode,
-            RequestUrl = string.Empty,
+            RequestUrl = notApplicableUrl,
             RequestBody = null,
             RequestHeaders = null,
             RequestTime = _clock.LocalNow,
@@ -364,7 +394,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
             ResponseStatusCode = 200,
             ResponseHeaders = null,
             DurationMs = 0,
-            FormattedCurl = null
+            FormattedCurl = curlCommand,
+            CurlData = curlCommand
         });
     }
 
