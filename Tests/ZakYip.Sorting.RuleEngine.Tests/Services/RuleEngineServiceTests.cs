@@ -593,8 +593,8 @@ public class RuleEngineServiceTests
         // API响应包含Data但没有OcrData
         var apiResponse = new WcsApiResponse
         {
-            Success = true,
-            Data = "640", // API响应内容存在
+            RequestStatus = ApiRequestStatus.Success,
+            ResponseBody = "640", // API响应内容存在
             OcrData = null // OCR数据不存在
         };
 
@@ -636,8 +636,8 @@ public class RuleEngineServiceTests
         // API响应包含OcrData但Data为null
         var apiResponse = new WcsApiResponse
         {
-            Success = true,
-            Data = null, // API响应内容不存在
+            RequestStatus = ApiRequestStatus.Success,
+            ResponseBody = null, // API响应内容不存在
             OcrData = new OcrData
             {
                 FirstSegmentCode = "640",
@@ -683,8 +683,8 @@ public class RuleEngineServiceTests
         // API响应同时包含Data和OcrData
         var apiResponse = new WcsApiResponse
         {
-            Success = true,
-            Data = "Some API response content", // API响应内容存在但不应被使用
+            RequestStatus = ApiRequestStatus.Success,
+            ResponseBody = "Some API response content", // API响应内容存在但不应被使用
             OcrData = new OcrData
             {
                 FirstSegmentCode = "640",
@@ -740,8 +740,8 @@ public class RuleEngineServiceTests
 
         var apiResponse = new WcsApiResponse
         {
-            Success = true,
-            Data = "SUCCESS", // API响应包含"SUCCESS"
+            RequestStatus = ApiRequestStatus.Success,
+            ResponseBody = "SUCCESS", // API响应包含"SUCCESS"
             OcrData = new OcrData
             {
                 FirstSegmentCode = "640" // OCR第一段码不是999
