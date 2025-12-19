@@ -261,10 +261,10 @@ public class ThirdPartyResponseTests
         );
 
         // Assert
-        Assert.True(response.Success);
-        Assert.Equal("200", response.Code);
-        Assert.Equal("Success", response.Message);
-        Assert.Equal("Test Data", response.Data);
+        Assert.True(response.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, response.ResponseStatusCode.Value);
+        Assert.Equal("Success", response.FormattedMessage);
+        Assert.Equal("Test Data", response.ResponseBody);
     }
 
     [Fact]

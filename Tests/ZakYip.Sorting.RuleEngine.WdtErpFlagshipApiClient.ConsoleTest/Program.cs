@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
@@ -39,7 +40,7 @@ class Program
         
         // Test scan parcel (not supported)
         var scanResult = await client.ScanParcelAsync("TEST-WDT-ERP-001");
-        Console.WriteLine($"Scan: {scanResult.Success} - {scanResult.Message}\n");
+        Console.WriteLine($"Scan: {scanResult.RequestStatus == ApiRequestStatus.Success} - {scanResult.FormattedMessage}\n");
         
         // Test request chute with sample DWS data
         var dwsData = new DwsData
@@ -54,13 +55,13 @@ class Program
         
         Console.WriteLine("Testing RequestChuteAsync with sample data...");
         var chuteResult = await client.RequestChuteAsync("PARCEL-001", dwsData);
-        Console.WriteLine($"Request Chute: {chuteResult.Success} - {chuteResult.Message}");
-        Console.WriteLine($"Response: {chuteResult.Data}\n");
+        Console.WriteLine($"Request Chute: {chuteResult.RequestStatus == ApiRequestStatus.Success} - {chuteResult.FormattedMessage}");
+        Console.WriteLine($"Response: {chuteResult.ResponseBody}\n");
         
         // Test upload image (not supported)
         var imageData = new byte[] { 0x01, 0x02, 0x03 };
         var uploadResult = await client.UploadImageAsync("TEST-BARCODE-002", imageData);
-        Console.WriteLine($"Upload Image: {uploadResult.Success} - {uploadResult.Message}\n");
+        Console.WriteLine($"Upload Image: {uploadResult.RequestStatus == ApiRequestStatus.Success} - {uploadResult.FormattedMessage}\n");
         
         Console.WriteLine("Test completed. Press any key...");
         Console.ReadKey();

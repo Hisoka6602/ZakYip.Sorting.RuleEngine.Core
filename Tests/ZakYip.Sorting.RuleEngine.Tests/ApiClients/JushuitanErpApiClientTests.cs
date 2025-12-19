@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -89,10 +90,10 @@ public class JushuitanErpApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1500, Volume = 9000 });
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("请求格口成功", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("请求格口成功", result.FormattedMessage);
+        Assert.Contains("success", result.ResponseBody);
     }
 
     [Fact]
@@ -107,9 +108,9 @@ public class JushuitanErpApiClientTests
         var result = await client.ScanParcelAsync(barcode);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("聚水潭ERP不支持扫描包裹功能", result.Message);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("聚水潭ERP不支持扫描包裹功能", result.FormattedMessage);
     }
 
     [Fact]
@@ -139,10 +140,10 @@ public class JushuitanErpApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1500, Volume = 9000 });
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("请求格口成功", result.Message);
-        Assert.Contains("success", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("请求格口成功", result.FormattedMessage);
+        Assert.Contains("success", result.ResponseBody);
     }
 
     [Fact]
@@ -158,9 +159,9 @@ public class JushuitanErpApiClientTests
         var result = await client.UploadImageAsync(barcode, imageData);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Contains("暂不支持", result.Message);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Contains("暂不支持", result.FormattedMessage);
     }
 
     [Fact]
@@ -184,8 +185,8 @@ public class JushuitanErpApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1500, Volume = 9000 });
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("ERROR", result.Code);
-        Assert.Contains("Network error", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal("ERROR", result.ResponseStatusCode);
+        Assert.Contains("Network error", result.FormattedMessage);
     }
 }

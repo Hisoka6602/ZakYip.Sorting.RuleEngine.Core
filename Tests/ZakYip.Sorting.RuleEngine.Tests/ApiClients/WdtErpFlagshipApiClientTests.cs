@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using System.Net;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using System.Text;
@@ -102,10 +103,10 @@ public class WdtErpFlagshipApiClientTests
         });
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("上传称重数据成功", result.Message);
-        Assert.Contains("status", result.Data);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("上传称重数据成功", result.FormattedMessage);
+        Assert.Contains("status", result.ResponseBody);
     }
 
     [Fact]
@@ -142,7 +143,7 @@ public class WdtErpFlagshipApiClientTests
         Assert.NotNull(capturedRequestUri);
         Assert.Contains("method=wms.stockout.Sales.weighingExt", capturedRequestUri);
         Assert.Contains("sign=", capturedRequestUri);
-        Assert.True(result.Success);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
     }
 
     [Fact]
@@ -171,7 +172,7 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1.5m });
 
         // Assert
-        Assert.True(result.Success);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 3.2m });
 
         // Assert
-        Assert.True(result.Success);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
     }
 
     [Fact]
@@ -229,8 +230,8 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1.5m });
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Contains("操作失败", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Contains("操作失败", result.FormattedMessage);
     }
 
     [Fact]
@@ -254,9 +255,9 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1.5m });
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("ERROR", result.Code);
-        Assert.Contains("接口访问异常", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal("ERROR", result.ResponseStatusCode);
+        Assert.Contains("接口访问异常", result.FormattedMessage);
     }
 
     [Fact]
@@ -280,9 +281,9 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = barcode, Weight = 1.5m });
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("ERROR", result.Code);
-        Assert.Contains("接口访问返回超时", result.Message);
+        Assert.False(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal("ERROR", result.ResponseStatusCode);
+        Assert.Contains("接口访问返回超时", result.FormattedMessage);
     }
 
     [Fact]
@@ -297,9 +298,9 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.ScanParcelAsync(barcode);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("旺店通ERP旗舰版不支持扫描包裹功能", result.Message);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("旺店通ERP旗舰版不支持扫描包裹功能", result.FormattedMessage);
     }
 
     [Fact]
@@ -315,9 +316,9 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.UploadImageAsync(barcode, imageData);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("200", result.Code);
-        Assert.Equal("旺店通ERP旗舰版不支持上传图片功能", result.Message);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
+        Assert.Equal(200, result.ResponseStatusCode.Value);
+        Assert.Equal("旺店通ERP旗舰版不支持上传图片功能", result.FormattedMessage);
     }
 
     [Fact]
@@ -345,9 +346,9 @@ public class WdtErpFlagshipApiClientTests
         var result = await client.RequestChuteAsync("PKG001", new DwsData { Barcode = "TEST", Weight = 1.23456789m });
 
         // Assert
-        Assert.True(result.Success);
+        Assert.True(result.RequestStatus == ApiRequestStatus.Success);
         // The rounding happens internally, we verify by checking the result is successful
-        Assert.Equal("上传称重数据成功", result.Message);
+        Assert.Equal("上传称重数据成功", result.FormattedMessage);
     }
 
     [Fact]

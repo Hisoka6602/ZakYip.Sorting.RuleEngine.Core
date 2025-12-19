@@ -1,3 +1,4 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
@@ -82,7 +83,7 @@ class Program
         // 测试1: 扫描包裹 / Test 1: Scan Parcode
         Console.WriteLine("测试1: 扫描包裹 / Test 1: Scan Parcel");
         var scanResult = await adapter.ScanParcelAsync("POST-CENTER-001");
-        Console.WriteLine($"结果 / Result: {scanResult.Success} - {scanResult.Message}\n");
+        Console.WriteLine($"结果 / Result: {scanResult.RequestStatus == ApiRequestStatus.Success} - {scanResult.FormattedMessage}\n");
         
         // 测试2: 请求格口（查询路由） / Test 2: Request Chute (Query Routing)
         Console.WriteLine("测试2: 请求格口（查询路由） / Test 2: Request Chute (Query Routing)");
@@ -96,13 +97,13 @@ class Program
             Volume = 9000 
         };
         var chuteResult = await adapter.RequestChuteAsync("POST-CENTER-001", dwsData);
-        Console.WriteLine($"结果 / Result: {chuteResult.Success} - {chuteResult.Message}\n");
+        Console.WriteLine($"结果 / Result: {chuteResult.RequestStatus == ApiRequestStatus.Success} - {chuteResult.FormattedMessage}\n");
         
         // 测试3: 上传图片 / Test 3: Upload Image
         Console.WriteLine("测试3: 上传图片 / Test 3: Upload Image");
         var testImage = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }; // JPEG header
         var imageResult = await adapter.UploadImageAsync("POST-CENTER-001", testImage, "image/jpeg");
-        Console.WriteLine($"结果 / Result: {imageResult.Success} - {imageResult.Message}\n");
+        Console.WriteLine($"结果 / Result: {imageResult.RequestStatus == ApiRequestStatus.Success} - {imageResult.FormattedMessage}\n");
     }
     
     static async Task TestPostCollectionAsync(ILoggerFactory loggerFactory)
@@ -152,7 +153,7 @@ class Program
         // 测试1: 扫描包裹 / Test 1: Scan Parcel
         Console.WriteLine("测试1: 扫描包裹 / Test 1: Scan Parcel");
         var scanResult = await adapter.ScanParcelAsync("POST-COLLECT-001");
-        Console.WriteLine($"结果 / Result: {scanResult.Success} - {scanResult.Message}\n");
+        Console.WriteLine($"结果 / Result: {scanResult.RequestStatus == ApiRequestStatus.Success} - {scanResult.FormattedMessage}\n");
         
         // 测试2: 请求格口（查询包裹） / Test 2: Request Chute (Query Parcel)
         Console.WriteLine("测试2: 请求格口（查询包裹） / Test 2: Request Chute (Query Parcel)");
@@ -166,13 +167,13 @@ class Program
             Volume = 17500 
         };
         var chuteResult = await adapter.RequestChuteAsync("POST-COLLECT-001", dwsData);
-        Console.WriteLine($"结果 / Result: {chuteResult.Success} - {chuteResult.Message}\n");
+        Console.WriteLine($"结果 / Result: {chuteResult.RequestStatus == ApiRequestStatus.Success} - {chuteResult.FormattedMessage}\n");
         
         // 测试3: 上传图片 / Test 3: Upload Image
         Console.WriteLine("测试3: 上传图片 / Test 3: Upload Image");
         var testImage = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }; // JPEG header
         var imageResult = await adapter.UploadImageAsync("POST-COLLECT-001", testImage, "image/jpeg");
-        Console.WriteLine($"结果 / Result: {imageResult.Success} - {imageResult.Message}\n");
+        Console.WriteLine($"结果 / Result: {imageResult.RequestStatus == ApiRequestStatus.Success} - {imageResult.FormattedMessage}\n");
     }
 }
 
