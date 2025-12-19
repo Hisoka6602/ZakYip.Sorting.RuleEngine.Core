@@ -106,12 +106,15 @@ public class WdtWmsApiClient : IWcsApiAdapter
         // 生成示例curl命令，展示如果支持该操作时的请求格式
         // Generate example curl command showing what the request would look like if supported
         var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
+        var headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" };
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            headers,
             exampleBody);
-        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        // 添加注释说明功能不支持（使用 REM 命令保持单行格式）
+        // Add comment indicating feature not supported (using REM command to maintain single-line format)
+        curlCommand = $"REM Feature not supported - Example request format: && {curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -120,8 +123,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
             RequestUrl = notApplicableUrl,
-            RequestBody = null,
-            RequestHeaders = null,
+            RequestBody = exampleBody,
+            RequestHeaders = ApiRequestHelper.FormatHeaders(headers),
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseStatusCode = 200,
@@ -308,16 +311,20 @@ public class WdtWmsApiClient : IWcsApiAdapter
         
         // 生成示例curl命令，展示如果支持该操作时的请求格式
         // Generate example curl command showing what the request would look like if supported
+        var exampleBody = $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--";
+        var headers = new Dictionary<string, string> 
+        { 
+            ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
+            ["X-Barcode"] = barcode
+        };
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> 
-            { 
-                ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
-                ["X-Barcode"] = barcode
-            },
-            $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
-        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+            headers,
+            exampleBody);
+        // 添加注释说明功能不支持（使用 REM 命令保持单行格式）
+        // Add comment indicating feature not supported (using REM command to maintain single-line format)
+        curlCommand = $"REM Feature not supported - Example request format: && {curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -326,8 +333,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = barcode,
             RequestUrl = notApplicableUrl,
-            RequestBody = null,
-            RequestHeaders = null,
+            RequestBody = exampleBody,
+            RequestHeaders = ApiRequestHelper.FormatHeaders(headers),
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseStatusCode = 200,
@@ -356,12 +363,15 @@ public class WdtWmsApiClient : IWcsApiAdapter
         // 生成示例curl命令，展示如果支持该操作时的请求格式
         // Generate example curl command showing what the request would look like if supported
         var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { parcelId, chuteId, barcode, timestamp = _clock.LocalNow });
+        var headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" };
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            headers,
             exampleBody);
-        curlCommand = $"# Feature not supported - Example request format:\n{curlCommand}";
+        // 添加注释说明功能不支持（使用 REM 命令保持单行格式）
+        // Add comment indicating feature not supported (using REM command to maintain single-line format)
+        curlCommand = $"REM Feature not supported - Example request format: && {curlCommand}";
         
         return Task.FromResult(new WcsApiResponse
         {
@@ -370,8 +380,8 @@ public class WdtWmsApiClient : IWcsApiAdapter
             ResponseBody = "{\"info\":\"Feature not supported\"}",
             ParcelId = parcelId,
             RequestUrl = notApplicableUrl,
-            RequestBody = null,
-            RequestHeaders = null,
+            RequestBody = exampleBody,
+            RequestHeaders = ApiRequestHelper.FormatHeaders(headers),
             RequestTime = _clock.LocalNow,
             ResponseTime = _clock.LocalNow,
             ResponseStatusCode = 200,

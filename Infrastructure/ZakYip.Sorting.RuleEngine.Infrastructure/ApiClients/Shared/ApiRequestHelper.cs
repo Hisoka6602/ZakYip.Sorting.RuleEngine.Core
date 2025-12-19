@@ -68,42 +68,133 @@ public static class ApiRequestHelper
     }
 
     /// <summary>
-    /// 生成格式化的Curl命令
-    /// Generate formatted Curl command
+    /// 生成格式化的Curl命令（Windows CMD 格式）
+    /// Generate formatted Curl command (Windows CMD format)
     /// </summary>
     /// <param name="method">HTTP方法</param>
     /// <param name="url">请求URL</param>
     /// <param name="headers">请求头字典</param>
     /// <param name="body">请求体</param>
     /// <returns>格式化的Curl命令字符串</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GenerateFormattedCurl(
         string method,
         string url,
         Dictionary<string, string>? headers = null,
         string? body = null)
     {
+        return GenerateWindowsCmdCurl(method, url, headers, body);
+    }
+
+    /// <summary>
+    /// 生成 Windows CMD 格式的 Curl 命令（单行、无续行符）
+    /// Generate Windows CMD format Curl command (single line, no continuation)
+    /// </summary>
+    /// <param name="method">HTTP方法 / HTTP method</param>
+    /// <param name="url">请求URL / Request URL</param>
+    /// <param name="headers">请求头字典 / Request headers dictionary</param>
+    /// <param name="body">请求体 / Request body</param>
+    /// <returns>Windows CMD 格式的 Curl 命令 / Windows CMD format Curl command</returns>
+    /// <remarks>
+    /// 遵循 Windows CMD 转义规则：
+    /// - 所有 < 变成 ^<，所有 > 变成 ^>
+    /// - 所有 | 变成 ^|（尤其是 || 必须写成 ^|^|）
+    /// - 所有 & 变成 ^&
+    /// - XML 属性中的双引号必须写成 ""（即 xmlns=""...""）
+    /// - 命令前添加 chcp 65001>nul & 确保中文不乱码
+    /// </remarks>
+    private static string GenerateWindowsCmdCurl(
+        string method,
+        string url,
+        Dictionary<string, string>? headers = null,
+        string? body = null)
+    {
         var curlBuilder = new StringBuilder();
-        curlBuilder.Append($"curl -X {method.ToUpper()} '{url}'");
+        
+        // 添加 chcp 65001>nul & 确保中文不乱码
+        curlBuilder.Append("chcp 65001>nul & ");
+        
+        // 构建 curl 命令
+        curlBuilder.Append("curl -X ");
+        curlBuilder.Append(method.ToUpper());
+        curlBuilder.Append(" \"");
+        curlBuilder.Append(url);
+        curlBuilder.Append('"');
 
         // 添加请求头
         if (headers != null)
         {
             foreach (var header in headers)
             {
-                curlBuilder.Append($" \\\n  -H '{header.Key}: {header.Value}'");
+                curlBuilder.Append(" -H \"");
+                curlBuilder.Append(header.Key);
+                curlBuilder.Append(": ");
+                curlBuilder.Append(header.Value);
+                curlBuilder.Append('"');
             }
         }
 
-        // 添加请求体
+        // 添加请求体（需要 CMD 转义）
         if (!string.IsNullOrEmpty(body))
         {
-            // 转义单引号
-            var escapedBody = body.Replace("'", "'\\''", StringComparison.Ordinal);
-            curlBuilder.Append($" \\\n  -d '{escapedBody}'");
+            curlBuilder.Append(" --data-raw \"");
+            curlBuilder.Append(EscapeForWindowsCmd(body));
+            curlBuilder.Append('"');
         }
 
         return curlBuilder.ToString();
+    }
+
+    /// <summary>
+    /// 按 Windows CMD 规则转义字符串
+    /// Escape string for Windows CMD
+    /// </summary>
+    /// <param name="input">输入字符串 / Input string</param>
+    /// <returns>转义后的字符串 / Escaped string</returns>
+    /// <remarks>
+    /// CMD 转义规则：
+    /// - < → ^<
+    /// - > → ^>
+    /// - | → ^|
+    /// - & → ^&
+    /// - 双引号 → "" (在双引号字符串内部，双引号本身需要双写)
+    /// - 换行符和回车符被替换为空格（确保单行命令）
+    /// </remarks>
+    private static string EscapeForWindowsCmd(string input)
+    {
+        var sb = new StringBuilder(input.Length + (input.Length / 10)); // 预留一些空间用于转义字符
+        
+        foreach (var ch in input)
+        {
+            switch (ch)
+            {
+                case '<':
+                    sb.Append("^<");
+                    break;
+                case '>':
+                    sb.Append("^>");
+                    break;
+                case '|':
+                    sb.Append("^|");
+                    break;
+                case '&':
+                    sb.Append("^&");
+                    break;
+                case '"':
+                    // 在双引号字符串内部，双引号本身需要双写
+                    sb.Append("\"\"");
+                    break;
+                case '\r':
+                case '\n':
+                    // 换行符和回车符替换为空格，确保单行命令
+                    sb.Append(' ');
+                    break;
+                default:
+                    sb.Append(ch);
+                    break;
+            }
+        }
+        
+        return sb.ToString();
     }
 
     /// <summary>
