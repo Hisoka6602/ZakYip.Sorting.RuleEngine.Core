@@ -40,22 +40,37 @@ try
 
     // 预读取配置以获取 MiniApi.Urls 设置
     // Pre-read configuration to get MiniApi.Urls settings
+    var aspnetCoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+    logger.Info("当前 ASPNETCORE_ENVIRONMENT: {Environment}", aspnetCoreEnvironment);
+    
     var configuration = new ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true, reloadOnChange: true)
+        .AddJsonFile($"appsettings.{aspnetCoreEnvironment}.json", optional: true, reloadOnChange: true)
         .AddEnvironmentVariables()
         .AddCommandLine(args)
         .Build();
     
-    var appSettingsForUrls = configuration.GetSection("AppSettings").Get<AppSettings>() 
-        ?? new AppSettings();
+    var appSettingsForUrls = configuration.GetSection("AppSettings").Get<AppSettings>();
+    
+    if (appSettingsForUrls == null)
+    {
+        logger.Warn("配置文件中未找到 AppSettings 节点或反序列化失败，已使用默认配置值。");
+        appSettingsForUrls = new AppSettings();
+    }
 
     var host = Host.CreateDefaultBuilder(args)
 #if !DEBUG
         // 仅在Release模式下配置Windows服务
         .UseWindowsService()
 #endif
+        .ConfigureAppConfiguration((context, configBuilder) =>
+        {
+            // 复用预先构建的 configuration，避免重复读取配置文件
+            // Reuse pre-built configuration to avoid reading config files twice
+            configBuilder.Sources.Clear();
+            configBuilder.AddConfiguration(configuration);
+        })
         .ConfigureLogging(logging =>
         {
             logging.ClearProviders();
@@ -69,15 +84,16 @@ try
             {
                 // 检查是否通过命令行参数指定了URLs
                 // Check if URLs are specified via command line arguments
-                var urlsFromArgs = configuration["urls"];
-                if (string.IsNullOrEmpty(urlsFromArgs))
+                var urlsFromArgs = args.Any(a => a.StartsWith("--urls=", StringComparison.OrdinalIgnoreCase) || 
+                                                  a.Equals("--urls", StringComparison.OrdinalIgnoreCase));
+                if (!urlsFromArgs)
                 {
                     logger.Info("从配置文件应用监听地址: {Urls}", string.Join(", ", appSettingsForUrls.MiniApi.Urls));
                     webBuilder.UseUrls(appSettingsForUrls.MiniApi.Urls);
                 }
                 else
                 {
-                    logger.Info("使用命令行指定的监听地址: {Urls}", urlsFromArgs);
+                    logger.Info("使用命令行指定的监听地址");
                 }
             }
 
