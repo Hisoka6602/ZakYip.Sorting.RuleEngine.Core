@@ -113,10 +113,10 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
     /// <summary>
     /// 扫描包裹到邮政处理中心
-    /// Scan parcel to postal processing center (SubmitScanInfo)
-    /// 对应PostApi.SubmitScanInfo - SOAP方法: getYJSM
+    /// Scan parcel to postal processing center (SOAP method: getYJSM)
+    /// 对应PostApi.SubmitScanInfo C#方法，实际SOAP方法名: getYJSM
     /// 参数拼接格式 / Parameter format (16 fields):
-    /// #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{timestamp}::2::0::0::{WorkshopCode}::0::0::0::0::0::0::0::||#END
+    /// #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{timestamp}::2::0::0::{WorkshopCode}::0::0::0::0::0::0::0::0::||#END
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
@@ -203,7 +203,6 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             _logger.LogDebug("扫描包裹到邮政处理中心，条码: {Barcode}", barcode);
 
             // 构造SOAP请求 - 参照 PostApi.SubmitScanInfo
-            // 参考格式: #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{timestamp}::2::0::0::{WorkshopCode}::0::0::0::0::0::0::0::||#END
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -212,7 +211,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append("2::0::0::")
                 .Append(config.WorkshopCode).Append("::")
-                .Append("0::0::0::0::0::0::0::")
+                .Append("0::0::0::0::0::0::0::0::")
                 .Append("||#END")
                 .ToString();
 
@@ -300,7 +299,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
             
-            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.SubmitScanInfo
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -309,7 +308,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append("2::0::0::")
                 .Append(config.WorkshopCode).Append("::")
-                .Append("0::0::0::0::0::0::0::")
+                .Append("0::0::0::0::0::0::0::0::")
                 .Append("||#END")
                 .ToString();
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
@@ -351,10 +350,11 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
     /// <summary>
     /// 请求格口号（查询包裹信息并返回格口）
-    /// Request chute number (UploadData)
-    /// 对应PostApi.UploadData - SOAP方法: getGKCX
-    /// 参数拼接格式 / Parameter format (7 fields):
-    /// #HEAD::{sequenceId}::{barcode}::{DeviceId}::{WorkshopCode}:: :: ::||#END
+    /// Request chute number (SOAP method: getGKCX)
+    /// 对应PostApi.UploadData C#方法，实际SOAP方法名: getGKCX
+    /// 参数拼接格式 / Parameter format (7 fields, fields 5-7 are single space):
+    /// #HEAD::{sequenceId}::{barcode}::{DeviceId}::{WorkshopCode}::{空格}::{空格}::{空格}::||#END
+    /// 其中字段5-7固定为单个空格字符（" "），作为占位字段，不能省略
     /// sequenceId格式: {yyyyMM}{WorkshopCode}FJ{序号9位}
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
@@ -382,14 +382,15 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
             // 构造格口查询SOAP请求 - 参照 PostApi.UploadData
-            // 参考格式: #HEAD::{sequenceId}::{barcode}::{DeviceId}::{WorkshopCode}:: :: ::||#END
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
                 .Append(dwsData.Barcode).Append("::")
                 .Append(config.DeviceId).Append("::")
                 .Append(config.WorkshopCode).Append("::")
-                .Append(" :: :: ")
+                .Append(" ").Append("::")  // 第5字段：空格
+                .Append(" ").Append("::")  // 第6字段：空格
+                .Append(" ").Append("::")  // 第7字段：空格
                 .Append("||#END")
                 .ToString();
 
@@ -587,10 +588,9 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
     /// <summary>
     /// 落格回调 - 通知邮政处理中心包裹已落入指定格口
-    /// Chute landing callback (UploadInBackground)
-    /// 对应PostApi.UploadInBackground - SOAP方法: getYJLG
+    /// Chute landing callback (SOAP method: getYJLG)
+    /// 对应PostApi.UploadInBackground C#方法，实际SOAP方法名: getYJLG
     /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostApi.UploadInBackground
-    /// Corresponding reference implementation: PostApi.UploadInBackground
     /// 参数拼接格式 / Parameter format (22 fields): 
     /// #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{lcgk}::{mailType}::{chuteCode}::{WorkshopCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{playId}::||#END
     /// </summary>
