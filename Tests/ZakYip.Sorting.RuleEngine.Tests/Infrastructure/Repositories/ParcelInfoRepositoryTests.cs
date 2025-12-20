@@ -161,7 +161,7 @@ public class ParcelInfoRepositoryTests : IDisposable
             ParcelId = "P1", 
             CartNumber = "C1", 
             Weight = null,
-            CreatedAt = DateTime.Now.AddMinutes(-10)
+            CreatedAt = _clock.LocalNow.AddMinutes(-10)
         });
 
         await _repository.AddAsync(new ParcelInfo 
@@ -169,7 +169,7 @@ public class ParcelInfoRepositoryTests : IDisposable
             ParcelId = "P2", 
             CartNumber = "C2", 
             Weight = null,
-            CreatedAt = DateTime.Now.AddMinutes(-5)
+            CreatedAt = _clock.LocalNow.AddMinutes(-5)
         });
 
         await _repository.AddAsync(new ParcelInfo 
@@ -177,7 +177,7 @@ public class ParcelInfoRepositoryTests : IDisposable
             ParcelId = "P3", 
             CartNumber = "C3", 
             Weight = 1000,
-            CreatedAt = DateTime.Now
+            CreatedAt = _clock.LocalNow
         });
 
         // Act

@@ -41,7 +41,7 @@ public class ParcelLifecycleNodeRepositoryTests : IDisposable
         {
             ParcelId = "TEST001",
             Stage = ParcelLifecycleStage.Created,
-            EventTime = DateTime.UtcNow,
+            EventTime = _clock.LocalNow,
             Description = "包裹创建"
         };
 
@@ -57,7 +57,7 @@ public class ParcelLifecycleNodeRepositoryTests : IDisposable
     {
         // Arrange
         var parcelId = "TEST002";
-        var now = DateTime.UtcNow;
+        var now = _clock.LocalNow;
 
         await _repository.AddAsync(new ParcelLifecycleNodeEntity
         {
@@ -100,13 +100,13 @@ public class ParcelLifecycleNodeRepositoryTests : IDisposable
             {
                 ParcelId = "P1",
                 Stage = ParcelLifecycleStage.Created,
-                EventTime = DateTime.UtcNow
+                EventTime = _clock.LocalNow
             },
             new ParcelLifecycleNodeEntity
             {
                 ParcelId = "P1",
                 Stage = ParcelLifecycleStage.DwsReceived,
-                EventTime = DateTime.UtcNow.AddMinutes(1)
+                EventTime = _clock.LocalNow.AddMinutes(1)
             }
         };
 
@@ -121,7 +121,7 @@ public class ParcelLifecycleNodeRepositoryTests : IDisposable
     public async Task GetByTimeRangeAsync_FiltersCorrectly()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = _clock.LocalNow;
 
         await _repository.AddAsync(new ParcelLifecycleNodeEntity
         {
@@ -159,7 +159,7 @@ public class ParcelLifecycleNodeRepositoryTests : IDisposable
     public async Task GetByTimeRangeAsync_WithStageFilter_FiltersCorrectly()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = _clock.LocalNow;
 
         await _repository.AddAsync(new ParcelLifecycleNodeEntity
         {

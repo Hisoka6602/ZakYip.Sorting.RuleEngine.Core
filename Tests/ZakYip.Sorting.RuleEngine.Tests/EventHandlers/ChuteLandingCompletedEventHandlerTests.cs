@@ -72,7 +72,7 @@ public class ChuteLandingCompletedEventHandlerTests
         {
             ParcelId = "TEST001",
             ActualChute = "CH01",
-            LandedAt = DateTime.Now
+            LandedAt = _clock.LocalNow
         };
 
         // Act
@@ -108,7 +108,7 @@ public class ChuteLandingCompletedEventHandlerTests
         {
             ParcelId = "TEST002",
             ActualChute = "CH02",
-            LandedAt = DateTime.Now
+            LandedAt = _clock.LocalNow
         };
 
         // Act
@@ -130,7 +130,7 @@ public class ChuteLandingCompletedEventHandlerTests
         {
             ParcelId = "NONEXISTENT",
             ActualChute = "CH99",
-            LandedAt = DateTime.Now
+            LandedAt = _clock.LocalNow
         };
 
         // Act

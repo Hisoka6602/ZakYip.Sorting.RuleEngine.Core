@@ -13,7 +13,6 @@ public class ParcelCacheService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<ParcelCacheService> _logger;
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
     
     // 缓存键前缀 / Cache key prefix
     private const string PARCEL_KEY_PREFIX = "RuleEngine:";
@@ -39,27 +38,19 @@ public class ParcelCacheService
     /// 添加或更新包裹到缓存
     /// Add or update parcel to cache
     /// </summary>
-    public async Task<bool> SetAsync(ParcelInfo parcel, CancellationToken cancellationToken = default)
+    public Task<bool> SetAsync(ParcelInfo parcel, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parcel);
         
-        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        var cacheKey = GetCacheKey(parcel.ParcelId);
+        _cache.Set(cacheKey, parcel, new MemoryCacheEntryOptions
         {
-            var cacheKey = GetCacheKey(parcel.ParcelId);
-            _cache.Set(cacheKey, parcel, new MemoryCacheEntryOptions
-            {
-                SlidingExpiration = SlidingExpiration,
-                Priority = CacheItemPriority.Normal
-            });
-            
-            _logger.LogDebug("包裹已缓存: ParcelId={ParcelId}", parcel.ParcelId);
-            return true;
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+            SlidingExpiration = SlidingExpiration,
+            Priority = CacheItemPriority.Normal
+        });
+        
+        _logger.LogDebug("包裹已缓存: ParcelId={ParcelId}", parcel.ParcelId);
+        return Task.FromResult(true);
     }
 
     /// <summary>

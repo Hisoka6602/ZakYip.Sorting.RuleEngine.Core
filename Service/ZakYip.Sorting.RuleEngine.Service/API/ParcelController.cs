@@ -126,14 +126,8 @@ public class ParcelController : ControllerBase
             var (items, totalCount) = await _parcelRepository.SearchAsync(
                 status, lifecycleStage, bagId, null, null, page, pageSize, cancellationToken).ConfigureAwait(false);
 
-            return Ok(new ParcelSearchResponse
-            {
-                Items = items,
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            });
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            return Ok(new ParcelSearchResponse(items, totalCount, page, pageSize, totalPages));
         }
         catch (Exception ex)
         {
@@ -194,30 +188,15 @@ public class ParcelController : ControllerBase
 /// 包裹搜索响应
 /// Parcel search response
 /// </summary>
-public record class ParcelSearchResponse
-{
-    /// <summary>
-    /// 包裹列表 / Parcel list
-    /// </summary>
-    public required IReadOnlyList<ParcelInfo> Items { get; init; }
-    
-    /// <summary>
-    /// 总数 / Total count
-    /// </summary>
-    public required int TotalCount { get; init; }
-    
-    /// <summary>
-    /// 当前页码 / Current page
-    /// </summary>
-    public required int Page { get; init; }
-    
-    /// <summary>
-    /// 每页大小 / Page size
-    /// </summary>
-    public required int PageSize { get; init; }
-    
-    /// <summary>
-    /// 总页数 / Total pages
-    /// </summary>
-    public required int TotalPages { get; init; }
-}
+/// <param name="Items">包裹列表 / Parcel list</param>
+/// <param name="TotalCount">总数 / Total count</param>
+/// <param name="Page">当前页码 / Current page</param>
+/// <param name="PageSize">每页大小 / Page size</param>
+/// <param name="TotalPages">总页数 / Total pages</param>
+public record ParcelSearchResponse(
+    IReadOnlyList<ParcelInfo> Items,
+    int TotalCount,
+    int Page,
+    int PageSize,
+    int TotalPages
+);
