@@ -175,11 +175,35 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             }, cancellationToken).ConfigureAwait(false);
         }
 
-        // 更新包裹信息到数据库
-        await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
-        
-        // 更新缓存
-        await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
+        // 并行执行数据库和缓存操作，互不影响
+        // Execute database and cache operations in parallel without waiting for each other
+        var dbTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据库更新失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
+
+        var cacheTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "缓存更新失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
+
+        // 等待所有操作完成（但不等待彼此）
+        // Wait for all operations to complete (but they don't wait for each other)
+        await Task.WhenAll(dbTask, cacheTask).ConfigureAwait(false);
     }
 
     /// <summary>

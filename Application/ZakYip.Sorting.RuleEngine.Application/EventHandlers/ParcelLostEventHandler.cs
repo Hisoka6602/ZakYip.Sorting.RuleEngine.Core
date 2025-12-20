@@ -61,63 +61,140 @@ public class ParcelLostEventHandler : INotificationHandler<ParcelLostEvent>
         parcel.CompletedAt = notification.LostAt;
 
         // 添加丢失生命周期节点
-        await _lifecycleRepository.AddAsync(new ParcelLifecycleNodeEntity
+        var lifecycleNode = new ParcelLifecycleNodeEntity
         {
             ParcelId = parcel.ParcelId,
             Stage = ParcelLifecycleStage.Lost,
             EventTime = notification.LostAt,
             Description = $"包裹丢失: {notification.Reason ?? "未知原因"}, 受影响包裹数={notification.AffectedParcelIds.Count}"
-        }, cancellationToken).ConfigureAwait(false);
+        };
 
-        // 更新主包裹信息到数据库
-        await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
-
-        // 更新缓存
-        await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
-
-        // 处理受影响的包裹
-        if (notification.AffectedParcelIds.Count > 0)
+        // 并行执行主包裹的数据库和缓存操作，互不影响
+        // Execute database and cache operations for main parcel in parallel without waiting for each other
+        var mainDbTask = Task.Run(async () =>
         {
-            var affectedParcels = new List<ParcelInfo>();
-            
-            foreach (var affectedId in notification.AffectedParcelIds)
+            try
             {
-                var affected = await _cacheService.GetOrLoadAsync(
-                    affectedId,
-                    _parcelInfoRepository,
-                    cancellationToken).ConfigureAwait(false);
+                await _lifecycleRepository.AddAsync(lifecycleNode, cancellationToken).ConfigureAwait(false);
+                await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "主包裹数据库操作失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
 
-                if (affected != null)
+        var mainCacheTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "主包裹缓存操作失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
+
+        // 处理受影响的包裹（并行处理）
+        // Process affected parcels in parallel
+        var affectedTask = Task.Run(async () =>
+        {
+            if (notification.AffectedParcelIds.Count > 0)
+            {
+                var affectedParcels = new List<ParcelInfo>();
+                var affectedLifecycleNodes = new List<ParcelLifecycleNodeEntity>();
+                
+                foreach (var affectedId in notification.AffectedParcelIds)
                 {
-                    // 更新受影响包裹的状态
-                    affected.Status = ParcelStatus.Failed;
-                    affected.LifecycleStage = ParcelLifecycleStage.Error;
-                    affected.UpdatedAt = notification.LostAt;
-                    affectedParcels.Add(affected);
-
-                    // 添加受影响生命周期节点
-                    await _lifecycleRepository.AddAsync(new ParcelLifecycleNodeEntity
+                    try
                     {
-                        ParcelId = affected.ParcelId,
-                        Stage = ParcelLifecycleStage.Error,
-                        EventTime = notification.LostAt,
-                        Description = $"受包裹丢失影响: 丢失包裹={notification.ParcelId}"
-                    }, cancellationToken).ConfigureAwait(false);
+                        var affected = await _cacheService.GetOrLoadAsync(
+                            affectedId,
+                            _parcelInfoRepository,
+                            cancellationToken).ConfigureAwait(false);
 
-                    // 更新缓存
-                    await _cacheService.SetAsync(affected, cancellationToken).ConfigureAwait(false);
+                        if (affected != null)
+                        {
+                            // 更新受影响包裹的状态
+                            affected.Status = ParcelStatus.Failed;
+                            affected.LifecycleStage = ParcelLifecycleStage.Error;
+                            affected.UpdatedAt = notification.LostAt;
+                            affectedParcels.Add(affected);
+
+                            // 添加受影响生命周期节点
+                            affectedLifecycleNodes.Add(new ParcelLifecycleNodeEntity
+                            {
+                                ParcelId = affected.ParcelId,
+                                Stage = ParcelLifecycleStage.Error,
+                                EventTime = notification.LostAt,
+                                Description = $"受包裹丢失影响: 丢失包裹={notification.ParcelId}"
+                            });
+
+                            // 更新缓存（不等待）
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _cacheService.SetAsync(affected, cancellationToken).ConfigureAwait(false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "受影响包裹缓存更新失败: ParcelId={ParcelId}", affected.ParcelId);
+                                }
+                            }, cancellationToken);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "处理受影响包裹失败: ParcelId={ParcelId}", affectedId);
+                    }
+                }
+
+                // 批量更新受影响的包裹到数据库
+                if (affectedParcels.Count > 0)
+                {
+                    try
+                    {
+                        await _parcelInfoRepository.BatchUpdateAsync(affectedParcels, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "受影响包裹批量数据库更新失败");
+                    }
+                }
+
+                // 批量添加生命周期节点
+                if (affectedLifecycleNodes.Count > 0)
+                {
+                    try
+                    {
+                        await _lifecycleRepository.BatchAddAsync(affectedLifecycleNodes.ToArray(), cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "受影响包裹生命周期节点批量添加失败");
+                    }
                 }
             }
+        }, cancellationToken);
 
-            // 批量更新受影响的包裹
-            if (affectedParcels.Count > 0)
+        var logTask = Task.Run(async () =>
+        {
+            try
             {
-                await _parcelInfoRepository.BatchUpdateAsync(affectedParcels, cancellationToken).ConfigureAwait(false);
+                await _logRepository.LogErrorAsync(
+                    $"包裹丢失: {parcel.ParcelId}",
+                    $"原因: {notification.Reason ?? "未知"}, 受影响包裹数: {notification.AffectedParcelIds.Count}").ConfigureAwait(false);
             }
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "日志记录失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
 
-        await _logRepository.LogErrorAsync(
-            $"包裹丢失: {parcel.ParcelId}",
-            $"原因: {notification.Reason ?? "未知"}, 受影响包裹数: {notification.AffectedParcelIds.Count}").ConfigureAwait(false);
+        // 等待所有操作完成（但不等待彼此）
+        // Wait for all operations to complete (but they don't wait for each other)
+        await Task.WhenAll(mainDbTask, mainCacheTask, affectedTask, logTask).ConfigureAwait(false);
     }
 }

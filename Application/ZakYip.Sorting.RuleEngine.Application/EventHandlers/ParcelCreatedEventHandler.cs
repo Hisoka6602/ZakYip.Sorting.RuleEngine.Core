@@ -54,18 +54,7 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
             CreatedAt = notification.CreatedAt
         };
 
-        // 持久化到数据库
-        var addResult = await _parcelInfoRepository.AddAsync(parcel, cancellationToken).ConfigureAwait(false);
-        if (!addResult)
-        {
-            _logger.LogError("包裹信息持久化失败: ParcelId={ParcelId}", notification.ParcelId);
-            return;
-        }
-
-        // 添加到缓存（滑动过期10分钟）
-        await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
-
-        // 添加生命周期节点
+        // 创建生命周期节点
         var lifecycleNode = new ParcelLifecycleNodeEntity
         {
             ParcelId = notification.ParcelId,
@@ -73,12 +62,55 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
             EventTime = notification.CreatedAt,
             Description = $"包裹创建: 小车号={notification.CartNumber}"
         };
-        
-        await _lifecycleRepository.AddAsync(lifecycleNode, cancellationToken).ConfigureAwait(false);
 
-        // 记录包裹创建事件到日志
-        await _logRepository.LogInfoAsync(
-            $"包裹已创建: {notification.ParcelId}",
-            $"小车号: {notification.CartNumber}, 序号: {notification.SequenceNumber}").ConfigureAwait(false);
+        // 并行执行数据库和缓存操作，互不影响
+        // Execute database and cache operations in parallel without waiting for each other
+        var dbTask = Task.Run(async () =>
+        {
+            try
+            {
+                var addResult = await _parcelInfoRepository.AddAsync(parcel, cancellationToken).ConfigureAwait(false);
+                if (!addResult)
+                {
+                    _logger.LogError("包裹信息持久化失败: ParcelId={ParcelId}", notification.ParcelId);
+                }
+                
+                await _lifecycleRepository.AddAsync(lifecycleNode, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据库操作失败: ParcelId={ParcelId}", notification.ParcelId);
+            }
+        }, cancellationToken);
+
+        var cacheTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "缓存操作失败: ParcelId={ParcelId}", notification.ParcelId);
+            }
+        }, cancellationToken);
+
+        var logTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _logRepository.LogInfoAsync(
+                    $"包裹已创建: {notification.ParcelId}",
+                    $"小车号: {notification.CartNumber}, 序号: {notification.SequenceNumber}").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "日志记录失败: ParcelId={ParcelId}", notification.ParcelId);
+            }
+        }, cancellationToken);
+
+        // 等待所有操作完成（但不等待彼此）
+        // Wait for all operations to complete (but they don't wait for each other)
+        await Task.WhenAll(dbTask, cacheTask, logTask).ConfigureAwait(false);
     }
 }

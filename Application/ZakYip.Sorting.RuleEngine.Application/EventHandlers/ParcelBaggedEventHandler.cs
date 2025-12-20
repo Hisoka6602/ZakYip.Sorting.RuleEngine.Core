@@ -60,22 +60,57 @@ public class ParcelBaggedEventHandler : INotificationHandler<ParcelBaggedEvent>
         parcel.LifecycleStage = ParcelLifecycleStage.Bagged;
 
         // 添加集包生命周期节点
-        await _lifecycleRepository.AddAsync(new ParcelLifecycleNodeEntity
+        var lifecycleNode = new ParcelLifecycleNodeEntity
         {
             ParcelId = parcel.ParcelId,
             Stage = ParcelLifecycleStage.Bagged,
             EventTime = notification.BaggedAt,
             Description = $"集包完成: 袋ID={notification.BagId}, 操作员={notification.Operator ?? "系统"}"
-        }, cancellationToken).ConfigureAwait(false);
+        };
 
-        // 更新包裹信息到数据库
-        await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
+        // 并行执行数据库和缓存操作，互不影响
+        // Execute database and cache operations in parallel without waiting for each other
+        var dbTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _lifecycleRepository.AddAsync(lifecycleNode, cancellationToken).ConfigureAwait(false);
+                await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据库操作失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
 
-        // 更新缓存
-        await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
+        var cacheTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _cacheService.SetAsync(parcel, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "缓存操作失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
 
-        await _logRepository.LogInfoAsync(
-            $"包裹集包完成: {parcel.ParcelId}",
-            $"袋ID: {notification.BagId}, 操作员: {notification.Operator ?? "系统"}").ConfigureAwait(false);
+        var logTask = Task.Run(async () =>
+        {
+            try
+            {
+                await _logRepository.LogInfoAsync(
+                    $"包裹集包完成: {parcel.ParcelId}",
+                    $"袋ID: {notification.BagId}, 操作员: {notification.Operator ?? "系统"}").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "日志记录失败: ParcelId={ParcelId}", parcel.ParcelId);
+            }
+        }, cancellationToken);
+
+        // 等待所有操作完成（但不等待彼此）
+        // Wait for all operations to complete (but they don't wait for each other)
+        await Task.WhenAll(dbTask, cacheTask, logTask).ConfigureAwait(false);
     }
 }
