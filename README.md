@@ -86,96 +86,158 @@ Tests/
                     ┌─────────────┐
                     │  分拣机设备  │
                     └──────┬──────┘
-                           │ 1. 创建包裹信号
+                           │ T1. 创建包裹信号 (ParcelCreatedEvent)
                            ▼
                     ┌─────────────────────┐
-                    │ ParcelOrchestration │
-                    │     Service         │
-                    └──────┬──────────────┘
-                           │ 2. 加入FIFO队列
+                    │ ParcelOrchestration │──────┐
+                    │     Service         │      │ 1. 加入缓存队列(10分钟滑动过期)
+                    └──────┬──────────────┘      │ 2. 持久化到数据库(ParcelInfo)
+                           │                     │ 3. 初始化生命周期(Created)
+                           │◀────────────────────┘
+                           │ 
                            ▼
                     ┌─────────────────────┐         ┌─────────────┐
-                    │  FIFO Channel       │────────▶│  DWS设备    │
-                    │  (有界队列 1000)    │◀────────│  测量数据   │
-                    └──────┬──────────────┘         └─────────────┘
-                           │ 3. 按序处理                    │
-                           ▼                               │
-            ┌──────────────────────────┐                   │
-            │   DwsDataReceivedEvent   │◀──────────────────┘
-            └──────────┬───────────────┘
-                       │ 4. 调用第三方API (可选)
+                    │  FIFO Channel       │         │  DWS设备    │
+                    │  (有界队列 1000)    │         │             │
+                    └──────┬──────────────┘         └──────┬──────┘
+                           │ 等待DWS数据                    │
+                           │                               │ T2. DWS数据
+                           │◀──────────────────────────────┘
+                           │
+                           ▼
+            ┌──────────────────────────┐
+            │   DwsDataReceivedEvent   │──────┐
+            └──────────┬───────────────┘      │ 1. 从缓存获取包裹
+                       │                      │ 2. 赋值DWS信息(长宽高体积)
+                       │                      │ 3. 更新数据库(根据ParcelId)
+                       │◀─────────────────────┘
+                       │
+                       ├─────────────┐ 4. 调用第三方WCS API (可选,根据WcsConfig)
+                       │             ▼
+                       │  ┌──────────────────────────┐
+                       │  │   ScanParcelAsync        │ SOAP: getYJSM (16字段)
+                       │  │   RequestChuteAsync      │ SOAP: getGKCX (7字段)
+                       │  └──────────┬───────────────┘
+                       │             │ 5. API响应/超时
+                       │             │
+                       │◀────────────┘
+                       │
                        ▼
             ┌──────────────────────────┐
-            │   第三方WCS API          │
-            │  (PostalApi/JushuitanErp │
-            │   /WdtWms/WdtErpFlagship)│
-            └──────────┬───────────────┘
-                       │ 5. API响应 or 超时
-                       ▼
-            ┌──────────────────────────┐
-            │   RuleEngineService      │
-            │   (6种匹配方法)          │
-            └──────────┬───────────────┘
-                       │ 6. 计算格口号
-                       ▼
-            ┌──────────────────────────┐
-            │  RuleMatchCompletedEvent │
-            └──────────┬───────────────┘
-                       │ 7. 返回结果
+            │   RuleEngineService      │──────┐
+            │   (6种匹配方法)          │      │ 6. 根据Rule配置解析目标格口
+            └──────────┬───────────────┘      │ 7. 更新ParcelInfo.TargetChute
+                       │◀─────────────────────┘
+                       │ 8. 发送格口号到分拣机
                        ▼
                     ┌─────────────┐
                     │  分拣机设备  │
                     │  (接收格口号)│
-                    └─────────────┘
+                    └──────┬──────┘
+                           │ T3. 落格完成 (ChuteLandedEvent)
+                           ▼
+            ┌──────────────────────────┐
+            │   ChuteLandedEvent       │──────┐
+            └──────────┬───────────────┘      │ 1. 从缓存获取包裹
+                       │                      │ 2. 赋值实际落格信息(ActualChute)
+                       │                      │ 3. 更新数据库(CompletedAt)
+                       │◀─────────────────────┘
+                       │
+                       ├─────────────┐ 4. 调用落格回调API (可选)
+                       │             ▼
+                       │  ┌──────────────────────────┐
+                       │  │   NotifyChuteLandingAsync│ SOAP: getYJLG (22字段)
+                       │  └──────────────────────────┘
+                       │
+                       ▼
+                    ┌─────────────────────┐
+                    │  生命周期完成        │
+                    │  (ParcelLifecycleNode)│
+                    └─────────────────────┘
+
+                    TN. 无序事件 (可随时触发)
+                    ┌──────────────────────────┐
+                    │  TimeoutEvent / LostEvent│
+                    │  - 包裹超时               │
+                    │  - 包裹丢失               │
+                    │  - 影响包裹自动更新状态    │
+                    └──────────────────────────┘
 ```
 
 当系统接收到创建包裹消息后，会执行以下步骤：
 
-#### 1. 分拣机发送包裹创建信号
+#### T1. 包裹创建阶段 (ParcelCreatedEvent)
 - **触发方式**：分拣机通过 TCP/SignalR/HTTP/MQTT 发送包裹创建请求
 - **请求内容**：
   - `ParcelId` - 包裹唯一ID
   - `CartNumber` - 小车号
   - `Barcode` - 条码（可选）
-- **系统响应**：创建包裹处理空间，包裹进入FIFO队列等待DWS数据
+- **系统响应**：
+  1. 创建 `ParcelInfo` 实体并持久化到数据库（MySQL/SQLite）
+  2. 加入缓存队列（滑动过期10分钟，Key格式：RuleEngine+{ParcelId}）
+  3. 初始化生命周期状态为 `Created`
+  4. 记录生命周期节点到 `ParcelLifecycleNode` 表
+  5. 包裹进入FIFO队列等待DWS数据
 - **事件发布**：触发 `ParcelCreatedEvent` 事件
+- **数据库操作**：
+  - INSERT INTO ParcelInfo (ParcelId, Barcode, CreatedAt, LifecycleStatus)
+  - INSERT INTO ParcelLifecycleNode (ParcelId, EventType, EventTime)
 
-#### 2. 包裹创建事件处理
-- **处理器**：`ParcelCreatedEventHandler`
-- **执行操作**：
-  - 记录包裹创建日志到数据库
-  - 在缓存中为包裹分配处理空间
-  - 等待DWS数据到达
-
-#### 3. DWS设备发送测量数据
+#### T2. DWS数据接收阶段 (DwsDataReceivedEvent)
 - **触发方式**：DWS设备通过 TCP/SignalR/HTTP/MQTT 发送测量数据
 - **测量内容**：
   - `Barcode` - 条码
   - `Weight` - 重量（克）
   - `Length/Width/Height` - 长/宽/高（厘米）
   - `Volume` - 体积（立方厘米）
-- **系统响应**：接收并存储DWS数据
+  - `Images` - 图片信息数组（可选）
+- **系统响应**：
+  1. **从缓存获取包裹** - 根据Barcode或ParcelId从缓存中获取最新未赋值DWS信息的包裹
+  2. **赋值DWS信息** - 更新ParcelInfo的Length、Width、Height、Volume字段
+  3. **更新数据库** - UPDATE ParcelInfo SET Length=?, Width=?, Height=?, Volume=?, UpdatedAt=? WHERE ParcelId=?
+  4. **记录生命周期节点** - EventType = DwsDataReceived
+  5. **调用第三方WCS API**（可选，根据WcsConfig配置）：
+     - **ScanParcelAsync** - 扫描包裹上传（SOAP方法：getYJSM，16字段）
+     - **RequestChuteAsync** - 请求格口号（SOAP方法：getGKCX，7字段）
+  6. **规则引擎匹配** - 根据Rule配置解析目标格口
+  7. **发送格口号到分拣机** - 通过TCP/SignalR/HTTP/MQTT发送目标格口号
 - **事件发布**：触发 `DwsDataReceivedEvent` 事件
+- **支持的第三方系统**：
+  - PostProcessingCenterApiClient（邮政处理中心）
+  - PostCollectionApiClient（邮政分揽投机构）
+  - JushuitanErpApiClient（聚水潭ERP）
+  - WdtWmsApiClient（旺店通WMS）
+  - WdtErpFlagshipApiClient（旺店通ERP旗舰版）
+  - WcsApiClient（通用WCS）
 
-#### 4. DWS数据接收事件处理
-- **处理器**：`DwsDataReceivedEventHandler`
-- **执行操作**：
-  1. **记录DWS数据日志** - 保存到 `DwsCommunicationLog` 表
-  2. **调用第三方WCS API** - 主动请求格口号
-     - 使用 `IWcsApiAdapterFactory` 获取当前活动的API适配器
-     - 调用 `RequestChuteAsync()` 方法，传递包裹ID和DWS数据
-     - 支持多种第三方系统：
-       - PostProcessingCenterApiClient（邮政处理中心）
-       - PostCollectionApiClient（邮政分揽投机构）
-       - JushuitanErpApiClient（聚水潭ERP）
-       - WdtWmsApiClient（旺店通WMS）
-       - WdtErpFlagshipApiClient（旺店通ERP旗舰版）
-       - WcsApiClient（通用WCS）
-  3. **记录API响应** - 保存到 `ApiCommunicationLog` 表
-  4. **发布API调用事件** - 触发 `WcsApiCalledEvent`
-  5. **错误处理** - 如果API调用失败，继续使用规则引擎
+#### T3. 落格完成阶段 (ChuteLandedEvent)
+- **触发方式**：分拣机通过 TCP/SignalR/HTTP/MQTT 发送落格完成消息
+- **请求内容**：
+  - `ParcelId` - 包裹唯一ID
+  - `ChuteId` - 实际落格格口号
+  - `LandingTime` - 落格时间
+- **系统响应**：
+  1. **从缓存获取包裹** - 根据ParcelId从缓存中获取对应包裹
+  2. **赋值实际落格信息** - 更新ParcelInfo的ActualChute字段
+  3. **更新完成时间** - 设置CompletedAt字段
+  4. **更新数据库** - UPDATE ParcelInfo SET ActualChute=?, CompletedAt=? WHERE ParcelId=?
+  5. **记录生命周期节点** - EventType = ChuteLanded
+  6. **调用落格回调API**（可选，根据配置）：
+     - **NotifyChuteLandingAsync** - 落格完成通知（SOAP方法：getYJLG，22字段）
+  7. **生命周期完成** - 更新LifecycleStatus为Completed
+- **事件发布**：触发 `ChuteLandedEvent` 事件
 
-#### 5. 规则引擎匹配
+#### TN. 无序事件阶段 (TimeoutEvent / LostEvent)
+这些事件可以在任何时候触发，不依赖于T1-T3的顺序：
+- **TimeoutEvent（包裹超时）**：
+  - 触发条件：包裹在指定时间内未完成处理
+  - 系统响应：更新LifecycleStatus为Timeout，记录超时原因
+- **LostEvent（包裹丢失）**：
+  - 触发条件：包裹在分拣过程中丢失或无法追踪
+  - 系统响应：更新LifecycleStatus为Lost，记录丢失时间
+- **异常处理**：完整的异常捕获和日志记录
+
+#### 规则引擎匹配（在T2阶段执行）
 - **服务**：`RuleEngineService`
 - **匹配策略**：
   1. **"多选一"策略** - 当多条规则匹配时，选择优先级最高的一条规则
@@ -197,29 +259,6 @@ Tests/
   - 方法内联优化（`[MethodImpl(AggressiveInlining)]`）
   - 性能指标自动收集（P50/P95/P99延迟）
 - **记录匹配日志** - 保存到 `MatchingLog` 表
-
-#### 6. 规则匹配完成事件处理
-- **处理器**：`RuleMatchCompletedEventHandler`
-- **执行操作**：
-  1. 记录匹配结果日志
-  2. 计算小车占用数量
-  3. 准备返回给分拣机的数据
-
-#### 7. 返回分拣结果
-- **返回内容**：
-  - `ChuteNumber` - 格口号
-  - `CartNumber` - 小车号
-  - `CartCount` - 占用小车数量
-  - `Success` - 处理是否成功
-  - `ProcessingTimeMs` - 处理耗时
-- **通知方式**：通过分拣机适配器（TCP/SignalR/HTTP/MQTT）发送结果
-- **记录通信日志** - 保存到 `SorterCommunicationLog` 表
-
-#### 8. 关闭处理空间
-- **执行操作**：
-  - 从缓存中移除包裹处理空间
-  - 标记包裹状态为已完成
-  - 释放相关资源
 
 ### 数据持久化策略
 
