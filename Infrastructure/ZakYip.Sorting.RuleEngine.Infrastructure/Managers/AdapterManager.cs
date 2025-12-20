@@ -4,9 +4,10 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Managers;
 
 /// <summary>
-/// 适配器管理器 - 支持热切换
+/// 适配器热切换管理器 - 支持运行时切换不同适配器实现
+/// Adapter hot-swap manager - Supports runtime switching between different adapter implementations
 /// </summary>
-public class AdapterManager<T> : IAdapterManager<T> where T : class
+public class AdapterManager<T> : IAdapterSwitchManager<T> where T : class
 {
     private readonly ILogger<AdapterManager<T>> _logger;
     private readonly Dictionary<string, T> _adapters;
