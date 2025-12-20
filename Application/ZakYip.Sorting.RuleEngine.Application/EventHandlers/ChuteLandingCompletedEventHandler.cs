@@ -9,20 +9,20 @@ using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 
 /// <summary>
-/// 包裹创建事件处理器
-/// Parcel created event handler
+/// 格口落格完成事件处理器（包裹生命终点）
+/// Chute landing completed event handler (parcel lifecycle endpoint)
 /// </summary>
-public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent>
+public class ChuteLandingCompletedEventHandler : INotificationHandler<ChuteLandingCompletedEvent>
 {
-    private readonly ILogger<ParcelCreatedEventHandler> _logger;
+    private readonly ILogger<ChuteLandingCompletedEventHandler> _logger;
     private readonly ILogRepository _logRepository;
     private readonly IParcelInfoRepository _parcelInfoRepository;
     private readonly IParcelLifecycleNodeRepository _lifecycleRepository;
     private readonly ParcelCacheService _cacheService;
     private readonly ISystemClock _clock;
 
-    public ParcelCreatedEventHandler(
-        ILogger<ParcelCreatedEventHandler> logger,
+    public ChuteLandingCompletedEventHandler(
+        ILogger<ChuteLandingCompletedEventHandler> logger,
         ILogRepository logRepository,
         IParcelInfoRepository parcelInfoRepository,
         IParcelLifecycleNodeRepository lifecycleRepository,
@@ -37,30 +37,39 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
         _clock = clock;
     }
 
-    public async Task Handle(ParcelCreatedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(ChuteLandingCompletedEvent notification, CancellationToken cancellationToken)
     {
         _logger.LogInformation(
-            "处理包裹创建事件: ParcelId={ParcelId}, CartNumber={CartNumber}, Sequence={Sequence}",
-            notification.ParcelId, notification.CartNumber, notification.SequenceNumber);
+            "处理落格完成事件: ParcelId={ParcelId}, ActualChute={ActualChute}",
+            notification.ParcelId, notification.ActualChute);
 
-        // 创建包裹信息
-        var parcel = new ParcelInfo
+        // 从缓存获取或从数据库加载包裹
+        var parcel = await _cacheService.GetOrLoadAsync(
+            notification.ParcelId,
+            _parcelInfoRepository,
+            cancellationToken).ConfigureAwait(false);
+
+        if (parcel == null)
         {
-            ParcelId = notification.ParcelId,
-            CartNumber = notification.CartNumber,
-            Barcode = notification.Barcode,
-            Status = ParcelStatus.Pending,
-            LifecycleStage = ParcelLifecycleStage.Created,
-            CreatedAt = notification.CreatedAt
-        };
+            _logger.LogWarning("未找到包裹: ParcelId={ParcelId}", notification.ParcelId);
+            return;
+        }
 
-        // 创建生命周期节点
+        // 赋值实际落格格口
+        parcel.ActualChute = notification.ActualChute;
+        
+        // 标记为已完成（生命终点）
+        parcel.Status = ParcelStatus.Completed;
+        parcel.LifecycleStage = ParcelLifecycleStage.Landed;
+        parcel.CompletedAt = notification.LandedAt;
+
+        // 添加落格生命周期节点
         var lifecycleNode = new ParcelLifecycleNodeEntity
         {
-            ParcelId = notification.ParcelId,
-            Stage = ParcelLifecycleStage.Created,
-            EventTime = notification.CreatedAt,
-            Description = $"包裹创建: 小车号={notification.CartNumber}"
+            ParcelId = parcel.ParcelId,
+            Stage = ParcelLifecycleStage.Landed,
+            EventTime = notification.LandedAt,
+            Description = $"落格完成: 实际格口={notification.ActualChute}, 目标格口={parcel.TargetChute}"
         };
 
         // 并行执行数据库和缓存操作，互不影响
@@ -69,17 +78,12 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
         {
             try
             {
-                var addResult = await _parcelInfoRepository.AddAsync(parcel, cancellationToken).ConfigureAwait(false);
-                if (!addResult)
-                {
-                    _logger.LogError("包裹信息持久化失败: ParcelId={ParcelId}", notification.ParcelId);
-                }
-                
                 await _lifecycleRepository.AddAsync(lifecycleNode, cancellationToken).ConfigureAwait(false);
+                await _parcelInfoRepository.UpdateAsync(parcel, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "数据库操作失败: ParcelId={ParcelId}", notification.ParcelId);
+                _logger.LogError(ex, "数据库操作失败: ParcelId={ParcelId}", parcel.ParcelId);
             }
         }, cancellationToken);
 
@@ -91,7 +95,7 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "缓存操作失败: ParcelId={ParcelId}", notification.ParcelId);
+                _logger.LogError(ex, "缓存操作失败: ParcelId={ParcelId}", parcel.ParcelId);
             }
         }, cancellationToken);
 
@@ -100,12 +104,12 @@ public class ParcelCreatedEventHandler : INotificationHandler<ParcelCreatedEvent
             try
             {
                 await _logRepository.LogInfoAsync(
-                    $"包裹已创建: {notification.ParcelId}",
-                    $"小车号: {notification.CartNumber}, 序号: {notification.SequenceNumber}").ConfigureAwait(false);
+                    $"包裹落格完成: {parcel.ParcelId}",
+                    $"实际格口: {notification.ActualChute}, 目标格口: {parcel.TargetChute}").ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "日志记录失败: ParcelId={ParcelId}", notification.ParcelId);
+                _logger.LogError(ex, "日志记录失败: ParcelId={ParcelId}", parcel.ParcelId);
             }
         }, cancellationToken);
 

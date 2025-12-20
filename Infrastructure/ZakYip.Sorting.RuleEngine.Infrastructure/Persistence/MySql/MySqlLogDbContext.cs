@@ -79,4 +79,15 @@ public class MySqlLogDbContext : BaseLogDbContext
         entity.Property(e => e.ContentBefore).HasColumnType("text");
         entity.Property(e => e.ContentAfter).HasColumnType("text");
     }
+    
+    protected override void ConfigureParcelInfoDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ParcelInfo> entity)
+    {
+        // 所有 decimal 字段已在基类配置为 Precision(18,3)
+        // All decimal fields already configured with Precision(18,3) in base class
+    }
+    
+    protected override void ConfigureParcelLifecycleNodeDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ParcelLifecycleNodeEntity> entity)
+    {
+        entity.Property(e => e.AdditionalDataJson).HasColumnType("text");
+    }
 }

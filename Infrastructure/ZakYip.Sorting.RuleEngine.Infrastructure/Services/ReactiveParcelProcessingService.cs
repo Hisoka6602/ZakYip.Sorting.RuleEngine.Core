@@ -1,6 +1,8 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
@@ -98,14 +100,14 @@ _logger = logger;
         // DWS data quality monitoring stream - Detect anomalous DWS data
         var dwsQualitySubscription = DwsDataReceived
             .Where(dws =>
-                dws.Weight <= 0 || dws.Weight > 50000 || // 异常重量: <=0 或 >50kg
-                dws.Volume <= 0 || dws.Volume > 1000000 || // 异常体积: <=0 或 >1立方米
-                string.IsNullOrEmpty(dws.Barcode)) // 条码为空
+                dws.DwsData.Weight <= 0 || dws.DwsData.Weight > 50000 || // 异常重量: <=0 或 >50kg
+                dws.DwsData.Volume <= 0 || dws.DwsData.Volume > 1000000 || // 异常体积: <=0 或 >1立方米
+                string.IsNullOrEmpty(dws.DwsData.Barcode)) // 条码为空
             .Throttle(TimeSpan.FromSeconds(5))
             .Subscribe(
                 dws => _logger.LogWarning(
                     "检测到异常DWS数据: Barcode={Barcode}, Weight={Weight}g, Volume={Volume}cm³",
-                    dws.Barcode ?? "NULL", dws.Weight, dws.Volume),
+                    dws.DwsData.Barcode ?? "NULL", dws.DwsData.Weight, dws.DwsData.Volume),
                 ex => _logger.LogError(ex, "处理DWS数据质量监控流时发生错误")
             );
         _subscriptions.Add(dwsQualitySubscription);
@@ -134,7 +136,7 @@ _logger = logger;
         // Parcel flow integrity monitoring - Ensure every created parcel has corresponding DWS data
         var integritySubscription = ParcelCreated
             .SelectMany(created => DwsDataReceived
-                .Where(dws => dws.Barcode == created.Barcode || dws.ParcelId == created.ParcelId)
+                .Where(dws => dws.DwsData.Barcode == created.Barcode || dws.ParcelId == created.ParcelId)
                 .Take(1)
                 .Timeout(TimeSpan.FromMinutes(5))
                 .Catch<DwsDataReceivedEvent, TimeoutException>(ex =>
@@ -153,13 +155,15 @@ _logger = logger;
     /// 发布包裹创建事件
     /// Publish parcel created event
     /// </summary>
-    public void PublishParcelCreated(string parcelId, string? barcode, DateTime createdAt)
+    public void PublishParcelCreated(string parcelId, string? barcode, DateTime createdAt, string cartNumber = "UNKNOWN", long sequenceNumber = 0)
     {
         _parcelCreatedSubject.OnNext(new ParcelCreatedEvent
         {
             ParcelId = parcelId,
             Barcode = barcode,
-            CreatedAt = createdAt
+            CreatedAt = createdAt,
+            CartNumber = cartNumber,
+            SequenceNumber = sequenceNumber
         });
     }
 
@@ -167,14 +171,21 @@ _logger = logger;
     /// 发布DWS数据接收事件
     /// Publish DWS data received event
     /// </summary>
-    public void PublishDwsDataReceived(string? parcelId, string barcode, decimal weight, decimal volume, DateTime receivedAt)
+    public void PublishDwsDataReceived(string parcelId, string barcode, decimal weight, decimal volume, DateTime receivedAt, decimal length = 0, decimal width = 0, decimal height = 0)
     {
         _dwsDataReceivedSubject.OnNext(new DwsDataReceivedEvent
         {
             ParcelId = parcelId,
-            Barcode = barcode,
-            Weight = weight,
-            Volume = volume,
+            DwsData = new DwsData
+            {
+                Barcode = barcode,
+                Weight = weight,
+                Volume = volume,
+                Length = length,
+                Width = width,
+                Height = height,
+                ScannedAt = receivedAt
+            },
             ReceivedAt = receivedAt
         });
     }
@@ -239,43 +250,7 @@ _logger = logger;
     }
 }
 
-#region Event Models
-
-/// <summary>
-/// 包裹创建事件
-/// Parcel created event
-/// </summary>
-public class ParcelCreatedEvent
-{
-    public string ParcelId { get; set; } = string.Empty;
-    public string? Barcode { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-/// <summary>
-/// DWS数据接收事件
-/// DWS data received event
-/// </summary>
-public class DwsDataReceivedEvent
-{
-    public string? ParcelId { get; set; }
-    public string Barcode { get; set; } = string.Empty;
-    public decimal Weight { get; set; }
-    public decimal Volume { get; set; }
-    public DateTime ReceivedAt { get; set; }
-}
-
-/// <summary>
-/// 包裹处理完成事件
-/// Parcel processed event
-/// </summary>
-public class ParcelProcessedEvent
-{
-    public string ParcelId { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public DateTime ProcessedAt { get; set; }
-    public string? ErrorMessage { get; set; }
-}
+#region Metrics Models
 
 /// <summary>
 /// 包裹处理指标

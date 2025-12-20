@@ -202,6 +202,11 @@ try
                         // 使用MySQL配置审计日志仓储
                         services.AddScoped<IConfigurationAuditLogRepository, MySqlConfigurationAuditLogRepository>();
                         logger.Info("使用MySQL配置审计日志仓储");
+                        
+                        // 使用MySQL包裹信息仓储
+                        services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelInfoRepository>();
+                        services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelLifecycleNodeRepository>();
+                        logger.Info("使用MySQL包裹信息仓储");
                     }
                     catch (Exception ex)
                     {
@@ -216,6 +221,11 @@ try
                         // 降级使用SQLite配置审计日志仓储
                         services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
                         logger.Info("降级使用SQLite配置审计日志仓储");
+                        
+                        // 降级使用SQLite包裹信息仓储
+                        services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
+                        services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
+                        logger.Info("降级使用SQLite包裹信息仓储");
                     }
                 }
                 else
@@ -231,6 +241,11 @@ try
                     // 使用SQLite配置审计日志仓储
                     services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
                     logger.Info("使用SQLite配置审计日志仓储");
+                    
+                    // 使用SQLite包裹信息仓储
+                    services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
+                    services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
+                    logger.Info("使用SQLite包裹信息仓储");
                 }
 
                 // 配置HttpClient用于WCS API
@@ -425,6 +440,7 @@ try
                 // 注册配置热更新服务（单例）
                 // Register configuration hot-reload service (Singleton)
                 services.AddSingleton<ConfigCacheService>();
+                services.AddSingleton<ParcelCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
 
                 // 注册适配器管理器（单例）

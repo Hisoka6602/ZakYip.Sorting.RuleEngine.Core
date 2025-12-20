@@ -22,6 +22,8 @@ public abstract class BaseLogDbContext : DbContext
     public DbSet<ApiRequestLog> ApiRequestLogs { get; set; } = null!;
     public DbSet<MonitoringAlert> MonitoringAlerts { get; set; } = null!;
     public DbSet<ConfigurationAuditLog> ConfigurationAuditLogs { get; set; } = null!;
+    public DbSet<ParcelInfo> ParcelInfos { get; set; } = null!;
+    public DbSet<ParcelLifecycleNodeEntity> ParcelLifecycleNodes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +37,8 @@ public abstract class BaseLogDbContext : DbContext
         ConfigureMonitoringAlert(modelBuilder);
         ConfigureConfigurationAuditLog(modelBuilder);
         ConfigureLogEntry(modelBuilder);
+        ConfigureParcelInfo(modelBuilder);
+        ConfigureParcelLifecycleNode(modelBuilder);
     }
 
     /// <summary>
@@ -331,6 +335,117 @@ public abstract class BaseLogDbContext : DbContext
     /// Override to provide database-specific configuration audit log configuration (e.g., column types)
     /// </summary>
     protected virtual void ConfigureConfigurationAuditLogDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<ConfigurationAuditLog> entity)
+    {
+    }
+    
+    /// <summary>
+    /// 配置包裹信息实体
+    /// Configure parcel info entity
+    /// </summary>
+    protected virtual void ConfigureParcelInfo(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ParcelInfo>(entity =>
+        {
+            entity.ToTable("parcel_infos");
+            entity.HasKey(e => e.ParcelId);
+            entity.Property(e => e.ParcelId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.CartNumber).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Barcode).HasMaxLength(100);
+            
+            // DWS 信息 - 精度 18,3
+            entity.Property(e => e.Length).HasPrecision(18, 3);
+            entity.Property(e => e.Width).HasPrecision(18, 3);
+            entity.Property(e => e.Height).HasPrecision(18, 3);
+            entity.Property(e => e.Volume).HasPrecision(18, 3);
+            entity.Property(e => e.Weight).HasPrecision(18, 3);
+            
+            // 分拣信息
+            entity.Property(e => e.TargetChute).HasMaxLength(50);
+            entity.Property(e => e.ActualChute).HasMaxLength(50);
+            entity.Property(e => e.DecisionReason).HasMaxLength(200);
+            entity.Property(e => e.MatchedRuleId).HasMaxLength(100);
+            entity.Property(e => e.PositionBias).IsRequired();
+            
+            // 袋信息
+            entity.Property(e => e.BagId).HasMaxLength(100);
+            
+            // 时间信息
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt);
+            entity.Property(e => e.CompletedAt);
+            
+            // 状态信息
+            entity.Property(e => e.Status).IsRequired();
+            entity.Property(e => e.LifecycleStage).IsRequired();
+            
+            // 索引配置（高并发查询优化）
+            entity.HasIndex(e => e.ParcelId).HasDatabaseName("IX_parcel_infos_ParcelId");
+            entity.HasIndex(e => new { e.Status, e.CreatedAt })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_parcel_infos_Status_CreatedAt");
+            entity.HasIndex(e => new { e.TargetChute, e.CreatedAt })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_parcel_infos_TargetChute_CreatedAt");
+            entity.HasIndex(e => e.CompletedAt)
+                .IsDescending()
+                .HasDatabaseName("IX_parcel_infos_CompletedAt_Desc");
+            entity.HasIndex(e => e.BagId)
+                .HasDatabaseName("IX_parcel_infos_BagId");
+            entity.HasIndex(e => new { e.LifecycleStage, e.CreatedAt })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_parcel_infos_LifecycleStage_CreatedAt");
+            entity.HasIndex(e => e.CartNumber)
+                .HasDatabaseName("IX_parcel_infos_CartNumber");
+            
+            ConfigureParcelInfoDatabaseSpecific(entity);
+        });
+    }
+    
+    /// <summary>
+    /// 子类重写以提供数据库特定的包裹信息配置（如列类型）
+    /// Override to provide database-specific parcel info configuration (e.g., column types)
+    /// </summary>
+    protected virtual void ConfigureParcelInfoDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<ParcelInfo> entity)
+    {
+    }
+    
+    /// <summary>
+    /// 配置包裹生命周期节点实体
+    /// Configure parcel lifecycle node entity
+    /// </summary>
+    protected virtual void ConfigureParcelLifecycleNode(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ParcelLifecycleNodeEntity>(entity =>
+        {
+            entity.ToTable("parcel_lifecycle_nodes");
+            entity.HasKey(e => e.NodeId);
+            entity.Property(e => e.NodeId).ValueGeneratedOnAdd();
+            entity.Property(e => e.ParcelId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Stage).IsRequired();
+            entity.Property(e => e.EventTime).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            
+            // 索引配置（高并发查询优化）
+            entity.HasIndex(e => new { e.ParcelId, e.EventTime })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_parcel_lifecycle_ParcelId_EventTime");
+            entity.HasIndex(e => e.EventTime)
+                .IsDescending()
+                .HasDatabaseName("IX_parcel_lifecycle_EventTime_Desc");
+            entity.HasIndex(e => new { e.Stage, e.EventTime })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_parcel_lifecycle_Stage_EventTime");
+            
+            ConfigureParcelLifecycleNodeDatabaseSpecific(entity);
+        });
+    }
+    
+    /// <summary>
+    /// 子类重写以提供数据库特定的包裹生命周期节点配置（如列类型）
+    /// Override to provide database-specific parcel lifecycle node configuration (e.g., column types)
+    /// </summary>
+    protected virtual void ConfigureParcelLifecycleNodeDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<ParcelLifecycleNodeEntity> entity)
     {
     }
 }
