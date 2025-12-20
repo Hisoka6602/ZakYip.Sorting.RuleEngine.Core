@@ -91,4 +91,21 @@ public class SqliteLogDbContext : BaseLogDbContext
         entity.Property(e => e.ContentBefore);
         entity.Property(e => e.ContentAfter);
     }
+    
+    protected override void ConfigureParcelInfoDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ParcelInfo> entity)
+    {
+        // SQLite decimal 精度 18,3
+        entity.Property(e => e.Length).HasColumnType("DECIMAL(18,3)");
+        entity.Property(e => e.Width).HasColumnType("DECIMAL(18,3)");
+        entity.Property(e => e.Height).HasColumnType("DECIMAL(18,3)");
+        entity.Property(e => e.Volume).HasColumnType("DECIMAL(18,3)");
+        entity.Property(e => e.Weight).HasColumnType("DECIMAL(18,3)");
+    }
+    
+    protected override void ConfigureParcelLifecycleNodeDatabaseSpecific(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Domain.Entities.ParcelLifecycleNodeEntity> entity)
+    {
+        // SQLite doesn't require explicit text column type specification
+        // SQLite 不需要显式指定文本列类型
+        entity.Property(e => e.AdditionalDataJson);
+    }
 }
