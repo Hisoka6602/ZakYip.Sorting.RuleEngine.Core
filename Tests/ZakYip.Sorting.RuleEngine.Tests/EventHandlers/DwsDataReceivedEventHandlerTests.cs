@@ -1,7 +1,9 @@
 using MediatR;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.EventHandlers;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
@@ -21,6 +23,9 @@ public class DwsDataReceivedEventHandlerTests
     private readonly Mock<IWcsApiAdapter> _mockAdapter;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<IPublisher> _mockPublisher;
+    private readonly Mock<IParcelInfoRepository> _mockParcelRepository;
+    private readonly Mock<IParcelLifecycleNodeRepository> _mockLifecycleRepository;
+    private readonly ParcelCacheService _cacheService;
     private readonly DwsDataReceivedEventHandler _handler;
 
     public DwsDataReceivedEventHandlerTests()
@@ -31,6 +36,12 @@ public class DwsDataReceivedEventHandlerTests
         _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockPublisher = new Mock<IPublisher>();
+        _mockParcelRepository = new Mock<IParcelInfoRepository>();
+        _mockLifecycleRepository = new Mock<IParcelLifecycleNodeRepository>();
+        
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var cacheLogger = new Mock<ILogger<ParcelCacheService>>();
+        _cacheService = new ParcelCacheService(memoryCache, cacheLogger.Object);
         var clock = new MockSystemClock();
 
         _handler = new DwsDataReceivedEventHandler(
@@ -38,7 +49,20 @@ public class DwsDataReceivedEventHandlerTests
             _mockFactory.Object,
             _mockLogRepository.Object,
             _mockPublisher.Object,
-            clock);
+            clock,
+            _mockParcelRepository.Object,
+            _mockLifecycleRepository.Object,
+            _cacheService);
+            
+        // Setup默认返回值
+        _mockParcelRepository.Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ParcelInfo?)null);
+        _mockParcelRepository.Setup(x => x.GetLatestWithoutDwsDataAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ParcelInfo { ParcelId = "TEST001", CartNumber = "CART001" });
+        _mockParcelRepository.Setup(x => x.UpdateAsync(It.IsAny<ParcelInfo>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _mockLifecycleRepository.Setup(x => x.AddAsync(It.IsAny<ParcelLifecycleNodeEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
     }
 
     [Fact]
