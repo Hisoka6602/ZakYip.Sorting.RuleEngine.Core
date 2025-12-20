@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 
 /// <summary>
@@ -35,4 +37,22 @@ public record ApiClientTestRequest
     /// Height in centimeters
     /// </summary>
     public decimal? Height { get; init; }
+
+    /// <summary>
+    /// 要测试的WCS API方法，默认为RequestChute
+    /// WCS API method to test, defaults to RequestChute
+    /// </summary>
+    public WcsApiMethod? MethodName { get; init; }
+
+    /// <summary>
+    /// 包裹ID（用于NotifyChuteLanding方法）
+    /// Parcel ID (for NotifyChuteLanding method)
+    /// </summary>
+    public string? ParcelId { get; init; }
+
+    /// <summary>
+    /// 格口ID（用于NotifyChuteLanding方法）
+    /// Chute ID (for NotifyChuteLanding method)
+    /// </summary>
+    public string? ChuteId { get; init; }
 }
