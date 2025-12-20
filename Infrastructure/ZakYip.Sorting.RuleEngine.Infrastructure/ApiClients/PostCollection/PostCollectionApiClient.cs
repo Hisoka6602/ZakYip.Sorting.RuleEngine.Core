@@ -116,8 +116,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
     /// <summary>
     /// 扫描包裹到邮政分揽投机构
-    /// Scan parcel to postal collection institution (SubmitScanInfo)
-    /// 对应: PostInApi.SubmitScanInfo
+    /// Scan parcel to postal collection institution (getYJSM)
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
@@ -182,10 +181,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("||#END")
                 .ToString();
 
-            var soapRequest = BuildSoapEnvelope("SubmitScanInfo", arg0);
+            var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
 
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"SubmitScanInfo\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
 
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -194,7 +193,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"SubmitScanInfo\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
 
@@ -276,10 +275,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("2::001::0000::0000::0::0::0::0::0::0::0")
                 .Append("||#END")
                 .ToString();
-            var soapRequest = BuildSoapEnvelope("SubmitScanInfo", arg0);
+            var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"SubmitScanInfo\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -288,7 +287,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"SubmitScanInfo\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
@@ -315,8 +314,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
     /// <summary>
     /// 请求格口号（查询包裹信息并返回格口）
-    /// Request chute number (UploadData)
-    /// 对应: PostInApi.UploadData
+    /// Request chute number (getLTGKCX)
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
@@ -356,10 +354,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append("||#END")
                 .ToString();
 
-            var soapRequest = BuildSoapEnvelope("UploadData", arg0);
+            var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
 
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"UploadData\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getLTGKCX\"";
 
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -368,7 +366,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"UploadData\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
 
@@ -468,10 +466,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(config.DeviceBarcode).Append("::")
                 .Append("||#END")
                 .ToString();
-            var soapRequest = BuildSoapEnvelope("UploadData", arg0);
+            var soapRequest = BuildSoapEnvelope("getLTGKCX", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"UploadData\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getLTGKCX\"";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -480,7 +478,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"UploadData\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
@@ -554,11 +552,11 @@ public class PostCollectionApiClient : IWcsApiAdapter
 
     /// <summary>
     /// 落格回调 - 通知邮政分揽投机构包裹已落入指定格口
-    /// Chute landing callback (UploadInBackground)
-    /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostApi.UploadInBackground (与PostApi保持一致)
-    /// Corresponding reference implementation: PostApi.UploadInBackground (consistent with PostApi)
-    /// 参数拼接格式 / Parameter format (22 fields): 
-    /// #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{lcgk}::{mailType}::{chuteCode}::{WorkshopCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{playId}::||#END
+    /// Chute landing callback (getYJLG)
+    /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostInApi.UploadInBackground
+    /// Corresponding reference implementation: PostInApi.UploadInBackground
+    /// 参数拼接格式 / Parameter format (19 fields): 
+    /// #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{mailType}::{chuteCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{sortingSchemeCode}||#END
     /// </summary>
     public async Task<WcsApiResponse> NotifyChuteLandingAsync(
         string parcelId,
@@ -581,8 +579,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
-            // 构造落格回调SOAP请求 - 参照 PostApi.UploadInBackground (与PostApi保持一致)
-            // 参考格式: #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{lcgk}::{mailType}::{chuteCode}::{WorkshopCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{playId}::||#END
+            // 构造落格回调SOAP请求 - 参照 PostInApi.UploadInBackground
+            // 参考格式: #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{mailType}::{chuteCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{sortingSchemeCode}||#END
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -593,10 +591,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")  // 参数6
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append(PlaceholderZero).Append("::")  // routingDirection
-                .Append(PlaceholderZero).Append("::")  // lcgk
                 .Append(PlaceholderZero).Append("::")  // mailType
                 .Append(chuteId).Append("::")
-                .Append(config.WorkshopCode).Append("::")
                 .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
@@ -605,15 +601,14 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
-                .Append(PlaceholderZero).Append("::")  // playId
-                .Append("::")
+                .Append(PlaceholderZero)  // sortingSchemeCode
                 .Append("||#END")
                 .ToString();
 
-            var soapRequest = BuildSoapEnvelope("UploadInBackground", arg0);
+            var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
 
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"UploadInBackground\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJLG\"";
 
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -622,7 +617,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"UploadInBackground\""
+                    ["SOAPAction"] = "\"getYJLG\""
                 },
                 soapRequest);
 
@@ -698,7 +693,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
 
-            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.UploadInBackground (与PostApi保持一致)
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostInApi.UploadInBackground
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -709,10 +704,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")  // 参数6
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append(PlaceholderZero).Append("::")  // routingDirection
-                .Append(PlaceholderZero).Append("::")  // lcgk
                 .Append(PlaceholderZero).Append("::")  // mailType
                 .Append(chuteId).Append("::")
-                .Append(config.WorkshopCode).Append("::")
                 .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
@@ -721,14 +714,13 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
-                .Append(PlaceholderZero).Append("::")  // playId
-                .Append("::")
+                .Append(PlaceholderZero)  // sortingSchemeCode
                 .Append("||#END")
                 .ToString();
-            var soapRequest = BuildSoapEnvelope("UploadInBackground", arg0);
+            var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"UploadInBackground\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJLG\"";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -737,7 +729,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"UploadInBackground\""
+                    ["SOAPAction"] = "\"getYJLG\""
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
