@@ -190,12 +190,10 @@ public class ApiClientTestController : ControllerBase
             _logger.LogInformation("开始测试{DisplayName} API，条码: {Barcode}，方法: {Method}", 
                 displayName, request.Barcode, selectedMethod);
 
-            WcsApiResponse response;
-
-            // If client implements IWcsApiAdapter and method is specified, use the selected method
-            if (wcsAdapter != null && request.MethodName.HasValue)
-            {
-                response = selectedMethod switch
+            // 如果客户端实现了 IWcsApiAdapter，则始终通过适配器按 selectedMethod 调用
+            // If the client implements IWcsApiAdapter, always invoke via adapter using selectedMethod
+            WcsApiResponse response = wcsAdapter != null
+                ? selectedMethod switch
                 {
                     WcsApiMethod.ScanParcel => await wcsAdapter.ScanParcelAsync(
                         request.Barcode, 
@@ -213,14 +211,12 @@ public class ApiClientTestController : ControllerBase
                         request.Barcode,
                         HttpContext.RequestAborted),
                     
-                    _ => throw new ArgumentException($"不支持的测试方法: {selectedMethod}")
-                };
-            }
-            else
-            {
-                // Fallback to the original delegate function for backward compatibility
-                response = await callApiFunc(apiClient, request.Barcode, dwsData, null, HttpContext.RequestAborted);
-            }
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(selectedMethod), 
+                        selectedMethod, 
+                        $"内部错误：收到未支持的测试方法枚举值 {selectedMethod}，理论上不应该到达此分支")
+                }
+                : await callApiFunc(apiClient, request.Barcode, dwsData, null, HttpContext.RequestAborted);
 
             // Create test response - map from WcsApiResponse to ApiClientTestResponse
             var testResponse = new ApiClientTestResponse
