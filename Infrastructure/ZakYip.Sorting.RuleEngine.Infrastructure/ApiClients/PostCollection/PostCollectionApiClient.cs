@@ -555,10 +555,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
     /// <summary>
     /// 落格回调 - 通知邮政分揽投机构包裹已落入指定格口
     /// Chute landing callback (UploadInBackground)
-    /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostInApi.UploadInBackground
-    /// Corresponding reference implementation: PostInApi.UploadInBackground
-    /// 参数拼接格式 / Parameter format (19 fields): 
-    /// #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{mailType}::{chuteCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{sortingSchemeCode}||#END
+    /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostApi.UploadInBackground (与PostApi保持一致)
+    /// Corresponding reference implementation: PostApi.UploadInBackground (consistent with PostApi)
+    /// 参数拼接格式 / Parameter format (22 fields): 
+    /// #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{lcgk}::{mailType}::{chuteCode}::{WorkshopCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{playId}::||#END
     /// </summary>
     public async Task<WcsApiResponse> NotifyChuteLandingAsync(
         string parcelId,
@@ -581,8 +581,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
-            // 构造落格回调SOAP请求 - 参照 PostInApi.UploadInBackground
-            // 参考格式: #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{mailType}::{chuteCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{sortingSchemeCode}||#END
+            // 构造落格回调SOAP请求 - 参照 PostApi.UploadInBackground (与PostApi保持一致)
+            // 参考格式: #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{lcgk}::{mailType}::{chuteCode}::{WorkshopCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{playId}::||#END
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -593,8 +593,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")  // 参数6
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append(PlaceholderZero).Append("::")  // routingDirection
+                .Append(PlaceholderZero).Append("::")  // lcgk
                 .Append(PlaceholderZero).Append("::")  // mailType
                 .Append(chuteId).Append("::")
+                .Append(config.WorkshopCode).Append("::")
                 .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
@@ -603,7 +605,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
-                .Append(PlaceholderZero)  // sortingSchemeCode
+                .Append(PlaceholderZero).Append("::")  // playId
+                .Append("::")
                 .Append("||#END")
                 .ToString();
 
@@ -695,7 +698,7 @@ public class PostCollectionApiClient : IWcsApiAdapter
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
 
-            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostInApi.UploadInBackground
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.UploadInBackground (与PostApi保持一致)
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -706,8 +709,10 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")  // 参数6
                 .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
                 .Append(PlaceholderZero).Append("::")  // routingDirection
+                .Append(PlaceholderZero).Append("::")  // lcgk
                 .Append(PlaceholderZero).Append("::")  // mailType
                 .Append(chuteId).Append("::")
+                .Append(config.WorkshopCode).Append("::")
                 .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
@@ -716,7 +721,8 @@ public class PostCollectionApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
-                .Append(PlaceholderZero)  // sortingSchemeCode
+                .Append(PlaceholderZero).Append("::")  // playId
+                .Append("::")
                 .Append("||#END")
                 .ToString();
             var soapRequest = BuildSoapEnvelope("UploadInBackground", arg0);
