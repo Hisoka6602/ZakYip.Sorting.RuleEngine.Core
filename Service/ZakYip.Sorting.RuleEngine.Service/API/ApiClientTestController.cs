@@ -7,6 +7,7 @@ using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.JushuitanErp;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtWms;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.WdtErpFlagship;
@@ -59,12 +60,12 @@ public class ApiClientTestController : ControllerBase
     /// 测试聚水潭ERP API
     /// Test Jushuituan ERP API
     /// </summary>
-    /// <param name="request">测试请求</param>
+    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
     /// <returns>测试结果</returns>
     [HttpPost("jushuitanerp")]
     [SwaggerOperation(
         Summary = "测试聚水潭ERP API",
-        Description = "远程测试聚水潭ERP API客户端，发送测试数据并记录访问信息",
+        Description = "远程测试聚水潭ERP API客户端，发送测试数据并记录访问信息。支持选择测试方法：ScanParcel(扫描包裹), RequestChute(请求格口), NotifyChuteLanding(落格回调)",
         OperationId = "TestJushuitanErpApi",
         Tags = new[] { "ApiClientTest" }
     )]
@@ -89,12 +90,12 @@ public class ApiClientTestController : ControllerBase
     /// 测试旺店通WMS API
     /// Test WDT WMS API
     /// </summary>
-    /// <param name="request">测试请求</param>
+    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
     /// <returns>测试结果</returns>
     [HttpPost("wdtwms")]
     [SwaggerOperation(
         Summary = "测试旺店通WMS API",
-        Description = "远程测试旺店通WMS API客户端，发送测试数据并记录访问信息",
+        Description = "远程测试旺店通WMS API客户端，发送测试数据并记录访问信息。支持选择测试方法：ScanParcel(扫描包裹), RequestChute(请求格口), NotifyChuteLanding(落格回调)",
         OperationId = "TestWdtWmsApi",
         Tags = new[] { "ApiClientTest" }
     )]
@@ -119,12 +120,12 @@ public class ApiClientTestController : ControllerBase
     /// 测试旺店通ERP旗舰版 API
     /// Test WDT ERP Flagship API
     /// </summary>
-    /// <param name="request">测试请求</param>
+    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
     /// <returns>测试结果</returns>
     [HttpPost("wdterpflagship")]
     [SwaggerOperation(
         Summary = "测试旺店通ERP旗舰版 API",
-        Description = "远程测试旺店通ERP旗舰版 API客户端，发送测试数据并记录访问信息",
+        Description = "远程测试旺店通ERP旗舰版 API客户端，发送测试数据并记录访问信息。支持选择测试方法：ScanParcel(扫描包裹), RequestChute(请求格口), NotifyChuteLanding(落格回调)",
         OperationId = "TestWdtErpFlagshipApi",
         Tags = new[] { "ApiClientTest" }
     )]
@@ -171,6 +172,10 @@ public class ApiClientTestController : ControllerBase
                     $"{displayName} ApiClient未配置", "CLIENT_NOT_CONFIGURED"));
             }
 
+            // Check if the client implements IWcsApiAdapter to support method selection
+            var wcsAdapter = apiClient as IWcsApiAdapter;
+            var selectedMethod = request.MethodName ?? WcsApiMethod.RequestChute;
+
             // Create DWS data for testing
             var dwsData = new DwsData
             {
@@ -182,10 +187,36 @@ public class ApiClientTestController : ControllerBase
                 Volume = ((request.Length ?? 0) * (request.Width ?? 0) * (request.Height ?? 0)) / 1000000
             };
 
-            _logger.LogInformation("开始测试{DisplayName} API，条码: {Barcode}", displayName, request.Barcode);
+            _logger.LogInformation("开始测试{DisplayName} API，条码: {Barcode}，方法: {Method}", 
+                displayName, request.Barcode, selectedMethod);
 
-            // Call the API
-            var response = await callApiFunc(apiClient, request.Barcode, dwsData, null, HttpContext.RequestAborted);
+            // 如果客户端实现了 IWcsApiAdapter，则始终通过适配器按 selectedMethod 调用
+            // If the client implements IWcsApiAdapter, always invoke via adapter using selectedMethod
+            WcsApiResponse response = wcsAdapter != null
+                ? selectedMethod switch
+                {
+                    WcsApiMethod.ScanParcel => await wcsAdapter.ScanParcelAsync(
+                        request.Barcode, 
+                        HttpContext.RequestAborted),
+                    
+                    WcsApiMethod.RequestChute => await wcsAdapter.RequestChuteAsync(
+                        request.Barcode, 
+                        dwsData, 
+                        null, 
+                        HttpContext.RequestAborted),
+                    
+                    WcsApiMethod.NotifyChuteLanding => await wcsAdapter.NotifyChuteLandingAsync(
+                        request.ParcelId ?? request.Barcode,
+                        request.ChuteId ?? "DEFAULT_CHUTE",
+                        request.Barcode,
+                        HttpContext.RequestAborted),
+                    
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(selectedMethod), 
+                        selectedMethod, 
+                        $"内部错误：收到未支持的测试方法枚举值 {selectedMethod}，理论上不应该到达此分支")
+                }
+                : await callApiFunc(apiClient, request.Barcode, dwsData, null, HttpContext.RequestAborted);
 
             // Create test response - map from WcsApiResponse to ApiClientTestResponse
             var testResponse = new ApiClientTestResponse
@@ -210,8 +241,8 @@ public class ApiClientTestController : ControllerBase
             await LogApiTestRequestAsync(clientName, request, testResponse).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "{DisplayName} API测试完成，条码: {Barcode}, 结果: {Success}",
-                displayName, request.Barcode, response.RequestStatus == ApiRequestStatus.Success);
+                "{DisplayName} API测试完成，条码: {Barcode}, 方法: {Method}, 结果: {Success}",
+                displayName, request.Barcode, selectedMethod, response.RequestStatus == ApiRequestStatus.Success);
 
             return Ok(ApiResponse<ApiClientTestResponse>.SuccessResult(testResponse));
         }
@@ -285,12 +316,12 @@ public class ApiClientTestController : ControllerBase
     /// 测试邮政分揽投机构 API
     /// Test Postal Collection API
     /// </summary>
-    /// <param name="request">测试请求</param>
+    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
     /// <returns>测试结果</returns>
     [HttpPost("postcollection")]
     [SwaggerOperation(
         Summary = "测试邮政分揽投机构 API",
-        Description = "远程测试邮政分揽投机构 API客户端，发送测试数据并记录访问信息",
+        Description = "远程测试邮政分揽投机构 API客户端，发送测试数据并记录访问信息。支持选择测试方法：ScanParcel(扫描包裹), RequestChute(请求格口), NotifyChuteLanding(落格回调)",
         OperationId = "TestPostCollectionApi",
         Tags = new[] { "ApiClientTest" }
     )]
@@ -315,12 +346,12 @@ public class ApiClientTestController : ControllerBase
     /// 测试邮政处理中心 API
     /// Test Postal Processing Center API
     /// </summary>
-    /// <param name="request">测试请求</param>
+    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
     /// <returns>测试结果</returns>
     [HttpPost("postprocessingcenter")]
     [SwaggerOperation(
         Summary = "测试邮政处理中心 API",
-        Description = "远程测试邮政处理中心 API客户端，发送测试数据并记录访问信息",
+        Description = "远程测试邮政处理中心 API客户端，发送测试数据并记录访问信息。支持选择测试方法：ScanParcel(扫描包裹), RequestChute(请求格口), NotifyChuteLanding(落格回调)",
         OperationId = "TestPostProcessingCenterApi",
         Tags = new[] { "ApiClientTest" }
     )]
