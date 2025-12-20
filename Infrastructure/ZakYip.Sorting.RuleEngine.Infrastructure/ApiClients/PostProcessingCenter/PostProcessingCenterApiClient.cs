@@ -115,6 +115,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// 扫描包裹到邮政处理中心
     /// Scan parcel to postal processing center (SubmitScanInfo)
     /// 对应: PostApi.SubmitScanInfo
+    /// 参数拼接格式 / Parameter format (13 fields):
+    /// #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{timestamp}::2::001::0000::0000::0::0::0::0::0::0::0||#END
     /// </summary>
     public async Task<WcsApiResponse> ScanParcelAsync(
         string barcode,
@@ -200,7 +202,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
             _logger.LogDebug("扫描包裹到邮政处理中心，条码: {Barcode}", barcode);
 
-            // 构造SOAP请求 - 使用配置中的值
+            // 构造SOAP请求 - 参照 PostApi.SubmitScanInfo
+            // 参考格式: #HEAD::{DeviceId}::{barcode}::{EmployeeNumber}::{timestamp}::2::001::0000::0000::0::0::0::0::0::0::0||#END
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -295,7 +298,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
             
-            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.SubmitScanInfo
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
@@ -346,6 +349,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// 请求格口号（查询包裹信息并返回格口）
     /// Request chute number (UploadData)
     /// 对应: PostApi.UploadData
+    /// 参数拼接格式 / Parameter format (10 fields):
+    /// #HEAD::{sequenceId}::{DeviceId}::{barcode}::0:: :: :: ::{timestamp}::{EmployeeNumber}::{OrganizationNumber}::{CompanyName}::{DeviceBarcode}::||#END
     /// </summary>
     public async Task<WcsApiResponse> RequestChuteAsync(
         string parcelId,
@@ -371,7 +376,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
 
-            // 构造格口查询SOAP请求 - 使用配置中的值
+            // 构造格口查询SOAP请求 - 参照 PostApi.UploadData
+            // 参考格式: #HEAD::{sequenceId}::{DeviceId}::{barcode}::0:: :: :: ::{timestamp}::{EmployeeNumber}::{OrganizationNumber}::{CompanyName}::{DeviceBarcode}::||#END
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
@@ -480,7 +486,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
             
-            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
+            // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.UploadData
             var seqNum = GetNextSequenceNumber();
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
