@@ -60,7 +60,8 @@ public class ApiClientTestController : ControllerBase
     /// 测试聚水潭ERP API
     /// Test Jushuituan ERP API
     /// </summary>
-    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
+    /// <param name="request">测试请求参数 / Test request parameters</param>
+    /// <param name="methodName">要测试的WCS API方法，默认为RequestChute / WCS API method to test, defaults to RequestChute</param>
     /// <returns>测试结果</returns>
     [HttpPost("jushuitanerp")]
     [SwaggerOperation(
@@ -76,12 +77,14 @@ public class ApiClientTestController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestJushuitanErpApi(
-        [FromBody] ApiClientTestRequest request)
+        [FromBody] ApiClientTestRequest request,
+        [FromQuery] WcsApiMethod methodName = WcsApiMethod.RequestChute)
     {
         return await TestApiClientAsync(
             _jushuitanErpApiClient,
             "JushuitanErp",
             "聚水潭ERP",
+            methodName,
             request,
             (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
@@ -90,7 +93,8 @@ public class ApiClientTestController : ControllerBase
     /// 测试旺店通WMS API
     /// Test WDT WMS API
     /// </summary>
-    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
+    /// <param name="request">测试请求参数 / Test request parameters</param>
+    /// <param name="methodName">要测试的WCS API方法，默认为RequestChute / WCS API method to test, defaults to RequestChute</param>
     /// <returns>测试结果</returns>
     [HttpPost("wdtwms")]
     [SwaggerOperation(
@@ -106,12 +110,14 @@ public class ApiClientTestController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestWdtWmsApi(
-        [FromBody] ApiClientTestRequest request)
+        [FromBody] ApiClientTestRequest request,
+        [FromQuery] WcsApiMethod methodName = WcsApiMethod.RequestChute)
     {
         return await TestApiClientAsync(
             _wdtWmsApiClient,
             "WdtWms",
             "旺店通WMS",
+            methodName,
             request,
             (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
@@ -120,7 +126,8 @@ public class ApiClientTestController : ControllerBase
     /// 测试旺店通ERP旗舰版 API
     /// Test WDT ERP Flagship API
     /// </summary>
-    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
+    /// <param name="request">测试请求参数 / Test request parameters</param>
+    /// <param name="methodName">要测试的WCS API方法，默认为RequestChute / WCS API method to test, defaults to RequestChute</param>
     /// <returns>测试结果</returns>
     [HttpPost("wdterpflagship")]
     [SwaggerOperation(
@@ -136,12 +143,14 @@ public class ApiClientTestController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestWdtErpFlagshipApi(
-        [FromBody] ApiClientTestRequest request)
+        [FromBody] ApiClientTestRequest request,
+        [FromQuery] WcsApiMethod methodName = WcsApiMethod.RequestChute)
     {
         return await TestApiClientAsync(
             _wdtErpFlagshipApiClient,
             "WdtErpFlagship",
             "旺店通ERP旗舰版",
+            methodName,
             request,
             (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
@@ -153,6 +162,7 @@ public class ApiClientTestController : ControllerBase
     /// <param name="apiClient">API客户端实例 / API client instance</param>
     /// <param name="clientName">客户端名称（用于日志）/ Client name (for logging)</param>
     /// <param name="displayName">显示名称（用于错误消息）/ Display name (for error messages)</param>
+    /// <param name="methodName">要测试的WCS API方法 / WCS API method to test</param>
     /// <param name="request">测试请求参数 / Test request parameters</param>
     /// <param name="callApiFunc">调用API的委托函数 / Delegate function to call the API</param>
     /// <returns>测试结果 / Test result</returns>
@@ -160,6 +170,7 @@ public class ApiClientTestController : ControllerBase
         T? apiClient,
         string clientName,
         string displayName,
+        WcsApiMethod methodName,
         ApiClientTestRequest request,
         Func<T, string, DwsData, OcrData?, CancellationToken, Task<WcsApiResponse>> callApiFunc)
         where T : class
@@ -174,7 +185,7 @@ public class ApiClientTestController : ControllerBase
 
             // Check if the client implements IWcsApiAdapter to support method selection
             var wcsAdapter = apiClient as IWcsApiAdapter;
-            var selectedMethod = request.MethodName ?? WcsApiMethod.RequestChute;
+            var selectedMethod = methodName;
 
             // Create DWS data for testing
             var dwsData = new DwsData
@@ -316,7 +327,8 @@ public class ApiClientTestController : ControllerBase
     /// 测试邮政分揽投机构 API
     /// Test Postal Collection API
     /// </summary>
-    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
+    /// <param name="request">测试请求参数 / Test request parameters</param>
+    /// <param name="methodName">要测试的WCS API方法，默认为RequestChute / WCS API method to test, defaults to RequestChute</param>
     /// <returns>测试结果</returns>
     [HttpPost("postcollection")]
     [SwaggerOperation(
@@ -332,12 +344,14 @@ public class ApiClientTestController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestPostCollectionApi(
-        [FromBody] ApiClientTestRequest request)
+        [FromBody] ApiClientTestRequest request,
+        [FromQuery] WcsApiMethod methodName = WcsApiMethod.RequestChute)
     {
         return await TestApiClientAsync(
             _postCollectionApiClient,
             "PostCollection",
             "邮政分揽投机构",
+            methodName,
             request,
             (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
@@ -346,7 +360,8 @@ public class ApiClientTestController : ControllerBase
     /// 测试邮政处理中心 API
     /// Test Postal Processing Center API
     /// </summary>
-    /// <param name="request">测试请求。可通过MethodName选择测试方法：ScanParcel(1), RequestChute(2), NotifyChuteLanding(3)</param>
+    /// <param name="request">测试请求参数 / Test request parameters</param>
+    /// <param name="methodName">要测试的WCS API方法，默认为RequestChute / WCS API method to test, defaults to RequestChute</param>
     /// <returns>测试结果</returns>
     [HttpPost("postprocessingcenter")]
     [SwaggerOperation(
@@ -362,12 +377,14 @@ public class ApiClientTestController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 404)]
     [ProducesResponseType(typeof(ApiResponse<ApiClientTestResponse>), 500)]
     public async Task<ActionResult<ApiResponse<ApiClientTestResponse>>> TestPostProcessingCenterApi(
-        [FromBody] ApiClientTestRequest request)
+        [FromBody] ApiClientTestRequest request,
+        [FromQuery] WcsApiMethod methodName = WcsApiMethod.RequestChute)
     {
         return await TestApiClientAsync(
             _postProcessingCenterApiClient,
             "PostProcessingCenter",
             "邮政处理中心",
+            methodName,
             request,
             (client, barcode, dwsData, ocrData, ct) => client.RequestChuteAsync(barcode, dwsData, ocrData, ct)).ConfigureAwait(false);
     }
