@@ -378,7 +378,7 @@ This update implements a **complete parcel lifecycle management system**, adding
 - ✅ **Windows CMD curl格式化** - 支持中文参数
   - 添加`chcp 65001>nul &`前缀确保中文不乱码
   - 特殊字符自动转义：`<` → `^<`、`>` → `^>`、`|` → `^|`、`&` → `^&`
-  - XML属性双引号转义：`xmlns="..."` → `xmlns=""...""
+  - XML属性双引号转义：`xmlns="..."` → `xmlns=""...""`（使用双引号转义）
 
 **5. 代码质量提升 / Code Quality Improvements** ✅
 - ✅ **0编译错误** - 完整修复所有编译错误（从45个 → 0）
