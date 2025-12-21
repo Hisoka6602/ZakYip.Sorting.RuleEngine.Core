@@ -39,12 +39,6 @@ public record ApiClientTestRequest
     public decimal? Height { get; init; }
 
     /// <summary>
-    /// 要测试的WCS API方法，默认为RequestChute
-    /// WCS API method to test, defaults to RequestChute
-    /// </summary>
-    public WcsApiMethod? MethodName { get; init; }
-
-    /// <summary>
     /// 包裹ID（用于NotifyChuteLanding方法）
     /// Parcel ID (for NotifyChuteLanding method)
     /// </summary>
