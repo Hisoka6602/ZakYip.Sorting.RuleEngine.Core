@@ -80,13 +80,11 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             {
                 ConfigId = PostProcessingCenterConfig.SingletonId,
                 Url = "http://localhost:8080/postal-processing", // 需要配置实际URL
-                WorkshopCode = "WS20140010",
-                DeviceId = "20140010",
-                CompanyName = "广东泽业科技有限公司",
-                DeviceBarcode = "141562320001131",
-                OrganizationNumber = "20140011",
-                EmployeeNumber = "00818684",
-                TimeoutMs = 5000,
+                Timeout = 1000,
+                WorkshopCode = "WS43400001",
+                DeviceId = "43400002",
+                EmployeeNumber = "03178298",
+                LocalServiceUrl = string.Empty,
                 IsEnabled = true,
                 Description = "默认配置 - 请通过API更新",
                 CreatedAt = _clock.LocalNow,
@@ -218,7 +216,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
             
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
             
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -227,7 +225,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 new Dictionary<string, string> 
                 { 
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getYJSM\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             
@@ -314,7 +312,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJSM\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -323,7 +321,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getYJSM\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
@@ -397,7 +395,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getGKCX", arg0);
 
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getGKCX\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
 
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -406,7 +404,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getGKCX\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             
@@ -505,7 +503,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getGKCX", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getGKCX\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -514,7 +512,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getGKCX\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";
@@ -644,7 +642,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
             
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJLG\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
             
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -653,7 +651,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 new Dictionary<string, string> 
                 { 
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getYJLG\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             
@@ -760,7 +758,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"getYJLG\"";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -769,7 +767,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 new Dictionary<string, string>
                 {
                     ["Content-Type"] = "text/xml; charset=utf-8",
-                    ["SOAPAction"] = "\"getYJLG\""
+                    ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
             curlCommand = $"# Exception occurred during request - Curl command for retry:\n{curlCommand}";

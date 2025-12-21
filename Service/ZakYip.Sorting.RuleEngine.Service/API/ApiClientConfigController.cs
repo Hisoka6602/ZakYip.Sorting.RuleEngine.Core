@@ -594,13 +594,11 @@ public class ApiClientConfigController : ControllerBase
             var dto = new PostProcessingCenterConfigRequest
             {
                 Url = config.Url,
+                Timeout = config.Timeout,
                 WorkshopCode = config.WorkshopCode,
                 DeviceId = config.DeviceId,
-                CompanyName = config.CompanyName,
-                DeviceBarcode = config.DeviceBarcode,
-                OrganizationNumber = config.OrganizationNumber,
                 EmployeeNumber = config.EmployeeNumber,
-                TimeoutMs = config.TimeoutMs,
+                LocalServiceUrl = config.LocalServiceUrl,
                 IsEnabled = config.IsEnabled,
                 Description = config.Description
             };
@@ -645,13 +643,11 @@ public class ApiClientConfigController : ControllerBase
             {
                 ConfigId = PostProcessingCenterConfig.SingletonId,
                 Url = request.Url,
+                Timeout = request.Timeout,
                 WorkshopCode = request.WorkshopCode,
                 DeviceId = request.DeviceId,
-                CompanyName = request.CompanyName,
-                DeviceBarcode = request.DeviceBarcode,
-                OrganizationNumber = request.OrganizationNumber,
                 EmployeeNumber = request.EmployeeNumber,
-                TimeoutMs = request.TimeoutMs,
+                LocalServiceUrl = request.LocalServiceUrl,
                 IsEnabled = request.IsEnabled,
                 Description = request.Description,
                 CreatedAt = existingConfig?.CreatedAt ?? now,

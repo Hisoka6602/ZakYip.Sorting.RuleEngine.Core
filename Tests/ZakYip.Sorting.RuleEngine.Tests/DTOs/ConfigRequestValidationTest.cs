@@ -51,12 +51,11 @@ public class ConfigRequestValidationTest
     {
         var json = @"{
             ""Url"": ""http://test.com"",
+            ""Timeout"": 1000,
             ""WorkshopCode"": ""WS001"",
             ""DeviceId"": ""DEV001"",
-            ""CompanyName"": ""Test Company"",
-            ""DeviceBarcode"": ""BC001"",
-            ""OrganizationNumber"": ""ORG001"",
-            ""EmployeeNumber"": ""EMP001""
+            ""EmployeeNumber"": ""EMP001"",
+            ""LocalServiceUrl"": """"
         }";
         
         var request = JsonSerializer.Deserialize<PostProcessingCenterConfigRequest>(json);
