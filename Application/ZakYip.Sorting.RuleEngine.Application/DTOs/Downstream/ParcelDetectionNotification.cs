@@ -13,7 +13,7 @@ public record class ParcelDetectionNotification
     /// Message type, fixed value "ParcelDetected"
     /// </summary>
     [JsonPropertyName("Type")]
-    public required string Type { get; init; }
+    public string Type { get; init; } = "ParcelDetected";
 
     /// <summary>
     /// 包裹 ID（使用 long 类型，匹配下游系统）

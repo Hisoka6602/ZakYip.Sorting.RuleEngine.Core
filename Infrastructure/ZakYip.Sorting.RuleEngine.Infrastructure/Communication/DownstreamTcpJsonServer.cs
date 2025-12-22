@@ -1,435 +1,466 @@
 using System.Collections.Concurrent;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
-using ZakYip.Sorting.RuleEngine.Domain.Entities;
-using ZakYip.Sorting.RuleEngine.Domain.Enums;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 
 /// <summary>
-/// 基于TouchSocket的TCP JSON Server - 监听下游分拣机连接（Server 模式）
-/// TouchSocket-based TCP JSON Server - Listen for downstream sorter connections (Server mode)
-/// 
-/// 全局单例服务实例，但支持多个下游设备连接
-/// Global singleton service instance, but supports multiple downstream device connections
+/// 基于TouchSocket的TCP服务器实现（完全对齐 WheelDiverterSorter）
+/// TouchSocket-based TCP Server implementation (fully aligned with WheelDiverterSorter)
 /// </summary>
-public class DownstreamTcpJsonServer : IDisposable
+/// <remarks>
+/// 使用TouchSocket库实现TCP服务器，提供：
+/// - 客户端连接/断开日志记录
+/// - 多客户端并发管理
+/// - 消息广播到所有连接的客户端
+/// - 事件驱动架构（无数据库依赖）
+/// </remarks>
+public sealed class DownstreamTcpJsonServer : IDisposable
 {
-    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly ILogger<DownstreamTcpJsonServer> _logger;
-    private readonly MySqlLogDbContext? _mysqlContext;
-    private readonly SqliteLogDbContext? _sqliteContext;
+    private readonly ISystemClock _systemClock;
     private readonly string _host;
     private readonly int _port;
-    private TcpService? _tcpService;
     
-    // 支持多个客户端连接（多个下游分拣设备）
-    // Support multiple client connections (multiple downstream sorter devices)
-    private readonly ConcurrentDictionary<string, TcpSessionClient> _connectedClients = new();
-    
+    private readonly ConcurrentDictionary<string, ConnectedClientInfo> _clients = new();
+    private TcpService? _service;
     private bool _isRunning;
-    private bool _isDisposed;
+    private bool _disposed;
+
+    public bool IsRunning => _isRunning;
+    public int ConnectedClientsCount => _clients.Count;
+
+    // ✅ 事件驱动架构（参考 TouchSocketTcpRuleEngineServer）
+    public event EventHandler<ClientConnectionEventArgs>? ClientConnected;
+    public event EventHandler<ClientConnectionEventArgs>? ClientDisconnected;
+    public event EventHandler<ParcelNotificationReceivedEventArgs>? ParcelNotificationReceived;
+    public event EventHandler<SortingCompletedReceivedEventArgs>? SortingCompletedReceived;
 
     /// <summary>
-    /// 包裹检测通知事件
-    /// Parcel detection notification event
+    /// 构造函数（使用泛型 Logger，无 DbContext 依赖）
     /// </summary>
-    public event Func<ParcelDetectionNotification, Task>? OnParcelDetected;
-
-    /// <summary>
-    /// 落格完成通知事件
-    /// Sorting completed notification event
-    /// </summary>
-    public event Func<SortingCompletedNotificationDto, Task>? OnSortingCompleted;
-
     public DownstreamTcpJsonServer(
+        ILogger<DownstreamTcpJsonServer> logger,
+        ISystemClock systemClock,
         string host,
-        int port,
-        ILogger logger,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
-        MySqlLogDbContext? mysqlContext = null,
-        SqliteLogDbContext? sqliteContext = null)
+        int port)
     {
-        ArgumentNullException.ThrowIfNull(logger);
-        
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _systemClock = systemClock ?? throw new ArgumentNullException(nameof(systemClock));
         _host = host;
         _port = port;
-        
-        // 使用 LoggerFactory 创建泛型 logger，如果传入的已经是泛型类型则直接使用
-        // Use LoggerFactory to create generic logger, or use directly if already generic
-        _logger = logger as ILogger<DownstreamTcpJsonServer> 
-            ?? new LoggerWrapper<DownstreamTcpJsonServer>(logger);
-        
-        _clock = clock;
-        _mysqlContext = mysqlContext;
-        _sqliteContext = sqliteContext;
+
+        ValidateServerOptions(host, port);
     }
 
     /// <summary>
-    /// 启动 TouchSocket TCP Server
-    /// Start TouchSocket TCP Server
+    /// 获取所有已连接的客户端信息
     /// </summary>
+    public IReadOnlyList<ClientConnectionEventArgs> GetConnectedClients()
+    {
+        return _clients.Values
+            .Select(c => new ClientConnectionEventArgs
+            {
+                ClientId = c.ClientId,
+                ConnectedAt = c.ConnectedAt,
+                ClientAddress = c.ClientAddress
+            })
+            .ToList()
+            .AsReadOnly();
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         if (_isRunning)
         {
-            _logger.LogWarning("TouchSocket TCP Server 已在运行中");
+            _logger.LogWarning(
+                "[{LocalTime}] [服务端模式] TCP服务器已在运行",
+                _systemClock.LocalNow);
             return;
         }
 
-        try
-        {
-            _tcpService = new TcpService();
-            
-            var config = new TouchSocketConfig();
-            config.SetListenIPHosts(new IPHost[] { new IPHost($"{_host}:{_port}") })
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
-                .ConfigureContainer(a =>
-                {
-                    a.AddLogger(new TouchSocketLoggerAdapter(_logger));
-                })
-                .ConfigurePlugins(a =>
-                {
-                    a.Add<DownstreamSorterPlugin>()
-                        .SetServer(this);
-                });
+        var bindAddress = _host == "localhost" || _host == "127.0.0.1" ? "127.0.0.1" : _host;
 
-            await _tcpService.SetupAsync(config);
-            await _tcpService.StartAsync();
-
-            _isRunning = true;
-            _logger.LogInformation(
-                "下游 TouchSocket TCP JSON Server 已启动，监听 {Host}:{Port}",
-                _host, _port);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "启动 TouchSocket TCP Server 失败");
-            _isRunning = false;
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// 客户端连接事件处理
-    /// Client connection event handler
-    /// </summary>
-    internal void OnClientConnected(TcpSessionClient client)
-    {
-        var clientId = client.IP;
-        _connectedClients[clientId] = client;
+        _service = new TcpService();
         
-        _logger.LogInformation(
-            "下游分拣机已连接: {ClientId}, 当前连接数: {Count}",
-            clientId, _connectedClients.Count);
-    }
-
-    /// <summary>
-    /// 客户端断开事件处理
-    /// Client disconnection event handler
-    /// </summary>
-    internal void OnClientDisconnected(TcpSessionClient client)
-    {
-        var clientId = client.IP;
-        _connectedClients.TryRemove(clientId, out _);
-        
-        _logger.LogInformation(
-            "客户端 {ClientId} 连接已关闭，当前连接数: {Count}",
-            clientId, _connectedClients.Count);
-    }
-
-    /// <summary>
-    /// 处理接收到的JSON消息
-    /// Handle received JSON message
-    /// </summary>
-    internal async Task ProcessMessageAsync(string clientId, string jsonLine)
-    {
-        try
-        {
-            _logger.LogDebug("收到消息 from {ClientId}: {Message}", clientId, jsonLine);
-
-            using var document = JsonDocument.Parse(jsonLine);
-            var root = document.RootElement;
-
-            if (!root.TryGetProperty("Type", out var typeElement))
+        await _service.SetupAsync(new TouchSocketConfig()
+            .SetListenIPHosts(new IPHost[] { new IPHost($"{bindAddress}:{_port}") })
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")
             {
-                _logger.LogWarning("消息缺少 Type 字段 from {ClientId}: {Message}", clientId, jsonLine);
-                return;
-            }
-
-            var messageType = typeElement.GetString();
-
-            switch (messageType)
+                CacheTimeout = TimeSpan.FromSeconds(30)
+            })
+            .ConfigurePlugins(a =>
             {
-                case "ParcelDetected":
-                    var detectionNotification = JsonSerializer.Deserialize<ParcelDetectionNotification>(jsonLine);
-                    if (detectionNotification != null && OnParcelDetected != null)
-                    {
-                        await OnParcelDetected(detectionNotification);
-                        
-                        // 保存通信日志到数据库
-                        // Save communication log to database
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await SaveCommunicationLogAsync(
-                                    detectionNotification.ParcelId.ToString(),
-                                    clientId,
-                                    jsonLine,
-                                    "ParcelDetected - 接收包裹检测通知",
-                                    true,
-                                    null).ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "保存通信日志失败");
-                            }
-                        });
-                    }
-                    break;
+                a.Add<TouchSocketServerPlugin>();
+            }));
 
-                case "SortingCompleted":
-                    var completedNotification = JsonSerializer.Deserialize<SortingCompletedNotificationDto>(jsonLine);
-                    if (completedNotification != null && OnSortingCompleted != null)
-                    {
-                        await OnSortingCompleted(completedNotification);
-                        
-                        // 保存通信日志到数据库
-                        // Save communication log to database
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await SaveCommunicationLogAsync(
-                                    completedNotification.ParcelId.ToString(),
-                                    clientId,
-                                    jsonLine,
-                                    $"SortingCompleted - 落格完成通知 (Status: {completedNotification.FinalStatus})",
-                                    true,
-                                    null).ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "保存通信日志失败");
-                            }
-                        });
-                    }
-                    break;
+        // ✅ 注册事件
+        _service.Connected += OnClientConnected;
+        _service.Closed += OnClientDisconnected;
+        _service.Received += OnMessageReceived;
 
-                default:
-                    _logger.LogWarning("未知的消息类型 from {ClientId}: {Type}", clientId, messageType);
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "处理消息失败 from {ClientId}: {Message}", clientId, jsonLine);
-        }
+        // 启动服务
+        await _service.StartAsync();
+        _isRunning = true;
+
+        _logger.LogInformation(
+            "[{LocalTime}] [服务端模式] TCP服务器已启动，监听 {Host}:{Port}",
+            _systemClock.LocalNow,
+            bindAddress,
+            _port);
     }
 
-    /// <summary>
-    /// 发送格口分配通知到所有连接的下游设备
-    /// Send chute assignment notification to all connected downstream devices
-    /// </summary>
-    public async Task<bool> SendChuteAssignmentAsync(
-        ChuteAssignmentNotification notification,
-        CancellationToken cancellationToken = default)
+    public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_connectedClients.IsEmpty)
+        if (!_isRunning)
         {
-            _logger.LogWarning("无活动连接，无法发送格口分配");
-            return false;
+            return;
         }
 
-        var json = JsonSerializer.Serialize(notification);
-        var message = $"{json}\n";
-        var successCount = 0;
-        var failCount = 0;
+        _isRunning = false;
 
-        // 向所有连接的设备广播消息
-        // Broadcast message to all connected devices
-        foreach (var kvp in _connectedClients)
+        // 断开所有客户端
+        foreach (var kvp in _clients)
         {
             try
             {
-                await kvp.Value.SendAsync(message);
-                
-                _logger.LogInformation(
-                    "已发送格口分配到客户端 {ClientId}: ParcelId={ParcelId}, ChuteId={ChuteId}",
-                    kvp.Key, notification.ParcelId, notification.ChuteId);
-                
-                // 保存通信日志到数据库
-                // Save communication log to database
-                _ = Task.Run(async () =>
+                if (_service?.Clients.TryGetClient(kvp.Key, out var socketClient) == true)
                 {
-                    try
-                    {
-                        await SaveCommunicationLogAsync(
-                            notification.ParcelId.ToString(),
-                            kvp.Key,
-                            json,
-                            $"ChuteAssignment - 发送格口分配 (ChuteId: {notification.ChuteId})",
-                            true,
-                            null).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "保存通信日志失败");
-                    }
-                });
-                
-                successCount++;
+                    await socketClient.CloseAsync("Server停止");
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "发送格口分配到客户端 {ClientId} 失败", kvp.Key);
-                failCount++;
+                _logger.LogWarning(
+                    ex,
+                    "[{LocalTime}] [服务端模式] 断开客户端 {ClientId} 时发生异常",
+                    _systemClock.LocalNow,
+                    kvp.Key);
             }
+        }
+        _clients.Clear();
+
+        // ✅ 停止服务并取消事件订阅（防止内存泄漏）
+        if (_service != null)
+        {
+            _service.Connected -= OnClientConnected;
+            _service.Closed -= OnClientDisconnected;
+            _service.Received -= OnMessageReceived;
+            
+            await _service.StopAsync();
+            _service.Dispose();
+            _service = null;
         }
 
         _logger.LogInformation(
-            "格口分配广播完成: 成功={Success}, 失败={Fail}, 总连接数={Total}",
-            successCount, failCount, _connectedClients.Count);
-
-        return successCount > 0;
+            "[{LocalTime}] [服务端模式] TCP服务器已停止",
+            _systemClock.LocalNow);
     }
 
-    /// <summary>
-    /// 停止 TouchSocket TCP Server
-    /// Stop TouchSocket TCP Server
-    /// </summary>
-    public async Task StopAsync()
+    private Task OnClientConnected(TcpSessionClient client, ConnectedEventArgs e)
     {
-        _logger.LogInformation("正在停止下游 TouchSocket TCP Server...");
+        var clientId = client.Id;
+        var clientAddress = client.IP + ":" + client.Port;
+        var now = _systemClock.LocalNow;
 
-        _isRunning = false;
-        
-        if (_tcpService != null)
+        var clientInfo = new ConnectedClientInfo
         {
-            await _tcpService.StopAsync();
-            _tcpService.Dispose();
-            _tcpService = null;
-        }
-
-        _connectedClients.Clear();
-
-        _logger.LogInformation("下游 TouchSocket TCP Server 已停止");
-    }
-
-    /// <summary>
-    /// 保存通信日志到数据库
-    /// Save communication log to database
-    /// </summary>
-    private async Task SaveCommunicationLogAsync(
-        string parcelId,
-        string clientId,
-        string originalContent,
-        string formattedContent,
-        bool isSuccess,
-        string? errorMessage)
-    {
-        var log = new SorterCommunicationLog
-        {
-            CommunicationType = CommunicationType.Tcp,
-            SorterAddress = clientId,
-            OriginalContent = originalContent,
-            FormattedContent = formattedContent,
-            ExtractedParcelId = parcelId,
-            ExtractedCartNumber = null,
-            CommunicationTime = _clock.LocalNow,
-            IsSuccess = isSuccess,
-            ErrorMessage = errorMessage
+            ClientId = clientId,
+            ConnectedAt = now,
+            ClientAddress = clientAddress
         };
 
-        if (_mysqlContext != null)
+        _clients[clientId] = clientInfo;
+
+        _logger.LogInformation(
+            "[{LocalTime}] [服务端模式-客户端连接] 客户端已连接: {ClientId} from {Address}",
+            _systemClock.LocalNow,
+            clientId,
+            clientAddress);
+
+        // ✅ 触发客户端连接事件（使用 SafeInvoke）
+        ClientConnected.SafeInvoke(this, new ClientConnectionEventArgs
         {
-            await _mysqlContext.SorterCommunicationLogs.AddAsync(log).ConfigureAwait(false);
-            await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
+            ClientId = clientId,
+            ConnectedAt = now,
+            ClientAddress = clientAddress
+        }, _logger, nameof(ClientConnected));
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnClientDisconnected(TcpSessionClient client, ClosedEventArgs e)
+    {
+        var clientId = client.Id;
+        
+        if (_clients.TryRemove(clientId, out var clientInfo))
+        {
+            _logger.LogInformation(
+                "[{LocalTime}] [服务端模式-客户端断开] 客户端已断开: {ClientId} from {Address} (连接时长: {Duration})",
+                _systemClock.LocalNow,
+                clientId,
+                clientInfo.ClientAddress,
+                _systemClock.LocalNow - clientInfo.ConnectedAt);
+
+            // ✅ 触发客户端断开事件
+            ClientDisconnected.SafeInvoke(this, new ClientConnectionEventArgs
+            {
+                ClientId = clientId,
+                ConnectedAt = clientInfo.ConnectedAt,
+                ClientAddress = clientInfo.ClientAddress
+            }, _logger, nameof(ClientDisconnected));
         }
-        else if (_sqliteContext != null)
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnMessageReceived(TcpSessionClient client, ReceivedDataEventArgs e)
+    {
+        try
         {
-            await _sqliteContext.SorterCommunicationLogs.AddAsync(log).ConfigureAwait(false);
-            await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
+            var json = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            
+            _logger.LogInformation(
+                "[{LocalTime}] [服务端模式-接收消息] 收到客户端 {ClientId} 的消息 | 消息内容={MessageContent}",
+                _systemClock.LocalNow,
+                client.Id,
+                json);
+
+            // 尝试解析消息类型
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            
+            if (root.TryGetProperty("Type", out var typeElement))
+            {
+                var messageType = typeElement.GetString();
+                
+                switch (messageType)
+                {
+                    case "ParcelDetected":
+                        HandleParcelDetectionNotification(client.Id, json);
+                        break;
+                        
+                    case "SortingCompleted":
+                        HandleSortingCompletedNotification(client.Id, json);
+                        break;
+                        
+                    default:
+                        _logger.LogWarning(
+                            "[{LocalTime}] [服务端模式-未知消息] 未知消息类型: {Type}",
+                            _systemClock.LocalNow,
+                            messageType);
+                        break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "[{LocalTime}] [服务端模式-接收错误] 处理客户端 {ClientId} 消息时发生错误",
+                _systemClock.LocalNow,
+                client.Id);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void HandleParcelDetectionNotification(string clientId, string json)
+    {
+        try
+        {
+            var notification = JsonSerializer.Deserialize<ParcelDetectionNotification>(json);
+            if (notification != null)
+            {
+                _logger.LogInformation(
+                    "[{LocalTime}] [服务端模式-处理通知] 解析到包裹检测通知 | ClientId={ClientId} | ParcelId={ParcelId}",
+                    _systemClock.LocalNow,
+                    clientId,
+                    notification.ParcelId);
+
+                // ✅ 触发包裹通知接收事件
+                ParcelNotificationReceived.SafeInvoke(this, new ParcelNotificationReceivedEventArgs
+                {
+                    ParcelId = notification.ParcelId,
+                    ReceivedAt = _systemClock.LocalNow,
+                    ClientId = clientId
+                }, _logger, nameof(ParcelNotificationReceived));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[{LocalTime}] 解析包裹检测通知失败", _systemClock.LocalNow);
+        }
+    }
+
+    private void HandleSortingCompletedNotification(string clientId, string json)
+    {
+        try
+        {
+            var notification = JsonSerializer.Deserialize<SortingCompletedNotificationDto>(json);
+            if (notification != null)
+            {
+                _logger.LogInformation(
+                    "[{LocalTime}] [服务端模式-处理通知] 解析到落格完成通知 | ClientId={ClientId} | ParcelId={ParcelId}",
+                    _systemClock.LocalNow,
+                    clientId,
+                    notification.ParcelId);
+
+                // ✅ 触发落格完成接收事件
+                SortingCompletedReceived.SafeInvoke(this, new SortingCompletedReceivedEventArgs
+                {
+                    ParcelId = notification.ParcelId,
+                    ActualChuteId = notification.ActualChuteId,
+                    CompletedAt = notification.CompletedAt,
+                    IsSuccess = notification.IsSuccess,
+                    FinalStatus = notification.FinalStatus,
+                    FailureReason = notification.FailureReason,
+                    ReceivedAt = _systemClock.LocalNow,
+                    ClientId = clientId
+                }, _logger, nameof(SortingCompletedReceived));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[{LocalTime}] 解析落格完成通知失败", _systemClock.LocalNow);
+        }
+    }
+
+    /// <summary>
+    /// 广播格口分配通知到所有连接的客户端
+    /// </summary>
+    public async Task BroadcastChuteAssignmentAsync(
+        long parcelId,
+        long chuteId,
+        DwsPayload? dwsPayload = null,
+        CancellationToken cancellationToken = default)
+    {
+        var notification = new ChuteAssignmentNotification
+        {
+            ParcelId = parcelId,
+            ChuteId = chuteId,
+            AssignedAt = _systemClock.LocalNow,
+            DwsPayload = dwsPayload
+        };
+
+        var json = JsonSerializer.Serialize(notification);
+        var bytes = Encoding.UTF8.GetBytes(json + "\n");
+
+        var disconnectedClients = new List<string>();
+
+        foreach (var kvp in _clients)
+        {
+            try
+            {
+                if (_service?.Clients.TryGetClient(kvp.Key, out var socketClient) ?? false)
+                {
+                    await socketClient.SendAsync(bytes);
+
+                    _logger.LogDebug(
+                        "[{LocalTime}] [服务端模式-广播] 已向客户端 {ClientId} 广播包裹 {ParcelId} 的格口分配: {ChuteId}",
+                        _systemClock.LocalNow,
+                        kvp.Key,
+                        parcelId,
+                        chuteId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[{LocalTime}] [服务端模式-广播失败] 向客户端 {ClientId} 广播消息失败: {Message}",
+                    _systemClock.LocalNow,
+                    kvp.Key,
+                    ex.Message);
+                disconnectedClients.Add(kvp.Key);
+            }
+        }
+
+        // 清理断开的客户端
+        foreach (var clientId in disconnectedClients)
+        {
+            _clients.TryRemove(clientId, out _);
+        }
+    }
+
+    private static void ValidateServerOptions(string host, int port)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            throw new ArgumentException("TCP服务器地址不能为空", nameof(host));
+        }
+
+        if (port <= 0 || port > 65535)
+        {
+            throw new ArgumentException($"无效的端口号: {port}", nameof(port));
         }
     }
 
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
+        if (_disposed)
+        {
+            return;
+        }
 
+        _disposed = true;
         StopAsync().GetAwaiter().GetResult();
         GC.SuppressFinalize(this);
     }
 }
 
 /// <summary>
-/// Logger包装器，将非泛型ILogger包装为泛型ILogger&lt;T&gt;
-/// Logger wrapper to wrap non-generic ILogger as generic ILogger&lt;T&gt;
+/// TouchSocket服务器插件
 /// </summary>
-file class LoggerWrapper<T> : ILogger<T>
+file class TouchSocketServerPlugin : PluginBase, ITcpReceivedPlugin
 {
-    private readonly ILogger _logger;
-
-    public LoggerWrapper(ILogger logger)
+    public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        // 消息已经由 TerminatorPackageAdapter 处理，这里只需要传递
+        return e.InvokeNext();
     }
-
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-        => _logger.BeginScope(state);
-
-    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
-        => _logger.IsEnabled(logLevel);
-
-    public void Log<TState>(
-        Microsoft.Extensions.Logging.LogLevel logLevel,
-        EventId eventId,
-        TState state,
-        Exception? exception,
-        Func<TState, Exception?, string> formatter)
-        => _logger.Log(logLevel, eventId, state, exception, formatter);
 }
 
 /// <summary>
-/// 下游分拣机TouchSocket插件
-/// Downstream sorter TouchSocket plugin
+/// 已连接客户端信息
 /// </summary>
-file class DownstreamSorterPlugin : PluginBase, ITcpConnectedPlugin, ITcpClosedPlugin, ITcpReceivedPlugin
+internal sealed class ConnectedClientInfo
 {
-    private DownstreamTcpJsonServer? _server;
+    public required string ClientId { get; init; }
+    public DateTimeOffset ConnectedAt { get; init; }
+    public string? ClientAddress { get; init; }
+}
 
-    public DownstreamSorterPlugin SetServer(DownstreamTcpJsonServer server)
+/// <summary>
+/// EventHandler 安全调用扩展方法（防止事件订阅者异常影响发布者）
+/// </summary>
+file static class EventHandlerExtensions
+{
+    public static void SafeInvoke<TEventArgs>(
+        this EventHandler<TEventArgs>? handler,
+        object sender,
+        TEventArgs args,
+        ILogger logger,
+        string eventName) where TEventArgs : EventArgs
     {
-        _server = server;
-        return this;
-    }
+        if (handler == null) return;
 
-    public async Task OnTcpConnected(ITcpSession client, ConnectedEventArgs e)
-    {
-        _server?.OnClientConnected((TcpSessionClient)client);
-        await e.InvokeNext();
-    }
-
-    public async Task OnTcpClosed(ITcpSession client, ClosedEventArgs e)
-    {
-        _server?.OnClientDisconnected((TcpSessionClient)client);
-        await e.InvokeNext();
-    }
-
-    public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
-    {
-        var message = e.ByteBlock.ToString();
-        if (!string.IsNullOrEmpty(message) && _server != null)
+        foreach (var @delegate in handler.GetInvocationList())
         {
-            await _server.ProcessMessageAsync(client.IP, message);
+            try
+            {
+                ((EventHandler<TEventArgs>)@delegate)(sender, args);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "事件 {EventName} 的订阅者执行时发生异常", eventName);
+            }
         }
-        await e.InvokeNext();
     }
 }
