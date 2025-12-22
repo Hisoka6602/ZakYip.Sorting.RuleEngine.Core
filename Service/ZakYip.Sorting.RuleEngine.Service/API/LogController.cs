@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
@@ -20,7 +21,7 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [SwaggerTag("日志查询接口，提供各类日志的查询和导出功能")]
 public class LogController : ControllerBase
 {
-    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
+    private readonly ISystemClock _clock;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
     private readonly ILogger<LogController> _logger;
@@ -29,7 +30,7 @@ public class LogController : ControllerBase
     public LogController(
         ILogger<LogController> logger,
         IOptions<AppSettings> appSettings,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
+        ISystemClock clock,
         MySqlLogDbContext? mysqlContext = null,
         SqliteLogDbContext? sqliteContext = null)
     {

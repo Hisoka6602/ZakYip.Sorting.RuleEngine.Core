@@ -5,6 +5,7 @@ using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -23,7 +24,7 @@ public class RuleController : ControllerBase
     private readonly ILogger<RuleController> _logger;
     private readonly RuleValidationService _validationService;
     private readonly IPublisher _publisher;
-    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
+    private readonly ISystemClock _clock;
 
     public RuleController(
         IRuleRepository ruleRepository,
@@ -74,7 +75,7 @@ public class RuleController : ControllerBase
                     RuleName = "默认规则",
                     Description = "系统默认创建的规则，匹配所有包裹到默认格口",
                     Priority = 9999,
-                    MatchingMethod = Domain.Enums.MatchingMethodType.LegacyExpression,
+                    MatchingMethod = MatchingMethodType.LegacyExpression,
                     ConditionExpression = "true",
                     TargetChute = "DEFAULT",
                     IsEnabled = true,
