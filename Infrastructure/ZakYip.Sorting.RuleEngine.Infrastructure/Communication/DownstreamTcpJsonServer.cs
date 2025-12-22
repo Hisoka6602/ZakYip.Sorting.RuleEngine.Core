@@ -55,9 +55,16 @@ public class DownstreamTcpJsonServer : IDisposable
         MySqlLogDbContext? mysqlContext = null,
         SqliteLogDbContext? sqliteContext = null)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        
         _host = host;
         _port = port;
-        _logger = logger as ILogger<DownstreamTcpJsonServer> ?? throw new ArgumentException("Logger must be compatible with ILogger<DownstreamTcpJsonServer>", nameof(logger));
+        
+        // 使用 LoggerFactory 创建泛型 logger，如果传入的已经是泛型类型则直接使用
+        // Use LoggerFactory to create generic logger, or use directly if already generic
+        _logger = logger as ILogger<DownstreamTcpJsonServer> 
+            ?? new LoggerWrapper<DownstreamTcpJsonServer>(logger);
+        
         _clock = clock;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;
@@ -360,6 +367,34 @@ public class DownstreamTcpJsonServer : IDisposable
         StopAsync().GetAwaiter().GetResult();
         GC.SuppressFinalize(this);
     }
+}
+
+/// <summary>
+/// Logger包装器，将非泛型ILogger包装为泛型ILogger&lt;T&gt;
+/// Logger wrapper to wrap non-generic ILogger as generic ILogger&lt;T&gt;
+/// </summary>
+file class LoggerWrapper<T> : ILogger<T>
+{
+    private readonly ILogger _logger;
+
+    public LoggerWrapper(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        => _logger.BeginScope(state);
+
+    public bool IsEnabled(LogLevel logLevel)
+        => _logger.IsEnabled(logLevel);
+
+    public void Log<TState>(
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
+        => _logger.Log(logLevel, eventId, state, exception, formatter);
 }
 
 /// <summary>
