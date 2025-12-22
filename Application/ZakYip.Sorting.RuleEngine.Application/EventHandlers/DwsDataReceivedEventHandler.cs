@@ -126,6 +126,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                     // 解析目标格口（根据规则引擎或API响应）
                     parcel.TargetChute = ExtractTargetChute(response);
                     parcel.DecisionReason = "API";
+                    parcel.SortingMode = Domain.Enums.SortingMode.ApiDriven;  // API驱动模式
                     parcel.LifecycleStage = ParcelLifecycleStage.ChuteAssigned;
                     
                     // 添加格口分配生命周期节点

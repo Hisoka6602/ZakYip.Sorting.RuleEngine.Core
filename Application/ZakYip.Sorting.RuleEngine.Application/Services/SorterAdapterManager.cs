@@ -349,8 +349,8 @@ public class SorterAdapterManager : ISorterAdapterManager
     /// 处理包裹检测事件 - 自动应答逻辑实现
     /// Handle parcel detected event - Auto-response logic implementation
     /// 
-    /// 流程: 接收包裹检测 → 检查自动应答模式 → 生成随机格口 → 发送到分拣机
-    /// Flow: Receive parcel detection → Check auto-response mode → Generate random chute → Send to sorter
+    /// 流程: 接收包裹检测 → 检查自动应答模式 → 生成随机格口 → 发送到分拣机 → 记录分拣模式
+    /// Flow: Receive parcel detection → Check auto-response mode → Generate random chute → Send to sorter → Record sorting mode
     /// </summary>
     private async Task HandleParcelDetectedAsync(Application.DTOs.Downstream.ParcelDetectionNotification notification)
     {
@@ -363,7 +363,10 @@ public class SorterAdapterManager : ISorterAdapterManager
             // 检查自动应答模式是否启用 / Check if auto-response mode is enabled
             if (!_autoResponseModeService.IsEnabled)
             {
-                _logger.LogDebug("自动应答模式未启用，跳过自动格口分配");
+                _logger.LogDebug(
+                    "自动应答模式未启用，包裹将通过规则分拣模式处理: ParcelId={ParcelId} " +
+                    "/ Auto-response mode not enabled, parcel will be processed via rule sorting mode: ParcelId={ParcelId}",
+                    notification.ParcelId);
                 return;
             }
 
@@ -379,7 +382,7 @@ public class SorterAdapterManager : ISorterAdapterManager
             var randomChute = chuteNumbers[randomIndex].ToString();
 
             _logger.LogInformation(
-                "自动应答: ParcelId={ParcelId}, 随机分配格口={ChuteNumber} (从 [{ChuteArray}] 中选择)",
+                "🎲 自动应答模式: ParcelId={ParcelId}, 随机分配格口={ChuteNumber} (从 [{ChuteArray}] 中选择)",
                 notification.ParcelId, randomChute, string.Join(", ", chuteNumbers));
 
             // 发送格口号到分拣机 / Send chute number to sorter
