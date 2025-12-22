@@ -493,39 +493,66 @@ try
                 // **全局单例 / Global Singleton**: 
                 // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
                 // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
-                services.AddSingleton<IDownstreamCommunication>(sp =>
+                services.AddSingleton<IDownstreamCommunication?>(sp =>
                 {
-                    // 从缓存获取Sorter配置（避免每次DI解析都访问数据库）
-                    var sorterConfig = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig?>();
-                    
-                    var logger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>>();
+                    var logger = sp.GetRequiredService<ILogger<Program>>();
+                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
                     var clock = sp.GetRequiredService<ISystemClock>();
+                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
                     
-                    // 根据配置选择Server或Client模式
-                    if (sorterConfig?.ConnectionMode == "Server")
+                    try
                     {
-                        // Server模式：RuleEngine作为服务器
-                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
-                            logger,
-                            clock,
-                            sorterConfig.Host,
-                            sorterConfig.Port);
-                    }
-                    else
-                    {
-                        // Client模式：RuleEngine作为客户端
-                        var clientLogger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>>();
-                        var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
+                        // 使用 scope 来访问 scoped repository
+                        using var scope = serviceScopeFactory.CreateScope();
+                        var configRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
+                        var sorterConfig = configRepository.GetByIdAsync(SorterConfig.SingletonId).GetAwaiter().GetResult();
+                        
+                        if (sorterConfig == null || !sorterConfig.IsEnabled)
                         {
-                            TcpServer = sorterConfig != null ? $"{sorterConfig.Host}:{sorterConfig.Port}" : "localhost:8002",
-                            TimeoutMs = sorterConfig?.TimeoutSeconds * 1000 ?? 30000,
-                            RetryCount = 3,
-                            RetryDelayMs = sorterConfig?.ReconnectIntervalSeconds * 1000 ?? 5000
-                        };
-                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
-                            clientLogger,
-                            connectionOptions,
-                            clock);
+                            logger.LogInformation("Sorter配置不存在或已禁用，不创建下游通信 / Sorter config does not exist or is disabled, not creating downstream communication");
+                            return null;
+                        }
+                        
+                        // 根据配置选择Server或Client模式
+                        var mode = sorterConfig.ConnectionMode.ToUpperInvariant();
+                        
+                        if (mode == "SERVER")
+                        {
+                            // Server模式：RuleEngine作为服务器
+                            var serverLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>();
+                            var server = new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
+                                serverLogger,
+                                clock,
+                                sorterConfig.Host,
+                                sorterConfig.Port);
+                            
+                            logger.LogInformation("已创建下游通信 Server: Host={Host}, Port={Port}", sorterConfig.Host, sorterConfig.Port);
+                            return server;
+                        }
+                        else // "CLIENT"
+                        {
+                            // Client模式：RuleEngine作为客户端
+                            var clientLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>();
+                            var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
+                            {
+                                TcpServer = $"{sorterConfig.Host}:{sorterConfig.Port}",
+                                TimeoutMs = sorterConfig.TimeoutSeconds * 1000,
+                                RetryCount = 3,
+                                RetryDelayMs = sorterConfig.ReconnectIntervalSeconds * 1000
+                            };
+                            var client = new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
+                                clientLogger,
+                                connectionOptions,
+                                clock);
+                            
+                            logger.LogInformation("已创建下游通信 Client: Host={Host}, Port={Port}", sorterConfig.Host, sorterConfig.Port);
+                            return client;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "创建下游通信失败");
+                        return null;
                     }
                 });
 
@@ -631,8 +658,6 @@ try
                         return null;
                     }
                 });
-                
-                services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
 
                 // 注册包裹活动追踪器（用于空闲检测）
                 services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();

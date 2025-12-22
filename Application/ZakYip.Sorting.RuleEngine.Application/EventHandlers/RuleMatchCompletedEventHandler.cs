@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
+using System.Text.Json;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -15,19 +16,22 @@ public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchComp
 {
     private readonly ILogger<RuleMatchCompletedEventHandler> _logger;
     private readonly ILogRepository _logRepository;
-    private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly IParcelInfoRepository _parcelRepository;
+    private readonly ISystemClock _clock;
 
     public RuleMatchCompletedEventHandler(
         ILogger<RuleMatchCompletedEventHandler> logger,
         ILogRepository logRepository,
-        ISorterAdapterManager sorterAdapterManager,
-        IParcelInfoRepository parcelRepository)
+        IDownstreamCommunication? downstreamCommunication,
+        IParcelInfoRepository parcelRepository,
+        ISystemClock clock)
     {
         _logger = logger;
         _logRepository = logRepository;
-        _sorterAdapterManager = sorterAdapterManager;
+        _downstreamCommunication = downstreamCommunication;
         _parcelRepository = parcelRepository;
+        _clock = clock;
     }
 
     public async Task Handle(RuleMatchCompletedEvent notification, CancellationToken cancellationToken)
@@ -67,28 +71,55 @@ public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchComp
         // Send chute number to downstream sorter system
         try
         {
-            var success = await _sorterAdapterManager.SendChuteNumberAsync(
-                notification.ParcelId,
-                notification.ChuteNumber,
-                cancellationToken).ConfigureAwait(false);
-
-            if (success)
+            if (_downstreamCommunication != null)
             {
-                _logger.LogInformation(
-                    "格口号已发送到下游分拣机: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
-                    notification.ParcelId, notification.ChuteNumber);
-                await _logRepository.LogInfoAsync(
-                    $"格口号已发送: {notification.ParcelId}",
-                    $"格口号: {notification.ChuteNumber}").ConfigureAwait(false);
+                // 使用 TryParse 安全解析 ParcelId
+                if (!long.TryParse(notification.ParcelId, out var parcelIdValue))
+                {
+                    _logger.LogWarning("解析 ParcelId 失败，输入值无效: {ParcelId}", notification.ParcelId);
+                    await _logRepository.LogWarningAsync(
+                        $"格口号发送失败: {notification.ParcelId}",
+                        "ParcelId 格式无效").ConfigureAwait(false);
+                }
+                else if (!long.TryParse(notification.ChuteNumber, out var chuteIdValue))
+                {
+                    _logger.LogWarning("解析 ChuteNumber 失败，输入值无效: {ChuteNumber}", notification.ChuteNumber);
+                    await _logRepository.LogWarningAsync(
+                        $"格口号发送失败: {notification.ParcelId}",
+                        "ChuteNumber 格式无效").ConfigureAwait(false);
+                }
+                else
+                {
+                    // 构造 ChuteAssignmentNotification 对象
+                    var chuteNotification = new ChuteAssignmentNotification
+                    {
+                        ParcelId = parcelIdValue,
+                        ChuteId = chuteIdValue,
+                        AssignedAt = _clock.LocalNow
+                    };
+
+                    // 序列化为JSON
+                    var json = JsonSerializer.Serialize(chuteNotification);
+
+                    // 调用下游通信接口发送
+                    await _downstreamCommunication.BroadcastChuteAssignmentAsync(json).ConfigureAwait(false);
+
+                    _logger.LogInformation(
+                        "格口号已发送到下游分拣机: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
+                        notification.ParcelId, notification.ChuteNumber);
+                    await _logRepository.LogInfoAsync(
+                        $"格口号已发送: {notification.ParcelId}",
+                        $"格口号: {notification.ChuteNumber}").ConfigureAwait(false);
+                }
             }
             else
             {
                 _logger.LogWarning(
-                    "格口号发送失败: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
+                    "下游通信未配置，无法发送格口号: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
                     notification.ParcelId, notification.ChuteNumber);
                 await _logRepository.LogWarningAsync(
                     $"格口号发送失败: {notification.ParcelId}",
-                    $"格口号: {notification.ChuteNumber}").ConfigureAwait(false);
+                    "下游通信未配置").ConfigureAwait(false);
             }
         }
         catch (Exception ex)

@@ -16,7 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Tests.BackgroundServices;
 public class AdapterConnectionServiceTests
 {
     private readonly Mock<IDwsAdapter> _dwsAdapterMock;
-    private readonly Mock<ISorterAdapterManager> _sorterAdapterManagerMock;
+    private readonly Mock<IDownstreamCommunication> _downstreamCommunicationMock;
     private readonly Mock<IDwsConfigRepository> _dwsConfigRepositoryMock;
     private readonly Mock<ISorterConfigRepository> _sorterConfigRepositoryMock;
     private readonly Mock<ILogger<AdapterConnectionService>> _loggerMock;
@@ -25,7 +25,7 @@ public class AdapterConnectionServiceTests
     public AdapterConnectionServiceTests()
     {
         _dwsAdapterMock = new Mock<IDwsAdapter>();
-        _sorterAdapterManagerMock = new Mock<ISorterAdapterManager>();
+        _downstreamCommunicationMock = new Mock<IDownstreamCommunication>();
         _dwsConfigRepositoryMock = new Mock<IDwsConfigRepository>();
         _sorterConfigRepositoryMock = new Mock<ISorterConfigRepository>();
         _loggerMock = new Mock<ILogger<AdapterConnectionService>>();
@@ -72,7 +72,7 @@ public class AdapterConnectionServiceTests
         var service = new AdapterConnectionService(
             _serviceProvider,
             _dwsAdapterMock.Object,
-            _sorterAdapterManagerMock.Object,
+            _downstreamCommunicationMock.Object,
             _loggerMock.Object);
 
         // Act
@@ -115,7 +115,7 @@ public class AdapterConnectionServiceTests
         var service = new AdapterConnectionService(
             _serviceProvider,
             _dwsAdapterMock.Object,
-            _sorterAdapterManagerMock.Object,
+            _downstreamCommunicationMock.Object,
             _loggerMock.Object);
 
         // Act
@@ -158,7 +158,7 @@ public class AdapterConnectionServiceTests
         var service = new AdapterConnectionService(
             _serviceProvider,
             null, // DWS adapter is null
-            _sorterAdapterManagerMock.Object,
+            _downstreamCommunicationMock.Object,
             _loggerMock.Object);
 
         // Act
@@ -198,15 +198,15 @@ public class AdapterConnectionServiceTests
         var service = new AdapterConnectionService(
             _serviceProvider,
             _dwsAdapterMock.Object,
-            _sorterAdapterManagerMock.Object,
+            _downstreamCommunicationMock.Object,
             _loggerMock.Object);
 
         // Act
         await service.StartAsync(CancellationToken.None).ConfigureAwait(false);
 
         // Assert
-        _sorterAdapterManagerMock.Verify(
-            x => x.ConnectAsync(It.IsAny<SorterConfig>(), It.IsAny<CancellationToken>()),
+        _downstreamCommunicationMock.Verify(
+            x => x.StartAsync(It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

@@ -1,9 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Text.Json;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
@@ -26,20 +27,20 @@ public class SortingMachineController : ControllerBase
     private readonly ISorterConfigRepository _configRepository;
     private readonly ISystemClock _clock;
     private readonly IPublisher _publisher;
-    private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ILogger<SortingMachineController> _logger;
 
     public SortingMachineController(
         ISorterConfigRepository configRepository,
         ISystemClock clock,
         IPublisher publisher,
-        ISorterAdapterManager sorterAdapterManager,
+        IDownstreamCommunication? downstreamCommunication,
         ILogger<SortingMachineController> logger)
     {
         _configRepository = configRepository;
         _clock = clock;
         _publisher = publisher;
-        _sorterAdapterManager = sorterAdapterManager;
+        _downstreamCommunication = downstreamCommunication;
         _logger = logger;
     }
 
@@ -295,23 +296,63 @@ public class SortingMachineController : ControllerBase
                 "收到测试格口请求 - ParcelId: {ParcelId}, ChuteNumber: {ChuteNumber}",
                 request.ParcelId, request.ChuteNumber);
 
-            // 实际发送到分拣机
-            var success = await _sorterAdapterManager.SendChuteNumberAsync(
-                request.ParcelId, 
-                request.ChuteNumber, 
-                cancellationToken).ConfigureAwait(false);
-
-            if (!success)
+            if (_downstreamCommunication == null)
             {
                 return BadRequest(new TestChuteResponse
                 {
                     Success = false,
                     ParcelId = request.ParcelId,
                     ChuteNumber = request.ChuteNumber,
-                    Message = "发送失败：分拣机未连接或参数无效 / Send failed: Sorter not connected or invalid parameters",
+                    Message = "发送失败：分拣机未配置 / Send failed: Sorter not configured",
                     FormattedMessage = ""
                 });
             }
+
+            // 使用 TryParse 安全解析 ParcelId
+            if (!long.TryParse(request.ParcelId, out var parcelIdValue))
+            {
+                _logger.LogWarning("解析 ParcelId 失败，输入值无效: {ParcelId}", request.ParcelId);
+                return BadRequest(new TestChuteResponse
+                {
+                    Success = false,
+                    ParcelId = request.ParcelId,
+                    ChuteNumber = request.ChuteNumber,
+                    Message = "发送失败：ParcelId 格式无效 / Send failed: Invalid ParcelId format",
+                    FormattedMessage = ""
+                });
+            }
+
+            // 使用 TryParse 安全解析 ChuteNumber
+            if (!long.TryParse(request.ChuteNumber, out var chuteIdValue))
+            {
+                _logger.LogWarning("解析 ChuteNumber 失败，输入值无效: {ChuteNumber}", request.ChuteNumber);
+                return BadRequest(new TestChuteResponse
+                {
+                    Success = false,
+                    ParcelId = request.ParcelId,
+                    ChuteNumber = request.ChuteNumber,
+                    Message = "发送失败：ChuteNumber 格式无效 / Send failed: Invalid ChuteNumber format",
+                    FormattedMessage = ""
+                });
+            }
+
+            // 构造 ChuteAssignmentNotification 对象
+            var notification = new ChuteAssignmentNotification
+            {
+                ParcelId = parcelIdValue,
+                ChuteId = chuteIdValue,
+                AssignedAt = _clock.LocalNow
+            };
+
+            // 序列化为JSON
+            var json = JsonSerializer.Serialize(notification);
+
+            // 调用下游通信接口发送
+            await _downstreamCommunication.BroadcastChuteAssignmentAsync(json).ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "已发送格口分配: ParcelId={ParcelId}, ChuteId={ChuteId}",
+                parcelIdValue, chuteIdValue);
 
             // 构造测试消息：包裹ID,格口号
             var message = $"{request.ParcelId},{request.ChuteNumber}";

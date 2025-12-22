@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -17,18 +16,18 @@ public class AdapterConnectionService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IDwsAdapter? _dwsAdapter;
-    private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ILogger<AdapterConnectionService> _logger;
 
     public AdapterConnectionService(
         IServiceProvider serviceProvider,
         IDwsAdapter? dwsAdapter,
-        ISorterAdapterManager sorterAdapterManager,
+        IDownstreamCommunication? downstreamCommunication,
         ILogger<AdapterConnectionService> logger)
     {
         _serviceProvider = serviceProvider;
         _dwsAdapter = dwsAdapter;
-        _sorterAdapterManager = sorterAdapterManager;
+        _downstreamCommunication = downstreamCommunication;
         _logger = logger;
     }
 
@@ -112,6 +111,13 @@ public class AdapterConnectionService : IHostedService
     {
         try
         {
+            if (_downstreamCommunication == null)
+            {
+                _logger.LogInformation(
+                    "下游通信未配置，跳过连接 / Downstream communication not configured, skipping connection");
+                return;
+            }
+
             var sorterConfigRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
             var config = await sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
 
@@ -123,14 +129,14 @@ public class AdapterConnectionService : IHostedService
             }
 
             _logger.LogInformation(
-                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: Protocol={Protocol}, Host={Host}, Port={Port}",
-                config.Protocol, config.Host, config.Port);
+                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: Protocol={Protocol}, ConnectionMode={ConnectionMode}",
+                config.Protocol, config.ConnectionMode);
 
-            await _sorterAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "分拣机连接成功 / Sorter connection successful: Protocol={Protocol}, Host={Host}:{Port}",
-                config.Protocol, config.Host, config.Port);
+                "分拣机连接成功 / Sorter connection successful: Protocol={Protocol}, ConnectionMode={ConnectionMode}",
+                config.Protocol, config.ConnectionMode);
         }
         catch (InvalidOperationException ex)
         {
