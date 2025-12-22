@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
@@ -539,8 +540,8 @@ try
                 // - ISorterAdapterManager: Only one Sorter TCP instance globally
                 // - DWS and Sorter can coexist, but each is globally unique
                 
-                // 注册 DWS 适配器（根据配置选择具体实现）
-                // Register DWS adapter (select implementation based on configuration)
+                // 注册 DWS 适配器（根据配置选择具体实现，直接依赖注入，无反射）
+                // Register DWS adapter (select implementation based on configuration, direct DI, no reflection)
                 services.AddSingleton<IDwsAdapter?>(sp =>
                 {
                     var logger = sp.GetRequiredService<ILogger<Program>>();
@@ -580,60 +581,44 @@ try
                             };
                         }
                         
-                        // 根据模式创建适配器
+                        // 根据模式创建适配器（直接依赖注入，无反射）
                         var mode = config.Mode.ToUpperInvariant();
                         
                         if (mode == "CLIENT")
                         {
-                            // TCP Client 模式
-                            var adapterLogger = loggerFactory.CreateLogger("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsTcpClientAdapter");
-                            var adapterType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsTcpClientAdapter, ZakYip.Sorting.RuleEngine.Infrastructure");
+                            // TCP Client 模式 - 直接创建实例
+                            var clientLogger = loggerFactory.CreateLogger<TouchSocketDwsTcpClientAdapter>();
                             
-                            if (adapterType == null)
-                            {
-                                logger.LogError("无法加载 TouchSocketDwsTcpClientAdapter 类型");
-                                return null;
-                            }
-                            
-                            var adapter = Activator.CreateInstance(
-                                adapterType,
+                            var adapter = new TouchSocketDwsTcpClientAdapter(
                                 config.Host,
                                 config.Port,
                                 template,
-                                adapterLogger,
+                                clientLogger,
                                 serviceScopeFactory,
                                 dataParser,
                                 config.AutoReconnect,
                                 config.ReconnectIntervalSeconds
-                            ) as IDwsAdapter;
+                            );
                             
                             logger.LogInformation("已创建 DWS TCP Client 适配器: Host={Host}, Port={Port}", config.Host, config.Port);
                             return adapter;
                         }
                         else // "SERVER"
                         {
-                            // TCP Server 模式
-                            var adapterLogger = loggerFactory.CreateLogger("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter");
-                            var adapterType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter, ZakYip.Sorting.RuleEngine.Infrastructure");
+                            // TCP Server 模式 - 直接创建实例
+                            var serverLogger = loggerFactory.CreateLogger<TouchSocketDwsAdapter>();
                             
-                            if (adapterType == null)
-                            {
-                                logger.LogError("无法加载 TouchSocketDwsAdapter 类型");
-                                return null;
-                            }
-                            
-                            var adapter = Activator.CreateInstance(
-                                adapterType,
+                            var adapter = new TouchSocketDwsAdapter(
                                 config.Host,
                                 config.Port,
-                                adapterLogger,
+                                serverLogger,
                                 serviceScopeFactory,
                                 dataParser,
                                 template,
                                 config.MaxConnections,
                                 config.ReceiveBufferSize,
                                 config.SendBufferSize
-                            ) as IDwsAdapter;
+                            );
                             
                             logger.LogInformation("已创建 DWS TCP Server 适配器: Host={Host}, Port={Port}, MaxConnections={MaxConnections}", 
                                 config.Host, config.Port, config.MaxConnections);
