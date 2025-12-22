@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.EventHandlers;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -19,6 +20,8 @@ namespace ZakYip.Sorting.RuleEngine.Tests.EventHandlers;
 public class ChuteLandingCompletedEventHandlerTests
 {
     private readonly Mock<ILogger<ChuteLandingCompletedEventHandler>> _mockLogger;
+    private readonly Mock<IWcsApiAdapterFactory> _mockApiFactory;
+    private readonly Mock<IWcsApiAdapter> _mockAdapter;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<IParcelInfoRepository> _mockParcelRepository;
     private readonly Mock<IParcelLifecycleNodeRepository> _mockLifecycleRepository;
@@ -29,6 +32,9 @@ public class ChuteLandingCompletedEventHandlerTests
     public ChuteLandingCompletedEventHandlerTests()
     {
         _mockLogger = new Mock<ILogger<ChuteLandingCompletedEventHandler>>();
+        _mockApiFactory = new Mock<IWcsApiAdapterFactory>();
+        _mockAdapter = new Mock<IWcsApiAdapter>();
+        _mockApiFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockAdapter.Object);
         _mockLogRepository = new Mock<ILogRepository>();
         _mockParcelRepository = new Mock<IParcelInfoRepository>();
         _mockLifecycleRepository = new Mock<IParcelLifecycleNodeRepository>();
@@ -40,6 +46,7 @@ public class ChuteLandingCompletedEventHandlerTests
         
         _handler = new ChuteLandingCompletedEventHandler(
             _mockLogger.Object,
+            _mockApiFactory.Object,
             _mockLogRepository.Object,
             _mockParcelRepository.Object,
             _mockLifecycleRepository.Object,

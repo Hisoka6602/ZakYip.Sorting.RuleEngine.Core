@@ -45,6 +45,14 @@ public class AutoResponseModeService : IAutoResponseModeService
             }
             
             _isEnabled = true;
+            
+            // 警告：自动应答模式与规则分拣模式互斥
+            // Warning: Auto-response mode is mutually exclusive with rule sorting mode
+            _logger.LogWarning(
+                "⚠️ 自动应答模式已启用。此模式与规则分拣模式互斥。" +
+                "系统将从配置的格口数组中随机选择格口，不会使用规则引擎进行匹配。" +
+                " / Auto-response mode enabled. This mode is mutually exclusive with rule sorting mode. " +
+                "The system will randomly select chutes from the configured array and will not use the rule engine.");
         }
     }
 
@@ -59,7 +67,9 @@ public class AutoResponseModeService : IAutoResponseModeService
             if (_isEnabled)
             {
                 _isEnabled = false;
-                _logger.LogInformation("自动应答模式已禁用 / Auto-response mode disabled");
+                _logger.LogInformation(
+                    "自动应答模式已禁用。系统将恢复使用规则分拣模式。" +
+                    " / Auto-response mode disabled. System will resume using rule sorting mode.");
             }
         }
     }

@@ -50,14 +50,14 @@ public class DownstreamTcpJsonServer : IDisposable
     public DownstreamTcpJsonServer(
         string host,
         int port,
-        ILogger<DownstreamTcpJsonServer> logger,
+        ILogger logger,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         MySqlLogDbContext? mysqlContext = null,
         SqliteLogDbContext? sqliteContext = null)
     {
         _host = host;
         _port = port;
-        _logger = logger;
+        _logger = logger as ILogger<DownstreamTcpJsonServer> ?? throw new ArgumentException("Logger must be compatible with ILogger<DownstreamTcpJsonServer>", nameof(logger));
         _clock = clock;
         _mysqlContext = mysqlContext;
         _sqliteContext = sqliteContext;

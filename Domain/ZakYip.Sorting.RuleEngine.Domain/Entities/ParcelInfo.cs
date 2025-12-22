@@ -80,6 +80,12 @@ public class ParcelInfo
     public string? DecisionReason { get; set; }
     
     /// <summary>
+    /// 分拣模式 - 标识使用了哪种模式分配格口
+    /// Sorting mode - Indicates which mode was used to assign the chute
+    /// </summary>
+    public SortingMode SortingMode { get; set; } = SortingMode.Unspecified;
+    
+    /// <summary>
     /// 判断规则ID（匹配的规则ID）
     /// Matched rule ID
     /// </summary>

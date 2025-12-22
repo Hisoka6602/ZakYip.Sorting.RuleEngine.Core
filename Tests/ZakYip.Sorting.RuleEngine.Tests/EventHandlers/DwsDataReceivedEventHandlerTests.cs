@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ZakYip.Sorting.RuleEngine.Application.EventHandlers;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -21,6 +22,7 @@ public class DwsDataReceivedEventHandlerTests
     private readonly Mock<ILogger<DwsDataReceivedEventHandler>> _mockLogger;
     private readonly Mock<IWcsApiAdapterFactory> _mockFactory;
     private readonly Mock<IWcsApiAdapter> _mockAdapter;
+    private readonly Mock<ISorterAdapterManager> _mockSorterManager;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly Mock<IParcelInfoRepository> _mockParcelRepository;
@@ -34,6 +36,7 @@ public class DwsDataReceivedEventHandlerTests
         _mockFactory = new Mock<IWcsApiAdapterFactory>();
         _mockAdapter = new Mock<IWcsApiAdapter>();
         _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockAdapter.Object);
+        _mockSorterManager = new Mock<ISorterAdapterManager>();
         _mockLogRepository = new Mock<ILogRepository>();
         _mockPublisher = new Mock<IPublisher>();
         _mockParcelRepository = new Mock<IParcelInfoRepository>();
@@ -47,6 +50,7 @@ public class DwsDataReceivedEventHandlerTests
         _handler = new DwsDataReceivedEventHandler(
             _mockLogger.Object,
             _mockFactory.Object,
+            _mockSorterManager.Object,
             _mockLogRepository.Object,
             _mockPublisher.Object,
             clock,

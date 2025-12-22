@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -16,6 +17,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 {
     private readonly ILogger<DwsDataReceivedEventHandler> _logger;
     private readonly IWcsApiAdapterFactory _apiAdapterFactory;
+    private readonly ISorterAdapterManager _sorterAdapterManager;
     private readonly ILogRepository _logRepository;
     private readonly IPublisher _publisher;
     private readonly ISystemClock _clock;
@@ -26,6 +28,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
         IWcsApiAdapterFactory apiAdapterFactory,
+        ISorterAdapterManager sorterAdapterManager,
         ILogRepository logRepository,
         IPublisher publisher,
         ISystemClock clock,
@@ -35,6 +38,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     {
         _logger = logger;
         _apiAdapterFactory = apiAdapterFactory;
+        _sorterAdapterManager = sorterAdapterManager;
         _logRepository = logRepository;
         _publisher = publisher;
         _clock = clock;
@@ -122,6 +126,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                     // 解析目标格口（根据规则引擎或API响应）
                     parcel.TargetChute = ExtractTargetChute(response);
                     parcel.DecisionReason = "API";
+                    parcel.SortingMode = Domain.Enums.SortingMode.ApiDriven;  // API驱动模式
                     parcel.LifecycleStage = ParcelLifecycleStage.ChuteAssigned;
                     
                     // 添加格口分配生命周期节点
@@ -132,6 +137,34 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                         EventTime = _clock.LocalNow,
                         Description = $"目标格口已分配: {parcel.TargetChute}"
                     }, cancellationToken).ConfigureAwait(false);
+                    
+                    // 发送格口分配到分拣机 / Send chute assignment to sorter
+                    try
+                    {
+                        var sendSuccess = await _sorterAdapterManager.SendChuteNumberAsync(
+                            parcel.ParcelId,
+                            parcel.TargetChute,
+                            cancellationToken).ConfigureAwait(false);
+                        
+                        if (sendSuccess)
+                        {
+                            _logger.LogInformation(
+                                "已发送格口分配到分拣机: ParcelId={ParcelId}, TargetChute={TargetChute}",
+                                parcel.ParcelId, parcel.TargetChute);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "发送格口分配到分拣机失败: ParcelId={ParcelId}, TargetChute={TargetChute}",
+                                parcel.ParcelId, parcel.TargetChute);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, 
+                            "发送格口分配到分拣机时发生异常: ParcelId={ParcelId}, TargetChute={TargetChute}",
+                            parcel.ParcelId, parcel.TargetChute);
+                    }
                 }
                 
                 await _logRepository.LogInfoAsync(

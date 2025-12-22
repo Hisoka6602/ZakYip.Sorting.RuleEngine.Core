@@ -36,12 +36,23 @@ _autoResponseModeService = autoResponseModeService;
     /// <returns>操作结果</returns>
     /// <response code="200">自动应答模式已启用</response>
     /// <remarks>
-    /// 启用后，系统将不请求任何第三方API，而是从配置的格口数组中随机返回格口ID。
+    /// **⚠️ 重要提示：自动应答模式与规则分拣模式互斥**
+    /// 
+    /// **IMPORTANT: Auto-response mode is mutually exclusive with rule sorting mode**
+    /// 
+    /// 启用后，系统将从配置的格口数组中随机返回格口ID，**不会使用规则引擎进行匹配**。
     /// 如果未提供格口数组，默认使用 [1,2,3]。
     /// 
-    /// When enabled, the system will not request any third-party APIs,
-    /// but randomly return a chute ID from the configured array.
+    /// When enabled, the system will randomly return a chute ID from the configured array,
+    /// **and will NOT use the rule engine for matching**.
     /// Defaults to [1,2,3] if no array is provided.
+    /// 
+    /// **使用场景 / Use Cases:**
+    /// - 测试环境：快速测试分拣机通信
+    /// - 演示环境：模拟分拣流程
+    /// - 开发调试：不依赖规则配置
+    /// 
+    /// **生产环境请使用规则分拣模式 / Use rule sorting mode in production**
     /// 
     /// 示例请求:
     /// 
@@ -88,7 +99,7 @@ _autoResponseModeService = autoResponseModeService;
         return Ok(new AutoResponseModeStatusDto
         {
             Enabled = true,
-            Message = $"自动应答模式已启用，格口数组: [{string.Join(", ", actualChuteNumbers)}] / Auto-response mode enabled with chute array: [{string.Join(", ", actualChuteNumbers)}]",
+            Message = $"⚠️ 自动应答模式已启用 (与规则分拣模式互斥)，格口数组: [{string.Join(", ", actualChuteNumbers)}] / Auto-response mode enabled (mutually exclusive with rule sorting mode), chute array: [{string.Join(", ", actualChuteNumbers)}]",
             Timestamp = _clock.LocalNow,
             ChuteNumbers = actualChuteNumbers
         });
@@ -152,8 +163,8 @@ _autoResponseModeService = autoResponseModeService;
         {
             Enabled = isEnabled,
             Message = isEnabled 
-                ? $"自动应答模式已启用，格口数组: [{string.Join(", ", chuteNumbers)}] / Auto-response mode enabled with chute array: [{string.Join(", ", chuteNumbers)}]"
-                : "自动应答模式已禁用 / Auto-response mode disabled",
+                ? $"✅ 自动应答模式已启用 (规则分拣模式已禁用)，格口数组: [{string.Join(", ", chuteNumbers)}] / Auto-response mode enabled (rule sorting mode disabled), chute array: [{string.Join(", ", chuteNumbers)}]"
+                : "✅ 规则分拣模式激活中 (自动应答模式已禁用) / Rule sorting mode active (auto-response mode disabled)",
             Timestamp = _clock.LocalNow,
             ChuteNumbers = chuteNumbers
         });

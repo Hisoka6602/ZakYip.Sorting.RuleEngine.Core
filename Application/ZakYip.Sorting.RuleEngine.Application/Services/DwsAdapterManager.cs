@@ -63,9 +63,26 @@ public class DwsAdapterManager : IDwsAdapterManager
                 var fetchedTemplate = await templateRepository.GetByIdAsync(config.DataTemplateId).ConfigureAwait(false);
                 if (fetchedTemplate == null)
                 {
-                    throw new InvalidOperationException($"无法找到数据模板: {config.DataTemplateId} / Cannot find data template");
+                    _logger.LogWarning(
+                        "未找到数据模板 ID={TemplateId}，使用默认模板 / Data template not found for ID={TemplateId}, using default template",
+                        config.DataTemplateId);
+                    
+                    // 使用默认模板: {Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}
+                    // Use default template: {Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}
+                    template = new DwsDataTemplate
+                    {
+                        TemplateId = 0, // 默认模板ID / Default template ID
+                        Name = "默认模板 / Default Template",
+                        Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
+                        IsEnabled = true,
+                        CreatedAt = _clock.LocalNow,
+                        UpdatedAt = _clock.LocalNow
+                    };
                 }
-                template = fetchedTemplate;
+                else
+                {
+                    template = fetchedTemplate;
+                }
             }
 
             IDwsAdapter adapter;
