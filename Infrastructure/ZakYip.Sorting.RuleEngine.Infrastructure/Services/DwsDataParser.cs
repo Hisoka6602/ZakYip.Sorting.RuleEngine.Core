@@ -1,22 +1,9 @@
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using ZakYip.Sorting.RuleEngine.Domain.Entities;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
-
-/// <summary>
-/// DWS数据解析器 - 根据模板解析DWS数据
-/// DWS data parser - Parses DWS data according to template
-/// </summary>
-public interface IDwsDataParser
-{
-    /// <summary>
-    /// 解析DWS数据
-    /// Parse DWS data
-    /// </summary>
-    DwsData? Parse(string rawData, DwsDataTemplate template);
-}
 
 /// <summary>
 /// DWS数据解析器实现
@@ -43,152 +30,70 @@ public class DwsDataParser : IDwsDataParser
         { "Timestamp", "Timestamp" }
     };
 
-    // Unix时间戳阈值常量 / Unix timestamp threshold constants
-    private const long UnixTimestampMillisecondsThreshold = 1000000000000; // ~2001年 / ~Year 2001
-    private const long UnixTimestampSecondsThreshold = 1000000000; // 2001-09-09
-
     public DwsData? Parse(string rawData, DwsDataTemplate template)
     {
-        if (string.IsNullOrWhiteSpace(rawData))
+        if (string.IsNullOrWhiteSpace(rawData) || template == null)
         {
             return null;
         }
 
         try
         {
-            // Use ternary operator for better readability
-            return template.IsJsonFormat
-                ? ParseJson(rawData)
-                : ParseTemplate(rawData, template);
-        }
-        catch
-        {
-            return null;
-        }
-    }
+            var templatePattern = Regex.Escape(template.Template)
+                .Replace("\\{", "{")
+                .Replace("\\}", "}");
 
-    private DwsData? ParseJson(string jsonData)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<DwsData>(jsonData, new JsonSerializerOptions
+            foreach (var mapping in FieldMappings)
             {
-                PropertyNameCaseInsensitive = true
-            });
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private DwsData? ParseTemplate(string rawData, DwsDataTemplate template)
-    {
-        // 提取模板中的字段名
-        // Extract field names from template
-        var fieldPattern = @"\{(\w+)\}";
-        var matches = Regex.Matches(template.Template, fieldPattern);
-        var fieldNames = matches.Select(m => m.Groups[1].Value).ToList();
-
-        if (fieldNames.Count == 0)
-        {
-            return null;
-        }
-
-        // 按分隔符分割原始数据
-        // Split raw data by delimiter
-        var delimiter = string.IsNullOrEmpty(template.Delimiter) ? "," : template.Delimiter;
-        var values = rawData.Split(delimiter, StringSplitOptions.None);
-
-        if (values.Length != fieldNames.Count)
-        {
-            return null;
-        }
-
-        // 构建字段值字典
-        // Build field value dictionary
-        var fieldValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < fieldNames.Count; i++)
-        {
-            fieldValues[fieldNames[i]] = values[i].Trim();
-        }
-
-        // 映射到DwsData对象
-        // Map to DwsData object
-        return MapToDwsData(fieldValues);
-    }
-
-    private DwsData MapToDwsData(Dictionary<string, string> fieldValues)
-    {
-        var dwsData = new DwsData();
-
-        foreach (var kvp in fieldValues)
-        {
-            if (FieldMappings.TryGetValue(kvp.Key, out var propertyName))
-            {
-                var value = kvp.Value;
-                
-                switch (propertyName)
-                {
-                    case "Barcode":
-                        dwsData.Barcode = value;
-                        break;
-                    case "Weight":
-                        dwsData.Weight = ParseDecimal(value);
-                        break;
-                    case "Length":
-                        dwsData.Length = ParseDecimal(value);
-                        break;
-                    case "Width":
-                        dwsData.Width = ParseDecimal(value);
-                        break;
-                    case "Height":
-                        dwsData.Height = ParseDecimal(value);
-                        break;
-                    case "Volume":
-                        dwsData.Volume = ParseDecimal(value);
-                        break;
-                    case "Timestamp":
-                        dwsData.ScannedAt = ParseTimestamp(value);
-                        break;
-                }
+                templatePattern = templatePattern.Replace($"{{{mapping.Key}}}", $"(?<{mapping.Value}>[^,]+)");
             }
+
+            var match = Regex.Match(rawData, $"^{templatePattern}$");
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var dwsData = new DwsData
+            {
+                ReceivedAt = _clock.LocalNow
+            };
+
+            if (match.Groups["Barcode"].Success)
+            {
+                dwsData.Barcode = match.Groups["Barcode"].Value;
+            }
+
+            if (match.Groups["Weight"].Success && decimal.TryParse(match.Groups["Weight"].Value, out var weight))
+            {
+                dwsData.Weight = weight;
+            }
+
+            if (match.Groups["Length"].Success && decimal.TryParse(match.Groups["Length"].Value, out var length))
+            {
+                dwsData.Length = length;
+            }
+
+            if (match.Groups["Width"].Success && decimal.TryParse(match.Groups["Width"].Value, out var width))
+            {
+                dwsData.Width = width;
+            }
+
+            if (match.Groups["Height"].Success && decimal.TryParse(match.Groups["Height"].Value, out var height))
+            {
+                dwsData.Height = height;
+            }
+
+            if (match.Groups["Volume"].Success && decimal.TryParse(match.Groups["Volume"].Value, out var volume))
+            {
+                dwsData.Volume = volume;
+            }
+
+            return dwsData;
         }
-
-        return dwsData;
-    }
-
-    private decimal ParseDecimal(string value)
-    {
-        return decimal.TryParse(value, out var result) ? result : 0;
-    }
-
-    private DateTime ParseTimestamp(string value)
-    {
-        // 尝试多种时间戳格式
-        // Try multiple timestamp formats
-        
-        // Unix timestamp (milliseconds)
-        if (long.TryParse(value, out var unixMs) && unixMs > UnixTimestampMillisecondsThreshold)
+        catch
         {
-            return DateTimeOffset.FromUnixTimeMilliseconds(unixMs).DateTime;
+            return null;
         }
-
-        // Unix timestamp (seconds)
-        if (long.TryParse(value, out var unixSec) && unixSec > UnixTimestampSecondsThreshold)
-        {
-            return DateTimeOffset.FromUnixTimeSeconds(unixSec).DateTime;
-        }
-
-        // ISO 8601 format
-        if (DateTime.TryParse(value, out var dateTime))
-        {
-            return dateTime;
-        }
-
-        // 如果所有格式都解析失败，记录警告并使用当前时间作为最后手段
-        // If all parsing fails, log warning and use current time as last resort
-        // Note: This indicates data quality issues that should be investigated
-        return _clock.LocalNow;
     }
 }
