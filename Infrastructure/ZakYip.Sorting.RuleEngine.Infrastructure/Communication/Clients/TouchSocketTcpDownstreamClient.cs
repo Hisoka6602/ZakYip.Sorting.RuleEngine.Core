@@ -45,7 +45,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients;
 /// 
 /// 参考 / Reference: ZakYip.WheelDiverterSorter/TouchSocketTcpRuleEngineClient.cs
 /// </remarks>
-public sealed class TouchSocketTcpDownstreamClient : IDisposable
+public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, IDisposable
 {
     private readonly ILogger<TouchSocketTcpDownstreamClient> _logger;
     private readonly ISystemClock _systemClock;
@@ -388,7 +388,75 @@ public sealed class TouchSocketTcpDownstreamClient : IDisposable
     /// RuleEngine的核心职责：发送格口分配通知
     /// RuleEngine's core responsibility: send chute assignment notification
     /// </remarks>
+    public async Task BroadcastChuteAssignmentAsync(string chuteAssignmentJson)
+    {
+        ThrowIfDisposed();
+
+        if (!IsConnected)
+        {
+            _logger.LogWarning(
+                "[{LocalTime}] 无法发送格口分配通知：客户端未连接",
+                _systemClock.LocalNow);
+            return;
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(chuteAssignmentJson.TrimEnd('\n') + "\n");
+
+        try
+        {
+            _logger.LogInformation(
+                "[{LocalTime}] [客户端模式-发送] 发送格口分配通知",
+                _systemClock.LocalNow);
+
+            await _client!.SendAsync(bytes).ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "[{LocalTime}] [客户端模式-发送成功] 格口分配通知已发送 | 字节数={ByteCount}",
+                _systemClock.LocalNow,
+                bytes.Length);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "[{LocalTime}] [客户端模式-发送失败] 发送格口分配通知失败",
+                _systemClock.LocalNow);
+        }
+    }
+
+    /// <summary>
+    /// 广播格口分配通知到WheelDiverterSorter（参数重载）
+    /// Broadcast chute assignment notification to WheelDiverterSorter (parameter overload)
+    /// </summary>
     public async Task BroadcastChuteAssignmentAsync(
+        long parcelId,
+        long chuteId,
+        DwsPayload? dwsPayload = null,
+        CancellationToken cancellationToken = default)
+    {
+        var notification = new ChuteAssignmentNotification
+        {
+            ParcelId = parcelId,
+            ChuteId = chuteId,
+            AssignedAt = DateTimeOffset.Now,
+            DwsPayload = dwsPayload,
+            Metadata = null
+        };
+
+        var json = JsonSerializer.Serialize(notification);
+        await BroadcastChuteAssignmentAsync(json);
+    }
+
+    /// <summary>
+    /// 广播格口分配通知到WheelDiverterSorter（已弃用，保留用于向后兼容）
+    /// Broadcast chute assignment notification to WheelDiverterSorter
+    /// </summary>
+    /// <remarks>
+    /// RuleEngine的核心职责：发送格口分配通知
+    /// RuleEngine's core responsibility: send chute assignment notification
+    /// </remarks>
+    [Obsolete("请使用 BroadcastChuteAssignmentAsync(string) 重载 / Please use BroadcastChuteAssignmentAsync(string) overload")]
+    private async Task BroadcastChuteAssignmentAsyncLegacy(
         long parcelId,
         long chuteId,
         DwsPayload? dwsPayload = null,

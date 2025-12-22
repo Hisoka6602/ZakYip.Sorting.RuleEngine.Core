@@ -21,7 +21,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 /// - 消息广播到所有连接的客户端
 /// - 事件驱动架构（无数据库依赖）
 /// </remarks>
-public sealed class DownstreamTcpJsonServer : IDisposable
+public sealed class DownstreamTcpJsonServer : IDownstreamCommunication, IDisposable
 {
     private readonly ILogger<DownstreamTcpJsonServer> _logger;
     private readonly ISystemClock _systemClock;
@@ -340,25 +340,13 @@ public sealed class DownstreamTcpJsonServer : IDisposable
     }
 
     /// <summary>
-    /// 广播格口分配通知到所有连接的客户端
+    /// 广播格口分配通知到所有连接的客户端（JSON字符串重载）
+    /// Broadcast chute assignment to all connected clients (JSON string overload)
     /// </summary>
-    public async Task BroadcastChuteAssignmentAsync(
-        long parcelId,
-        long chuteId,
-        DwsPayload? dwsPayload = null,
-        CancellationToken cancellationToken = default)
+    public async Task BroadcastChuteAssignmentAsync(string chuteAssignmentJson)
     {
-        var notification = new ChuteAssignmentNotification
-        {
-            ParcelId = parcelId,
-            ChuteId = chuteId,
-            AssignedAt = _systemClock.LocalNow,
-            DwsPayload = dwsPayload
-        };
-
-        var json = JsonSerializer.Serialize(notification);
-        var bytes = Encoding.UTF8.GetBytes(json + "\n");
-
+        var bytes = Encoding.UTF8.GetBytes(chuteAssignmentJson.TrimEnd('\n') + "\n");
+        
         var disconnectedClients = new List<string>();
 
         foreach (var kvp in _clients)
@@ -370,11 +358,9 @@ public sealed class DownstreamTcpJsonServer : IDisposable
                     await socketClient.SendAsync(bytes);
 
                     _logger.LogDebug(
-                        "[{LocalTime}] [服务端模式-广播] 已向客户端 {ClientId} 广播包裹 {ParcelId} 的格口分配: {ChuteId}",
+                        "[{LocalTime}] [服务端模式-广播] 已向客户端 {ClientId} 广播格口分配通知",
                         _systemClock.LocalNow,
-                        kvp.Key,
-                        parcelId,
-                        chuteId);
+                        kvp.Key);
                 }
             }
             catch (Exception ex)
@@ -394,6 +380,27 @@ public sealed class DownstreamTcpJsonServer : IDisposable
         {
             _clients.TryRemove(clientId, out _);
         }
+    }
+
+    /// <summary>
+    /// 广播格口分配通知到所有连接的客户端
+    /// </summary>
+    public async Task BroadcastChuteAssignmentAsync(
+        long parcelId,
+        long chuteId,
+        DwsPayload? dwsPayload = null,
+        CancellationToken cancellationToken = default)
+    {
+        var notification = new ChuteAssignmentNotification
+        {
+            ParcelId = parcelId,
+            ChuteId = chuteId,
+            AssignedAt = _systemClock.LocalNow,
+            DwsPayload = dwsPayload
+        };
+
+        var json = JsonSerializer.Serialize(notification);
+        await BroadcastChuteAssignmentAsync(json);
     }
 
     private static void ValidateServerOptions(string host, int port)
