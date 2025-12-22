@@ -385,11 +385,11 @@ file class LoggerWrapper<T> : ILogger<T>
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         => _logger.BeginScope(state);
 
-    public bool IsEnabled(LogLevel logLevel)
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
         => _logger.IsEnabled(logLevel);
 
     public void Log<TState>(
-        LogLevel logLevel,
+        Microsoft.Extensions.Logging.LogLevel logLevel,
         EventId eventId,
         TState state,
         Exception? exception,
