@@ -24,6 +24,7 @@ public class SorterAdapterManager : ISorterAdapterManager
     private readonly ILoggerFactory _loggerFactory;
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IAutoResponseModeService _autoResponseModeService;
+    private readonly IParcelInfoRepository _parcelRepository;
     private SorterConfig? _currentConfig;
     private ISorterAdapter? _currentAdapter;
     private object? _tcpServer; // DownstreamTcpJsonServer instance for Server mode
@@ -34,12 +35,14 @@ public class SorterAdapterManager : ISorterAdapterManager
         ILogger<SorterAdapterManager> logger,
         ILoggerFactory loggerFactory,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
-        IAutoResponseModeService autoResponseModeService)
+        IAutoResponseModeService autoResponseModeService,
+        IParcelInfoRepository parcelRepository)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
         _clock = clock;
         _autoResponseModeService = autoResponseModeService;
+        _parcelRepository = parcelRepository;
     }
 
     public bool IsConnected => _isConnected;
@@ -396,6 +399,41 @@ public class SorterAdapterManager : ISorterAdapterManager
                 _logger.LogInformation(
                     "自动应答成功: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
                     notification.ParcelId, randomChute);
+                
+                // 更新包裹信息，标记为自动应答模式 / Update parcel info, mark as auto-response mode
+                try
+                {
+                    var parcel = await _parcelRepository.GetByIdAsync(
+                        notification.ParcelId.ToString(), 
+                        CancellationToken.None).ConfigureAwait(false);
+                    
+                    if (parcel != null)
+                    {
+                        parcel.TargetChute = randomChute;
+                        parcel.DecisionReason = "AutoResponse";
+                        parcel.SortingMode = Domain.Enums.SortingMode.AutoResponse;
+                        parcel.LifecycleStage = Domain.Enums.ParcelLifecycleStage.ChuteAssigned;
+                        parcel.UpdatedAt = _clock.LocalNow;
+                        
+                        await _parcelRepository.UpdateAsync(parcel, CancellationToken.None).ConfigureAwait(false);
+                        
+                        _logger.LogInformation(
+                            "包裹已更新为自动应答模式: ParcelId={ParcelId}, SortingMode={SortingMode}, TargetChute={TargetChute}",
+                            notification.ParcelId, Domain.Enums.SortingMode.AutoResponse, randomChute);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "自动应答：包裹不存在，无法更新分拣模式: ParcelId={ParcelId}",
+                            notification.ParcelId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, 
+                        "自动应答：更新包裹分拣模式失败: ParcelId={ParcelId}", 
+                        notification.ParcelId);
+                }
             }
             else
             {
