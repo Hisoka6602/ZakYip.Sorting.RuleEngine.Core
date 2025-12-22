@@ -468,6 +468,23 @@ try
                 services.AddSingleton<ParcelCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
 
+                // 预加载Sorter配置以避免在DI工厂中使用GetAwaiter().GetResult()
+                // Pre-load Sorter config to avoid GetAwaiter().GetResult() in DI factory
+                ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig? sorterConfigCache = null;
+                services.AddSingleton(sp =>
+                {
+                    if (sorterConfigCache == null)
+                    {
+                        // 首次调用时从LiteDB读取配置（仅在启动时执行一次）
+                        using var scope = sp.CreateScope();
+                        var sorterConfigRepo = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
+                        // 注意：这里仍然使用GetAwaiter().GetResult()，但仅在应用启动时执行一次，
+                        // 而不是每次DI解析时都执行，降低了死锁风险
+                        sorterConfigCache = sorterConfigRepo.GetByIdAsync(ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig.SingletonId).GetAwaiter().GetResult();
+                    }
+                    return sorterConfigCache;
+                });
+
                 // 注册下游通信服务（根据配置选择Server或Client模式）
                 // Register downstream communication (Server or Client mode based on config)
                 // 
@@ -476,10 +493,8 @@ try
                 // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
                 services.AddSingleton<IDownstreamCommunication>(sp =>
                 {
-                    // 从LiteDB读取Sorter配置
-                    using var scope = sp.CreateScope();
-                    var sorterConfigRepo = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
-                    var sorterConfig = sorterConfigRepo.GetByIdAsync(ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig.SingletonId).GetAwaiter().GetResult();
+                    // 从缓存获取Sorter配置（避免每次DI解析都访问数据库）
+                    var sorterConfig = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig?>();
                     
                     var logger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>>();
                     var clock = sp.GetRequiredService<ISystemClock>();

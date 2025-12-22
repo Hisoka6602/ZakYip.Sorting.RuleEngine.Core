@@ -38,9 +38,18 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
     private readonly ILogger<DownstreamTcpJsonServer> _serverLogger;
     private readonly ILogger<TouchSocketTcpDownstreamClient> _clientLogger;
     
+    // 测试端口常量 / Test port constants
     private const int ServerModeTestPort = 18100;
     private const int ClientModeTestPort = 18200;
     private const int CompleteWorkflowTestPort = 18300;
+    
+    // 测试延迟时间常量 / Test delay constants
+    // 服务器启动延迟：等待TCP服务器完全启动并开始监听
+    private const int ServerStartupDelayMs = 1000;
+    // 连接建立延迟：等待TCP握手完成和适配器初始化
+    private const int ConnectionEstablishDelayMs = 2000;
+    // 消息传递延迟：确保异步消息被发送、接收和处理完毕
+    private const int MessageDeliveryDelayMs = 2000;
 
     public TcpDualModeCommunicationE2ETests()
     {
@@ -105,7 +114,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // Arrange
         var server = new DownstreamTcpJsonServer(_serverLogger, _systemClock, "127.0.0.1", ServerModeTestPort + 1);
         await server.StartAsync();
-        await Task.Delay(1000); // 等待服务器完全启动
+        await Task.Delay(ServerStartupDelayMs);
 
         // 模拟WheelDiverterSorter接收消息
         string? receivedJson = null;
@@ -124,13 +133,13 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
             return Task.CompletedTask;
         };
         
-        using var clientConfig = new TouchSocketConfig()
+        var clientConfig = new TouchSocketConfig()
             .SetRemoteIPHost($"127.0.0.1:{ServerModeTestPort + 1}")
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
         
         await wheelDiverterClient.SetupAsync(clientConfig);
         await wheelDiverterClient.ConnectAsync();
-        await Task.Delay(2000); // 增加等待时间确保连接完全建立
+        await Task.Delay(ConnectionEstablishDelayMs);
 
         // Act - RuleEngine发送格口分配
         Console.WriteLine("[Test] Server broadcasting message...");
@@ -139,7 +148,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
             chuteId: 3,
             dwsPayload: null);
         
-        await Task.Delay(2000); // 增加等待时间确保消息被接收
+        await Task.Delay(MessageDeliveryDelayMs);
         Console.WriteLine($"[Test] receivedJson = {receivedJson ?? "null"}");
 
         // Assert
@@ -152,6 +161,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // Cleanup
         await wheelDiverterClient.CloseAsync();
         wheelDiverterClient.Dispose();
+        clientConfig.Dispose();
         await server.StopAsync();
         server.Dispose();
     }
@@ -170,7 +180,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // Arrange - 创建模拟的WheelDiverterSorter服务器
         TcpSessionClient? connectedClient = null;
         var mockServer = new TcpService();
-        using var serverConfig = new TouchSocketConfig()
+        var serverConfig = new TouchSocketConfig()
             .SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{ClientModeTestPort}") })
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
         
@@ -228,6 +238,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         client.Dispose();
         await mockServer.StopAsync();
         mockServer.Dispose();
+        serverConfig.Dispose();
     }
 
     /// <summary>
@@ -240,7 +251,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // Arrange - 创建模拟的WheelDiverterSorter服务器
         string? receivedJson = null;
         var mockServer = new TcpService();
-        using var serverConfig = new TouchSocketConfig()
+        var serverConfig = new TouchSocketConfig()
             .SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{ClientModeTestPort + 1}") })
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
         
@@ -301,6 +312,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         client.Dispose();
         await mockServer.StopAsync();
         mockServer.Dispose();
+        serverConfig.Dispose();
     }
 
     #endregion
@@ -409,22 +421,33 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
             if (!string.IsNullOrWhiteSpace(message))
             {
                 Console.WriteLine($"[Sorter] 收到消息: {message}");
-                // 只保存格口分配消息
-                if (message.Contains("\"ChuteId\""))
+                // 使用JSON解析检查是否为格口分配消息
+                try
                 {
-                    receivedChuteAssignment = message;
+                    using var jsonDocument = JsonDocument.Parse(message);
+                    var root = jsonDocument.RootElement;
+
+                    if (root.ValueKind == JsonValueKind.Object &&
+                        root.TryGetProperty("ChuteId", out _))
+                    {
+                        receivedChuteAssignment = message;
+                    }
+                }
+                catch (JsonException)
+                {
+                    // 非合法 JSON 消息直接忽略
                 }
             }
             return Task.CompletedTask;
         };
         
-        using var clientConfig = new TouchSocketConfig()
+        var clientConfig = new TouchSocketConfig()
             .SetRemoteIPHost($"127.0.0.1:{CompleteWorkflowTestPort}")
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
         
         await sorterClient.SetupAsync(clientConfig);
         await sorterClient.ConnectAsync();
-        await Task.Delay(2000); // 等待连接完全建立
+        await Task.Delay(ConnectionEstablishDelayMs);
         Console.WriteLine("[Setup] ✅ 模拟Sorter客户端已连接到RuleEngine\n");
 
         // ========== 步骤1: Sorter发送包裹检测通知 ==========
@@ -566,6 +589,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // Cleanup
         await sorterClient.CloseAsync();
         sorterClient.Dispose();
+        clientConfig.Dispose();
         await ruleEngineServer.StopAsync();
         ruleEngineServer.Dispose();
     }
