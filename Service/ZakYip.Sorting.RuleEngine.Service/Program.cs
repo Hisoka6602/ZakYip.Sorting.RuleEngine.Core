@@ -496,6 +496,9 @@ try
                         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
                         options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
                         options.SerializerSettings.DateFormatString = "yyyy-MM-dd HH:mm:ss";
+                        // 配置枚举序列化为字符串类型，避免在 Swagger 中显示为魔法数字
+                        // Configure enum serialization as string type to avoid displaying as magic numbers in Swagger
+                        options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
                     });
                 services.AddEndpointsApiExplorer();
 
