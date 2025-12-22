@@ -16,21 +16,26 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// **全局单例约束 / Global Singleton Constraint**:
 /// 此类通过DI注册为Singleton，确保全局只存在一个DWS TCP实例。
 /// This class is registered as Singleton via DI, ensuring only one DWS TCP instance exists globally.
+/// 
+/// **技术债务 / Technical Debt**:
+/// ⚠️ 临时使用反射创建适配器，违反最佳实践但避免Application层引用Infrastructure层。
+/// ⚠️ Temporarily using reflection to create adapters, violates best practices but avoids Application layer referencing Infrastructure layer.
+/// 📝 已登记到 TECHNICAL_DEBT.md - 需要重构为工厂模式或直接依赖注入
+/// 📝 Logged in TECHNICAL_DEBT.md - needs refactoring to factory pattern or direct DI
 /// </summary>
 public class DwsAdapterManager : IDwsAdapterManager
 {
     // 类型名称常量 / Type name constants
     private const string TouchSocketDwsTcpClientAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsTcpClientAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
     private const string TouchSocketDwsAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
-    private const string DwsDataParserTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Services.DwsDataParser, ZakYip.Sorting.RuleEngine.Infrastructure";
 
     private readonly ILogger<DwsAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ISystemClock _clock;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IDwsDataParser _dataParser;
     private DwsConfig? _currentConfig;
     private IDwsAdapter? _currentAdapter;
-    private object? _tcpServer; // For Server mode: UpstreamTcpServer or similar
     private bool _isConnected;
     private readonly object _adapterLock = new();
 
@@ -38,12 +43,14 @@ public class DwsAdapterManager : IDwsAdapterManager
         ILogger<DwsAdapterManager> logger,
         ILoggerFactory loggerFactory,
         ISystemClock clock,
-        IServiceScopeFactory serviceScopeFactory)
+        IServiceScopeFactory serviceScopeFactory,
+        IDwsDataParser dataParser)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
         _clock = clock;
         _serviceScopeFactory = serviceScopeFactory;
+        _dataParser = dataParser;
     }
 
     public bool IsConnected => _isConnected;
@@ -119,8 +126,8 @@ public class DwsAdapterManager : IDwsAdapterManager
     }
 
     /// <summary>
-    /// 根据模式创建适配器
-    /// Create adapter based on mode
+    /// 根据模式创建适配器（直接创建，无反射）
+    /// Create adapter based on mode (direct instantiation, no reflection)
     /// </summary>
     private IDwsAdapter CreateAdapterForMode(DwsConfig config, DwsDataTemplate template)
     {
@@ -142,29 +149,8 @@ public class DwsAdapterManager : IDwsAdapterManager
     }
 
     /// <summary>
-    /// 创建 DWS 数据解析器
-    /// Create DWS data parser
-    /// </summary>
-    private object CreateDwsDataParser()
-    {
-        var parserType = Type.GetType(DwsDataParserTypeName);
-        if (parserType == null)
-        {
-            throw new InvalidOperationException("无法加载 DwsDataParser 类型 / Cannot load DwsDataParser type");
-        }
-
-        var parser = Activator.CreateInstance(parserType, _clock);
-        if (parser == null)
-        {
-            throw new InvalidOperationException("无法创建 DwsDataParser 实例 / Cannot create DwsDataParser instance");
-        }
-
-        return parser;
-    }
-
-    /// <summary>
-    /// 创建 TCP Client 适配器
-    /// Create TCP Client adapter
+    /// 创建 TCP Client 适配器（使用反射 - 临时方案）
+    /// Create TCP Client adapter (using reflection - temporary solution)
     /// </summary>
     private IDwsAdapter CreateTcpClientAdapter(DwsConfig config, DwsDataTemplate template)
     {
@@ -177,9 +163,6 @@ public class DwsAdapterManager : IDwsAdapterManager
 
         var logger = _loggerFactory.CreateLogger(adapterType);
 
-        // 创建 DWS 数据解析器
-        var parser = CreateDwsDataParser();
-
         // TouchSocketDwsTcpClientAdapter构造函数：
         // (string host, int port, DwsDataTemplate dataTemplate, ILogger logger, 
         //  IServiceScopeFactory serviceScopeFactory, IDwsDataParser dataParser,
@@ -191,7 +174,7 @@ public class DwsAdapterManager : IDwsAdapterManager
             template,
             logger,
             _serviceScopeFactory,
-            parser,
+            _dataParser,
             config.AutoReconnect,
             config.ReconnectIntervalSeconds
         ) as IDwsAdapter;
@@ -209,8 +192,8 @@ public class DwsAdapterManager : IDwsAdapterManager
     }
 
     /// <summary>
-    /// 创建 TCP Server 适配器
-    /// Create TCP Server adapter
+    /// 创建 TCP Server 适配器（使用反射 - 临时方案）
+    /// Create TCP Server adapter (using reflection - temporary solution)
     /// </summary>
     private IDwsAdapter CreateTcpServerAdapter(DwsConfig config, DwsDataTemplate template)
     {
@@ -223,9 +206,6 @@ public class DwsAdapterManager : IDwsAdapterManager
 
         var logger = _loggerFactory.CreateLogger(adapterType);
 
-        // 创建 DWS 数据解析器
-        var parser = CreateDwsDataParser();
-
         // TouchSocketDwsAdapter构造函数：
         // (string host, int port, ILogger logger, IServiceScopeFactory serviceScopeFactory,
         //  IDwsDataParser? dataParser, DwsDataTemplate? dataTemplate,
@@ -236,7 +216,7 @@ public class DwsAdapterManager : IDwsAdapterManager
             config.Port,
             logger,
             _serviceScopeFactory,
-            parser,
+            _dataParser,
             template,
             config.MaxConnections,
             config.ReceiveBufferSize,
@@ -267,51 +247,28 @@ public class DwsAdapterManager : IDwsAdapterManager
 
             _logger.LogInformation("开始断开DWS连接");
 
-            // 停止适配器
-            if (_currentAdapter != null)
+            IDwsAdapter? adapterToStop = null;
+            lock (_adapterLock)
             {
-                await _currentAdapter.StopAsync(cancellationToken).ConfigureAwait(false);
+                adapterToStop = _currentAdapter;
+                _currentAdapter = null;
+                _isConnected = false;
+            }
 
-                // 释放资源
-                if (_currentAdapter is IAsyncDisposable asyncDisposable)
+            // 停止适配器 / Stop adapter
+            if (adapterToStop != null)
+            {
+                await adapterToStop.StopAsync(cancellationToken).ConfigureAwait(false);
+
+                // 释放资源 / Release resources
+                if (adapterToStop is IAsyncDisposable asyncDisposable)
                 {
                     await asyncDisposable.DisposeAsync().ConfigureAwait(false);
                 }
-                else if (_currentAdapter is IDisposable disposable)
+                else if (adapterToStop is IDisposable disposable)
                 {
                     disposable.Dispose();
                 }
-            }
-
-            // 停止 TCP Server（如果存在）
-            if (_tcpServer != null)
-            {
-                _logger.LogInformation("停止 DWS TCP Server...");
-
-                var serverType = _tcpServer.GetType();
-                var stopAsyncMethod = serverType.GetMethod("StopAsync");
-                if (stopAsyncMethod != null)
-                {
-                    var stopTask = stopAsyncMethod.Invoke(_tcpServer, Array.Empty<object>()) as Task;
-                    if (stopTask != null)
-                    {
-                        await stopTask.ConfigureAwait(false);
-                    }
-                }
-
-                if (_tcpServer is IDisposable serverDisposable)
-                {
-                    serverDisposable.Dispose();
-                }
-
-                _tcpServer = null;
-                _logger.LogInformation("DWS TCP Server 已停止");
-            }
-
-            lock (_adapterLock)
-            {
-                _currentAdapter = null;
-                _isConnected = false;
             }
 
             _logger.LogInformation("DWS连接已断开");
@@ -321,5 +278,19 @@ public class DwsAdapterManager : IDwsAdapterManager
             _logger.LogError(ex, "断开DWS连接失败");
             throw;
         }
+    }
+
+    public async Task<string?> GetConnectionInfoAsync(CancellationToken cancellationToken = default)
+    {
+        if (_currentConfig == null)
+        {
+            return null;
+        }
+
+        return await Task.FromResult(
+            $"Mode={_currentConfig.Mode}, Host={_currentConfig.Host}, Port={_currentConfig.Port}, " +
+            $"AdapterName={_currentAdapter?.AdapterName ?? "N/A"}, " +
+            $"Protocol={_currentAdapter?.ProtocolType ?? "N/A"}"
+        ).ConfigureAwait(false);
     }
 }

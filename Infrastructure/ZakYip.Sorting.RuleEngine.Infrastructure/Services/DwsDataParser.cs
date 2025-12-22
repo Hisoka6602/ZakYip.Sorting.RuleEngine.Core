@@ -6,19 +6,6 @@ using ZakYip.Sorting.RuleEngine.Domain.Entities;
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 /// <summary>
-/// DWS数据解析器 - 根据模板解析DWS数据
-/// DWS data parser - Parses DWS data according to template
-/// </summary>
-public interface IDwsDataParser
-{
-    /// <summary>
-    /// 解析DWS数据
-    /// Parse DWS data
-    /// </summary>
-    DwsData? Parse(string rawData, DwsDataTemplate template);
-}
-
-/// <summary>
 /// DWS数据解析器实现
 /// DWS data parser implementation
 /// </summary>
