@@ -82,6 +82,7 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
     public async Task DwsDataParser_ShouldParseTemplateData_Successfully()
     {
         // Arrange - 创建DWS模板（CSV格式）
+        var testDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
         var template = new DwsDataTemplate
         {
             TemplateId = 1,
@@ -90,8 +91,8 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
             Delimiter = ",",
             IsJsonFormat = false,
             IsEnabled = true,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = testDate,
+            UpdatedAt = testDate
         };
 
         var parser = new DwsDataParser(new SystemClock());
@@ -121,6 +122,7 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
     public async Task DwsDataParser_ShouldParseAllTemplateFields_Correctly()
     {
         // Arrange - 测试所有宏字段
+        var testDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
         var template = new DwsDataTemplate
         {
             TemplateId = 1,
@@ -129,8 +131,8 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
             Delimiter = ",",
             IsJsonFormat = false,
             IsEnabled = true,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = testDate,
+            UpdatedAt = testDate
         };
 
         var parser = new DwsDataParser(new SystemClock());
@@ -158,6 +160,7 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
     public async Task DwsDataParser_ShouldHandleMissingFields_Gracefully()
     {
         // Arrange - 不完整的模板
+        var testDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
         var template = new DwsDataTemplate
         {
             TemplateId = 1,
@@ -166,8 +169,8 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
             Delimiter = ",",
             IsJsonFormat = false,
             IsEnabled = true,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = testDate,
+            UpdatedAt = testDate
         };
 
         var parser = new DwsDataParser(new SystemClock());
@@ -246,14 +249,15 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
         mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
         mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
 
+        var testDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
         var dataTemplate = new DwsDataTemplate
         {
             TemplateId = 1,
             Name = "默认模板",
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             IsEnabled = true,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = testDate,
+            UpdatedAt = testDate
         };
 
         var dataParser = new DwsDataParser(new SystemClock());
@@ -294,14 +298,15 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
         mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
         mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
 
+        var testDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
         var dataTemplate = new DwsDataTemplate
         {
             TemplateId = 1,
             Name = "默认模板",
             Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
             IsEnabled = true,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = testDate,
+            UpdatedAt = testDate
         };
 
         var dataParser = new DwsDataParser(new SystemClock());

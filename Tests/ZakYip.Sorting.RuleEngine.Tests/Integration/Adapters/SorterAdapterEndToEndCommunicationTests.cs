@@ -1,12 +1,16 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text;
+using System.Text.Json;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using Xunit;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Integration.Adapters;
 
@@ -26,13 +30,14 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
     private TouchSocketSorterAdapter? _sorterAdapter;
     private const int TestPort = 18002;
     private readonly List<ReceivedMessage> _receivedMessages = new();
+    private readonly ISystemClock _clock = new SystemClock();
 
     public class ReceivedMessage
     {
         public required string ParcelId { get; init; }
         public required string ChuteNumber { get; init; }
         public required string RawMessage { get; init; }
-        public required DateTime ReceivedAt { get; init; }
+        public required DateTimeOffset ReceivedAt { get; init; }
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -70,15 +75,19 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         var msg = _receivedMessages[0];
         
         // 验证协议字段（与WheelDiverterSorter兼容）
-        Assert.True(msg.ParcelId > 0, "ParcelId应该是有效的long值");
-        Assert.Equal(1, msg.ChuteId);  // "A01" -> 1
-        Assert.Equal("PARCEL001,A01", msg.RawMessage.Replace(" ", "").Replace("\n", "").Replace("{", "").Replace("}", "").Split(new[] { "ParcelId", "ChuteId", "AssignedAt", "Metadata" }, StringSplitOptions.RemoveEmptyEntries)[0].Trim(',', ':'));
+        Assert.True(long.TryParse(msg.ParcelId, out var parcelId) && parcelId > 0, "ParcelId应该是有效的long值");
+        Assert.Equal("A01", msg.ChuteNumber);  // 验证Chute编号
         
         // 验证JSON包含正确的字段名（大写开头，符合WheelDiverterSorter协议）
         Assert.Contains("\"ParcelId\":", msg.RawMessage);  // 大写P
         Assert.Contains("\"ChuteId\":", msg.RawMessage);   // 大写C
         Assert.Contains("\"AssignedAt\":", msg.RawMessage); // 大写A
         Assert.Contains("\"Metadata\":", msg.RawMessage);   // 大写M
+        
+        // 验证可以正确反序列化为ChuteAssignmentNotification
+        var notification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(msg.RawMessage);
+        Assert.NotNull(notification);
+        Assert.Equal(1, notification.ChuteId); // "A01" -> 1
     }
 
     [Fact]
@@ -100,6 +109,10 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         Assert.False(isConnectedBefore); // 初始未连接
         Assert.True(isConnectedAfter);   // 发送后已连接
         
+        // 验证接收到消息
+        Assert.NotEmpty(_receivedMessages);
+        var msg = _receivedMessages[0];
+        
         // 验证JSON包含正确的字段名（大写开头，符合WheelDiverterSorter协议）
         Assert.Contains("\"ParcelId\":", msg.RawMessage);  // 大写P
         Assert.Contains("\"ChuteId\":", msg.RawMessage);   // 大写C
@@ -107,7 +120,7 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         // 验证消息内容
         var notification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(msg.RawMessage);
         Assert.NotNull(notification);
-        Assert.Equal(1, notification.ChuteId); // "A01" -> 1
+        Assert.Equal(2, notification.ChuteId); // "B02" -> 2
     }
 
     [Fact]
@@ -146,14 +159,14 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// 创建TouchSocket TCP Server接收Sorter发送的CSV格式数据
-    /// Create TouchSocket TCP Server to receive CSV format data from Sorter
+    /// 创建TouchSocket TCP Server接收Sorter发送的JSON格式数据
+    /// Create TouchSocket TCP Server to receive JSON format data from Sorter
     /// </summary>
     private async Task<TcpService> CreateTouchSocketServerAsync()
     {
         var server = new TcpService();
         
-        var config = new TouchSocketConfig();
+        using var config = new TouchSocketConfig();
         config.SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{TestPort}") })
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
             .ConfigurePlugins(a =>
@@ -189,7 +202,7 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
                 ParcelId = notification.ParcelId.ToString(),
                 ChuteNumber = notification.ChuteId.ToString(),
                 RawMessage = rawMessage,
-                ReceivedAt = DateTime.Now
+                ReceivedAt = _clock.UtcNow
             };
 
             lock (_receivedMessages)
@@ -231,7 +244,11 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         var mockLogger = new Mock<ILogger<TouchSocketSorterAdapter>>();
         var mockLogRepository = new Mock<ICommunicationLogRepository>();
         var mockClock = new Mock<ISystemClock>();
-        mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        var mockScope = new Mock<IServiceScope>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        
+        mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.Now);
 
         mockLogRepository.Setup(x => x.LogCommunicationAsync(
             It.IsAny<CommunicationType>(),
@@ -243,11 +260,16 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
             It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
+        mockServiceProvider.Setup(x => x.GetService(typeof(ICommunicationLogRepository)))
+            .Returns(mockLogRepository.Object);
+        mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
+        mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
+
         return new TouchSocketSorterAdapter(
             "127.0.0.1",
             TestPort,
             mockLogger.Object,
-            mockLogRepository.Object,
+            mockScopeFactory.Object,
             mockClock.Object,
             reconnectIntervalMs: 1000);
     }

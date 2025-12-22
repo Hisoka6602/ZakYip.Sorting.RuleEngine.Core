@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
@@ -21,7 +22,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
 {
     private readonly ILogger<TouchSocketSorterAdapter> _logger;
-    private readonly ICommunicationLogRepository _communicationLogRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ISystemClock _clock;
     private readonly string _host;
     private readonly int _port;
@@ -44,7 +45,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         string host,
         int port,
         ILogger<TouchSocketSorterAdapter> logger,
-        ICommunicationLogRepository communicationLogRepository,
+        IServiceScopeFactory serviceScopeFactory,
         ISystemClock clock,
         int reconnectIntervalMs = 5000,
         int receiveBufferSize = 8192,
@@ -53,7 +54,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         _host = host;
         _port = port;
         _logger = logger;
-        _communicationLogRepository = communicationLogRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _clock = clock;
         _reconnectIntervalMs = reconnectIntervalMs;
         _receiveBufferSize = receiveBufferSize;
@@ -77,7 +78,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
             if (_tcpClient?.Online != true)
             {
                 _logger.LogWarning("TCP连接未建立，无法发送数据 / TCP not connected, cannot send data");
-                await _communicationLogRepository.LogCommunicationAsync(
+                await LogCommunicationAsync(
                     CommunicationType.Tcp,
                     CommunicationDirection.Outbound,
                     $"包裹ID: {parcelId}, 格口: {chuteNumber}",
@@ -124,7 +125,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
                 "TCP发送成功（JSON协议）/ TCP send successful (JSON protocol): ParcelId={ParcelId}, ChuteId={ChuteId}",
                 parcelIdLong, chuteId);
             
-            await _communicationLogRepository.LogCommunicationAsync(
+            await LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Outbound,
                 json,  // 记录JSON内容 / Log JSON content
@@ -137,7 +138,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "TCP发送失败 / TCP send failed: ParcelId={ParcelId}", parcelId);
-            await _communicationLogRepository.LogCommunicationAsync(
+            await LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Outbound,
                 $"包裹ID: {parcelId}, 格口: {chuteNumber}",
@@ -210,7 +211,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
             await _tcpClient.ConnectAsync(_reconnectIntervalMs); // 自动重连间隔
             
             _logger.LogInformation("TCP连接已建立，地址: {Host}:{Port}", _host, _port);
-            await _communicationLogRepository.LogCommunicationAsync(
+            await LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Outbound,
                 $"TCP连接已建立: {_host}:{_port}",
@@ -220,7 +221,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "TCP连接失败，地址: {Host}:{Port}", _host, _port);
-            await _communicationLogRepository.LogCommunicationAsync(
+            await LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Outbound,
                 $"TCP连接失败: {_host}:{_port}",
@@ -235,5 +236,23 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
     {
         _tcpClient?.Close();
         _tcpClient?.Dispose();
+    }
+
+    /// <summary>
+    /// 记录通信日志（使用IServiceScopeFactory避免DI生命周期违规）
+    /// Log communication (using IServiceScopeFactory to avoid DI lifetime violation)
+    /// </summary>
+    private async Task LogCommunicationAsync(
+        CommunicationType type,
+        CommunicationDirection direction,
+        string message,
+        string? parcelId = null,
+        string? remoteAddress = null,
+        bool isSuccess = true,
+        string? errorMessage = null)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+        await repository.LogCommunicationAsync(type, direction, message, parcelId, remoteAddress, isSuccess, errorMessage);
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -17,6 +18,7 @@ public class TouchSocketSorterAdapterTests : IDisposable
     private readonly Mock<ILogger<TouchSocketSorterAdapter>> _mockLogger;
     private readonly Mock<ICommunicationLogRepository> _mockLogRepository;
     private readonly Mock<ISystemClock> _mockClock;
+    private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
     private readonly TouchSocketSorterAdapter _adapter;
 
     public TouchSocketSorterAdapterTests()
@@ -24,7 +26,12 @@ public class TouchSocketSorterAdapterTests : IDisposable
         _mockLogger = new Mock<ILogger<TouchSocketSorterAdapter>>();
         _mockLogRepository = new Mock<ICommunicationLogRepository>();
         _mockClock = new Mock<ISystemClock>();
-        _mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
+        _mockScopeFactory = new Mock<IServiceScopeFactory>();
+        
+        var mockScope = new Mock<IServiceScope>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        
+        _mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.Now);
 
         _mockLogRepository.Setup(x => x.LogCommunicationAsync(
             It.IsAny<CommunicationType>(),
@@ -36,11 +43,16 @@ public class TouchSocketSorterAdapterTests : IDisposable
             It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
+        mockServiceProvider.Setup(x => x.GetService(typeof(ICommunicationLogRepository)))
+            .Returns(_mockLogRepository.Object);
+        mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
+        _mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
+
         _adapter = new TouchSocketSorterAdapter(
             "localhost",
             8082,
             _mockLogger.Object,
-            _mockLogRepository.Object,
+            _mockScopeFactory.Object,
             _mockClock.Object);
     }
 
@@ -76,7 +88,7 @@ public class TouchSocketSorterAdapterTests : IDisposable
             "test-host",
             12345,
             _mockLogger.Object,
-            _mockLogRepository.Object,
+            _mockScopeFactory.Object,
             _mockClock.Object);
 
         // Assert
@@ -102,7 +114,7 @@ public class TouchSocketSorterAdapterTests : IDisposable
             "localhost",
             8082,
             _mockLogger.Object,
-            _mockLogRepository.Object,
+            _mockScopeFactory.Object,
             _mockClock.Object);
 
         // Act & Assert

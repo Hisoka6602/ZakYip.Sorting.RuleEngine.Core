@@ -137,16 +137,13 @@ public class SorterAdapterManager : ISorterAdapterManager
             // 获取必需的服务
             var logger = _loggerFactory.CreateLogger(adapterType);
             
-            using var scope = _serviceScopeFactory.CreateScope();
-            var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
-            
-            // TouchSocketSorterAdapter构造函数：(string host, int port, ILogger, ICommunicationLogRepository, ISystemClock, reconnectIntervalMs, receiveBufferSize, sendBufferSize)
+            // TouchSocketSorterAdapter构造函数：(string host, int port, ILogger, IServiceScopeFactory, ISystemClock, reconnectIntervalMs, receiveBufferSize, sendBufferSize)
             var adapter = Activator.CreateInstance(
                 adapterType, 
                 config.Host, 
                 config.Port, 
                 logger, 
-                communicationLogRepository,
+                _serviceScopeFactory,  // 传递IServiceScopeFactory而不是scoped服务
                 _clock,
                 5000,  // reconnectIntervalMs
                 8192,  // receiveBufferSize
