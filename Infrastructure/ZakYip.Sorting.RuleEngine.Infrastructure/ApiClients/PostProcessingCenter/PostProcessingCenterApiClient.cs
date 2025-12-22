@@ -1,4 +1,5 @@
 using System.Text;
+using TouchSocket.Core;
 using System.Diagnostics;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
@@ -130,7 +131,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-
+        ParcelInfos.RemoveWhen(r => DateTime.Now.Subtract(r.Value.RequestChuteTime).TotalMinutes > 10);
         try
         {
             // Skip NoRead barcodes
@@ -463,7 +464,8 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                                 DirectionChuteCode = parts[3],
                                 MailKind = parts[5],
                                 TargetChuteId = Convert.ToInt64((parts[6][..4])),
-                                PlanId = parts[2]
+                                PlanId = parts[2],
+                                RequestChuteTime = _clock.LocalNow
                             };
                             ParcelInfos.TryAdd(Convert.ToInt64(parcelId), parcelInfo);
                         }
@@ -906,5 +908,9 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
         /// 目标格口（目标格口ID/编号，按系统约定）
         /// </summary>
         public required long TargetChuteId { get; init; }
+        /// <summary>
+        /// 请求时间
+        /// </summary>
+        public required DateTime RequestChuteTime { get; init; }
     }
 }
