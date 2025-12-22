@@ -16,18 +16,18 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 public class AdapterConnectionService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly IDwsAdapterManager _dwsAdapterManager;
+    private readonly IDwsAdapter? _dwsAdapter;
     private readonly ISorterAdapterManager _sorterAdapterManager;
     private readonly ILogger<AdapterConnectionService> _logger;
 
     public AdapterConnectionService(
         IServiceProvider serviceProvider,
-        IDwsAdapterManager dwsAdapterManager,
+        IDwsAdapter? dwsAdapter,
         ISorterAdapterManager sorterAdapterManager,
         ILogger<AdapterConnectionService> logger)
     {
         _serviceProvider = serviceProvider;
-        _dwsAdapterManager = dwsAdapterManager;
+        _dwsAdapter = dwsAdapter;
         _sorterAdapterManager = sorterAdapterManager;
         _logger = logger;
     }
@@ -59,6 +59,13 @@ public class AdapterConnectionService : IHostedService
     {
         try
         {
+            if (_dwsAdapter == null)
+            {
+                _logger.LogInformation(
+                    "DWS适配器未配置，跳过连接 / DWS adapter not configured, skipping connection");
+                return;
+            }
+
             var dwsConfigRepository = scope.ServiceProvider.GetRequiredService<IDwsConfigRepository>();
             var config = await dwsConfigRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
 
@@ -70,14 +77,14 @@ public class AdapterConnectionService : IHostedService
             }
 
             _logger.LogInformation(
-                "DWS配置已启用，开始连接 / DWS configuration enabled, connecting: Mode={Mode}, Host={Host}, Port={Port}",
-                config.Mode, config.Host, config.Port);
+                "DWS配置已启用，开始连接 / DWS configuration enabled, connecting: AdapterName={AdapterName}, Protocol={Protocol}",
+                _dwsAdapter.AdapterName, _dwsAdapter.ProtocolType);
 
-            await _dwsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            await _dwsAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "DWS连接成功 / DWS connection successful: Mode={Mode}, Host={Host}:{Port}",
-                config.Mode, config.Host, config.Port);
+                "DWS连接成功 / DWS connection successful: AdapterName={AdapterName}, Protocol={Protocol}",
+                _dwsAdapter.AdapterName, _dwsAdapter.ProtocolType);
         }
         catch (InvalidOperationException ex)
         {

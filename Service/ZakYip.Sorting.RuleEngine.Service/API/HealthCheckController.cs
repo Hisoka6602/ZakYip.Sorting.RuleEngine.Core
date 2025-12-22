@@ -15,18 +15,15 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 public class HealthCheckController : ControllerBase
 {
     private readonly ISystemClock _clock;
-    private readonly IDwsAdapterManager _dwsAdapterManager;
     private readonly ISorterAdapterManager _sorterAdapterManager;
     private readonly ILogger<HealthCheckController> _logger;
 
     public HealthCheckController(
         ISystemClock clock,
-        IDwsAdapterManager dwsAdapterManager,
         ISorterAdapterManager sorterAdapterManager,
         ILogger<HealthCheckController> logger)
     {
         _clock = clock;
-        _dwsAdapterManager = dwsAdapterManager;
         _sorterAdapterManager = sorterAdapterManager;
         _logger = logger;
     }
@@ -53,52 +50,6 @@ public class HealthCheckController : ControllerBase
         };
 
         return Ok(ApiResponse<HealthStatusDto>.SuccessResult(healthStatus));
-    }
-
-    /// <summary>
-    /// DWS连接健康检查 / DWS Connection Health Check
-    /// </summary>
-    /// <returns>DWS连接状态</returns>
-    /// <response code="200">DWS连接正常</response>
-    /// <response code="503">DWS连接异常</response>
-    [HttpGet("dws")]
-    [SwaggerOperation(
-        Summary = "DWS连接健康检查",
-        Description = "检查DWS适配器连接状态",
-        OperationId = "GetDwsHealth",
-        Tags = new[] { "健康检查 / Health Check" }
-    )]
-    [SwaggerResponse(200, "DWS连接正常", typeof(ApiResponse<ConnectionHealthDto>))]
-    [SwaggerResponse(503, "DWS连接异常", typeof(ApiResponse<ConnectionHealthDto>))]
-    public ActionResult<ApiResponse<ConnectionHealthDto>> GetDwsHealth()
-    {
-        try
-        {
-            var isConnected = _dwsAdapterManager.IsConnected;
-            var healthDto = new ConnectionHealthDto
-            {
-                ComponentName = "DWS",
-                IsConnected = isConnected,
-                Status = isConnected ? "Connected" : "Disconnected",
-                Timestamp = _clock.LocalNow
-            };
-
-            if (isConnected)
-            {
-                return Ok(ApiResponse<ConnectionHealthDto>.SuccessResult(healthDto));
-            }
-            else
-            {
-                return StatusCode(503, ApiResponse<ConnectionHealthDto>.FailureResult(
-                    "DWS连接未建立", "DWS_DISCONNECTED"));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "检查DWS连接健康状态失败");
-            return StatusCode(503, ApiResponse<ConnectionHealthDto>.FailureResult(
-                $"DWS健康检查失败: {ex.Message}", "DWS_HEALTH_CHECK_FAILED"));
-        }
     }
 
     /// <summary>

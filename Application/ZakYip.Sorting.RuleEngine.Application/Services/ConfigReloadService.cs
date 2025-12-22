@@ -13,20 +13,20 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 public class ConfigReloadService : IConfigReloadService
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IDwsAdapterManager _dwsAdapterManager;
+    private readonly IDwsAdapter? _dwsAdapter;
     private readonly ISorterAdapterManager _sorterAdapterManager;
     private readonly ConfigCacheService _configCacheService;
     private readonly ILogger<ConfigReloadService> _logger;
 
     public ConfigReloadService(
         IServiceScopeFactory serviceScopeFactory,
-        IDwsAdapterManager dwsAdapterManager,
+        IDwsAdapter? dwsAdapter,
         ISorterAdapterManager sorterAdapterManager,
         ConfigCacheService configCacheService,
         ILogger<ConfigReloadService> logger)
     {
         _serviceScopeFactory = serviceScopeFactory;
-        _dwsAdapterManager = dwsAdapterManager;
+        _dwsAdapter = dwsAdapter;
         _sorterAdapterManager = sorterAdapterManager;
         _configCacheService = configCacheService;
         _logger = logger;
@@ -38,6 +38,12 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
+            if (_dwsAdapter == null)
+            {
+                _logger.LogWarning("DWS适配器未配置，跳过重新加载");
+                return;
+            }
+
             // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
             // Use IServiceScopeFactory to create scope to access scoped repository
             using var scope = _serviceScopeFactory.CreateScope();
@@ -53,15 +59,15 @@ public class ConfigReloadService : IConfigReloadService
             // 更新缓存
             _configCacheService.UpdateDwsConfigCache(config);
 
-            // 断开现有连接
-            _logger.LogInformation("断开现有DWS连接...");
-            await _dwsAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
+            // 停止适配器
+            _logger.LogInformation("停止DWS适配器...");
+            await _dwsAdapter.StopAsync(cancellationToken).ConfigureAwait(false);
 
-            // 如果配置已启用，使用新配置重新连接
+            // 如果配置已启用，重新启动适配器
             if (config.IsEnabled)
             {
-                _logger.LogInformation("使用新配置重新连接DWS: {Host}:{Port}", config.Host, config.Port);
-                await _dwsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("重新启动DWS适配器: {AdapterName}", _dwsAdapter.AdapterName);
+                await _dwsAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
             }
 
             _logger.LogInformation("DWS配置重新加载完成");

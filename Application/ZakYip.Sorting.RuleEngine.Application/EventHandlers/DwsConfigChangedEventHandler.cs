@@ -14,13 +14,13 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 /// <remarks>
 /// 处理DWS配置变更事件，负责：
 /// - 记录配置变更日志
-/// - 重新连接DWS适配器以应用新配置
+/// - 重新启动DWS适配器以应用新配置
 /// - 触发配置缓存失效
 /// - 确保配置变更无需重启服务即可生效（热更新）
 /// 
 /// Handles DWS configuration change events, responsible for:
 /// - Logging configuration changes
-/// - Reconnecting DWS adapter to apply new configuration
+/// - Restarting DWS adapter to apply new configuration
 /// - Triggering configuration cache invalidation
 /// - Ensuring configuration changes take effect without service restart (hot reload)
 /// </remarks>
@@ -28,7 +28,7 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
 {
     private readonly ILogger<DwsConfigChangedEventHandler> _logger;
     private readonly ILogRepository _logRepository;
-    private readonly IDwsAdapterManager _dwsAdapterManager;
+    private readonly IDwsAdapter? _dwsAdapter;
     private readonly IDwsConfigRepository _configRepository;
 
     /// <summary>
@@ -38,12 +38,12 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
     public DwsConfigChangedEventHandler(
         ILogger<DwsConfigChangedEventHandler> logger,
         ILogRepository logRepository,
-        IDwsAdapterManager dwsAdapterManager,
+        IDwsAdapter? dwsAdapter,
         IDwsConfigRepository configRepository)
     {
         _logger = logger;
         _logRepository = logRepository;
-        _dwsAdapterManager = dwsAdapterManager;
+        _dwsAdapter = dwsAdapter;
         _configRepository = configRepository;
     }
 
@@ -60,6 +60,12 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
 
         try
         {
+            if (_dwsAdapter == null)
+            {
+                _logger.LogWarning("DWS适配器未配置，跳过配置热更新 / DWS adapter not configured, skipping hot reload");
+                return;
+            }
+
             // 记录配置变更日志 / Log configuration change
             await _logRepository.LogInfoAsync(
                 "DWS配置已变更 / DWS Configuration Changed",
@@ -69,48 +75,33 @@ public class DwsConfigChangedEventHandler : INotificationHandler<DwsConfigChange
                 $"状态 / Enabled: {notification.IsEnabled}, " +
                 $"原因 / Reason: {notification.Reason ?? ConfigChangeReasons.UserUpdate}").ConfigureAwait(false);
 
-            // 如果配置被禁用，断开连接 / If configuration is disabled, disconnect
+            // 无论是否禁用，都需要重启适配器来应用新配置
+            // Need to restart adapter to apply new configuration regardless of enabled status
+            _logger.LogInformation("停止DWS适配器以应用新配置 / Stopping DWS adapter to apply new configuration");
+            await _dwsAdapter.StopAsync(cancellationToken).ConfigureAwait(false);
+
+            // 如果配置被禁用，仅停止不重启 / If configuration is disabled, only stop without restart
             if (!notification.IsEnabled)
             {
-                _logger.LogInformation("DWS配置已禁用，断开现有连接 / DWS config disabled, disconnecting existing connections");
-                
-                if (_dwsAdapterManager.IsConnected)
-                {
-                    await _dwsAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("DWS连接已断开 / DWS connection disconnected");
-                }
+                _logger.LogInformation("DWS配置已禁用，不重启适配器 / DWS config disabled, not restarting adapter");
+                await _logRepository.LogInfoAsync(
+                    "DWS适配器已停止 / DWS Adapter Stopped",
+                    "配置已禁用 / Configuration disabled").ConfigureAwait(false);
                 return;
             }
 
-            // 重新加载完整配置 / Reload full configuration
-            // Note: We need to fetch from database to get all properties (DataTemplateId, MaxConnections, etc.)
-            // that are required for connection but not included in the lightweight event notification
-            var config = await _configRepository.GetByIdAsync(notification.ConfigId).ConfigureAwait(false);
-            if (config == null)
-            {
-                _logger.LogWarning("无法找到DWS配置: ConfigId={ConfigId} / Cannot find DWS config", notification.ConfigId);
-                return;
-            }
-
-            // 如果已连接，先断开 / If already connected, disconnect first
-            if (_dwsAdapterManager.IsConnected)
-            {
-                _logger.LogInformation("断开现有DWS连接以应用新配置 / Disconnecting existing DWS connection to apply new config");
-                await _dwsAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            // 使用新配置重新连接 / Reconnect with new configuration
-            _logger.LogInformation("使用新配置连接DWS / Connecting DWS with new configuration");
-            await _dwsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            // 重新启动适配器 / Restart adapter
+            _logger.LogInformation("重新启动DWS适配器 / Restarting DWS adapter");
+            await _dwsAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation(
                 "DWS配置热更新成功 / DWS configuration hot reload successful: " +
-                "Mode={Mode}, Host={Host}:{Port}",
-                config.Mode, config.Host, config.Port);
+                "AdapterName={AdapterName}, Protocol={Protocol}",
+                _dwsAdapter.AdapterName, _dwsAdapter.ProtocolType);
 
             await _logRepository.LogInfoAsync(
                 "DWS配置热更新成功 / DWS Hot Reload Successful",
-                $"新配置已应用 / New configuration applied: {config.Mode} mode @ {config.Host}:{config.Port}").ConfigureAwait(false);
+                $"新配置已应用 / New configuration applied: {_dwsAdapter.AdapterName}").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
