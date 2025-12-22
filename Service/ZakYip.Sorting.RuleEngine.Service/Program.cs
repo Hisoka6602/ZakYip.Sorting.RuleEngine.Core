@@ -440,6 +440,11 @@ try
                 // Register system clock (Singleton mode)
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
 
+                // 注册WCS API通信日志后台服务（Singleton + HostedService）
+                // Register WCS API log background service (Singleton + HostedService)
+                services.AddSingleton<WcsApiLogBackgroundService>();
+                services.AddHostedService(sp => sp.GetRequiredService<WcsApiLogBackgroundService>());
+
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();

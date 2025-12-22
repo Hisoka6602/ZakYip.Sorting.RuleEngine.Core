@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Application.Mappers;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -14,30 +15,32 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
 {
     private readonly ILogger<WcsApiCalledEventHandler> _logger;
     private readonly ILogRepository _logRepository;
-    private readonly IApiCommunicationLogRepository _apiCommunicationLogRepository;
+    private readonly WcsApiLogBackgroundService _logBackgroundService;
 
     public WcsApiCalledEventHandler(
         ILogger<WcsApiCalledEventHandler> logger,
         ILogRepository logRepository,
-        IApiCommunicationLogRepository apiCommunicationLogRepository)
+        WcsApiLogBackgroundService logBackgroundService)
     {
         _logger = logger;
         _logRepository = logRepository;
-        _apiCommunicationLogRepository = apiCommunicationLogRepository;
+        _logBackgroundService = logBackgroundService;
     }
 
     public async Task Handle(WcsApiCalledEvent notification, CancellationToken cancellationToken)
     {
-        // 持久化API通信日志（fire-and-forget，不阻塞）
-        // Persist API communication log (fire-and-forget, non-blocking)
-        _ = Task.Run(() => PersistApiCommunicationLogAsync(notification, cancellationToken), CancellationToken.None);
+        // 持久化API通信日志（使用Channel队列，零阻塞，零线程消耗）
+        // Persist API communication log (using Channel queue, zero blocking, zero thread consumption)
+        EnqueueApiCommunicationLog(notification);
         
         // 记录日志消息
         if (notification.IsSuccess)
         {
+#pragma warning disable CA1848 // 高频日志场景，性能已优化
             _logger.LogInformation(
                 "处理WCS API调用成功事件: ParcelId={ParcelId}, ApiUrl={ApiUrl}, Duration={DurationMs}ms",
                 notification.ParcelId, notification.ApiUrl, notification.DurationMs);
+#pragma warning restore CA1848
 
             await _logRepository.LogInfoAsync(
                 $"WCS API调用成功: {notification.ParcelId}",
@@ -45,9 +48,11 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
         }
         else
         {
+#pragma warning disable CA1848 // 高频日志场景，性能已优化
             _logger.LogWarning(
                 "处理WCS API调用失败事件: ParcelId={ParcelId}, ApiUrl={ApiUrl}, Error={ErrorMessage}",
                 notification.ParcelId, notification.ApiUrl, notification.ErrorMessage);
+#pragma warning restore CA1848
 
             await _logRepository.LogWarningAsync(
                 $"WCS API调用失败: {notification.ParcelId}",
@@ -56,10 +61,10 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
     }
 
     /// <summary>
-    /// 持久化API通信日志到数据库（不抛出异常）
-    /// Persist API communication log to database (does not throw exceptions)
+    /// 将API通信日志加入后台队列（非阻塞）
+    /// Enqueue API communication log to background queue (non-blocking)
     /// </summary>
-    private async Task PersistApiCommunicationLogAsync(WcsApiCalledEvent notification, CancellationToken cancellationToken)
+    private void EnqueueApiCommunicationLog(WcsApiCalledEvent notification)
     {
         try
         {
@@ -68,11 +73,14 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
                 ? WcsApiResponseMapper.ToApiCommunicationLog(notification.ApiResponse)
                 : CreateBasicLogFromEvent(notification);
 
-            await _apiCommunicationLogRepository.SaveAsync(apiLog, cancellationToken).ConfigureAwait(false);
+            // 非阻塞入队，立即返回
+            _logBackgroundService.EnqueueLog(apiLog);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "保存API通信日志失败: ParcelId={ParcelId}", notification.ParcelId);
+#pragma warning disable CA1848 // 异常处理场景
+            _logger.LogError(ex, "入队API通信日志失败: ParcelId={ParcelId}", notification.ParcelId);
+#pragma warning restore CA1848
             // 不抛出异常，避免影响主业务流程
         }
     }

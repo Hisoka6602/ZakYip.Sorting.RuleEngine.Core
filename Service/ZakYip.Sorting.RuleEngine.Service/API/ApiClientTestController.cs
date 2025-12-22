@@ -6,6 +6,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 using ZakYip.Sorting.RuleEngine.Application.Mappers;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -38,15 +39,15 @@ public class ApiClientTestController : ControllerBase
     private readonly PostProcessingCenterApiClient? _postProcessingCenterApiClient;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
-    private readonly IApiCommunicationLogRepository _apiCommunicationLogRepository;
+    private readonly WcsApiLogBackgroundService _logBackgroundService;
 
     public ApiClientTestController(
         ILogger<ApiClientTestController> logger,
         IServiceProvider serviceProvider,
-        IApiCommunicationLogRepository apiCommunicationLogRepository)
+        WcsApiLogBackgroundService logBackgroundService)
     {
         _logger = logger;
-        _apiCommunicationLogRepository = apiCommunicationLogRepository;
+        _logBackgroundService = logBackgroundService;
         
         // Try to get clients from DI, they may not be registered
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
@@ -252,11 +253,11 @@ public class ApiClientTestController : ControllerBase
                 FormattedCurl = response.FormattedCurl
             };
 
-            // Log the test request (incoming API request to our server) - fire-and-forget
-            _ = Task.Run(() => LogApiTestRequestAsync(clientName, request, testResponse), CancellationToken.None);
+            // Log the test request (incoming API request to our server) - non-blocking
+            LogApiTestRequest(clientName, request, testResponse);
             
-            // Log the WCS API communication (outgoing API call to WCS/ERP) - fire-and-forget
-            _ = Task.Run(() => LogWcsApiCommunicationAsync(response, clientName), CancellationToken.None);
+            // Log the WCS API communication (outgoing API call to WCS/ERP) - non-blocking via Channel
+            LogWcsApiCommunication(response, clientName);
 
             _logger.LogInformation(
                 "{DisplayName} API测试完成，条码: {Barcode}, 方法: {Method}, 结果: {Success}",
@@ -275,8 +276,10 @@ public class ApiClientTestController : ControllerBase
     /// <summary>
     /// 记录API测试请求日志（incoming request to our server）
     /// Log API test request (incoming request to our server)
+    /// 非阻塞方式
+    /// Non-blocking method
     /// </summary>
-    private async Task LogApiTestRequestAsync(
+    private void LogApiTestRequest(
         string apiClientName, 
         ApiClientTestRequest request, 
         ApiClientTestResponse response)
@@ -306,37 +309,49 @@ public class ApiClientTestController : ControllerBase
                 ErrorMessage = response.ErrorMessage
             };
 
-            // Try to save to MySQL first, then SQLite if MySQL is not available
-            if (_mysqlContext != null)
+            // 使用 Task.Run 异步保存，避免阻塞主线程
+            // Use Task.Run to save asynchronously, avoiding blocking the main thread
+            _ = Task.Run(async () =>
             {
-                await _mysqlContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
-                await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
-                _logger.LogDebug("API测试日志已保存到MySQL，ApiClient: {ApiClientName}", apiClientName);
-            }
-            else if (_sqliteContext != null)
-            {
-                await _sqliteContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
-                await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
-                _logger.LogDebug("API测试日志已保存到SQLite，ApiClient: {ApiClientName}", apiClientName);
-            }
-            else
-            {
-                _logger.LogWarning("无法保存API测试日志，数据库上下文未配置");
-            }
+                try
+                {
+                    // Try to save to MySQL first, then SQLite if MySQL is not available
+                    if (_mysqlContext != null)
+                    {
+                        await _mysqlContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
+                        await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
+                        _logger.LogDebug("API测试日志已保存到MySQL，ApiClient: {ApiClientName}", apiClientName);
+                    }
+                    else if (_sqliteContext != null)
+                    {
+                        await _sqliteContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
+                        await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
+                        _logger.LogDebug("API测试日志已保存到SQLite，ApiClient: {ApiClientName}", apiClientName);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("无法保存API测试日志，数据库上下文未配置");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "保存API测试日志时发生错误");
+                }
+            }, CancellationToken.None);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "保存API测试日志时发生错误");
+            _logger.LogError(ex, "创建API测试日志时发生错误");
         }
     }
 
     /// <summary>
     /// 记录WCS API通信日志（outgoing API call to WCS/ERP）
     /// Log WCS API communication (outgoing API call to WCS/ERP)
-    /// Fire-and-forget: 不阻塞，失败不影响主流程
-    /// Fire-and-forget: non-blocking, failures do not affect main flow
+    /// 使用Channel队列，零阻塞，零线程消耗
+    /// Uses Channel queue, zero blocking, zero thread consumption
     /// </summary>
-    private async Task LogWcsApiCommunicationAsync(WcsApiResponse response, string apiClientName)
+    private void LogWcsApiCommunication(WcsApiResponse response, string apiClientName)
     {
         try
         {
@@ -344,14 +359,17 @@ public class ApiClientTestController : ControllerBase
             // Use shared mapper to avoid code duplication (shadow clone)
             var apiLog = WcsApiResponseMapper.ToApiCommunicationLog(response);
 
-            await _apiCommunicationLogRepository.SaveAsync(apiLog).ConfigureAwait(false);
+            // 通过后台服务Channel队列入队，非阻塞
+            // Enqueue via background service Channel queue, non-blocking
+            _logBackgroundService.EnqueueLog(apiLog);
+            
             _logger.LogDebug(
-                "WCS API通信日志已保存，ApiClient: {ApiClientName}, ParcelId: {ParcelId}, Success: {Success}",
+                "WCS API通信日志已入队，ApiClient: {ApiClientName}, ParcelId: {ParcelId}, Success: {Success}",
                 apiClientName, response.ParcelId, apiLog.IsSuccess);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "保存WCS API通信日志时发生错误，ApiClient: {ApiClientName}", apiClientName);
+            _logger.LogError(ex, "入队WCS API通信日志时发生错误，ApiClient: {ApiClientName}", apiClientName);
             // 不抛出异常，避免影响主业务流程
             // Do not throw exception to avoid affecting main business flow
         }

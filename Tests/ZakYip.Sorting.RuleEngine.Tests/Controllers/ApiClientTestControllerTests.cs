@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -21,7 +23,7 @@ public class ApiClientTestControllerTests
     private readonly Mock<ILogger<ApiClientTestController>> _mockLogger;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IWcsApiAdapter> _mockWcsApiAdapter;
-    private readonly Mock<IApiCommunicationLogRepository> _mockApiCommunicationLogRepository;
+    private readonly Mock<WcsApiLogBackgroundService> _mockLogBackgroundService;
     private readonly ApiClientTestController _controller;
 
     public ApiClientTestControllerTests()
@@ -29,7 +31,13 @@ public class ApiClientTestControllerTests
         _mockLogger = new Mock<ILogger<ApiClientTestController>>();
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockWcsApiAdapter = new Mock<IWcsApiAdapter>();
-        _mockApiCommunicationLogRepository = new Mock<IApiCommunicationLogRepository>();
+        
+        // Create mock for WcsApiLogBackgroundService
+        var mockServiceScopeFactory = new Mock<IServiceScopeFactory>();
+        var mockLoggerForBgService = new Mock<ILogger<WcsApiLogBackgroundService>>();
+        _mockLogBackgroundService = new Mock<WcsApiLogBackgroundService>(
+            mockServiceScopeFactory.Object, 
+            mockLoggerForBgService.Object);
 
         // Setup mock WcsApiAdapter in service provider
         _mockServiceProvider.Setup(sp => sp.GetService(typeof(IWcsApiAdapter)))
@@ -38,7 +46,7 @@ public class ApiClientTestControllerTests
         _controller = new ApiClientTestController(
             _mockLogger.Object,
             _mockServiceProvider.Object,
-            _mockApiCommunicationLogRepository.Object
+            _mockLogBackgroundService.Object
         );
 
         // Setup HttpContext
@@ -377,12 +385,16 @@ public class ApiClientTestControllerTests
         mockServiceProvider.Setup(sp => sp.GetService(It.IsAny<Type>()))
             .Returns(null); // 返回 null 表示未配置
         
-        var mockApiCommunicationLogRepository = new Mock<IApiCommunicationLogRepository>();
+        var mockServiceScopeFactory = new Mock<IServiceScopeFactory>();
+        var mockLoggerForBgService = new Mock<ILogger<WcsApiLogBackgroundService>>();
+        var mockLogBackgroundService = new Mock<WcsApiLogBackgroundService>(
+            mockServiceScopeFactory.Object, 
+            mockLoggerForBgService.Object);
 
         var controller = new ApiClientTestController(
             _mockLogger.Object,
             mockServiceProvider.Object,
-            mockApiCommunicationLogRepository.Object
+            mockLogBackgroundService.Object
         );
 
         controller.ControllerContext = new ControllerContext
