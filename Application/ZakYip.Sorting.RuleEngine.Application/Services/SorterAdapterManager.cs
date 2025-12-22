@@ -14,6 +14,12 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// 
 /// 负责管理与下游分拣系统（ZakYip.WheelDiverterSorter）的通信
 /// Manages communication with downstream sorter system (ZakYip.WheelDiverterSorter)
+/// 
+/// **全局单例约束 / Global Singleton Constraint**:
+/// 此类通过DI注册为Singleton，确保全局只存在一个Sorter TCP实例。
+/// This class is registered as Singleton via DI, ensuring only one Sorter TCP instance exists globally.
+/// 内部依赖的IDownstreamCommunication也是全局单例。
+/// The internal dependency IDownstreamCommunication is also a global singleton.
 /// </summary>
 public class SorterAdapterManager : ISorterAdapterManager
 {

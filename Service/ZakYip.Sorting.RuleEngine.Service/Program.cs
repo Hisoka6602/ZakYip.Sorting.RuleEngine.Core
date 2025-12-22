@@ -470,6 +470,10 @@ try
 
                 // 注册下游通信服务（根据配置选择Server或Client模式）
                 // Register downstream communication (Server or Client mode based on config)
+                // 
+                // **全局单例 / Global Singleton**: 
+                // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
+                // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
                 services.AddSingleton<IDownstreamCommunication>(sp =>
                 {
                     // 从LiteDB读取Sorter配置
@@ -510,6 +514,14 @@ try
 
                 // 注册适配器管理器（单例）
                 // Register adapter managers (Singleton)
+                // 
+                // **全局单例约束 / Global Singleton Constraint**:
+                // - IDwsAdapterManager: 全局只能有一个DWS TCP实例
+                // - ISorterAdapterManager: 全局只能有一个Sorter TCP实例  
+                // - DWS和Sorter可以并存，但各自全局唯一
+                // - IDwsAdapterManager: Only one DWS TCP instance globally
+                // - ISorterAdapterManager: Only one Sorter TCP instance globally
+                // - DWS and Sorter can coexist, but each is globally unique
                 services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
                 services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
 

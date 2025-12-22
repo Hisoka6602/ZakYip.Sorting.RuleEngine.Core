@@ -104,33 +104,42 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // Arrange
         var server = new DownstreamTcpJsonServer(_serverLogger, _systemClock, "127.0.0.1", ServerModeTestPort + 1);
         await server.StartAsync();
-        await Task.Delay(500);
+        await Task.Delay(1000); // 等待服务器完全启动
 
         // 模拟WheelDiverterSorter接收消息
         string? receivedJson = null;
         var wheelDiverterClient = new TcpClient();
+        
+        // 在Setup之前设置事件处理器
+        wheelDiverterClient.Received += (c, e) =>
+        {
+            var message = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            Console.WriteLine($"[Test] Client received: {message}");
+            // 只保存非空消息
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                receivedJson = message;
+            }
+            return Task.CompletedTask;
+        };
+        
         using var clientConfig = new TouchSocketConfig()
             .SetRemoteIPHost($"127.0.0.1:{ServerModeTestPort + 1}")
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
         
-        // 先设置事件处理器，再setup和connect
-        wheelDiverterClient.Received += (c, e) =>
-        {
-            receivedJson = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
-            return Task.CompletedTask;
-        };
-        
         await wheelDiverterClient.SetupAsync(clientConfig);
         await wheelDiverterClient.ConnectAsync();
-        await Task.Delay(1000); // 等待客户端完全连接
+        await Task.Delay(2000); // 增加等待时间确保连接完全建立
 
         // Act - RuleEngine发送格口分配
+        Console.WriteLine("[Test] Server broadcasting message...");
         await server.BroadcastChuteAssignmentAsync(
             parcelId: 11111,
             chuteId: 3,
             dwsPayload: null);
         
-        await Task.Delay(1500); // 增加等待时间确保消息被接收
+        await Task.Delay(2000); // 增加等待时间确保消息被接收
+        Console.WriteLine($"[Test] receivedJson = {receivedJson ?? "null"}");
 
         // Assert
         Assert.NotNull(receivedJson);
@@ -236,8 +245,13 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         
         mockServer.Received += (client, e) =>
         {
-            receivedJson = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
-            Console.WriteLine($"Server received: {receivedJson}");
+            var message = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            Console.WriteLine($"Server received: {message}");
+            // 只保存非空消息
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                receivedJson = message;
+            }
             return Task.CompletedTask;
         };
         
