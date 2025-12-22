@@ -18,7 +18,6 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/Dws/Config")]
 [Produces("application/json")]
-[SwaggerTag("DWS管理 / DWS Management")]
 public class DwsConfigController : ControllerBase
 {
     private readonly IDwsConfigRepository _configRepository;

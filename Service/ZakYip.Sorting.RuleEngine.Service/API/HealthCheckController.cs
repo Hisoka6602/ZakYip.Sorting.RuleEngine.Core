@@ -12,7 +12,6 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("健康检查 / Health Check")]
 public class HealthCheckController : ControllerBase
 {
     private readonly ISystemClock _clock;
