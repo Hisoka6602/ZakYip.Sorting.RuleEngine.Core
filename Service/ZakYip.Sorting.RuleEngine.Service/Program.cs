@@ -465,6 +465,10 @@ try
                 });
 
                 // 注册后台服务
+                // 适配器连接服务必须在配置缓存预加载之后启动
+                // Adapter connection service must start after configuration cache preload
+                services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.ConfigurationCachePreloadService>();
+                services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.AdapterConnectionService>();
                 services.AddHostedService<ParcelQueueProcessorService>();
                 services.AddHostedService<DwsTimeoutCheckerService>();
                 services.AddHostedService<DataCleanupService>();
@@ -472,7 +476,6 @@ try
                 services.AddHostedService<MySqlAutoTuningService>();
                 services.AddHostedService<ShardingTableManagementService>();
                 services.AddHostedService<LogFileCleanupService>();
-                services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.ConfigurationCachePreloadService>();
                 services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.MonitoringAlertService>();
 
                 // 添加健康检查
