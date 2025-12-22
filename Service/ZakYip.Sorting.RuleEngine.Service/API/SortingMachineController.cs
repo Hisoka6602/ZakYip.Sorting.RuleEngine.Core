@@ -21,7 +21,6 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("分拣机管理 / Sorting Management")]
 public class SortingMachineController : ControllerBase
 {
     private readonly ParcelOrchestrationService _orchestrationService;

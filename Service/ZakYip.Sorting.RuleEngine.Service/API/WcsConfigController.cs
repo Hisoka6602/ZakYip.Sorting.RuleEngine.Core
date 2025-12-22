@@ -11,7 +11,6 @@ namespace ZakYip.Sorting.RuleEngine.Service.API;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[SwaggerTag("WCS配置 / WCS Configuration")]
 public class WcsConfigController : ControllerBase
 {
     private readonly IWcsApiAdapterFactory _wcsApiAdapterFactory;
