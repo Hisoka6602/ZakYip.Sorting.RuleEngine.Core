@@ -48,6 +48,7 @@ This document records identified technical debt in the project. Before opening a
 | **ERP客户端待重建** | **2 项** | **🟡 中 Medium** | **📋 待实现 (见下方详情)** |
 | **ConfigId迁移未完成** | **0 项** | **✅ 无 None** | **✅ 已完成 (见 TD-CONFIG-001)** |
 | **WcsApiResponse字段赋值** | **3 个API客户端 + 45个测试错误** | **🔴 高 High** | **⏳ 进行中 90% (见 TD-WCSAPI-002)** |
+| **DI生命周期违规** | **1 项 (ICommunicationLogRepository)** | **🟡 中 Medium** | **📋 待修复 (见 TD-DI-001)** |
 
 > **🎉 最新更新 / Latest Update (2025-12-19)**: 
 > - ⏳ **编译错误：** 45 个 (90% 进度：API客户端3/6完成，测试文件80%完成，见 TD-WCSAPI-002)
@@ -1587,6 +1588,151 @@ All technical debt has been fully resolved, project has reached the highest qual
 ---
 
 ## 📝 新增技术债务
+
+### 2025-12-22: ICommunicationLogRepository DI生命周期违规 / ICommunicationLogRepository DI Lifetime Violation
+
+**创建日期 / Created**: 2025-12-22  
+**类别 / Category**: DI架构问题 / DI Architecture Issue  
+**严重程度 / Severity**: 🟡 中 Medium  
+**状态 / Status**: 📋 待修复 / Pending Fix  
+**相关PR / Related PR**: copilot/fix-scoped-service-issue  
+**预估工作量 / Estimated Effort**: 3-4 小时 / 3-4 hours
+
+#### 背景 / Background
+
+在PR copilot/fix-scoped-service-issue中修复了 `DwsAdapterManager`（单例）直接注入 `IDwsDataTemplateRepository`（scoped）的DI生命周期违规问题。但是，`ICommunicationLogRepository`（也是scoped服务）仍然被直接注入到单例 `DwsAdapterManager` 中，并传递给动态创建的适配器。这同样违反了DI生命周期规则：单例服务不能直接依赖scoped服务。
+
+In PR copilot/fix-scoped-service-issue, the DI lifetime violation where `DwsAdapterManager` (singleton) was directly injecting `IDwsDataTemplateRepository` (scoped) was fixed. However, `ICommunicationLogRepository` (also a scoped service) is still directly injected into the singleton `DwsAdapterManager` and passed to dynamically-created adapters. This also violates DI lifetime rules: singleton services cannot directly depend on scoped services.
+
+#### 问题详情 / Problem Details
+
+**违规位置 / Violation Locations:**
+
+1. **DwsAdapterManager.cs line 27**: 字段声明  
+   ```csharp
+   private readonly ICommunicationLogRepository _communicationLogRepository;
+   ```
+
+2. **DwsAdapterManager.cs line 39**: 构造函数注入  
+   ```csharp
+   public DwsAdapterManager(
+       IServiceScopeFactory serviceScopeFactory,
+       ICommunicationLogRepository communicationLogRepository)  // ❌ Scoped注入到Singleton
+   ```
+
+3. **DwsAdapterManager.cs line 175**: 传递给 TCP Client 适配器  
+   ```csharp
+   var adapter = Activator.CreateInstance(
+       adapterType,
+       config.Host,
+       config.Port,
+       template,
+       logger,
+       _communicationLogRepository,  // ❌ 传递scoped服务到长生命周期对象
+       parser,
+       config.AutoReconnect,
+       config.ReconnectIntervalSeconds
+   ) as IDwsAdapter;
+   ```
+
+4. **DwsAdapterManager.cs line 220**: 传递给 TCP Server 适配器  
+   ```csharp
+   var adapter = Activator.CreateInstance(
+       adapterType,
+       config.Host,
+       config.Port,
+       logger,
+       _communicationLogRepository,  // ❌ 传递scoped服务到长生命周期对象
+       parser,
+       template,
+       config.MaxConnections,
+       config.ReceiveBufferSize,
+       config.SendBufferSize
+   ) as IDwsAdapter;
+   ```
+
+**为什么未在原PR中修复 / Why Not Fixed in Original PR:**
+
+1. **原始错误仅提及 `IDwsDataTemplateRepository`**：ASP.NET Core的服务提供程序验证只检测到了直接构造函数依赖的第一个问题
+2. **适配器架构限制**：适配器是通过 `Activator.CreateInstance` 动态创建的，并且需要在整个生命周期中使用 `ICommunicationLogRepository`
+3. **修复成本较高**：需要重构整个适配器架构，让适配器也支持 `IServiceScopeFactory` 模式
+
+#### 修复方案 / Fix Solution
+
+**方案A：重构适配器使用 IServiceScopeFactory（推荐）/ Option A: Refactor Adapters to Use IServiceScopeFactory (Recommended)**
+
+1. 修改 `TouchSocketDwsTcpClientAdapter` 和 `TouchSocketDwsAdapter` 构造函数，接受 `IServiceScopeFactory` 而不是 `ICommunicationLogRepository`
+
+2. 在适配器内部需要记录日志时，创建 scope 并解析 repository：
+   ```csharp
+   public class TouchSocketDwsTcpClientAdapter : IDwsAdapter
+   {
+       private readonly IServiceScopeFactory _serviceScopeFactory;
+       
+       public TouchSocketDwsTcpClientAdapter(
+           string host,
+           int port,
+           DwsDataTemplate dataTemplate,
+           ILogger logger,
+           IServiceScopeFactory serviceScopeFactory,  // ✅ 使用 IServiceScopeFactory
+           IDwsDataParser dataParser,
+           bool autoReconnect,
+           int reconnectIntervalSeconds)
+       {
+           _serviceScopeFactory = serviceScopeFactory;
+       }
+       
+       private async Task LogCommunicationAsync(/* params */)
+       {
+           using var scope = _serviceScopeFactory.CreateScope();
+           var repository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+           await repository.LogAsync(/* ... */);
+       }
+   }
+   ```
+
+3. 更新 `DwsAdapterManager` 传递 `_serviceScopeFactory` 给适配器
+
+**方案B：将 ICommunicationLogRepository 改为 Singleton（如果语义合适）/ Option B: Change ICommunicationLogRepository to Singleton (If Semantically Appropriate)**
+
+如果 `ICommunicationLogRepository` 不依赖任何 scoped 资源（如 DbContext），可以考虑将其注册为 Singleton：
+
+```csharp
+// Program.cs
+services.AddSingleton<ICommunicationLogRepository, CommunicationLogRepository>();
+```
+
+但需要验证：
+- Repository是否依赖 DbContext 或其他 scoped 服务？
+- Repository是否是线程安全的？
+
+#### 风险评估 / Risk Assessment
+
+**风险等级 / Risk Level**: 🟡 中等 / Medium
+
+**潜在影响 / Potential Impact:**
+- 当前代码可以编译和运行，因为ASP.NET Core验证未捕获间接依赖
+- 但理论上可能导致 scoped 服务实例被长时间持有，造成内存泄漏
+- 如果启用严格的DI验证（`ValidateScopes = true, ValidateOnBuild = true`），可能会在启动时失败
+
+**优先级 / Priority**: 🟡 中等 / Medium  
+建议在下一个重构周期中修复 / Recommend fixing in next refactoring cycle
+
+#### 相关文件 / Related Files
+
+- `Application/ZakYip.Sorting.RuleEngine.Application/Services/DwsAdapterManager.cs`
+- `Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Adapters/Dws/TouchSocketDwsTcpClientAdapter.cs`
+- `Infrastructure/ZakYip.Sorting.RuleEngine.Infrastructure/Adapters/Dws/TouchSocketDwsAdapter.cs`
+- `Service/ZakYip.Sorting.RuleEngine.Service/Program.cs` (DI注册)
+
+#### 下一步行动 / Next Actions
+
+1. 评估 `ICommunicationLogRepository` 的依赖关系和线程安全性
+2. 根据评估结果选择方案A或方案B
+3. 创建专门的PR进行修复
+4. 添加DI验证测试确保不再引入类似问题
+
+---
 
 ### 2025-12-17: DWS配置热更新功能实现 / DWS Configuration Hot Reload Implementation (✅ 已完成 / COMPLETED)
 
