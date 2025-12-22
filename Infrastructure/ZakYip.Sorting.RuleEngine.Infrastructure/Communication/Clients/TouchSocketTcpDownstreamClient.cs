@@ -279,6 +279,12 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
         {
             var json = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
 
+            // 忽略空消息（心跳包或连接关闭时的空行）
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return Task.CompletedTask;
+            }
+
             _logger.LogInformation(
                 "[{LocalTime}] [客户端模式-接收] 收到WheelDiverterSorter消息 | 消息内容={MessageContent} | 字节数={ByteCount}",
                 _systemClock.LocalNow,

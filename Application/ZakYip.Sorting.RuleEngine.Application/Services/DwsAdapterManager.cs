@@ -12,6 +12,10 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// 
 /// 负责管理与上游DWS设备的通信连接
 /// Manages communication connections with upstream DWS devices
+/// 
+/// **全局单例约束 / Global Singleton Constraint**:
+/// 此类通过DI注册为Singleton，确保全局只存在一个DWS TCP实例。
+/// This class is registered as Singleton via DI, ensuring only one DWS TCP instance exists globally.
 /// </summary>
 public class DwsAdapterManager : IDwsAdapterManager
 {

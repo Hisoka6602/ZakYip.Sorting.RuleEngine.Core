@@ -468,8 +468,75 @@ try
                 services.AddSingleton<ParcelCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
 
+                // 预加载Sorter配置以避免在DI工厂中使用GetAwaiter().GetResult()
+                // Pre-load Sorter config to avoid GetAwaiter().GetResult() in DI factory
+                ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig? sorterConfigCache = null;
+                services.AddSingleton(sp =>
+                {
+                    if (sorterConfigCache == null)
+                    {
+                        // 首次调用时从LiteDB读取配置（仅在启动时执行一次）
+                        using var scope = sp.CreateScope();
+                        var sorterConfigRepo = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
+                        // 注意：这里仍然使用GetAwaiter().GetResult()，但仅在应用启动时执行一次，
+                        // 而不是每次DI解析时都执行，降低了死锁风险
+                        sorterConfigCache = sorterConfigRepo.GetByIdAsync(ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig.SingletonId).GetAwaiter().GetResult();
+                    }
+                    return sorterConfigCache;
+                });
+
+                // 注册下游通信服务（根据配置选择Server或Client模式）
+                // Register downstream communication (Server or Client mode based on config)
+                // 
+                // **全局单例 / Global Singleton**: 
+                // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
+                // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
+                services.AddSingleton<IDownstreamCommunication>(sp =>
+                {
+                    // 从缓存获取Sorter配置（避免每次DI解析都访问数据库）
+                    var sorterConfig = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig?>();
+                    
+                    var logger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>>();
+                    var clock = sp.GetRequiredService<ISystemClock>();
+                    
+                    // 根据配置选择Server或Client模式
+                    if (sorterConfig?.ConnectionMode == "Server")
+                    {
+                        // Server模式：RuleEngine作为服务器
+                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
+                            logger,
+                            clock,
+                            sorterConfig.Host,
+                            sorterConfig.Port);
+                    }
+                    else
+                    {
+                        // Client模式：RuleEngine作为客户端
+                        var clientLogger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>>();
+                        var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
+                        {
+                            TcpServer = sorterConfig != null ? $"{sorterConfig.Host}:{sorterConfig.Port}" : "localhost:8002",
+                            TimeoutMs = sorterConfig?.TimeoutSeconds * 1000 ?? 30000,
+                            RetryCount = 3,
+                            RetryDelayMs = sorterConfig?.ReconnectIntervalSeconds * 1000 ?? 5000
+                        };
+                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
+                            clientLogger,
+                            connectionOptions,
+                            clock);
+                    }
+                });
+
                 // 注册适配器管理器（单例）
                 // Register adapter managers (Singleton)
+                // 
+                // **全局单例约束 / Global Singleton Constraint**:
+                // - IDwsAdapterManager: 全局只能有一个DWS TCP实例
+                // - ISorterAdapterManager: 全局只能有一个Sorter TCP实例  
+                // - DWS和Sorter可以并存，但各自全局唯一
+                // - IDwsAdapterManager: Only one DWS TCP instance globally
+                // - ISorterAdapterManager: Only one Sorter TCP instance globally
+                // - DWS and Sorter can coexist, but each is globally unique
                 services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
                 services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
 
