@@ -106,35 +106,12 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
             await _tcpClient.ConnectAsync();
 
             _logger.LogInformation("DWS TCP客户端已连接: {Host}:{Port}", _host, _port);
-            
-            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
-            // Use IServiceScopeFactory to create scope to access scoped repository
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
-                await communicationLogRepository.LogCommunicationAsync(
-                    CommunicationType.Tcp,
-                    CommunicationDirection.Inbound,
-                    $"DWS TCP客户端已连接: {_host}:{_port}",
-                    isSuccess: true);
-            }
+            await LogCommunicationAsync($"DWS TCP客户端已连接: {_host}:{_port}", true).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "连接DWS TCP服务器失败");
-            
-            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
-            // Use IServiceScopeFactory to create scope to access scoped repository
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
-                await communicationLogRepository.LogCommunicationAsync(
-                    CommunicationType.Tcp,
-                    CommunicationDirection.Inbound,
-                    $"连接DWS TCP服务器失败: {ex.Message}",
-                    isSuccess: false,
-                    errorMessage: ex.Message);
-            }
+            await LogCommunicationAsync($"连接DWS TCP服务器失败: {ex.Message}", false, null, ex.Message).ConfigureAwait(false);
             throw;
         }
     }
@@ -167,37 +144,18 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
             return;
         }
 
-        try
-        {
-            _reconnectCts?.Cancel();
-            
-            if (_tcpClient != null)
-            {
-                await _tcpClient.CloseAsync();
-                _tcpClient.Dispose();
-                _tcpClient = null;
-            }
+        _reconnectCts?.Cancel();
 
-            _isRunning = false;
-
-            _logger.LogInformation("DWS TCP客户端已断开");
-            
-            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
-            // Use IServiceScopeFactory to create scope to access scoped repository
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
-                await communicationLogRepository.LogCommunicationAsync(
-                    CommunicationType.Tcp,
-                    CommunicationDirection.Inbound,
-                    "DWS TCP客户端已断开",
-                    isSuccess: true);
-            }
-        }
-        catch (Exception ex)
+        if (_tcpClient != null)
         {
-            _logger.LogError(ex, "断开DWS TCP客户端失败");
+            await _tcpClient.CloseAsync();
+            _tcpClient.Dispose();
+            _tcpClient = null;
         }
+
+        _isRunning = false;
+        _logger.LogInformation("DWS TCP客户端已断开");
+        await LogCommunicationAsync("DWS TCP客户端已断开", true).ConfigureAwait(false);
     }
 
     private async Task OnDataReceivedAsync(ITcpSession client, string data)
@@ -205,45 +163,46 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
         try
         {
             _logger.LogInformation("收到DWS数据: {Data}", data);
+            await LogCommunicationAsync(data, true, _host).ConfigureAwait(false);
 
-            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
-            // Use IServiceScopeFactory to create scope to access scoped repository
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
-                await communicationLogRepository.LogCommunicationAsync(
-                    CommunicationType.Tcp,
-                    CommunicationDirection.Inbound,
-                    data,
-                    remoteAddress: _host,
-                    isSuccess: true);
-            }
-
-            // 使用数据解析器解析数据
-            // Use data parser to parse data
+            // 使用数据解析器解析数据 / Use data parser to parse data
             var dwsData = _dataParser.Parse(data, _dataTemplate);
             if (dwsData != null && OnDwsDataReceived != null)
             {
-                await OnDwsDataReceived.Invoke(dwsData);
+                await OnDwsDataReceived.Invoke(dwsData).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理DWS数据失败: {Data}", data);
-            
-            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
-            // Use IServiceScopeFactory to create scope to access scoped repository
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
-                await communicationLogRepository.LogCommunicationAsync(
-                    CommunicationType.Tcp,
-                    CommunicationDirection.Inbound,
-                    data,
-                    remoteAddress: _host,
-                    isSuccess: false,
-                    errorMessage: ex.Message);
-            }
+            await LogCommunicationAsync(data, false, _host, ex.Message).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// 记录通信日志辅助方法 / Helper method to log communication
+    /// </summary>
+    private async Task LogCommunicationAsync(
+        string message,
+        bool isSuccess,
+        string? remoteAddress = null,
+        string? errorMessage = null)
+    {
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+            await communicationLogRepository.LogCommunicationAsync(
+                CommunicationType.Tcp,
+                CommunicationDirection.Inbound,
+                message,
+                remoteAddress: remoteAddress,
+                isSuccess: isSuccess,
+                errorMessage: errorMessage).ConfigureAwait(false);
+        }
+        catch
+        {
+            // 忽略日志记录失败 / Ignore logging failures
         }
     }
 
