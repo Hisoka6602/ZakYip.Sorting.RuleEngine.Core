@@ -2503,6 +2503,16 @@ This project's code quality has passed comprehensive review and verification, al
 **负责人 / Owner**: 下一个 PR / Next PR  
 **预计工作量 / Estimated Effort**: 8-10 小时 / 8-10 hours
 
+> **⚠️ 临时风险警告 / Temporary Risk Warning**:
+> 
+> Phase 2 的 DownstreamTcpJsonServer 已重写为使用泛型 `ILogger<DownstreamTcpJsonServer>`，但当前仍通过反射创建（SorterAdapterManager.cs 第 120-236 行）。这会导致运行时类型不匹配异常，因为反射无法获得正确的泛型 Logger 实例。
+> 
+> **临时解决方案 / Temporary Solution**: Phase 4-5 必须优先完成 DI 注册和集成层重构，移除反射调用。在此之前，当前 PR 的代码虽然编译通过，但运行时会失败。
+> 
+> Phase 2's DownstreamTcpJsonServer has been rewritten to use generic `ILogger<DownstreamTcpJsonServer>`, but is still created via reflection (SorterAdapterManager.cs lines 120-236). This will cause runtime type mismatch exceptions because reflection cannot obtain the correct generic Logger instance.
+> 
+> **Temporary Solution**: Phase 4-5 must prioritize DI registration and integration layer refactoring to remove reflection calls. Until then, current PR code compiles but will fail at runtime.
+
 #### 背景 / Background
 
 在 PR #183 中开始了 TCP 通信层的完整重构，目标是完全对齐参考项目 `ZakYip.WheelDiverterSorter` 的架构。该重构分为 6 个 Phase，目前已完成 Phase 1-2。
@@ -2557,9 +2567,11 @@ In PR #183, a complete refactoring of the TCP communication layer was initiated 
      - `Application/Events/Communication/ParcelNotificationReceivedEventArgs.cs`
      - `Application/Events/Communication/SortingCompletedReceivedEventArgs.cs`
 
-**Phase 2: TCP Server 完全重写 (已完成 / Completed)**
+**Phase 2: TCP Server 完全重写 (⏳ 部分完成 / Partially Completed)**
 
-1. ✅ **DownstreamTcpJsonServer 重写**
+> **⚠️ 重要说明 / Important Note**: DownstreamTcpJsonServer 已重写完成，但仍通过反射创建（SorterAdapterManager.cs）。新的泛型 Logger 构造函数与反射创建不兼容，需要在 Phase 4-5 中完成 DI 注册和集成层重构后才能正常运行。
+
+1. ✅ **DownstreamTcpJsonServer 重写**（代码已完成，但集成待 Phase 4-5）
    - 文件位置：`Infrastructure/Communication/DownstreamTcpJsonServer.cs`
    - 关键改进：
      ```csharp
@@ -2625,8 +2637,21 @@ In PR #183, a complete refactoring of the TCP communication layer was initiated 
          protected ISystemClock SystemClock { get; }
          protected ConnectionOptions Options { get; }
          
+         // ✅ 消息统计（线程安全）
          private int _messagesSent;
          private int _messagesReceived;
+         
+         /// <summary>
+         /// 已发送的消息数量（用于监控和统计）
+         /// Number of messages sent (for monitoring and statistics)
+         /// </summary>
+         public int MessagesSent => _messagesSent;
+         
+         /// <summary>
+         /// 已接收的消息数量（用于监控和统计）
+         /// Number of messages received (for monitoring and statistics)
+         /// </summary>
+         public int MessagesReceived => _messagesReceived;
          
          public abstract bool IsConnected { get; }
          
@@ -2636,7 +2661,28 @@ In PR #183, a complete refactoring of the TCP communication layer was initiated 
              CancellationToken cancellationToken = default);
          
          protected void ThrowIfDisposed() { }
-         protected void RecordMessageSent(bool success) { }
+         
+         /// <summary>
+         /// 记录消息发送（线程安全）
+         /// Record message sent (thread-safe)
+         /// </summary>
+         protected void RecordMessageSent(bool success) 
+         {
+             if (success)
+             {
+                 Interlocked.Increment(ref _messagesSent);  // ✅ 线程安全
+             }
+         }
+         
+         /// <summary>
+         /// 记录消息接收（线程安全）
+         /// Record message received (thread-safe)
+         /// </summary>
+         protected void RecordMessageReceived() 
+         {
+             Interlocked.Increment(ref _messagesReceived);  // ✅ 线程安全
+         }
+         
          protected async Task<bool> EnsureConnectedAsync(CancellationToken ct) { }
          
          protected virtual void Dispose(bool disposing) { }
@@ -2793,22 +2839,31 @@ In PR #183, a complete refactoring of the TCP communication layer was initiated 
      }
      
      // ✅ 事件处理器（使用 IServiceScopeFactory 访问 scoped 服务）
+     // ⚠️ 必须包含 try-catch，防止 async void 未处理异常导致应用崩溃
      private async void OnParcelDetected(
          object? sender, 
          ParcelNotificationReceivedEventArgs e)
      {
-         using var scope = _serviceScopeFactory.CreateScope();
-         var logRepo = scope.ServiceProvider
-             .GetRequiredService<ICommunicationLogRepository>();
-         
-         await logRepo.LogAsync(new CommunicationLog
+         try  // ✅ 关键：async void 必须捕获所有异常
          {
-             ParcelId = e.ParcelId.ToString(),
-             Direction = CommunicationDirection.Inbound,
-             ReceivedAt = e.ReceivedAt,
-             ClientId = e.ClientId,
-             MessageType = "ParcelDetected"
-         });
+             using var scope = _serviceScopeFactory.CreateScope();
+             var logRepo = scope.ServiceProvider
+                 .GetRequiredService<ICommunicationLogRepository>();
+             
+             await logRepo.LogAsync(new CommunicationLog
+             {
+                 ParcelId = e.ParcelId.ToString(),
+                 Direction = CommunicationDirection.Inbound,
+                 ReceivedAt = e.ReceivedAt,
+                 ClientId = e.ClientId,
+                 MessageType = "ParcelDetected"
+             });
+         }
+         catch (Exception ex)
+         {
+             // ✅ 记录异常但不重新抛出（async void 场景下的标准做法）
+             _logger.LogError(ex, "处理包裹检测事件时发生异常: ParcelId={ParcelId}", e.ParcelId);
+         }
      }
      
      // ✅ 启动服务（直接调用）
@@ -3008,7 +3063,8 @@ In PR #183, a complete refactoring of the TCP communication layer was initiated 
      [Fact]
      public async Task Should_Handle_SortingCompleted_From_WheelDiverterSorter()
      {
-         // 测试接收落格完成通知
+         // 测试接收落格完成通知（包括包裹丢失场景）
+         // 验证 AffectedParcelIds 字段正确处理
      }
      
      [Fact]
@@ -3022,6 +3078,52 @@ In PR #183, a complete refactoring of the TCP communication layer was initiated 
      {
          // 消息格式 100% 兼容性测试
          // 验证所有字段名称、类型、序列化格式一致
+         // 验证 Type 字段正确序列化
+     }
+     
+     // ✅ 新增：异常场景测试
+     [Fact]
+     public async Task Should_Handle_Network_Interruption_And_Recovery()
+     {
+         // 网络中断恢复测试
+         // 1. 客户端连接后，模拟网络中断
+         // 2. 验证服务器正确触发 ClientDisconnected 事件
+         // 3. 客户端重连后验证状态恢复
+     }
+     
+     [Fact]
+     public async Task Should_Handle_Malformed_Json_Messages()
+     {
+         // 格式错误消息处理测试
+         // 1. 发送格式错误的 JSON（缺少必需字段）
+         // 2. 发送未知的 Type 字段值
+         // 3. 验证服务器记录错误但不崩溃
+     }
+     
+     [Fact]
+     public async Task Should_Handle_Large_Messages()
+     {
+         // 大消息处理测试
+         // 1. 发送超大 JSON 消息（如 1MB+）
+         // 2. 验证缓冲区溢出保护
+     }
+     
+     [Fact]
+     public async Task Should_Handle_Concurrent_Broadcasts()
+     {
+         // 并发广播测试
+         // 1. 多个线程同时调用 BroadcastChuteAssignmentAsync
+         // 2. 验证消息不会丢失或重复
+         // 3. 验证线程安全
+     }
+     
+     [Fact]
+     public async Task Should_Handle_Parcel_Lost_Scenario()
+     {
+         // 包裹丢失场景测试（AffectedParcelIds）
+         // 1. 正常落格完成（AffectedParcelIds 为 null）
+         // 2. 包裹丢失场景（AffectedParcelIds 包含受影响的包裹 ID 列表）
+         // 3. 验证受影响包裹的任务方向是否被正确改为直行
      }
      ```
 

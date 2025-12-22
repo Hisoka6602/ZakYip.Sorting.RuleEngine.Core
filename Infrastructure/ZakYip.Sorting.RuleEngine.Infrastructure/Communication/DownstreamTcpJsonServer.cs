@@ -89,7 +89,7 @@ public sealed class DownstreamTcpJsonServer : IDisposable
 
         _service = new TcpService();
         
-        await _service.SetupAsync(new TouchSocketConfig()
+        var config = new TouchSocketConfig()
             .SetListenIPHosts(new IPHost[] { new IPHost($"{bindAddress}:{_port}") })
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")
             {
@@ -98,7 +98,9 @@ public sealed class DownstreamTcpJsonServer : IDisposable
             .ConfigurePlugins(a =>
             {
                 a.Add<TouchSocketServerPlugin>();
-            }));
+            });
+        
+        await _service.SetupAsync(config);
 
         // ✅ 注册事件
         _service.Connected += OnClientConnected;
@@ -222,9 +224,10 @@ public sealed class DownstreamTcpJsonServer : IDisposable
 
     private Task OnMessageReceived(TcpSessionClient client, ReceivedDataEventArgs e)
     {
+        string json = string.Empty;
         try
         {
-            var json = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            json = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
             
             _logger.LogInformation(
                 "[{LocalTime}] [服务端模式-接收消息] 收到客户端 {ClientId} 的消息 | 消息内容={MessageContent}",
@@ -261,11 +264,13 @@ public sealed class DownstreamTcpJsonServer : IDisposable
         }
         catch (Exception ex)
         {
+            var truncatedJson = json.Length > 500 ? json.Substring(0, 500) + "..." : json;
             _logger.LogError(
                 ex,
-                "[{LocalTime}] [服务端模式-接收错误] 处理客户端 {ClientId} 消息时发生错误",
+                "[{LocalTime}] [服务端模式-接收错误] 处理客户端 {ClientId} 消息时发生错误 | 原始消息={RawMessage}",
                 _systemClock.LocalNow,
-                client.Id);
+                client.Id,
+                truncatedJson);
         }
 
         return Task.CompletedTask;
@@ -429,17 +434,42 @@ file class TouchSocketServerPlugin : PluginBase, ITcpReceivedPlugin
 
 /// <summary>
 /// 已连接客户端信息
+/// Connected client information
 /// </summary>
 internal sealed class ConnectedClientInfo
 {
+    /// <summary>
+    /// 客户端唯一标识
+    /// Client unique identifier
+    /// </summary>
     public required string ClientId { get; init; }
+    
+    /// <summary>
+    /// 连接时间
+    /// Connection time
+    /// </summary>
     public DateTimeOffset ConnectedAt { get; init; }
+    
+    /// <summary>
+    /// 客户端地址（格式：IP:Port，例如 192.168.1.100:50001）
+    /// Client address (format: IP:Port, e.g., 192.168.1.100:50001)
+    /// </summary>
     public string? ClientAddress { get; init; }
 }
 
 /// <summary>
 /// EventHandler 安全调用扩展方法（防止事件订阅者异常影响发布者）
+/// Safe invoke extension method for EventHandler (prevents subscriber exceptions from affecting publisher)
 /// </summary>
+/// <remarks>
+/// 设计意图 / Design Intent:
+/// - 保护发布者：单个订阅者抛出异常不会影响其他订阅者的执行
+/// - Protect publisher: Exception from one subscriber won't affect other subscribers
+/// - 容错机制：记录异常但继续执行，适用于非关键事件处理
+/// - Fault tolerance: Log exception but continue, suitable for non-critical event processing
+/// - 重要提示：关键事件处理器应实现自己的错误恢复机制
+/// - Important: Critical event handlers should implement their own error recovery
+/// </remarks>
 file static class EventHandlerExtensions
 {
     public static void SafeInvoke<TEventArgs>(

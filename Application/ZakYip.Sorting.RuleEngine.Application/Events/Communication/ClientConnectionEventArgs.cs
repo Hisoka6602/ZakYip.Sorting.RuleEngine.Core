@@ -4,6 +4,14 @@ namespace ZakYip.Sorting.RuleEngine.Application.Events.Communication;
 /// 客户端连接/断开事件参数
 /// Client connection/disconnection event arguments
 /// </summary>
+/// <example>
+/// <code>
+/// tcpServer.ClientConnected += (sender, e) =>
+/// {
+///     Console.WriteLine($"客户端 {e.ClientId} 从 {e.ClientAddress} 连接");
+/// };
+/// </code>
+/// </example>
 public sealed class ClientConnectionEventArgs : EventArgs
 {
     /// <summary>
