@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -24,6 +25,9 @@ public class DependencyInjectionTests
         // Add LiteDB (in-memory for testing)
         services.AddSingleton<LiteDB.ILiteDatabase>(sp => 
             new LiteDB.LiteDatabase(new System.IO.MemoryStream()));
+        
+        // Add required dependencies
+        services.AddSingleton<ISystemClock, SystemClock>();
         
         // Register repository
         services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
@@ -85,6 +89,7 @@ public class DependencyInjectionTests
         var services = new ServiceCollection();
         services.AddSingleton<LiteDB.ILiteDatabase>(sp => 
             new LiteDB.LiteDatabase(new System.IO.MemoryStream()));
+        services.AddSingleton<ISystemClock, SystemClock>();
         services.AddScoped<IPerformanceMetricRepository, LiteDbPerformanceMetricRepository>();
         
         var serviceProvider = services.BuildServiceProvider();
@@ -150,9 +155,17 @@ public class DependencyInjectionTests
         // Add logging
         services.AddLogging();
         
+        // Add LoggerFactory
+        services.AddSingleton<ILoggerFactory, LoggerFactory>();
+        
         // Register system clock
         services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, 
             ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
+        
+        // Add in-memory DbContext for testing
+        services.AddDbContext<ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlLogDbContext>(
+            options => options.UseInMemoryDatabase(databaseName: "TestDb"),
+            ServiceLifetime.Scoped);
         
         // Register scoped repositories (模拟实际生产环境配置)
         services.AddScoped<IDwsDataTemplateRepository, LiteDbDwsDataTemplateRepository>();
