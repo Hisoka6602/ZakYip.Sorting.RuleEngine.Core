@@ -365,7 +365,9 @@ public sealed class TouchSocketTcpDownstreamClient : IDisposable
                     ActualChuteId = notification.ActualChuteId,
                     CompletedAt = notification.CompletedAt,
                     IsSuccess = notification.IsSuccess,
-                    FinalStatus = notification.FinalStatus,
+                    FinalStatus = Enum.TryParse<Domain.Enums.ParcelFinalStatus>(notification.FinalStatus, ignoreCase: true, out var status)
+                        ? status
+                        : Domain.Enums.ParcelFinalStatus.ExecutionError,
                     FailureReason = notification.FailureReason,
                     ReceivedAt = _systemClock.LocalNow,
                     ClientId = _client != null ? $"{_client.IP}:{_client.Port}" : "Unknown"

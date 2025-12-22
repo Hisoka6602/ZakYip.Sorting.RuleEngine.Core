@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
+
 namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
@@ -31,10 +33,10 @@ public sealed class SortingCompletedReceivedEventArgs : EventArgs
     public required bool IsSuccess { get; init; }
 
     /// <summary>
-    /// 最终状态（Success, Timeout, Lost, ExecutionError）
+    /// 最终状态
     /// Final status
     /// </summary>
-    public required string FinalStatus { get; init; }
+    public required ParcelFinalStatus FinalStatus { get; init; }
 
     /// <summary>
     /// 失败原因
