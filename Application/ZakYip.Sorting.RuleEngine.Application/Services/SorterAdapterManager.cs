@@ -25,10 +25,12 @@ public class SorterAdapterManager : ISorterAdapterManager
 
     public SorterAdapterManager(
         ILogger<SorterAdapterManager> logger,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
+        _clock = clock;
     }
 
     public bool IsConnected => _isConnected;
@@ -102,7 +104,7 @@ public class SorterAdapterManager : ISorterAdapterManager
     private ISorterAdapter CreateTcpAdapter(SorterConfig config)
     {
         var connectionMode = config.ConnectionMode.ToUpperInvariant();
-        var logger = _loggerFactory.CreateLogger("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter.TcpSorterAdapter");
+        var logger = _loggerFactory.CreateLogger<object>(); // Generic logger for TcpSorterAdapter
         
         // 使用反射创建 TcpSorterAdapter，避免直接引用 Infrastructure 层
         // Use reflection to create TcpSorterAdapter to avoid direct reference to Infrastructure layer
@@ -113,28 +115,73 @@ public class SorterAdapterManager : ISorterAdapterManager
             throw new InvalidOperationException("无法加载 TcpSorterAdapter 类型 / Cannot load TcpSorterAdapter type");
         }
 
-        // Client 模式：主动连接到下游（当前 TcpSorterAdapter 默认行为）
-        // Client mode: actively connect to downstream (current TcpSorterAdapter default behavior)
-        var adapter = Activator.CreateInstance(adapterType, config.Host, config.Port, logger) as ISorterAdapter;
-        
-        if (adapter == null)
+        if (connectionMode == "CLIENT")
         {
-            throw new InvalidOperationException("无法创建 TcpSorterAdapter 实例 / Cannot create TcpSorterAdapter instance");
-        }
+            // Client 模式：主动连接到下游（TcpSorterAdapter 默认行为）
+            // Client mode: actively connect to downstream (TcpSorterAdapter default behavior)
+            
+            // TcpSorterAdapter构造函数：(string host, int port, ILogger logger, ISystemClock clock, MySqlLogDbContext?, SqliteLogDbContext?)
+            // 传递必需的参数：host, port, logger, clock
+            // 可选参数 mysqlContext 和 sqliteContext 设为 null（由DI管理的DbContext不应传递到这里）
+            var adapter = Activator.CreateInstance(adapterType, config.Host, config.Port, logger, _clock, null, null) as ISorterAdapter;
+            
+            if (adapter == null)
+            {
+                throw new InvalidOperationException("无法创建 TcpSorterAdapter 实例 / Cannot create TcpSorterAdapter instance");
+            }
 
-        if (connectionMode == "SERVER")
+            _logger.LogInformation(
+                "已创建 TCP Client 模式适配器: Host={Host}, Port={Port}",
+                config.Host, config.Port);
+
+            return adapter;
+        }
+        else if (connectionMode == "SERVER")
         {
-            _logger.LogWarning(
-                "TCP Server 模式需要完整实现。当前使用 Client 模式作为临时方案。" +
-                " / TCP Server mode requires full implementation. Currently using Client mode as a temporary solution.");
-            // TODO: 实现 TCP Server 模式
-            // TODO: Implement TCP Server mode
-            // 需要创建一个监听指定端口的 TCP Server
-            // 接受来自下游的连接
-            // 处理 JSON 消息的接收和发送
-        }
+            // Server 模式：监听端口，接受下游设备连接
+            // Server mode: listen on port, accept connections from downstream devices
+            
+            // 使用反射创建 DownstreamTcpJsonServer
+            var serverType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer, ZakYip.Sorting.RuleEngine.Infrastructure");
+            
+            if (serverType == null)
+            {
+                throw new InvalidOperationException("无法加载 DownstreamTcpJsonServer 类型 / Cannot load DownstreamTcpJsonServer type");
+            }
 
-        return adapter;
+            var serverLogger = _loggerFactory.CreateLogger(serverType);
+            
+            // DownstreamTcpJsonServer构造函数：(string host, int port, ILogger logger, ISystemClock clock, MySqlLogDbContext?, SqliteLogDbContext?)
+            _tcpServer = Activator.CreateInstance(serverType, config.Host, config.Port, serverLogger, _clock, null, null);
+            
+            if (_tcpServer == null)
+            {
+                throw new InvalidOperationException("无法创建 DownstreamTcpJsonServer 实例 / Cannot create DownstreamTcpJsonServer instance");
+            }
+
+            // 启动 TCP Server（通过反射调用 StartAsync 方法）
+            var startAsyncMethod = serverType.GetMethod("StartAsync");
+            if (startAsyncMethod != null)
+            {
+                var startTask = startAsyncMethod.Invoke(_tcpServer, new object[] { CancellationToken.None }) as Task;
+                startTask?.Wait(); // 同步等待启动完成
+            }
+
+            _logger.LogInformation(
+                "已启动 TCP Server 模式: Host={Host}, Port={Port}",
+                config.Host, config.Port);
+
+            // 创建一个适配器包装器，将 DownstreamTcpJsonServer 的发送功能包装为 ISorterAdapter
+            // Create an adapter wrapper to wrap DownstreamTcpJsonServer's send functionality as ISorterAdapter
+            return new TcpServerAdapterWrapper(_tcpServer, serverType, _logger);
+        }
+        else
+        {
+            throw new ArgumentException(
+                $"不支持的连接模式: {config.ConnectionMode}。仅支持 Server 或 Client。" +
+                $" / Unsupported connection mode: {config.ConnectionMode}. Only Server or Client are supported.",
+                nameof(config.ConnectionMode));
+        }
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -149,6 +196,33 @@ public class SorterAdapterManager : ISorterAdapterManager
 
             _logger.LogInformation("开始断开分拣机连接");
 
+            // 先停止 TCP Server（如果存在）
+            // Stop TCP Server first (if exists)
+            if (_tcpServer != null)
+            {
+                _logger.LogInformation("停止 TCP Server...");
+                
+                var serverType = _tcpServer.GetType();
+                var stopAsyncMethod = serverType.GetMethod("StopAsync");
+                if (stopAsyncMethod != null)
+                {
+                    var stopTask = stopAsyncMethod.Invoke(_tcpServer, Array.Empty<object>()) as Task;
+                    if (stopTask != null)
+                    {
+                        await stopTask.ConfigureAwait(false);
+                    }
+                }
+
+                // 释放 TCP Server 资源
+                if (_tcpServer is IDisposable serverDisposable)
+                {
+                    serverDisposable.Dispose();
+                }
+                
+                _tcpServer = null;
+                _logger.LogInformation("TCP Server 已停止");
+            }
+
             lock (_lock)
             {
                 // 清理适配器资源
@@ -161,8 +235,6 @@ public class SorterAdapterManager : ISorterAdapterManager
             }
 
             _logger.LogInformation("分拣机连接已断开");
-            
-            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -198,5 +270,95 @@ public class SorterAdapterManager : ISorterAdapterManager
             _logger.LogError(ex, "发送格口号失败: ParcelId={ParcelId}", parcelId);
             return false;
         }
+    }
+}
+
+/// <summary>
+/// TCP Server 模式适配器包装器
+/// TCP Server mode adapter wrapper
+/// 
+/// 将 DownstreamTcpJsonServer 包装为 ISorterAdapter 接口
+/// Wraps DownstreamTcpJsonServer as ISorterAdapter interface
+/// </summary>
+file class TcpServerAdapterWrapper : ISorterAdapter
+{
+    private readonly object _server;
+    private readonly Type _serverType;
+    private readonly ILogger _logger;
+
+    public string AdapterName => "TouchSocket-TCP-Server";
+    public string ProtocolType => "TCP";
+
+    public TcpServerAdapterWrapper(object server, Type serverType, ILogger logger)
+    {
+        _server = server;
+        _serverType = serverType;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// 发送格口号到分拣机（通过TCP Server广播）
+    /// Send chute number to sorter (broadcast via TCP Server)
+    /// </summary>
+    public async Task<bool> SendChuteNumberAsync(string parcelId, string chuteNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // 构造 ChuteAssignmentNotification 对象
+            // Build ChuteAssignmentNotification object
+            var notificationType = Type.GetType("ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream.ChuteAssignmentNotification, ZakYip.Sorting.RuleEngine.Application");
+            
+            if (notificationType == null)
+            {
+                _logger.LogError("无法加载 ChuteAssignmentNotification 类型");
+                return false;
+            }
+
+            var notification = Activator.CreateInstance(notificationType);
+            if (notification == null)
+            {
+                _logger.LogError("无法创建 ChuteAssignmentNotification 实例");
+                return false;
+            }
+
+            // 设置属性：Type, ParcelId, ChuteId, AssignedAt
+            notificationType.GetProperty("Type")?.SetValue(notification, "ChuteAssignment");
+            notificationType.GetProperty("ParcelId")?.SetValue(notification, long.Parse(parcelId));
+            notificationType.GetProperty("ChuteId")?.SetValue(notification, long.Parse(chuteNumber));
+            notificationType.GetProperty("AssignedAt")?.SetValue(notification, DateTimeOffset.Now);
+
+            // 调用 DownstreamTcpJsonServer.SendChuteAssignmentAsync 方法
+            var sendMethod = _serverType.GetMethod("SendChuteAssignmentAsync");
+            if (sendMethod == null)
+            {
+                _logger.LogError("无法找到 SendChuteAssignmentAsync 方法");
+                return false;
+            }
+
+            var sendTask = sendMethod.Invoke(_server, new[] { notification, cancellationToken }) as Task<bool>;
+            if (sendTask == null)
+            {
+                _logger.LogError("SendChuteAssignmentAsync 调用失败");
+                return false;
+            }
+
+            return await sendTask.ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "TCP Server 发送格口号失败: ParcelId={ParcelId}", parcelId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 检查连接状态（Server模式始终为已连接，除非已停止）
+    /// Check connection status (Server mode is always connected unless stopped)
+    /// </summary>
+    public Task<bool> IsConnectedAsync(CancellationToken cancellationToken = default)
+    {
+        // Server 模式下，只要服务器在运行就认为已连接
+        // In Server mode, considered connected as long as the server is running
+        return Task.FromResult(true);
     }
 }
