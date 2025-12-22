@@ -79,6 +79,115 @@ public class DwsAdapterEndToEndCommunicationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DwsDataParser_ShouldParseTemplateData_Successfully()
+    {
+        // Arrange - 创建DWS模板（CSV格式）
+        var template = new DwsDataTemplate
+        {
+            TemplateId = 1,
+            Name = "Standard CSV Template",
+            Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
+            Delimiter = ",",
+            IsJsonFormat = false,
+            IsEnabled = true,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+
+        var parser = new DwsDataParser(new SystemClock());
+        
+        // 模拟DWS设备发送的CSV格式数据
+        var rawData = "ABC123456,5000,300,200,150,9000000,1703232000000";
+        
+        // Act - 解析数据
+        var result = parser.Parse(rawData, template);
+        
+        // Assert - 验证解析结果
+        Assert.NotNull(result);
+        Assert.Equal("ABC123456", result.Barcode);
+        Assert.Equal(5000m, result.Weight);
+        Assert.Equal(300m, result.Length);
+        Assert.Equal(200m, result.Width);
+        Assert.Equal(150m, result.Height);
+        Assert.Equal(9000000m, result.Volume);
+        
+        // 验证时间戳解析（毫秒级Unix时间戳）
+        Assert.NotEqual(default(DateTime), result.ScannedAt);
+        
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task DwsDataParser_ShouldParseAllTemplateFields_Correctly()
+    {
+        // Arrange - 测试所有宏字段
+        var template = new DwsDataTemplate
+        {
+            TemplateId = 1,
+            Name = "All Fields Template",
+            Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
+            Delimiter = ",",
+            IsJsonFormat = false,
+            IsEnabled = true,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+
+        var parser = new DwsDataParser(new SystemClock());
+        
+        // 测试数据：条码,重量,长度,宽度,高度,体积,时间戳(毫秒)
+        var testData = "PKG001,1234.56,100.5,50.25,30.75,151968.75,1703232123456";
+        
+        // Act
+        var result = parser.Parse(testData, template);
+        
+        // Assert - 验证所有字段
+        Assert.NotNull(result);
+        Assert.Equal("PKG001", result.Barcode);  // {Code} -> Barcode
+        Assert.Equal(1234.56m, result.Weight);   // {Weight}
+        Assert.Equal(100.5m, result.Length);     // {Length}
+        Assert.Equal(50.25m, result.Width);      // {Width}
+        Assert.Equal(30.75m, result.Height);     // {Height}
+        Assert.Equal(151968.75m, result.Volume); // {Volume}
+        Assert.NotEqual(default(DateTime), result.ScannedAt); // {Timestamp}
+        
+        await Task.CompletedTask;
+    }
+    
+    [Fact]
+    public async Task DwsDataParser_ShouldHandleMissingFields_Gracefully()
+    {
+        // Arrange - 不完整的模板
+        var template = new DwsDataTemplate
+        {
+            TemplateId = 1,
+            Name = "Partial Template",
+            Template = "{Code},{Weight}",
+            Delimiter = ",",
+            IsJsonFormat = false,
+            IsEnabled = true,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+
+        var parser = new DwsDataParser(new SystemClock());
+        var testData = "PARTIAL001,999.99";
+        
+        // Act
+        var result = parser.Parse(testData, template);
+        
+        // Assert - 应该成功解析有的字段
+        Assert.NotNull(result);
+        Assert.Equal("PARTIAL001", result.Barcode);
+        Assert.Equal(999.99m, result.Weight);
+        // 其他字段应该是默认值
+        Assert.Equal(0m, result.Length);
+        Assert.Equal(0m, result.Width);
+        
+        await Task.CompletedTask;
+    }
+
+    [Fact]
     public async Task Server_ShouldStart_WithoutErrors()
     {
         // Arrange
