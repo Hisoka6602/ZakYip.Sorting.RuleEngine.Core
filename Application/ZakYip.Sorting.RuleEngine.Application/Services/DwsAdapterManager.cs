@@ -179,17 +179,55 @@ public class DwsAdapterManager : IDwsAdapterManager
     /// </summary>
     private IDwsAdapter CreateTcpServerAdapter(DwsConfig config, DwsDataTemplate template)
     {
-        // TODO: 实现 DWS TCP Server 模式
-        // 需要创建一个监听指定端口的 TCP Server，接受上游DWS设备连接
-        // Similar to DownstreamTcpJsonServer, but for DWS data format
-        
-        _logger.LogWarning(
-            "DWS TCP Server 模式暂未完全实现。" +
-            " / DWS TCP Server mode not fully implemented yet.");
+        var adapterType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter, ZakYip.Sorting.RuleEngine.Infrastructure");
 
-        throw new NotImplementedException(
-            "DWS TCP Server 模式暂未实现。请使用 Client 模式或等待后续版本支持。" +
-            " / DWS TCP Server mode not implemented yet. Please use Client mode or wait for future version support.");
+        if (adapterType == null)
+        {
+            throw new InvalidOperationException("无法加载 TouchSocketDwsAdapter 类型 / Cannot load TouchSocketDwsAdapter type");
+        }
+
+        var logger = _loggerFactory.CreateLogger(adapterType);
+
+        // 创建 DWS 数据解析器
+        var parserType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Services.DwsDataParser, ZakYip.Sorting.RuleEngine.Infrastructure");
+        if (parserType == null)
+        {
+            throw new InvalidOperationException("无法加载 DwsDataParser 类型 / Cannot load DwsDataParser type");
+        }
+
+        var parser = Activator.CreateInstance(parserType, _clock);
+        if (parser == null)
+        {
+            throw new InvalidOperationException("无法创建 DwsDataParser 实例 / Cannot create DwsDataParser instance");
+        }
+
+        // TouchSocketDwsAdapter构造函数：
+        // (string host, int port, ILogger logger, ICommunicationLogRepository communicationLogRepository,
+        //  IDwsDataParser? dataParser, DwsDataTemplate? dataTemplate,
+        //  int maxConnections, int receiveBufferSize, int sendBufferSize)
+        var adapter = Activator.CreateInstance(
+            adapterType,
+            config.Host,
+            config.Port,
+            logger,
+            _communicationLogRepository,
+            parser,
+            template,
+            config.MaxConnections,
+            config.ReceiveBufferSize,
+            config.SendBufferSize
+        ) as IDwsAdapter;
+
+        if (adapter == null)
+        {
+            throw new InvalidOperationException("无法创建 TouchSocketDwsAdapter 实例 / Cannot create TouchSocketDwsAdapter instance");
+        }
+
+        _logger.LogInformation(
+            "已创建 DWS TCP Server 模式适配器: Host={Host}, Port={Port}, MaxConnections={MaxConnections}",
+            config.Host, config.Port, config.MaxConnections);
+
+        return adapter;
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
