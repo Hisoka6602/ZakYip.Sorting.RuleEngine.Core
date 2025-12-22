@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -251,11 +252,11 @@ public class ApiClientTestController : ControllerBase
                 FormattedCurl = response.FormattedCurl
             };
 
-            // Log the test request (incoming API request to our server)
-            await LogApiTestRequestAsync(clientName, request, testResponse).ConfigureAwait(false);
+            // Log the test request (incoming API request to our server) - fire-and-forget
+            _ = Task.Run(() => LogApiTestRequestAsync(clientName, request, testResponse), CancellationToken.None);
             
-            // Log the WCS API communication (outgoing API call to WCS/ERP)
-            await LogWcsApiCommunicationAsync(response, clientName).ConfigureAwait(false);
+            // Log the WCS API communication (outgoing API call to WCS/ERP) - fire-and-forget
+            _ = Task.Run(() => LogWcsApiCommunicationAsync(response, clientName), CancellationToken.None);
 
             _logger.LogInformation(
                 "{DisplayName} API测试完成，条码: {Barcode}, 方法: {Method}, 结果: {Success}",
@@ -332,28 +333,16 @@ public class ApiClientTestController : ControllerBase
     /// <summary>
     /// 记录WCS API通信日志（outgoing API call to WCS/ERP）
     /// Log WCS API communication (outgoing API call to WCS/ERP)
+    /// Fire-and-forget: 不阻塞，失败不影响主流程
+    /// Fire-and-forget: non-blocking, failures do not affect main flow
     /// </summary>
     private async Task LogWcsApiCommunicationAsync(WcsApiResponse response, string apiClientName)
     {
         try
         {
-            var apiLog = new ApiCommunicationLog
-            {
-                ParcelId = response.ParcelId,
-                RequestUrl = response.RequestUrl,
-                RequestBody = response.RequestBody,
-                RequestHeaders = response.RequestHeaders,
-                RequestTime = response.RequestTime,
-                DurationMs = response.DurationMs,
-                ResponseTime = response.ResponseTime,
-                ResponseBody = response.ResponseBody,
-                ResponseStatusCode = response.ResponseStatusCode,
-                ResponseHeaders = response.ResponseHeaders,
-                FormattedCurl = response.FormattedCurl,
-                CommunicationType = CommunicationType.Http,
-                IsSuccess = response.RequestStatus == ApiRequestStatus.Success,
-                ErrorMessage = response.ErrorMessage
-            };
+            // 使用共享映射器，避免代码重复（影分身）
+            // Use shared mapper to avoid code duplication (shadow clone)
+            var apiLog = WcsApiResponseMapper.ToApiCommunicationLog(response);
 
             await _apiCommunicationLogRepository.SaveAsync(apiLog).ConfigureAwait(false);
             _logger.LogDebug(
@@ -364,6 +353,7 @@ public class ApiClientTestController : ControllerBase
         {
             _logger.LogError(ex, "保存WCS API通信日志时发生错误，ApiClient: {ApiClientName}", apiClientName);
             // 不抛出异常，避免影响主业务流程
+            // Do not throw exception to avoid affecting main business flow
         }
     }
 

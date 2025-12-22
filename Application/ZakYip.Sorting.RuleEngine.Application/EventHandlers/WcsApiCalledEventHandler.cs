@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Application.Mappers;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
-using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -28,8 +28,10 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
 
     public async Task Handle(WcsApiCalledEvent notification, CancellationToken cancellationToken)
     {
-        // 持久化API通信日志
-        await PersistApiCommunicationLogAsync(notification, cancellationToken).ConfigureAwait(false);
+        // 持久化API通信日志（fire-and-forget，不阻塞）
+        // Persist API communication log (fire-and-forget, non-blocking)
+        _ = Task.Run(() => PersistApiCommunicationLogAsync(notification, cancellationToken), CancellationToken.None);
+        
         // 记录日志消息
         if (notification.IsSuccess)
         {
@@ -54,7 +56,8 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
     }
 
     /// <summary>
-    /// 持久化API通信日志到数据库
+    /// 持久化API通信日志到数据库（不抛出异常）
+    /// Persist API communication log to database (does not throw exceptions)
     /// </summary>
     private async Task PersistApiCommunicationLogAsync(WcsApiCalledEvent notification, CancellationToken cancellationToken)
     {
@@ -62,7 +65,7 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
         {
             // 如果有完整的API响应数据，使用它；否则从事件中创建基本日志
             var apiLog = notification.ApiResponse != null
-                ? MapWcsApiResponseToLog(notification.ApiResponse)
+                ? WcsApiResponseMapper.ToApiCommunicationLog(notification.ApiResponse)
                 : CreateBasicLogFromEvent(notification);
 
             await _apiCommunicationLogRepository.SaveAsync(apiLog, cancellationToken).ConfigureAwait(false);
@@ -72,29 +75,6 @@ public class WcsApiCalledEventHandler : INotificationHandler<WcsApiCalledEvent>
             _logger.LogError(ex, "保存API通信日志失败: ParcelId={ParcelId}", notification.ParcelId);
             // 不抛出异常，避免影响主业务流程
         }
-    }
-
-    /// <summary>
-    /// 将WcsApiResponse映射为ApiCommunicationLog
-    /// </summary>
-    private static ApiCommunicationLog MapWcsApiResponseToLog(WcsApiResponse response)
-    {
-        return new ApiCommunicationLog
-        {
-            ParcelId = response.ParcelId,
-            RequestUrl = response.RequestUrl,
-            RequestBody = response.RequestBody,
-            RequestHeaders = response.RequestHeaders,
-            RequestTime = response.RequestTime,
-            DurationMs = response.DurationMs,
-            ResponseTime = response.ResponseTime,
-            ResponseBody = response.ResponseBody,
-            ResponseStatusCode = response.ResponseStatusCode,
-            ResponseHeaders = response.ResponseHeaders,
-            FormattedCurl = response.FormattedCurl,
-            IsSuccess = response.RequestStatus == ApiRequestStatus.Success,
-            ErrorMessage = response.ErrorMessage
-        };
     }
 
     /// <summary>
