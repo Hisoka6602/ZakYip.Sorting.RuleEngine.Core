@@ -522,6 +522,64 @@ public class ApiClientConfigController : ControllerBase
     {
         try
         {
+            // 验证参数 / Validate parameters
+            // 注意：DTO中的required字段已由框架保证非null，这里主要验证业务逻辑
+            // Note: Required fields in DTO are guaranteed non-null by framework, here we validate business logic
+            
+            if (string.IsNullOrWhiteSpace(request.Url))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "API URL 不能为空", "INVALID_URL"));
+            }
+
+            if (!Uri.TryCreate(request.Url, UriKind.Absolute, out _))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "API URL 格式无效，必须是有效的绝对URI", "INVALID_URL_FORMAT"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.WorkshopCode))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "车间代码不能为空", "INVALID_WORKSHOP_CODE"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DeviceId))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "设备ID不能为空", "INVALID_DEVICE_ID"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.CompanyName))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "公司名称不能为空", "INVALID_COMPANY_NAME"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DeviceBarcode))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "设备条码不能为空", "INVALID_DEVICE_BARCODE"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.OrganizationNumber))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "机构编号不能为空", "INVALID_ORGANIZATION_NUMBER"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.EmployeeNumber))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "员工编号不能为空", "INVALID_EMPLOYEE_NUMBER"));
+            }
+
+            if (request.TimeoutMs < 100 || request.TimeoutMs > 300000)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "超时时间必须在 100-300000 毫秒之间", "INVALID_TIMEOUT"));
+            }
+
             var existingConfig = await _postCollectionConfigRepository.GetByIdAsync(PostCollectionConfig.SingletonId).ConfigureAwait(false);
             
             var now = _clock.LocalNow;
@@ -636,6 +694,55 @@ public class ApiClientConfigController : ControllerBase
     {
         try
         {
+            // 验证参数 / Validate parameters
+            // 注意：DTO中的required字段已由框架保证非null，这里主要验证业务逻辑
+            // Note: Required fields in DTO are guaranteed non-null by framework, here we validate business logic
+            
+            if (string.IsNullOrWhiteSpace(request.Url))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "API URL 不能为空", "INVALID_URL"));
+            }
+
+            if (!Uri.TryCreate(request.Url, UriKind.Absolute, out _))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "API URL 格式无效，必须是有效的绝对URI", "INVALID_URL_FORMAT"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.WorkshopCode))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "车间代码不能为空", "INVALID_WORKSHOP_CODE"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DeviceId))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "设备ID不能为空", "INVALID_DEVICE_ID"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.EmployeeNumber))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "员工编号不能为空", "INVALID_EMPLOYEE_NUMBER"));
+            }
+
+            // LocalServiceUrl 是可选的，如果提供了则验证格式
+            // LocalServiceUrl is optional, validate format if provided
+            if (!string.IsNullOrWhiteSpace(request.LocalServiceUrl) && 
+                !Uri.TryCreate(request.LocalServiceUrl, UriKind.Absolute, out _))
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "本地服务URL格式无效，必须是有效的绝对URI", "INVALID_LOCAL_SERVICE_URL"));
+            }
+
+            if (request.Timeout < 100 || request.Timeout > 300000)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(
+                    "超时时间必须在 100-300000 毫秒之间", "INVALID_TIMEOUT"));
+            }
+
             var existingConfig = await _postProcessingCenterConfigRepository.GetByIdAsync(PostProcessingCenterConfig.SingletonId).ConfigureAwait(false);
             
             var now = _clock.LocalNow;
