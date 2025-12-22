@@ -193,32 +193,33 @@ public class LogController : ControllerBase
     }
 
     /// <summary>
-    /// 获取API通信日志
+    /// 获取WCS的API请求日志
+    /// Get WCS API request logs
     /// </summary>
     /// <param name="startTime">开始时间（可选）</param>
     /// <param name="endTime">结束时间（可选）</param>
-    /// <param name="parcelId">包裹ID（可选）</param>
+    /// <param name="requestPath">请求路径（可选，支持模糊匹配）</param>
     /// <param name="page">页码（默认1）</param>
     /// <param name="pageSize">每页数量（默认50）</param>
     /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>API通信日志列表</returns>
-    /// <response code="200">成功返回API通信日志列表</response>
+    /// <returns>WCS API请求日志列表</returns>
+    /// <response code="200">成功返回API请求日志列表</response>
     /// <response code="500">服务器内部错误</response>
     [HttpGet("api-communication")]
     [SwaggerOperation(
-        Summary = "获取API通信日志",
-        Description = "查询WCS API通信日志，支持时间范围和包裹ID筛选",
+        Summary = "获取WCS的API请求日志",
+        Description = "查询对WCS的API请求日志，支持时间范围和请求路径筛选",
         OperationId = "GetApiCommunicationLogs",
         Tags = new[] { "Log" }
     )]
-    [SwaggerResponse(200, "成功返回API通信日志列表", typeof(PagedResponse<ApiCommunicationLog>))]
-    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ApiCommunicationLog>))]
-    [ProducesResponseType(typeof(PagedResponse<ApiCommunicationLog>), 200)]
-    [ProducesResponseType(typeof(PagedResponse<ApiCommunicationLog>), 500)]
-    public async Task<ActionResult<PagedResponse<ApiCommunicationLog>>> GetApiCommunicationLogs(
+    [SwaggerResponse(200, "成功返回API请求日志列表", typeof(PagedResponse<ApiRequestLog>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(PagedResponse<ApiRequestLog>))]
+    [ProducesResponseType(typeof(PagedResponse<ApiRequestLog>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<ApiRequestLog>), 500)]
+    public async Task<ActionResult<PagedResponse<ApiRequestLog>>> GetApiCommunicationLogs(
         [FromQuery, SwaggerParameter("开始时间")] DateTime? startTime,
         [FromQuery, SwaggerParameter("结束时间")] DateTime? endTime,
-        [FromQuery, SwaggerParameter("包裹ID")] string? parcelId,
+        [FromQuery, SwaggerParameter("请求路径（支持模糊匹配）")] string? requestPath,
         [FromQuery, SwaggerParameter("页码")] int page = 1,
         [FromQuery, SwaggerParameter("每页数量")] int pageSize = 50,
         CancellationToken cancellationToken = default)
@@ -228,16 +229,16 @@ public class LogController : ControllerBase
             DbContext? context = _useMySql ? _mysqlContext : _sqliteContext;
             if (context == null)
             {
-                return StatusCode(500, PagedResponse<ApiCommunicationLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
+                return StatusCode(500, PagedResponse<ApiRequestLog>.FailureResult("数据库未配置", "DB_NOT_CONFIGURED"));
             }
 
             var logs = _useMySql 
-                ? _mysqlContext!.ApiCommunicationLogs.AsQueryable()
-                : _sqliteContext!.ApiCommunicationLogs.AsQueryable();
+                ? _mysqlContext!.ApiRequestLogs.AsQueryable()
+                : _sqliteContext!.ApiRequestLogs.AsQueryable();
 
-            // 优先使用ParcelId索引进行过滤
-            if (!string.IsNullOrWhiteSpace(parcelId))
-                logs = logs.Where(x => x.ParcelId == parcelId);
+            // 优先使用RequestPath索引进行过滤
+            if (!string.IsNullOrWhiteSpace(requestPath))
+                logs = logs.Where(x => x.RequestPath.Contains(requestPath));
             
             if (startTime.HasValue)
                 logs = logs.Where(x => x.RequestTime >= startTime.Value);
@@ -247,17 +248,18 @@ public class LogController : ControllerBase
 
             var total = await logs.CountAsync(cancellationToken).ConfigureAwait(false);
             var data = await logs
+                .AsNoTracking()
                 .OrderByDescending(x => x.RequestTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-            return Ok(PagedResponse<ApiCommunicationLog>.SuccessResult(data, total, page, pageSize));
+            return Ok(PagedResponse<ApiRequestLog>.SuccessResult(data, total, page, pageSize));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "查询API通信日志失败");
-            return StatusCode(500, PagedResponse<ApiCommunicationLog>.FailureResult($"查询API通信日志失败: {ex.Message}", "QUERY_FAILED"));
+            _logger.LogError(ex, "查询WCS API请求日志失败");
+            return StatusCode(500, PagedResponse<ApiRequestLog>.FailureResult($"查询WCS API请求日志失败: {ex.Message}", "QUERY_FAILED"));
         }
     }
 

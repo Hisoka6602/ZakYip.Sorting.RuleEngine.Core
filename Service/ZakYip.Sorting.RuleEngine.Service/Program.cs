@@ -207,6 +207,10 @@ try
                         services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelInfoRepository>();
                         services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelLifecycleNodeRepository>();
                         logger.Info("使用MySQL包裹信息仓储");
+                        
+                        // 注册包裹信息应用服务（Scoped）
+                        services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                        logger.Info("已注册包裹信息应用服务（Scoped）");
                     }
                     catch (Exception ex)
                     {
@@ -226,6 +230,10 @@ try
                         services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
                         services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
                         logger.Info("降级使用SQLite包裹信息仓储");
+                        
+                        // 注册包裹信息应用服务（Scoped）
+                        services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                        logger.Info("已注册包裹信息应用服务（Scoped）");
                     }
                 }
                 else
@@ -246,6 +254,10 @@ try
                     services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
                     services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
                     logger.Info("使用SQLite包裹信息仓储");
+                    
+                    // 注册包裹信息应用服务（Scoped）
+                    services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                    logger.Info("已注册包裹信息应用服务（Scoped）");
                 }
 
                 // 配置HttpClient用于WCS API

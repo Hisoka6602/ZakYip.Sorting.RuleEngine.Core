@@ -46,7 +46,7 @@ public class ParcelControllerTests
             .ReturnsAsync(parcel);
 
         // Act
-        var result = await _controller.GetParcel("TEST001");
+        var result = await _controller.GetParcelById("TEST001");
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -62,7 +62,7 @@ public class ParcelControllerTests
             .ReturnsAsync((ParcelInfo?)null);
 
         // Act
-        var result = await _controller.GetParcel("NONEXISTENT");
+        var result = await _controller.GetParcelById("NONEXISTENT");
 
         // Assert
         Assert.IsType<NotFoundObjectResult>(result.Result);

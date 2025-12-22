@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -24,7 +25,7 @@ public class SorterAdapterManager : ISorterAdapterManager
     private readonly ILoggerFactory _loggerFactory;
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private readonly IAutoResponseModeService _autoResponseModeService;
-    private readonly IParcelInfoRepository _parcelRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private SorterConfig? _currentConfig;
     private ISorterAdapter? _currentAdapter;
     private object? _tcpServer; // DownstreamTcpJsonServer instance for Server mode
@@ -36,13 +37,13 @@ public class SorterAdapterManager : ISorterAdapterManager
         ILoggerFactory loggerFactory,
         ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
         IAutoResponseModeService autoResponseModeService,
-        IParcelInfoRepository parcelRepository)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
         _clock = clock;
         _autoResponseModeService = autoResponseModeService;
-        _parcelRepository = parcelRepository;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public bool IsConnected => _isConnected;
@@ -401,30 +402,22 @@ public class SorterAdapterManager : ISorterAdapterManager
                     notification.ParcelId, randomChute);
                 
                 // 更新包裹信息，标记为自动应答模式 / Update parcel info, mark as auto-response mode
+                // 使用 IServiceScopeFactory 创建 scope 来访问 Scoped 应用服务
+                // Use IServiceScopeFactory to create scope to access Scoped application service
                 try
                 {
-                    var parcel = await _parcelRepository.GetByIdAsync(
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var parcelAppService = scope.ServiceProvider.GetRequiredService<IParcelInfoAppService>();
+                    
+                    var updateSuccess = await parcelAppService.UpdateParcelToAutoResponseModeAsync(
                         notification.ParcelId.ToString(), 
+                        randomChute,
                         CancellationToken.None).ConfigureAwait(false);
                     
-                    if (parcel != null)
-                    {
-                        parcel.TargetChute = randomChute;
-                        parcel.DecisionReason = "AutoResponse";
-                        parcel.SortingMode = Domain.Enums.SortingMode.AutoResponse;
-                        parcel.LifecycleStage = Domain.Enums.ParcelLifecycleStage.ChuteAssigned;
-                        parcel.UpdatedAt = _clock.LocalNow;
-                        
-                        await _parcelRepository.UpdateAsync(parcel, CancellationToken.None).ConfigureAwait(false);
-                        
-                        _logger.LogInformation(
-                            "包裹已更新为自动应答模式: ParcelId={ParcelId}, SortingMode={SortingMode}, TargetChute={TargetChute}",
-                            notification.ParcelId, Domain.Enums.SortingMode.AutoResponse, randomChute);
-                    }
-                    else
+                    if (!updateSuccess)
                     {
                         _logger.LogWarning(
-                            "自动应答：包裹不存在，无法更新分拣模式: ParcelId={ParcelId}",
+                            "自动应答：更新包裹信息失败: ParcelId={ParcelId}",
                             notification.ParcelId);
                     }
                 }

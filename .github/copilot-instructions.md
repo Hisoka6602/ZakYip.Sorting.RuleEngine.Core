@@ -940,7 +940,154 @@ public class SessionTracker
 
 ---
 
-## 18. API 设计规范增强 / Enhanced API Design Standards
+## 18. DI 生命周期规范（强制要求，零容忍）/ DI Lifetime Standards (Mandatory, Zero Tolerance)
+
+> **⚠️ 危险警告 / Danger Warning**: DI 生命周期违规是最严重的架构问题，会导致运行时崩溃
+
+### 什么是 DI 生命周期违规？/ What is DI Lifetime Violation?
+
+**DI 生命周期违规** 是指不同生命周期的服务之间存在不当的依赖关系：
+
+**DI Lifetime Violation** refers to improper dependencies between services with different lifetimes:
+
+- **Singleton（单例）**: 整个应用程序生命周期内只有一个实例
+- **Scoped（作用域）**: 每个请求/作用域一个实例（如 DbContext）
+- **Transient（瞬时）**: 每次注入都创建新实例
+
+### 零容忍规则 / Zero Tolerance Rules
+
+**规则 / Rules**:
+
+1. **禁止 Singleton 直接依赖 Scoped / Prohibited: Singleton directly depends on Scoped**
+   - ❌ Singleton 服务不能在构造函数中注入 Scoped 服务
+   - ❌ Singleton cannot inject Scoped service in constructor
+   - ✅ 必须使用 `IServiceScopeFactory` 创建临时作用域
+   - ✅ Must use `IServiceScopeFactory` to create temporary scopes
+
+2. **禁止 Singleton 直接依赖 Transient / Prohibited: Singleton directly depends on Transient**
+   - ❌ Singleton 服务不能在构造函数中注入 Transient 服务
+   - ❌ Singleton cannot inject Transient service in constructor
+   - ✅ 必须评估是否应该将 Transient 改为 Singleton
+   - ✅ Must evaluate whether Transient should be changed to Singleton
+
+3. **任何 PR 必须通过 DI 验证 / Every PR must pass DI validation**
+   - ✅ 启用 `ValidateScopes = true` 和 `ValidateOnBuild = true`
+   - ✅ Enable `ValidateScopes = true` and `ValidateOnBuild = true`
+   - ✅ 项目必须能成功启动，无 DI 错误
+   - ✅ Project must start successfully without DI errors
+
+### 正确的模式：使用 IServiceScopeFactory / Correct Pattern: Use IServiceScopeFactory
+
+```csharp
+// ✅ 正确：Singleton 使用 IServiceScopeFactory 访问 Scoped 服务
+// Correct: Singleton uses IServiceScopeFactory to access Scoped service
+public class MySingletonService
+{
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    
+    public MySingletonService(IServiceScopeFactory serviceScopeFactory)
+    {
+        _serviceScopeFactory = serviceScopeFactory;
+    }
+    
+    public async Task DoWorkAsync()
+    {
+        // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+        // Use IServiceScopeFactory to create scope to access scoped repository
+        using var scope = _serviceScopeFactory.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IMyRepository>();
+        
+        await repository.SaveAsync();
+    }
+}
+
+// ❌ 错误：Singleton 直接注入 Scoped 服务
+// Wrong: Singleton directly injects Scoped service
+public class MySingletonService
+{
+    private readonly IMyRepository _repository;  // ❌ IMyRepository 是 Scoped
+    
+    public MySingletonService(IMyRepository repository)
+    {
+        _repository = repository;  // ❌ DI 生命周期违规
+    }
+}
+```
+
+### 常见的 Scoped 服务 / Common Scoped Services
+
+以下服务通常注册为 Scoped，不能直接注入到 Singleton 中：
+
+The following services are typically registered as Scoped and cannot be directly injected into Singletons:
+
+- `DbContext` (Entity Framework Core)
+- `I*Repository` (所有 Repository 接口 / All Repository interfaces)
+- `HttpContext` 相关服务
+- 任何依赖于 DbContext 的服务
+
+### 检测方法 / Detection Methods
+
+**启用 DI 验证 / Enable DI Validation**:
+```csharp
+// Program.cs or Startup.cs
+builder.Host.UseDefaultServiceProvider((context, options) =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
+});
+```
+
+**运行时错误示例 / Runtime Error Example**:
+```
+System.AggregateException: Some services are not able to be constructed 
+(Error while validating the service descriptor 'ServiceType: IMyService 
+Lifetime: Singleton ImplementationType: MyService': Cannot consume scoped 
+service 'IMyRepository' from singleton 'IMyService'.)
+```
+
+### PR 提交前强制检查 / Mandatory Checks Before PR Submission
+
+- [ ] 项目启动无 DI 生命周期错误
+- [ ] 所有 Singleton 服务未直接依赖 Scoped 服务
+- [ ] 使用 `IServiceScopeFactory` 模式访问 Scoped 服务
+- [ ] 运行 `dotnet build` 成功，无 DI 验证错误
+
+### 修复策略 / Fix Strategy
+
+当遇到 DI 生命周期违规时，按以下优先级修复：
+
+When encountering DI lifetime violations, fix in the following priority:
+
+1. **优先方案 / Primary Solution**: 使用 `IServiceScopeFactory`
+   - 保持原有生命周期设计
+   - 在需要时创建临时作用域
+   - 参考项目中的现有实现（如 `DwsAdapterManager`、`RuleEngineService`）
+
+2. **次选方案 / Secondary Solution**: 调整服务生命周期
+   - 如果 Scoped 服务不依赖任何 Scoped 资源（如 DbContext）
+   - 评估是否可以安全地改为 Singleton
+   - 确保线程安全
+
+3. **最后方案 / Last Resort**: 重新设计架构
+   - 如果以上方案都不适用
+   - 重新评估服务职责和依赖关系
+   - 可能需要拆分服务或引入中介者模式
+
+### 参考实现 / Reference Implementations
+
+项目中已有正确使用 `IServiceScopeFactory` 的示例：
+
+Examples of correct `IServiceScopeFactory` usage in the project:
+
+- `Application/Services/DwsAdapterManager.cs`
+- `Application/Services/RuleEngineService.cs`
+- `Application/Services/ConfigReloadService.cs`
+- `Infrastructure/Services/MonitoringService.cs`
+- `Infrastructure/Services/DataAnalysisService.cs`
+
+---
+
+## 19. API 设计规范增强 / Enhanced API Design Standards
 
 ### Swagger 文档注释规范（强制要求）/ Swagger Documentation Annotations (Mandatory)
 
