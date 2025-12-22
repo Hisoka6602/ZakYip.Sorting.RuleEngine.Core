@@ -31,7 +31,7 @@ public class TouchSocketSorterAdapterTests : IDisposable
         var mockScope = new Mock<IServiceScope>();
         var mockServiceProvider = new Mock<IServiceProvider>();
         
-        _mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.Now);
+        _mockClock.Setup(x => x.UtcNow).Returns(new DateTime(2024, 1, 1, 12, 0, 0));
 
         _mockLogRepository.Setup(x => x.LogCommunicationAsync(
             It.IsAny<CommunicationType>(),
