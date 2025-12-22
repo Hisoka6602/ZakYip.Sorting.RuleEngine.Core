@@ -23,6 +23,7 @@ public class SorterAdapterManager : ISorterAdapterManager
     private readonly ILogger<SorterAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
+    private readonly IAutoResponseModeService _autoResponseModeService;
     private SorterConfig? _currentConfig;
     private ISorterAdapter? _currentAdapter;
     private object? _tcpServer; // DownstreamTcpJsonServer instance for Server mode
@@ -32,11 +33,13 @@ public class SorterAdapterManager : ISorterAdapterManager
     public SorterAdapterManager(
         ILogger<SorterAdapterManager> logger,
         ILoggerFactory loggerFactory,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock)
+        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
+        IAutoResponseModeService autoResponseModeService)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
         _clock = clock;
+        _autoResponseModeService = autoResponseModeService;
     }
 
     public bool IsConnected => _isConnected;
@@ -202,6 +205,9 @@ public class SorterAdapterManager : ISorterAdapterManager
                 "已启动 TCP Server 模式: Host={Host}, Port={Port}",
                 config.Host, config.Port);
 
+            // 订阅包裹检测事件，实现自动应答逻辑 / Subscribe to parcel detected event for auto-response logic
+            SubscribeToServerEvents();
+
             // 创建一个适配器包装器，将 DownstreamTcpJsonServer 的发送功能包装为 ISorterAdapter
             // Create an adapter wrapper to wrap DownstreamTcpJsonServer's send functionality as ISorterAdapter
             return new TcpServerAdapterWrapper(_tcpServer, serverType, _logger, _clock);
@@ -300,6 +306,106 @@ public class SorterAdapterManager : ISorterAdapterManager
         {
             _logger.LogError(ex, "发送格口号失败: ParcelId={ParcelId}", parcelId);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// 订阅TCP Server的事件，实现自动应答逻辑
+    /// Subscribe to TCP Server events for auto-response logic
+    /// </summary>
+    private void SubscribeToServerEvents()
+    {
+        if (_tcpServer == null)
+        {
+            _logger.LogWarning("TCP Server未创建，无法订阅事件");
+            return;
+        }
+
+        var serverType = _tcpServer.GetType();
+        
+        // 订阅OnParcelDetected事件 / Subscribe to OnParcelDetected event
+        var onParcelDetectedEvent = serverType.GetEvent("OnParcelDetected");
+        if (onParcelDetectedEvent != null)
+        {
+            var handlerType = onParcelDetectedEvent.EventHandlerType;
+            if (handlerType != null)
+            {
+                var handler = Delegate.CreateDelegate(
+                    handlerType,
+                    this,
+                    nameof(HandleParcelDetectedAsync));
+                onParcelDetectedEvent.AddEventHandler(_tcpServer, handler);
+                
+                _logger.LogInformation("已订阅包裹检测事件，自动应答逻辑已激活");
+            }
+        }
+        else
+        {
+            _logger.LogWarning("TCP Server未找到OnParcelDetected事件");
+        }
+    }
+
+    /// <summary>
+    /// 处理包裹检测事件 - 自动应答逻辑实现
+    /// Handle parcel detected event - Auto-response logic implementation
+    /// 
+    /// 流程: 接收包裹检测 → 检查自动应答模式 → 生成随机格口 → 发送到分拣机
+    /// Flow: Receive parcel detection → Check auto-response mode → Generate random chute → Send to sorter
+    /// </summary>
+    private async Task HandleParcelDetectedAsync(Application.DTOs.Downstream.ParcelDetectionNotification notification)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "收到包裹检测通知: ParcelId={ParcelId}, DetectionTime={DetectionTime}",
+                notification.ParcelId, notification.DetectionTime);
+
+            // 检查自动应答模式是否启用 / Check if auto-response mode is enabled
+            if (!_autoResponseModeService.IsEnabled)
+            {
+                _logger.LogDebug("自动应答模式未启用，跳过自动格口分配");
+                return;
+            }
+
+            // 生成随机格口号 / Generate random chute number
+            var chuteNumbers = _autoResponseModeService.ChuteNumbers;
+            if (chuteNumbers == null || chuteNumbers.Length == 0)
+            {
+                _logger.LogWarning("自动应答模式已启用，但格口数组为空");
+                return;
+            }
+
+            var randomIndex = Random.Shared.Next(0, chuteNumbers.Length);
+            var randomChute = chuteNumbers[randomIndex].ToString();
+
+            _logger.LogInformation(
+                "自动应答: ParcelId={ParcelId}, 随机分配格口={ChuteNumber} (从 [{ChuteArray}] 中选择)",
+                notification.ParcelId, randomChute, string.Join(", ", chuteNumbers));
+
+            // 发送格口号到分拣机 / Send chute number to sorter
+            var success = await SendChuteNumberAsync(
+                notification.ParcelId.ToString(),
+                randomChute,
+                CancellationToken.None).ConfigureAwait(false);
+
+            if (success)
+            {
+                _logger.LogInformation(
+                    "自动应答成功: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
+                    notification.ParcelId, randomChute);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "自动应答失败: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
+                    notification.ParcelId, randomChute);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, 
+                "处理包裹检测事件时发生异常: ParcelId={ParcelId}", 
+                notification.ParcelId);
         }
     }
 }
