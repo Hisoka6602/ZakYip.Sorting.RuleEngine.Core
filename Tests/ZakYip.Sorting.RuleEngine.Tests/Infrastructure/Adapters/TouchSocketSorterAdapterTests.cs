@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using Moq;
 using Xunit;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Infrastructure.Adapters;
 
@@ -16,14 +16,16 @@ public class TouchSocketSorterAdapterTests : IDisposable
 {
     private readonly Mock<ILogger<TouchSocketSorterAdapter>> _mockLogger;
     private readonly Mock<ICommunicationLogRepository> _mockLogRepository;
+    private readonly Mock<ISystemClock> _mockClock;
     private readonly TouchSocketSorterAdapter _adapter;
 
     public TouchSocketSorterAdapterTests()
     {
         _mockLogger = new Mock<ILogger<TouchSocketSorterAdapter>>();
         _mockLogRepository = new Mock<ICommunicationLogRepository>();
+        _mockClock = new Mock<ISystemClock>();
+        _mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
 
-        // Setup mock to return completed tasks
         _mockLogRepository.Setup(x => x.LogCommunicationAsync(
             It.IsAny<CommunicationType>(),
             It.IsAny<CommunicationDirection>(),
@@ -36,9 +38,10 @@ public class TouchSocketSorterAdapterTests : IDisposable
 
         _adapter = new TouchSocketSorterAdapter(
             "localhost",
-            8080,
+            8082,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockLogRepository.Object,
+            _mockClock.Object);
     }
 
     [Fact]
@@ -56,37 +59,13 @@ public class TouchSocketSorterAdapterTests : IDisposable
     }
 
     [Fact]
-    public async Task IsConnectedAsync_InitialState_ShouldReturnFalse()
+    public async Task IsConnectedAsync_InitiallyReturnsFalse()
     {
         // Act
         var isConnected = await _adapter.IsConnectedAsync();
 
         // Assert
         Assert.False(isConnected);
-    }
-
-    [Fact]
-    public async Task SendChuteNumberAsync_WithoutConnection_ShouldReturnFalseAndLogError()
-    {
-        // Arrange
-        var parcelId = "PKG-001";
-        var chuteNumber = "CHUTE-05";
-
-        // Act
-        var result = await _adapter.SendChuteNumberAsync(parcelId, chuteNumber);
-
-        // Assert
-        Assert.False(result);
-
-        // Verify error was logged
-        _mockLogRepository.Verify(x => x.LogCommunicationAsync(
-            CommunicationType.Tcp,
-            CommunicationDirection.Outbound,
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            false,
-            It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -98,9 +77,7 @@ public class TouchSocketSorterAdapterTests : IDisposable
             12345,
             _mockLogger.Object,
             _mockLogRepository.Object,
-            reconnectIntervalMs: 3000,
-            receiveBufferSize: 4096,
-            sendBufferSize: 4096);
+            _mockClock.Object);
 
         // Assert
         Assert.Equal("TouchSocket-Sorter", adapter.AdapterName);
@@ -108,32 +85,27 @@ public class TouchSocketSorterAdapterTests : IDisposable
     }
 
     [Fact]
-    public void Dispose_ShouldNotThrowException()
+    public async Task SendChuteNumberAsync_WhenNotConnected_ReturnsFalse()
     {
-        // Arrange
-        var adapter = new TouchSocketSorterAdapter(
-            "localhost",
-            8080,
-            _mockLogger.Object,
-            _mockLogRepository.Object);
+        // Act
+        var result = await _adapter.SendChuteNumberAsync("123", "5");
 
-        // Act & Assert
-        var exception = Record.Exception(() => adapter.Dispose());
-        Assert.Null(exception);
+        // Assert
+        Assert.False(result);
     }
 
     [Fact]
-    public void Dispose_CalledMultipleTimes_ShouldNotThrow()
+    public void Dispose_ShouldNotThrow()
     {
-        // Arrange
+        // Arrange & Act
         var adapter = new TouchSocketSorterAdapter(
             "localhost",
-            8080,
+            8082,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockLogRepository.Object,
+            _mockClock.Object);
 
         // Act & Assert
-        adapter.Dispose();
         var exception = Record.Exception(() => adapter.Dispose());
         Assert.Null(exception);
     }

@@ -217,6 +217,8 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
     {
         var mockLogger = new Mock<ILogger<TouchSocketSorterAdapter>>();
         var mockLogRepository = new Mock<ICommunicationLogRepository>();
+        var mockClock = new Mock<ISystemClock>();
+        mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
 
         mockLogRepository.Setup(x => x.LogCommunicationAsync(
             It.IsAny<CommunicationType>(),
@@ -233,6 +235,7 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
             TestPort,
             mockLogger.Object,
             mockLogRepository.Object,
+            mockClock.Object,
             reconnectIntervalMs: 1000);
     }
 }

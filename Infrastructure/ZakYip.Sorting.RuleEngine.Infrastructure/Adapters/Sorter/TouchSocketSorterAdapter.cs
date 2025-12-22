@@ -1,20 +1,28 @@
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Text.Json;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 
 /// <summary>
-/// 基于TouchSocket的分拣机TCP适配器
+/// 基于TouchSocket的分拣机TCP适配器（JSON协议）
 /// 支持自动重连和高性能消息发送
+/// 兼容 ZakYip.WheelDiverterSorter 通信协议
 /// </summary>
+/// <remarks>
+/// 协议：发送JSON格式的 ChuteAssignmentNotification
+/// Compatible with: ZakYip.WheelDiverterSorter.Communication.Models
+/// </remarks>
 public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
 {
     private readonly ILogger<TouchSocketSorterAdapter> _logger;
     private readonly ICommunicationLogRepository _communicationLogRepository;
+    private readonly ISystemClock _clock;
     private readonly string _host;
     private readonly int _port;
     private TcpClient? _tcpClient;
@@ -22,6 +30,12 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
     private readonly int _reconnectIntervalMs;
     private readonly int _receiveBufferSize;
     private readonly int _sendBufferSize;
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
 
     public string AdapterName => "TouchSocket-Sorter";
     public string ProtocolType => "TCP";
@@ -31,6 +45,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         int port,
         ILogger<TouchSocketSorterAdapter> logger,
         ICommunicationLogRepository communicationLogRepository,
+        ISystemClock clock,
         int reconnectIntervalMs = 5000,
         int receiveBufferSize = 8192,
         int sendBufferSize = 8192)
@@ -39,14 +54,20 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         _port = port;
         _logger = logger;
         _communicationLogRepository = communicationLogRepository;
+        _clock = clock;
         _reconnectIntervalMs = reconnectIntervalMs;
         _receiveBufferSize = receiveBufferSize;
         _sendBufferSize = sendBufferSize;
     }
 
     /// <summary>
-    /// 发送格口号到分拣机
+    /// 发送格口号到分拣机（JSON协议）
+    /// Send chute number to sorter (JSON protocol)
     /// </summary>
+    /// <remarks>
+    /// 发送 JSON 格式的 ChuteAssignmentNotification，兼容 WheelDiverterSorter
+    /// Sends JSON format ChuteAssignmentNotification, compatible with WheelDiverterSorter
+    /// </remarks>
     public async Task<bool> SendChuteNumberAsync(string parcelId, string chuteNumber, CancellationToken cancellationToken = default)
     {
         try
@@ -55,7 +76,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
 
             if (_tcpClient?.Online != true)
             {
-                _logger.LogWarning("TCP连接未建立，无法发送数据");
+                _logger.LogWarning("TCP连接未建立，无法发送数据 / TCP not connected, cannot send data");
                 await _communicationLogRepository.LogCommunicationAsync(
                     CommunicationType.Tcp,
                     CommunicationDirection.Outbound,
@@ -67,17 +88,46 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
                 return false;
             }
 
-            // 构造消息：包裹ID,格口号
-            var message = $"{parcelId},{chuteNumber}\n";
+            // 解析 parcelId 为 long 类型
+            // Parse parcelId to long type
+            if (!long.TryParse(parcelId, out var parcelIdLong))
+            {
+                parcelIdLong = Math.Abs(parcelId.GetHashCode());
+            }
+            
+            // 解析 chuteNumber 为 long 类型
+            // Parse chuteNumber to long type  
+            long chuteId = ParseChuteNumber(chuteNumber);
+
+            // 构造 JSON 格式的格口分配通知（兼容 WheelDiverterSorter）
+            // Construct JSON format chute assignment notification
+            var notification = new ChuteAssignmentNotification
+            {
+                ParcelId = parcelIdLong,
+                ChuteId = chuteId,
+                AssignedAt = _clock.UtcNow,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "Source", "RuleEngine" },
+                    { "OriginalParcelId", parcelId },
+                    { "OriginalChuteNumber", chuteNumber }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(notification, JsonOptions);
+            var message = json + "\n";  // 添加终止符 / Add terminator
             var data = Encoding.UTF8.GetBytes(message);
 
             await _tcpClient.SendAsync(data);
 
-            _logger.LogInformation("TCP发送成功，包裹ID: {ParcelId}, 格口: {Chute}", parcelId, chuteNumber);
+            _logger.LogInformation(
+                "TCP发送成功（JSON协议）/ TCP send successful (JSON protocol): ParcelId={ParcelId}, ChuteId={ChuteId}",
+                parcelIdLong, chuteId);
+            
             await _communicationLogRepository.LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Outbound,
-                message.TrimEnd('\n'),
+                json,  // 记录JSON内容 / Log JSON content
                 parcelId: parcelId,
                 remoteAddress: $"{_host}:{_port}",
                 isSuccess: true);
@@ -86,7 +136,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "TCP发送失败，包裹ID: {ParcelId}", parcelId);
+            _logger.LogError(ex, "TCP发送失败 / TCP send failed: ParcelId={ParcelId}", parcelId);
             await _communicationLogRepository.LogCommunicationAsync(
                 CommunicationType.Tcp,
                 CommunicationDirection.Outbound,
@@ -97,6 +147,35 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
                 errorMessage: ex.Message);
             return false;
         }
+    }
+
+    /// <summary>
+    /// 解析格口号为数字ID
+    /// Parse chute number to numeric ID
+    /// </summary>
+    /// <remarks>
+    /// 支持格式：
+    /// - 纯数字："1", "999" -> 1, 999
+    /// - 字母数字："A01", "B02" -> 1, 2
+    /// - 其他格式：使用哈希值
+    /// </remarks>
+    private static long ParseChuteNumber(string chuteNumber)
+    {
+        // 尝试直接解析为数字
+        if (long.TryParse(chuteNumber, out var numericId))
+        {
+            return numericId;
+        }
+
+        // 尝试提取末尾的数字部分（如"A01" -> 1, "CHUTE-999" -> 999）
+        var digits = new string(chuteNumber.Where(char.IsDigit).ToArray());
+        if (!string.IsNullOrEmpty(digits) && long.TryParse(digits, out var extractedId))
+        {
+            return extractedId;
+        }
+
+        // 使用哈希值作为兜底
+        return Math.Abs(chuteNumber.GetHashCode()) % 10000;
     }
 
     /// <summary>
