@@ -33,7 +33,7 @@ public class TouchSocketSorterAdapter : ISorterAdapter, IDisposable
     
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = null,  // 使用[JsonPropertyName]指定的名称 / Use names specified by [JsonPropertyName]
         WriteIndented = false
     };
 

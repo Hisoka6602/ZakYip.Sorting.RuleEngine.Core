@@ -11,12 +11,14 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
 namespace ZakYip.Sorting.RuleEngine.Tests.Integration.Adapters;
 
 /// <summary>
-/// Sorter适配器端到端通信测试（使用TouchSocket）
-/// Sorter adapter end-to-end communication tests (using TouchSocket)
+/// Sorter适配器端到端通信测试（使用TouchSocket，JSON协议）
+/// Sorter adapter end-to-end communication tests (using TouchSocket, JSON protocol)
 /// </summary>
 /// <remarks>
-/// 协议：Sorter发送CSV格式 "{parcelId},{chuteNumber}\n"
-/// Protocol: Sorter sends CSV format "{parcelId},{chuteNumber}\n"
+/// 协议：Sorter发送JSON格式的ChuteAssignmentNotification
+/// Protocol: Sorter sends JSON format ChuteAssignmentNotification
+/// 兼容：ZakYip.WheelDiverterSorter
+/// Compatible with: ZakYip.WheelDiverterSorter
 /// </remarks>
 public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
 {
@@ -56,19 +58,27 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         // 创建Sorter Adapter
         _sorterAdapter = CreateSorterAdapter();
 
-        // Act - Sorter发送数据（协议：parcelId,chuteNumber）
+        // Act - Sorter发送数据（协议：JSON格式的ChuteAssignmentNotification）
         var result = await _sorterAdapter.SendChuteNumberAsync("PARCEL001", "A01");
         await Task.Delay(800); // 等待数据传输和处理
 
         // Assert - 验证发送成功
         Assert.True(result, "Sorter应该成功发送数据");
         
-        // 验证接收到的消息格式
+        // 验证接收到的消息格式和内容
         Assert.NotEmpty(_receivedMessages);
         var msg = _receivedMessages[0];
-        Assert.Equal("PARCEL001", msg.ParcelId);
-        Assert.Equal("A01", msg.ChuteNumber);
-        Assert.Equal("PARCEL001,A01", msg.RawMessage);
+        
+        // 验证协议字段（与WheelDiverterSorter兼容）
+        Assert.True(msg.ParcelId > 0, "ParcelId应该是有效的long值");
+        Assert.Equal(1, msg.ChuteId);  // "A01" -> 1
+        Assert.Equal("PARCEL001,A01", msg.RawMessage.Replace(" ", "").Replace("\n", "").Replace("{", "").Replace("}", "").Split(new[] { "ParcelId", "ChuteId", "AssignedAt", "Metadata" }, StringSplitOptions.RemoveEmptyEntries)[0].Trim(',', ':'));
+        
+        // 验证JSON包含正确的字段名（大写开头，符合WheelDiverterSorter协议）
+        Assert.Contains("\"ParcelId\":", msg.RawMessage);  // 大写P
+        Assert.Contains("\"ChuteId\":", msg.RawMessage);   // 大写C
+        Assert.Contains("\"AssignedAt\":", msg.RawMessage); // 大写A
+        Assert.Contains("\"Metadata\":", msg.RawMessage);   // 大写M
     }
 
     [Fact]
@@ -90,11 +100,14 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         Assert.False(isConnectedBefore); // 初始未连接
         Assert.True(isConnectedAfter);   // 发送后已连接
         
-        // 验证消息格式正确
-        Assert.NotEmpty(_receivedMessages);
-        var msg = _receivedMessages[0];
-        Assert.Equal("TEST001", msg.ParcelId);
-        Assert.Equal("B02", msg.ChuteNumber);
+        // 验证JSON包含正确的字段名（大写开头，符合WheelDiverterSorter协议）
+        Assert.Contains("\"ParcelId\":", msg.RawMessage);  // 大写P
+        Assert.Contains("\"ChuteId\":", msg.RawMessage);   // 大写C
+        
+        // 验证消息内容
+        var notification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(msg.RawMessage);
+        Assert.NotNull(notification);
+        Assert.Equal(1, notification.ChuteId); // "A01" -> 1
     }
 
     [Fact]
@@ -156,25 +169,25 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// 处理接收到的Sorter消息（CSV格式：parcelId,chuteNumber）
-    /// Handle received Sorter message (CSV format: parcelId,chuteNumber)
+    /// 处理接收到的Sorter消息（JSON格式：ChuteAssignmentNotification）
+    /// Handle received Sorter message (JSON format: ChuteAssignmentNotification)
     /// </summary>
     private void OnMessageReceived(string rawMessage)
     {
         try
         {
-            // 解析CSV格式：parcelId,chuteNumber
-            var parts = rawMessage.Split(',');
-            if (parts.Length != 2)
+            // 解析JSON格式的ChuteAssignmentNotification
+            var notification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(rawMessage);
+            
+            if (notification == null)
             {
-                // 格式错误 - 这是需要验证的问题！
-                throw new FormatException($"消息格式错误，应为'parcelId,chuteNumber'，实际: {rawMessage}");
+                throw new FormatException($"无法解析JSON消息: {rawMessage}");
             }
 
             var msg = new ReceivedMessage
             {
-                ParcelId = parts[0],
-                ChuteNumber = parts[1],
+                ParcelId = notification.ParcelId.ToString(),
+                ChuteNumber = notification.ChuteId.ToString(),
                 RawMessage = rawMessage,
                 ReceivedAt = DateTime.Now
             };
@@ -187,7 +200,7 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         catch (Exception ex)
         {
             // 记录解析错误 - 这表明协议有问题
-            throw new InvalidOperationException($"解析Sorter消息失败: {rawMessage}", ex);
+            throw new InvalidOperationException($"解析Sorter JSON消息失败: {rawMessage}", ex);
         }
     }
 
