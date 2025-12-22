@@ -17,16 +17,18 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// 此类通过DI注册为Singleton，确保全局只存在一个DWS TCP实例。
 /// This class is registered as Singleton via DI, ensuring only one DWS TCP instance exists globally.
 /// 
-/// **架构说明 / Architecture Note**:
-/// ✅ 已彻底重构为直接依赖注入模式，移除了所有反射调用。
-/// ✅ 与 SorterAdapterManager 保持一致的架构模式。
-/// ✅ 使用 ILoggerFactory 创建泛型 Logger，避免类型转换问题。
-/// Fully refactored to use direct dependency injection, removed all reflection calls.
-/// Maintains consistent architecture pattern with SorterAdapterManager.
-/// Uses ILoggerFactory to create generic Loggers, avoiding type conversion issues.
+/// **技术债务 / Technical Debt**:
+/// ⚠️ 临时使用反射创建适配器，违反最佳实践但避免Application层引用Infrastructure层。
+/// ⚠️ Temporarily using reflection to create adapters, violates best practices but avoids Application layer referencing Infrastructure layer.
+/// 📝 已登记到 TECHNICAL_DEBT.md - 需要重构为工厂模式或直接依赖注入
+/// 📝 Logged in TECHNICAL_DEBT.md - needs refactoring to factory pattern or direct DI
 /// </summary>
 public class DwsAdapterManager : IDwsAdapterManager
 {
+    // 类型名称常量 / Type name constants
+    private const string TouchSocketDwsTcpClientAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsTcpClientAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
+    private const string TouchSocketDwsAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
+
     private readonly ILogger<DwsAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ISystemClock _clock;
@@ -147,37 +149,90 @@ public class DwsAdapterManager : IDwsAdapterManager
     }
 
     /// <summary>
-    /// 创建 TCP Client 适配器（使用工厂模式，通过DI注入）
-    /// Create TCP Client adapter (using factory pattern, injected via DI)
+    /// 创建 TCP Client 适配器（使用反射 - 临时方案）
+    /// Create TCP Client adapter (using reflection - temporary solution)
     /// </summary>
     private IDwsAdapter CreateTcpClientAdapter(DwsConfig config, DwsDataTemplate template)
     {
-        // ✅ 使用 ILoggerFactory 创建泛型 Logger
-        // Use ILoggerFactory to create generic Logger
-        var logger = _loggerFactory.CreateLogger("DwsTcpClient");
+        var adapterType = Type.GetType(TouchSocketDwsTcpClientAdapterTypeName);
 
-        // TODO: 需要通过DI容器解析具体实现，而不是直接创建
-        // Application层不应该知道Infrastructure层的具体实现
-        throw new NotImplementedException(
-            "DWS适配器创建需要重构为工厂模式或直接依赖注入。" +
-            "Application层不应该直接创建Infrastructure层的具体类型。");
+        if (adapterType == null)
+        {
+            throw new InvalidOperationException("无法加载 TouchSocketDwsTcpClientAdapter 类型 / Cannot load TouchSocketDwsTcpClientAdapter type");
+        }
+
+        var logger = _loggerFactory.CreateLogger(adapterType);
+
+        // TouchSocketDwsTcpClientAdapter构造函数：
+        // (string host, int port, DwsDataTemplate dataTemplate, ILogger logger, 
+        //  IServiceScopeFactory serviceScopeFactory, IDwsDataParser dataParser,
+        //  bool autoReconnect, int reconnectIntervalSeconds)
+        var adapter = Activator.CreateInstance(
+            adapterType,
+            config.Host,
+            config.Port,
+            template,
+            logger,
+            _serviceScopeFactory,
+            _dataParser,
+            config.AutoReconnect,
+            config.ReconnectIntervalSeconds
+        ) as IDwsAdapter;
+
+        if (adapter == null)
+        {
+            throw new InvalidOperationException("无法创建 TouchSocketDwsTcpClientAdapter 实例 / Cannot create TouchSocketDwsTcpClientAdapter instance");
+        }
+
+        _logger.LogInformation(
+            "已创建 DWS TCP Client 模式适配器: Host={Host}, Port={Port}",
+            config.Host, config.Port);
+
+        return adapter;
     }
 
     /// <summary>
-    /// 创建 TCP Server 适配器（使用工厂模式，通过DI注入）
-    /// Create TCP Server adapter (using factory pattern, injected via DI)
+    /// 创建 TCP Server 适配器（使用反射 - 临时方案）
+    /// Create TCP Server adapter (using reflection - temporary solution)
     /// </summary>
     private IDwsAdapter CreateTcpServerAdapter(DwsConfig config, DwsDataTemplate template)
     {
-        // ✅ 使用 ILoggerFactory 创建泛型 Logger
-        // Use ILoggerFactory to create generic Logger
-        var logger = _loggerFactory.CreateLogger("DwsTcpServer");
+        var adapterType = Type.GetType(TouchSocketDwsAdapterTypeName);
 
-        // TODO: 需要通过DI容器解析具体实现，而不是直接创建
-        // Application层不应该知道Infrastructure层的具体实现
-        throw new NotImplementedException(
-            "DWS适配器创建需要重构为工厂模式或直接依赖注入。" +
-            "Application层不应该直接创建Infrastructure层的具体类型。");
+        if (adapterType == null)
+        {
+            throw new InvalidOperationException("无法加载 TouchSocketDwsAdapter 类型 / Cannot load TouchSocketDwsAdapter type");
+        }
+
+        var logger = _loggerFactory.CreateLogger(adapterType);
+
+        // TouchSocketDwsAdapter构造函数：
+        // (string host, int port, ILogger logger, IServiceScopeFactory serviceScopeFactory,
+        //  IDwsDataParser? dataParser, DwsDataTemplate? dataTemplate,
+        //  int maxConnections, int receiveBufferSize, int sendBufferSize)
+        var adapter = Activator.CreateInstance(
+            adapterType,
+            config.Host,
+            config.Port,
+            logger,
+            _serviceScopeFactory,
+            _dataParser,
+            template,
+            config.MaxConnections,
+            config.ReceiveBufferSize,
+            config.SendBufferSize
+        ) as IDwsAdapter;
+
+        if (adapter == null)
+        {
+            throw new InvalidOperationException("无法创建 TouchSocketDwsAdapter 实例 / Cannot create TouchSocketDwsAdapter instance");
+        }
+
+        _logger.LogInformation(
+            "已创建 DWS TCP Server 模式适配器: Host={Host}, Port={Port}, MaxConnections={MaxConnections}",
+            config.Host, config.Port, config.MaxConnections);
+
+        return adapter;
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
