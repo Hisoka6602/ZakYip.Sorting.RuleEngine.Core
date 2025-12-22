@@ -104,14 +104,10 @@ public class ParcelController : ControllerBase
     {
         try
         {
-            if (page < 1)
+            var validationResult = ValidatePaginationParameters(page, pageSize);
+            if (validationResult != null)
             {
-                return BadRequest(new { error = "页码必须大于0" });
-            }
-
-            if (pageSize < 1 || pageSize > 1000)
-            {
-                return BadRequest(new { error = "每页大小必须在1-1000之间" });
+                return validationResult;
             }
 
             _logger.LogDebug("查询包裹列表: Page={Page}, PageSize={PageSize}", page, pageSize);
@@ -172,14 +168,10 @@ public class ParcelController : ControllerBase
     {
         try
         {
-            if (page < 1)
+            var validationResult = ValidatePaginationParameters(page, pageSize);
+            if (validationResult != null)
             {
-                return BadRequest(new { error = "页码必须大于0" });
-            }
-
-            if (pageSize < 1 || pageSize > 1000)
-            {
-                return BadRequest(new { error = "每页大小必须在1-1000之间" });
+                return validationResult;
             }
 
             _logger.LogDebug("搜索包裹: Status={Status}, LifecycleStage={LifecycleStage}, BagId={BagId}, Page={Page}, PageSize={PageSize}",
@@ -196,6 +188,25 @@ public class ParcelController : ControllerBase
             _logger.LogError(ex, "搜索包裹时发生错误");
             return StatusCode(500, new { error = "搜索包裹时发生内部错误", message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// 验证分页参数
+    /// Validate pagination parameters
+    /// </summary>
+    private BadRequestObjectResult? ValidatePaginationParameters(int page, int pageSize)
+    {
+        if (page < 1)
+        {
+            return BadRequest(new { error = "页码必须大于0" });
+        }
+
+        if (pageSize < 1 || pageSize > 1000)
+        {
+            return BadRequest(new { error = "每页大小必须在1-1000之间" });
+        }
+
+        return null;
     }
 
     /// <summary>

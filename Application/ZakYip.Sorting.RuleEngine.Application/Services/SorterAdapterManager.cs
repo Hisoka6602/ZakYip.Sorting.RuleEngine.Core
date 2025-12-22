@@ -23,7 +23,7 @@ public class SorterAdapterManager : ISorterAdapterManager
 
     private readonly ILogger<SorterAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
+    private readonly ISystemClock _clock;
     private readonly IAutoResponseModeService _autoResponseModeService;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private SorterConfig? _currentConfig;
@@ -35,7 +35,7 @@ public class SorterAdapterManager : ISorterAdapterManager
     public SorterAdapterManager(
         ILogger<SorterAdapterManager> logger,
         ILoggerFactory loggerFactory,
-        ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock clock,
+        ISystemClock clock,
         IAutoResponseModeService autoResponseModeService,
         IServiceScopeFactory serviceScopeFactory)
     {

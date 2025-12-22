@@ -17,6 +17,7 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 using Newtonsoft.Json;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -37,17 +38,18 @@ public class ApiClientTestController : ControllerBase
     private readonly WdtErpFlagshipApiClient? _wdtErpFlagshipApiClient;
     private readonly PostCollectionApiClient? _postCollectionApiClient;
     private readonly PostProcessingCenterApiClient? _postProcessingCenterApiClient;
-    private readonly MySqlLogDbContext? _mysqlContext;
-    private readonly SqliteLogDbContext? _sqliteContext;
-    private readonly WcsApiLogBackgroundService _logBackgroundService;
+    private readonly WcsApiLogBackgroundService _wcsApiLogBackgroundService;
+    private readonly ApiRequestLogBackgroundService _apiRequestLogBackgroundService;
 
     public ApiClientTestController(
         ILogger<ApiClientTestController> logger,
         IServiceProvider serviceProvider,
-        WcsApiLogBackgroundService logBackgroundService)
+        WcsApiLogBackgroundService wcsApiLogBackgroundService,
+        ApiRequestLogBackgroundService apiRequestLogBackgroundService)
     {
         _logger = logger;
-        _logBackgroundService = logBackgroundService;
+        _wcsApiLogBackgroundService = wcsApiLogBackgroundService;
+        _apiRequestLogBackgroundService = apiRequestLogBackgroundService;
         
         // Try to get clients from DI, they may not be registered
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
@@ -55,10 +57,6 @@ public class ApiClientTestController : ControllerBase
         _wdtErpFlagshipApiClient = serviceProvider.GetService<WdtErpFlagshipApiClient>();
         _postCollectionApiClient = serviceProvider.GetService<PostCollectionApiClient>();
         _postProcessingCenterApiClient = serviceProvider.GetService<PostProcessingCenterApiClient>();
-        
-        // Get database contexts for logging
-        _mysqlContext = serviceProvider.GetService<MySqlLogDbContext>();
-        _sqliteContext = serviceProvider.GetService<SqliteLogDbContext>();
     }
 
     /// <summary>
@@ -276,8 +274,8 @@ public class ApiClientTestController : ControllerBase
     /// <summary>
     /// 记录API测试请求日志（incoming request to our server）
     /// Log API test request (incoming request to our server)
-    /// 非阻塞方式
-    /// Non-blocking method
+    /// 使用Channel队列，零阻塞，零线程消耗
+    /// Uses Channel queue, zero blocking, zero thread consumption
     /// </summary>
     private void LogApiTestRequest(
         string apiClientName, 
@@ -309,39 +307,15 @@ public class ApiClientTestController : ControllerBase
                 ErrorMessage = response.ErrorMessage
             };
 
-            // 使用 Task.Run 异步保存，避免阻塞主线程
-            // Use Task.Run to save asynchronously, avoiding blocking the main thread
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // Try to save to MySQL first, then SQLite if MySQL is not available
-                    if (_mysqlContext != null)
-                    {
-                        await _mysqlContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
-                        await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
-                        _logger.LogDebug("API测试日志已保存到MySQL，ApiClient: {ApiClientName}", apiClientName);
-                    }
-                    else if (_sqliteContext != null)
-                    {
-                        await _sqliteContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
-                        await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
-                        _logger.LogDebug("API测试日志已保存到SQLite，ApiClient: {ApiClientName}", apiClientName);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("无法保存API测试日志，数据库上下文未配置");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "保存API测试日志时发生错误");
-                }
-            }, CancellationToken.None);
+            // 通过后台服务Channel队列入队，非阻塞
+            // Enqueue via background service Channel queue, non-blocking
+            _apiRequestLogBackgroundService.EnqueueLog(requestLog);
+            
+            _logger.LogDebug("API测试日志已入队，ApiClient: {ApiClientName}", apiClientName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "创建API测试日志时发生错误");
+            _logger.LogError(ex, "入队API测试日志时发生错误");
         }
     }
 
@@ -361,7 +335,7 @@ public class ApiClientTestController : ControllerBase
 
             // 通过后台服务Channel队列入队，非阻塞
             // Enqueue via background service Channel queue, non-blocking
-            _logBackgroundService.EnqueueLog(apiLog);
+            _wcsApiLogBackgroundService.EnqueueLog(apiLog);
             
             _logger.LogDebug(
                 "WCS API通信日志已入队，ApiClient: {ApiClientName}, ParcelId: {ParcelId}, Success: {Success}",

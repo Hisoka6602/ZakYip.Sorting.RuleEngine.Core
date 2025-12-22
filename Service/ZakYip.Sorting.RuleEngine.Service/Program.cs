@@ -445,6 +445,15 @@ try
                 services.AddSingleton<WcsApiLogBackgroundService>();
                 services.AddHostedService(sp => sp.GetRequiredService<WcsApiLogBackgroundService>());
 
+                // 注册API请求日志后台服务（Singleton + HostedService）
+                // Register API request log background service (Singleton + HostedService)
+                var useMySql = appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString);
+                services.AddSingleton(sp => new ApiRequestLogBackgroundService(
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILogger<ApiRequestLogBackgroundService>>(),
+                    useMySql));
+                services.AddHostedService(sp => sp.GetRequiredService<ApiRequestLogBackgroundService>());
+
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();

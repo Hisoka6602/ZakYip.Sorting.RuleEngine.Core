@@ -10,6 +10,7 @@ using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 using ZakYip.Sorting.RuleEngine.Service.API;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Controllers;
@@ -23,7 +24,8 @@ public class ApiClientTestControllerTests
     private readonly Mock<ILogger<ApiClientTestController>> _mockLogger;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IWcsApiAdapter> _mockWcsApiAdapter;
-    private readonly Mock<WcsApiLogBackgroundService> _mockLogBackgroundService;
+    private readonly Mock<WcsApiLogBackgroundService> _mockWcsApiLogBackgroundService;
+    private readonly Mock<ApiRequestLogBackgroundService> _mockApiRequestLogBackgroundService;
     private readonly ApiClientTestController _controller;
 
     public ApiClientTestControllerTests()
@@ -34,10 +36,23 @@ public class ApiClientTestControllerTests
         
         // Create mock for WcsApiLogBackgroundService
         var mockServiceScopeFactory = new Mock<IServiceScopeFactory>();
-        var mockLoggerForBgService = new Mock<ILogger<WcsApiLogBackgroundService>>();
-        _mockLogBackgroundService = new Mock<WcsApiLogBackgroundService>(
+        var mockLoggerForWcsBgService = new Mock<ILogger<WcsApiLogBackgroundService>>();
+        _mockWcsApiLogBackgroundService = new Mock<WcsApiLogBackgroundService>(
             mockServiceScopeFactory.Object, 
-            mockLoggerForBgService.Object);
+            mockLoggerForWcsBgService.Object)
+        {
+            CallBase = false
+        };
+
+        // Create mock for ApiRequestLogBackgroundService
+        var mockLoggerForApiRequestBgService = new Mock<ILogger<ApiRequestLogBackgroundService>>();
+        _mockApiRequestLogBackgroundService = new Mock<ApiRequestLogBackgroundService>(
+            mockServiceScopeFactory.Object,
+            mockLoggerForApiRequestBgService.Object,
+            false)
+        {
+            CallBase = false
+        };
 
         // Setup mock WcsApiAdapter in service provider
         _mockServiceProvider.Setup(sp => sp.GetService(typeof(IWcsApiAdapter)))
@@ -46,7 +61,8 @@ public class ApiClientTestControllerTests
         _controller = new ApiClientTestController(
             _mockLogger.Object,
             _mockServiceProvider.Object,
-            _mockLogBackgroundService.Object
+            _mockWcsApiLogBackgroundService.Object,
+            _mockApiRequestLogBackgroundService.Object
         );
 
         // Setup HttpContext
@@ -386,15 +402,28 @@ public class ApiClientTestControllerTests
             .Returns(null); // 返回 null 表示未配置
         
         var mockServiceScopeFactory = new Mock<IServiceScopeFactory>();
-        var mockLoggerForBgService = new Mock<ILogger<WcsApiLogBackgroundService>>();
-        var mockLogBackgroundService = new Mock<WcsApiLogBackgroundService>(
+        var mockLoggerForWcsBgService = new Mock<ILogger<WcsApiLogBackgroundService>>();
+        var mockWcsLogBackgroundService = new Mock<WcsApiLogBackgroundService>(
             mockServiceScopeFactory.Object, 
-            mockLoggerForBgService.Object);
+            mockLoggerForWcsBgService.Object)
+        {
+            CallBase = false
+        };
+
+        var mockLoggerForApiRequestBgService = new Mock<ILogger<ApiRequestLogBackgroundService>>();
+        var mockApiRequestLogBackgroundService = new Mock<ApiRequestLogBackgroundService>(
+            mockServiceScopeFactory.Object,
+            mockLoggerForApiRequestBgService.Object,
+            false)
+        {
+            CallBase = false
+        };
 
         var controller = new ApiClientTestController(
             _mockLogger.Object,
             mockServiceProvider.Object,
-            mockLogBackgroundService.Object
+            mockWcsLogBackgroundService.Object,
+            mockApiRequestLogBackgroundService.Object
         );
 
         controller.ControllerContext = new ControllerContext
