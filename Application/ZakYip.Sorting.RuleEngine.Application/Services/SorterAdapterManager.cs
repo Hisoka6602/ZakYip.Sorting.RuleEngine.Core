@@ -14,6 +14,12 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// </summary>
 public class SorterAdapterManager : ISorterAdapterManager
 {
+    // 类型名称常量 / Type name constants
+    internal const string TcpSorterAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter.TcpSorterAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
+    internal const string DownstreamTcpJsonServerTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer, ZakYip.Sorting.RuleEngine.Infrastructure";
+    internal const string ChuteAssignmentNotificationTypeName = "ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream.ChuteAssignmentNotification, ZakYip.Sorting.RuleEngine.Application";
+    internal const string ChuteAssignmentType = "ChuteAssignment";
+
     private readonly ILogger<SorterAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
@@ -21,7 +27,7 @@ public class SorterAdapterManager : ISorterAdapterManager
     private ISorterAdapter? _currentAdapter;
     private object? _tcpServer; // DownstreamTcpJsonServer instance for Server mode
     private bool _isConnected;
-    private readonly object _lock = new();
+    private readonly object _adapterLock = new();
 
     public SorterAdapterManager(
         ILogger<SorterAdapterManager> logger,
@@ -43,21 +49,23 @@ public class SorterAdapterManager : ISorterAdapterManager
                 "开始连接下游分拣机: Protocol={Protocol}, ConnectionMode={ConnectionMode}, Host={Host}, Port={Port}",
                 config.Protocol, config.ConnectionMode, config.Host, config.Port);
 
-            lock (_lock)
+            ISorterAdapter adapter;
+            lock (_adapterLock)
             {
                 // 保存配置
                 _currentConfig = config;
 
                 // 根据协议类型和连接模式创建相应的适配器
                 // Create adapter based on protocol type and connection mode
-                _currentAdapter = CreateAdapterForProtocol(config);
+                adapter = CreateAdapterForProtocol(config);
+                _currentAdapter = adapter;
 
                 _isConnected = true;
             }
 
             _logger.LogInformation(
                 "下游分拣机适配器已创建: Protocol={Protocol}, ConnectionMode={ConnectionMode}, AdapterName={AdapterName}", 
-                config.Protocol, config.ConnectionMode, _currentAdapter.AdapterName);
+                config.Protocol, config.ConnectionMode, adapter.AdapterName);
             
             await Task.CompletedTask;
         }
@@ -108,7 +116,7 @@ public class SorterAdapterManager : ISorterAdapterManager
         
         // 使用反射创建 TcpSorterAdapter，避免直接引用 Infrastructure 层
         // Use reflection to create TcpSorterAdapter to avoid direct reference to Infrastructure layer
-        var adapterType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter.TcpSorterAdapter, ZakYip.Sorting.RuleEngine.Infrastructure");
+        var adapterType = Type.GetType(TcpSorterAdapterTypeName);
         
         if (adapterType == null)
         {
@@ -142,7 +150,7 @@ public class SorterAdapterManager : ISorterAdapterManager
             // Server mode: listen on port, accept connections from downstream devices
             
             // 使用反射创建 DownstreamTcpJsonServer
-            var serverType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer, ZakYip.Sorting.RuleEngine.Infrastructure");
+            var serverType = Type.GetType(DownstreamTcpJsonServerTypeName);
             
             if (serverType == null)
             {
@@ -161,10 +169,33 @@ public class SorterAdapterManager : ISorterAdapterManager
 
             // 启动 TCP Server（通过反射调用 StartAsync 方法）
             var startAsyncMethod = serverType.GetMethod("StartAsync");
-            if (startAsyncMethod != null)
+            if (startAsyncMethod == null)
             {
-                var startTask = startAsyncMethod.Invoke(_tcpServer, new object[] { CancellationToken.None }) as Task;
-                startTask?.Wait(); // 同步等待启动完成
+                throw new InvalidOperationException("DownstreamTcpJsonServer 类型缺少 StartAsync 方法 / DownstreamTcpJsonServer type does not contain StartAsync method");
+            }
+
+            Task? startTask;
+            try
+            {
+                startTask = startAsyncMethod.Invoke(_tcpServer, new object[] { CancellationToken.None }) as Task;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("启动 DownstreamTcpJsonServer 时调用 StartAsync 失败 / Failed to invoke StartAsync when starting DownstreamTcpJsonServer", ex);
+            }
+
+            if (startTask == null)
+            {
+                throw new InvalidOperationException("DownstreamTcpJsonServer.StartAsync 返回了空任务 / DownstreamTcpJsonServer.StartAsync returned null task");
+            }
+
+            try
+            {
+                startTask.Wait(); // 同步等待启动完成 / Synchronously wait for startup to complete
+            }
+            catch (AggregateException ex)
+            {
+                throw new InvalidOperationException("启动 DownstreamTcpJsonServer 时发生错误 / Error occurred while starting DownstreamTcpJsonServer", ex);
             }
 
             _logger.LogInformation(
@@ -173,7 +204,7 @@ public class SorterAdapterManager : ISorterAdapterManager
 
             // 创建一个适配器包装器，将 DownstreamTcpJsonServer 的发送功能包装为 ISorterAdapter
             // Create an adapter wrapper to wrap DownstreamTcpJsonServer's send functionality as ISorterAdapter
-            return new TcpServerAdapterWrapper(_tcpServer, serverType, _logger);
+            return new TcpServerAdapterWrapper(_tcpServer, serverType, _logger, _clock);
         }
         else
         {
@@ -223,7 +254,7 @@ public class SorterAdapterManager : ISorterAdapterManager
                 _logger.LogInformation("TCP Server 已停止");
             }
 
-            lock (_lock)
+            lock (_adapterLock)
             {
                 // 清理适配器资源
                 if (_currentAdapter is IDisposable disposable)
@@ -248,7 +279,7 @@ public class SorterAdapterManager : ISorterAdapterManager
         try
         {
             ISorterAdapter? adapter;
-            lock (_lock)
+            lock (_adapterLock)
             {
                 if (!_isConnected || _currentAdapter == null)
                 {
@@ -280,20 +311,23 @@ public class SorterAdapterManager : ISorterAdapterManager
 /// 将 DownstreamTcpJsonServer 包装为 ISorterAdapter 接口
 /// Wraps DownstreamTcpJsonServer as ISorterAdapter interface
 /// </summary>
-file class TcpServerAdapterWrapper : ISorterAdapter
+file class TcpServerAdapterWrapper : ISorterAdapter, IDisposable
 {
     private readonly object _server;
     private readonly Type _serverType;
     private readonly ILogger _logger;
+    private readonly ISystemClock _clock;
+    private bool _disposed;
 
     public string AdapterName => "TouchSocket-TCP-Server";
     public string ProtocolType => "TCP";
 
-    public TcpServerAdapterWrapper(object server, Type serverType, ILogger logger)
+    public TcpServerAdapterWrapper(object server, Type serverType, ILogger logger, ISystemClock clock)
     {
         _server = server;
         _serverType = serverType;
         _logger = logger;
+        _clock = clock;
     }
 
     /// <summary>
@@ -304,9 +338,23 @@ file class TcpServerAdapterWrapper : ISorterAdapter
     {
         try
         {
+            // 使用 TryParse 安全解析 ParcelId
+            if (!long.TryParse(parcelId, out var parcelIdValue))
+            {
+                _logger.LogWarning("解析 ParcelId 失败，输入值无效: {ParcelId}", parcelId);
+                return false;
+            }
+
+            // 使用 TryParse 安全解析 ChuteId
+            if (!long.TryParse(chuteNumber, out var chuteIdValue))
+            {
+                _logger.LogWarning("解析 ChuteId 失败，输入值无效: {ChuteNumber}", chuteNumber);
+                return false;
+            }
+
             // 构造 ChuteAssignmentNotification 对象
             // Build ChuteAssignmentNotification object
-            var notificationType = Type.GetType("ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream.ChuteAssignmentNotification, ZakYip.Sorting.RuleEngine.Application");
+            var notificationType = Type.GetType(SorterAdapterManager.ChuteAssignmentNotificationTypeName);
             
             if (notificationType == null)
             {
@@ -322,10 +370,10 @@ file class TcpServerAdapterWrapper : ISorterAdapter
             }
 
             // 设置属性：Type, ParcelId, ChuteId, AssignedAt
-            notificationType.GetProperty("Type")?.SetValue(notification, "ChuteAssignment");
-            notificationType.GetProperty("ParcelId")?.SetValue(notification, long.Parse(parcelId));
-            notificationType.GetProperty("ChuteId")?.SetValue(notification, long.Parse(chuteNumber));
-            notificationType.GetProperty("AssignedAt")?.SetValue(notification, DateTimeOffset.Now);
+            notificationType.GetProperty("Type")?.SetValue(notification, SorterAdapterManager.ChuteAssignmentType);
+            notificationType.GetProperty("ParcelId")?.SetValue(notification, parcelIdValue);
+            notificationType.GetProperty("ChuteId")?.SetValue(notification, chuteIdValue);
+            notificationType.GetProperty("AssignedAt")?.SetValue(notification, _clock.LocalNow);
 
             // 调用 DownstreamTcpJsonServer.SendChuteAssignmentAsync 方法
             var sendMethod = _serverType.GetMethod("SendChuteAssignmentAsync");
@@ -359,6 +407,26 @@ file class TcpServerAdapterWrapper : ISorterAdapter
     {
         // Server 模式下，只要服务器在运行就认为已连接
         // In Server mode, considered connected as long as the server is running
-        return Task.FromResult(true);
+        return Task.FromResult(!_disposed);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        
+        try
+        {
+            if (_server is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "释放 TCP Server 资源时发生异常");
+        }
+        
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

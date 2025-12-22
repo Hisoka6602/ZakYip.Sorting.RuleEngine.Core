@@ -14,6 +14,11 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// </summary>
 public class DwsAdapterManager : IDwsAdapterManager
 {
+    // 类型名称常量 / Type name constants
+    private const string TouchSocketDwsTcpClientAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsTcpClientAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
+    private const string TouchSocketDwsAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
+    private const string DwsDataParserTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Services.DwsDataParser, ZakYip.Sorting.RuleEngine.Infrastructure";
+
     private readonly ILogger<DwsAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ISystemClock _clock;
@@ -23,7 +28,7 @@ public class DwsAdapterManager : IDwsAdapterManager
     private IDwsAdapter? _currentAdapter;
     private object? _tcpServer; // For Server mode: UpstreamTcpServer or similar
     private bool _isConnected;
-    private readonly object _lock = new();
+    private readonly object _adapterLock = new();
 
     public DwsAdapterManager(
         ILogger<DwsAdapterManager> logger,
@@ -56,27 +61,26 @@ public class DwsAdapterManager : IDwsAdapterManager
                 throw new InvalidOperationException($"无法找到数据模板: {config.DataTemplateId} / Cannot find data template");
             }
 
-            lock (_lock)
+            IDwsAdapter adapter;
+            lock (_adapterLock)
             {
                 // 保存配置
                 _currentConfig = config;
 
                 // 根据模式创建相应的适配器
                 // Create adapter based on mode
-                _currentAdapter = CreateAdapterForMode(config, template);
+                adapter = CreateAdapterForMode(config, template);
+                _currentAdapter = adapter;
 
                 _isConnected = true;
             }
 
-            // 启动适配器 / Start adapter
-            if (_currentAdapter != null)
-            {
-                await _currentAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
-            }
+            // 启动适配器 / Start adapter (在锁外部执行异步操作)
+            await adapter.StartAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "DWS适配器已创建并启动: Mode={Mode}, AdapterName={AdapterName}",
-                config.Mode, _currentAdapter?.AdapterName);
+                config.Mode, adapter.AdapterName);
         }
         catch (Exception ex)
         {
@@ -103,37 +107,19 @@ public class DwsAdapterManager : IDwsAdapterManager
                 nameof(config.Mode));
         }
 
-        if (mode == "CLIENT")
-        {
-            // Client 模式：主动连接到上游DWS设备
-            // Client mode: actively connect to upstream DWS device
-            return CreateTcpClientAdapter(config, template);
-        }
-        else // SERVER
-        {
-            // Server 模式：监听端口，等待上游DWS设备连接
-            // Server mode: listen on port, wait for upstream DWS device connections
-            return CreateTcpServerAdapter(config, template);
-        }
+        // 根据模式创建对应的适配器 / Create adapter based on mode
+        return mode == "CLIENT"
+            ? CreateTcpClientAdapter(config, template)
+            : CreateTcpServerAdapter(config, template);
     }
 
     /// <summary>
-    /// 创建 TCP Client 适配器
-    /// Create TCP Client adapter
+    /// 创建 DWS 数据解析器
+    /// Create DWS data parser
     /// </summary>
-    private IDwsAdapter CreateTcpClientAdapter(DwsConfig config, DwsDataTemplate template)
+    private object CreateDwsDataParser()
     {
-        var adapterType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsTcpClientAdapter, ZakYip.Sorting.RuleEngine.Infrastructure");
-
-        if (adapterType == null)
-        {
-            throw new InvalidOperationException("无法加载 TouchSocketDwsTcpClientAdapter 类型 / Cannot load TouchSocketDwsTcpClientAdapter type");
-        }
-
-        var logger = _loggerFactory.CreateLogger(adapterType);
-
-        // 创建 DWS 数据解析器
-        var parserType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Services.DwsDataParser, ZakYip.Sorting.RuleEngine.Infrastructure");
+        var parserType = Type.GetType(DwsDataParserTypeName);
         if (parserType == null)
         {
             throw new InvalidOperationException("无法加载 DwsDataParser 类型 / Cannot load DwsDataParser type");
@@ -144,6 +130,27 @@ public class DwsAdapterManager : IDwsAdapterManager
         {
             throw new InvalidOperationException("无法创建 DwsDataParser 实例 / Cannot create DwsDataParser instance");
         }
+
+        return parser;
+    }
+
+    /// <summary>
+    /// 创建 TCP Client 适配器
+    /// Create TCP Client adapter
+    /// </summary>
+    private IDwsAdapter CreateTcpClientAdapter(DwsConfig config, DwsDataTemplate template)
+    {
+        var adapterType = Type.GetType(TouchSocketDwsTcpClientAdapterTypeName);
+
+        if (adapterType == null)
+        {
+            throw new InvalidOperationException("无法加载 TouchSocketDwsTcpClientAdapter 类型 / Cannot load TouchSocketDwsTcpClientAdapter type");
+        }
+
+        var logger = _loggerFactory.CreateLogger(adapterType);
+
+        // 创建 DWS 数据解析器
+        var parser = CreateDwsDataParser();
 
         // TouchSocketDwsTcpClientAdapter构造函数：
         // (string host, int port, DwsDataTemplate dataTemplate, ILogger logger, 
@@ -179,7 +186,7 @@ public class DwsAdapterManager : IDwsAdapterManager
     /// </summary>
     private IDwsAdapter CreateTcpServerAdapter(DwsConfig config, DwsDataTemplate template)
     {
-        var adapterType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws.TouchSocketDwsAdapter, ZakYip.Sorting.RuleEngine.Infrastructure");
+        var adapterType = Type.GetType(TouchSocketDwsAdapterTypeName);
 
         if (adapterType == null)
         {
@@ -189,17 +196,7 @@ public class DwsAdapterManager : IDwsAdapterManager
         var logger = _loggerFactory.CreateLogger(adapterType);
 
         // 创建 DWS 数据解析器
-        var parserType = Type.GetType("ZakYip.Sorting.RuleEngine.Infrastructure.Services.DwsDataParser, ZakYip.Sorting.RuleEngine.Infrastructure");
-        if (parserType == null)
-        {
-            throw new InvalidOperationException("无法加载 DwsDataParser 类型 / Cannot load DwsDataParser type");
-        }
-
-        var parser = Activator.CreateInstance(parserType, _clock);
-        if (parser == null)
-        {
-            throw new InvalidOperationException("无法创建 DwsDataParser 实例 / Cannot create DwsDataParser instance");
-        }
+        var parser = CreateDwsDataParser();
 
         // TouchSocketDwsAdapter构造函数：
         // (string host, int port, ILogger logger, ICommunicationLogRepository communicationLogRepository,
@@ -283,7 +280,7 @@ public class DwsAdapterManager : IDwsAdapterManager
                 _logger.LogInformation("DWS TCP Server 已停止");
             }
 
-            lock (_lock)
+            lock (_adapterLock)
             {
                 _currentAdapter = null;
                 _isConnected = false;
