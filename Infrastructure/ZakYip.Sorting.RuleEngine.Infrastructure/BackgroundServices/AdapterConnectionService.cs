@@ -40,24 +40,15 @@ public class AdapterConnectionService : IHostedService
     {
         _logger.LogInformation("开始初始化适配器连接 / Starting adapter connection initialization");
 
-        try
-        {
-            using var scope = _serviceProvider.CreateScope();
-            
-            // 连接DWS适配器 / Connect DWS adapter
-            await ConnectDwsIfEnabledAsync(scope, cancellationToken).ConfigureAwait(false);
-            
-            // 连接分拣机适配器 / Connect Sorter adapter
-            await ConnectSorterIfEnabledAsync(scope, cancellationToken).ConfigureAwait(false);
-            
-            _logger.LogInformation("适配器连接初始化完成 / Adapter connection initialization completed");
-        }
-        catch (Exception ex)
-        {
-            // 记录错误但不抛出异常，允许应用继续启动
-            // Log error but don't throw exception, allow application to continue starting
-            _logger.LogError(ex, "适配器连接初始化失败 / Adapter connection initialization failed");
-        }
+        using var scope = _serviceProvider.CreateScope();
+        
+        // 连接DWS适配器 / Connect DWS adapter
+        await ConnectDwsIfEnabledAsync(scope, cancellationToken).ConfigureAwait(false);
+        
+        // 连接分拣机适配器 / Connect Sorter adapter
+        await ConnectSorterIfEnabledAsync(scope, cancellationToken).ConfigureAwait(false);
+        
+        _logger.LogInformation("适配器连接初始化完成 / Adapter connection initialization completed");
     }
 
     /// <summary>
@@ -93,11 +84,29 @@ public class AdapterConnectionService : IHostedService
                 "DWS连接成功 / DWS connection successful: Mode={Mode}, Host={Host}:{Port}",
                 config.Mode, config.Host, config.Port);
         }
+        catch (InvalidOperationException ex)
+        {
+            // 配置错误或适配器初始化失败 / Configuration error or adapter initialization failure
+            _logger.LogError(ex, 
+                "DWS适配器初始化失败，请检查配置 / DWS adapter initialization failed, please check configuration");
+        }
+        catch (System.Net.Sockets.SocketException ex)
+        {
+            // 网络连接失败（可恢复） / Network connection failure (recoverable)
+            _logger.LogWarning(ex, 
+                "DWS网络连接失败，稍后将自动重试 / DWS network connection failed, will retry automatically later");
+        }
+        catch (TimeoutException ex)
+        {
+            // 连接超时（可恢复） / Connection timeout (recoverable)
+            _logger.LogWarning(ex, 
+                "DWS连接超时，稍后将自动重试 / DWS connection timeout, will retry automatically later");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DWS连接失败 / DWS connection failed");
-            // 不抛出异常，允许应用继续启动
-            // Don't throw exception, allow application to continue starting
+            // 其他未预期错误 / Other unexpected errors
+            _logger.LogError(ex, 
+                "DWS连接时发生未预期错误 / Unexpected error occurred during DWS connection");
         }
     }
 
@@ -134,11 +143,29 @@ public class AdapterConnectionService : IHostedService
                 "分拣机连接成功 / Sorter connection successful: Protocol={Protocol}, Host={Host}:{Port}",
                 config.Protocol, config.Host, config.Port);
         }
+        catch (InvalidOperationException ex)
+        {
+            // 配置错误或适配器初始化失败 / Configuration error or adapter initialization failure
+            _logger.LogError(ex, 
+                "分拣机适配器初始化失败，请检查配置 / Sorter adapter initialization failed, please check configuration");
+        }
+        catch (System.Net.Sockets.SocketException ex)
+        {
+            // 网络连接失败（可恢复） / Network connection failure (recoverable)
+            _logger.LogWarning(ex, 
+                "分拣机网络连接失败，稍后将自动重试 / Sorter network connection failed, will retry automatically later");
+        }
+        catch (TimeoutException ex)
+        {
+            // 连接超时（可恢复） / Connection timeout (recoverable)
+            _logger.LogWarning(ex, 
+                "分拣机连接超时，稍后将自动重试 / Sorter connection timeout, will retry automatically later");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "分拣机连接失败 / Sorter connection failed");
-            // 不抛出异常，允许应用继续启动
-            // Don't throw exception, allow application to continue starting
+            // 其他未预期错误 / Other unexpected errors
+            _logger.LogError(ex, 
+                "分拣机连接时发生未预期错误 / Unexpected error occurred during Sorter connection");
         }
     }
 
