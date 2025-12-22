@@ -1,10 +1,12 @@
-using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Diagnostics;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Domain.Constants;
-using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.Shared;
 
@@ -25,23 +27,29 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     private readonly ILogger<PostProcessingCenterApiClient> _logger;
     private readonly ISystemClock _clock;
     private readonly IPostProcessingCenterConfigRepository _configRepository;
-    
+
+    public ConcurrentDictionary<long, PostProcessingCenterParcelInfo> ParcelInfos = new();
+
     // 使用线程安全的实例级序列号
     private long _sequenceNumber;
+
     private readonly object _sequenceLock = new();
-    
+
     // 缓存配置以避免每次请求都查询数据库
     private PostProcessingCenterConfig? _cachedConfig;
+
     private DateTime _configCacheTime = DateTime.MinValue;
     private readonly TimeSpan _configCacheExpiry = TimeSpan.FromMinutes(5);
 
     // SOAP namespaces
     private const string SoapEnvelopeNamespace = "http://schemas.xmlsoap.org/soap/envelope/";
+
     private const string WebServiceNamespace = "http://serverNs.webservice.pcs.jdpt.chinapost.cn/";
 
     // 落格回调参数常量 / Chute landing callback parameter constants
     // 参照 PostApi.UploadInBackground 的参数格式
     private const string PlaceholderZero = "0";  // 占位符字段 / Placeholder field value
+
     private const string SuccessStatus = "1";     // 成功落格状态 / Success landing status
 
     public PostProcessingCenterApiClient(
@@ -71,7 +79,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
         // 从数据库加载配置
         var config = await _configRepository.GetByIdAsync(PostProcessingCenterConfig.SingletonId).ConfigureAwait(false);
-        
+
         if (config == null)
         {
             // 如果配置不存在，创建默认配置
@@ -90,7 +98,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 CreatedAt = _clock.LocalNow,
                 UpdatedAt = _clock.LocalNow
             };
-            
+
             await _configRepository.AddAsync(config).ConfigureAwait(false);
         }
 
@@ -122,7 +130,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        
+
         try
         {
             // Skip NoRead barcodes
@@ -131,7 +139,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 stopwatch.Stop();
                 const string notApplicableUrl = "SKIPPED://noread-barcode";
                 var skipMessage = "NoRead barcode skipped";
-                
+
                 // 生成示例curl命令，展示如果处理该条码时的请求格式
                 // Generate example curl command showing what the request would look like if processed
                 var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
@@ -141,7 +149,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     new Dictionary<string, string> { ["Content-Type"] = "application/json" },
                     exampleBody);
                 skipCurl = $"# NoRead barcode skipped - Example request format:\n{skipCurl}";
-                
+
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Success,
@@ -162,14 +170,14 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
             // 加载配置
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             if (!config.IsEnabled)
             {
                 stopwatch.Stop();
                 _logger.LogWarning("邮政处理中心API已禁用");
                 const string notApplicableUrl = "DISABLED://api-disabled";
                 var disabledMessage = "邮政处理中心API已禁用 / Postal processing center API disabled";
-                
+
                 // 生成示例curl命令，展示如果启用API时的请求格式
                 // Generate example curl command showing what the request would look like if enabled
                 var exampleBody = System.Text.Json.JsonSerializer.Serialize(new { barcode, operation = "scan", timestamp = _clock.LocalNow });
@@ -179,7 +187,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     new Dictionary<string, string> { ["Content-Type"] = "application/json" },
                     exampleBody);
                 disabledCurl = $"# API disabled - Example request format:\n{disabledCurl}";
-                
+
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Failure,
@@ -214,29 +222,29 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
-            
+
             // 生成请求头信息用于日志记录
             var requestHeaders = "Content-Type: text/xml; charset=utf-8";
-            
+
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
                     ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
-            
+
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
-            
+
             stopwatch.Stop();
-            
+
             // 获取响应头信息
             var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
@@ -263,7 +271,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             }
             else
             {
-                _logger.LogWarning("扫描包裹失败（邮政处理中心），条码: {Barcode}, 状态码: {StatusCode}", 
+                _logger.LogWarning("扫描包裹失败（邮政处理中心），条码: {Barcode}, 状态码: {StatusCode}",
                     barcode, response.StatusCode);
 
                 return new WcsApiResponse
@@ -293,10 +301,10 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
-            
+
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             // 构造SOAP请求用于生成curl（即使异常也需要生成curl）
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
@@ -363,10 +371,10 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        
+
         try
         {
-            _logger.LogDebug("请求格口（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}", 
+            _logger.LogDebug("请求格口（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}",
                 parcelId, dwsData.Barcode);
 
             // 先提交扫描信息
@@ -407,15 +415,15 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
-            
+
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
-            
+
             stopwatch.Stop();
-            
+
             // 获取响应头信息
             var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
@@ -429,6 +437,38 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                     "请求格口成功（邮政处理中心），包裹ID: {ParcelId}, 条码: {Barcode}, 格口: {Chute}, 耗时: {Duration}ms",
                     parcelId, dwsData.Barcode, chute, stopwatch.ElapsedMilliseconds);
 
+                //需要在这里加上格口的解析
+                if (!string.IsNullOrWhiteSpace(responseContent))
+                {
+                    var pattern = @"#HEAD::(.*?)::\|\|#END";
+                    var match = Regex.Match(responseContent, pattern);
+                    if (match.Success)
+                    {
+                        // Extract the content and split by '::'
+                        var RegexContent = match.Groups[1].Value;
+                        var parts = RegexContent.Split(new[] { "::" }, StringSplitOptions.None);
+
+                        if (parts.Length > 7 && parts[6].Length >= 8)
+                        {
+                            var exit = $"格口:[{parts[6][..4]}]";
+                            //暂时不判断备用格口
+                            responseContent += exit;
+                        }
+                        //缓存信息
+                        if (!ParcelInfos.ContainsKey(Convert.ToInt64(parcelId)))
+                        {
+                            var parcelInfo = new PostProcessingCenterParcelInfo
+                            {
+                                MailRouteCode = parts[1],
+                                DirectionChuteCode = parts[3],
+                                MailKind = parts[5],
+                                TargetChuteId = Convert.ToInt64((parts[6][..4])),
+                                PlanId = parts[2]
+                            };
+                            ParcelInfos.TryAdd(Convert.ToInt64(parcelId), parcelInfo);
+                        }
+                    }
+                }
                 return new WcsApiResponse
                 {
                     RequestStatus = ApiRequestStatus.Success,
@@ -476,21 +516,21 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "请求格口异常（邮政处理中心），包裹ID: {ParcelId}, 耗时: {Duration}ms", 
+            _logger.LogError(ex, "请求格口异常（邮政处理中心），包裹ID: {ParcelId}, 耗时: {Duration}ms",
                 parcelId, stopwatch.ElapsedMilliseconds);
 
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
-            
+
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.UploadData
             var seqNum = GetNextSequenceNumber();
             var yearMonth = _clock.LocalNow.ToString("yyyyMM");
             var sequenceId = $"{yearMonth}{config.WorkshopCode}FJ{seqNum.ToString().PadLeft(9, '0')}";
-            
+
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(sequenceId).Append("::")
@@ -552,20 +592,20 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
 
         const string notApplicableUrl = "NOT_IMPLEMENTED://upload-image";
         var notImplementedMessage = "邮政处理中心图片上传功能未实现 / Postal processing center image upload feature not implemented";
-        
+
         // 生成示例curl命令，展示如果实现该功能时的请求格式
         // Generate example curl command showing what the request would look like if implemented
         var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
             "POST",
             notApplicableUrl,
-            new Dictionary<string, string> 
-            { 
+            new Dictionary<string, string>
+            {
                 ["Content-Type"] = $"multipart/form-data; boundary=----WebKitFormBoundary",
                 ["X-Barcode"] = barcode
             },
             $"------WebKitFormBoundary\nContent-Disposition: form-data; name=\"file\"; filename=\"{barcode}.jpg\"\nContent-Type: {contentType}\n\n[Binary image data: {imageData.Length} bytes]\n------WebKitFormBoundary--");
         curlCommand = $"# Feature not implemented - Example request format:\n{curlCommand}";
-        
+
         return Task.FromResult(new WcsApiResponse
         {
             RequestStatus = ApiRequestStatus.Success,
@@ -589,7 +629,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     /// Chute landing callback (SOAP method: getYJLG)
     /// 对应PostApi.UploadInBackground C#方法，实际SOAP方法名: getYJLG
     /// 对应参考实现: https://github.com/Hisoka6602/JayTom.Dws 分支[聚水潭(正式)] PostApi.UploadInBackground
-    /// 参数拼接格式 / Parameter format (22 fields): 
+    /// 参数拼接格式 / Parameter format (22 fields):
     /// #HEAD::{DeviceId}::{barcode}::{0}::{0}::{EmployeeNumber}::{0}::{timestamp}::{routingDirection}::{lcgk}::{mailType}::{chuteCode}::{WorkshopCode}::{1}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{0}::{playId}::||#END
     /// </summary>
     public async Task<WcsApiResponse> NotifyChuteLandingAsync(
@@ -600,10 +640,10 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
     {
         var stopwatch = Stopwatch.StartNew();
         var requestTime = _clock.LocalNow;
-        
+        ParcelInfos.TryGetValue(Convert.ToInt64(parcelId), out var info);
         try
         {
-            _logger.LogDebug("落格回调（邮政处理中心），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}", 
+            _logger.LogDebug("落格回调（邮政处理中心），包裹ID: {ParcelId}, 格口: {ChuteId}, 条码: {Barcode}",
                 parcelId, chuteId, barcode);
 
             // 加载配置
@@ -615,17 +655,17 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
                 .Append(barcode).Append("::")
-                .Append(PlaceholderZero).Append("::")  // 参数3
-                .Append(PlaceholderZero).Append("::")  // 参数4
-                .Append(config.EmployeeNumber).Append("::")
-                .Append(PlaceholderZero).Append("::")  // 参数6
-                .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
-                .Append(PlaceholderZero).Append("::")  // routingDirection
-                .Append(PlaceholderZero).Append("::")  // lcgk
-                .Append(PlaceholderZero).Append("::")  // mailType
+                .Append(PlaceholderZero).Append("::")  // 实际重量
+                .Append(PlaceholderZero).Append("::")  // 供包台号
+                .Append(config.EmployeeNumber).Append("::")//操作员编号
+                .Append(PlaceholderZero).Append("::")  // 小车编号
+                .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")//落格时间
+                .Append(info?.MailRouteCode ?? PlaceholderZero).Append("::")  // 路由代码
+                .Append(info?.TargetChuteId ?? 0).Append("::")  // 路向格口
+                .Append(info?.MailKind).Append("::")  //邮件种类
                 .Append(chuteId).Append("::")
                 .Append(config.WorkshopCode).Append("::")
-                .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
+                .Append(Convert.ToInt64(chuteId) == info?.TargetChuteId ? "1" : "2").Append("::")  // Status: 1=成功落格
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
@@ -634,35 +674,35 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
-                .Append(PlaceholderZero).Append("::")  // playId
+                .Append(info?.PlanId ?? PlaceholderZero).Append("::")  // playId
                 .Append("::")
                 .Append("||#END")
                 .ToString();
 
             var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
-            
+
             // 生成请求头信息用于日志记录
             var requestHeaders = "Content-Type: text/xml; charset=utf-8";
-            
+
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
                 "POST",
                 config.Url,
-                new Dictionary<string, string> 
-                { 
+                new Dictionary<string, string>
+                {
                     ["Content-Type"] = "text/xml; charset=utf-8",
                     ["SOAPAction"] = string.Empty
                 },
                 soapRequest);
-            
+
             using var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
 
             var response = await _httpClient.PostAsync(config.Url, content, cancellationToken).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseContent = Regex.Unescape(responseContent);
-            
+
             stopwatch.Stop();
-            
+
             // 获取响应头信息
             var responseHeaders = string.Join("\r\n", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"));
 
@@ -717,32 +757,32 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "落格回调异常（邮政处理中心），包裹ID: {ParcelId}, 格口: {ChuteId}", 
+            _logger.LogError(ex, "落格回调异常（邮政处理中心），包裹ID: {ParcelId}, 格口: {ChuteId}",
                 parcelId, chuteId);
 
             // 获取详细的异常信息，包括所有内部异常
             // Get detailed exception message including all inner exceptions
             var detailedMessage = ApiRequestHelper.GetDetailedExceptionMessage(ex);
-            
+
             // 加载配置以获取URL（如果可能）
             var config = await GetConfigAsync().ConfigureAwait(false);
-            
+
             // 构造SOAP请求用于生成curl（即使异常也需要生成curl）- 参照 PostApi.UploadInBackground
             var arg0 = new StringBuilder()
                 .Append("#HEAD::")
                 .Append(config.DeviceId).Append("::")
                 .Append(barcode).Append("::")
-                .Append(PlaceholderZero).Append("::")  // 参数3
-                .Append(PlaceholderZero).Append("::")  // 参数4
-                .Append(config.EmployeeNumber).Append("::")
-                .Append(PlaceholderZero).Append("::")  // 参数6
-                .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")
-                .Append(PlaceholderZero).Append("::")  // routingDirection
-                .Append(PlaceholderZero).Append("::")  // lcgk
-                .Append(PlaceholderZero).Append("::")  // mailType
+                .Append(PlaceholderZero).Append("::")  // 实际重量
+                .Append(PlaceholderZero).Append("::")  // 供包台号
+                .Append(config.EmployeeNumber).Append("::")//操作员编号
+                .Append(PlaceholderZero).Append("::")  // 小车编号
+                .Append(_clock.LocalNow.ToString("yyyyMMddHHmmss")).Append("::")//落格时间
+                .Append(info?.MailRouteCode ?? PlaceholderZero).Append("::")  // 路由代码
+                .Append(info?.TargetChuteId ?? 0).Append("::")  // 路向格口
+                .Append(info?.MailKind).Append("::")  //邮件种类
                 .Append(chuteId).Append("::")
                 .Append(config.WorkshopCode).Append("::")
-                .Append(SuccessStatus).Append("::")  // Status: 1=成功落格
+                .Append(Convert.ToInt64(chuteId) == info?.TargetChuteId ? "1" : "2").Append("::")  // Status: 1=成功落格
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
@@ -751,7 +791,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
                 .Append(PlaceholderZero).Append("::")
-                .Append(PlaceholderZero).Append("::")  // playId
+                .Append(info?.PlanId ?? PlaceholderZero).Append("::")  // playId
                 .Append("::")
                 .Append("||#END")
                 .ToString();
@@ -835,5 +875,36 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
         </web:{methodName}>
     </soapenv:Body>
 </soapenv:Envelope>";
+    }
+
+    /// <summary>
+    /// 集包中心邮件信息（契约模型）
+    /// </summary>
+    public sealed record class PostProcessingCenterParcelInfo
+    {
+        /// <summary>
+        /// 邮路代码
+        /// </summary>
+        public required string MailRouteCode { get; init; }
+
+        /// <summary>
+        /// 路向格口（业务定义的格口/路向编码）
+        /// </summary>
+        public required string DirectionChuteCode { get; init; }
+
+        /// <summary>
+        /// 邮件种类
+        /// </summary>
+        public required string MailKind { get; init; }
+
+        /// <summary>
+        /// 方案ID
+        /// </summary>
+        public required string PlanId { get; init; }
+
+        /// <summary>
+        /// 目标格口（目标格口ID/编号，按系统约定）
+        /// </summary>
+        public required long TargetChuteId { get; init; }
     }
 }
