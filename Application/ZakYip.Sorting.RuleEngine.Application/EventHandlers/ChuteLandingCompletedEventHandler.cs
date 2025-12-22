@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -15,6 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 public class ChuteLandingCompletedEventHandler : INotificationHandler<ChuteLandingCompletedEvent>
 {
     private readonly ILogger<ChuteLandingCompletedEventHandler> _logger;
+    private readonly IWcsApiAdapterFactory _apiAdapterFactory;
     private readonly ILogRepository _logRepository;
     private readonly IParcelInfoRepository _parcelInfoRepository;
     private readonly IParcelLifecycleNodeRepository _lifecycleRepository;
@@ -23,6 +25,7 @@ public class ChuteLandingCompletedEventHandler : INotificationHandler<ChuteLandi
 
     public ChuteLandingCompletedEventHandler(
         ILogger<ChuteLandingCompletedEventHandler> logger,
+        IWcsApiAdapterFactory apiAdapterFactory,
         ILogRepository logRepository,
         IParcelInfoRepository parcelInfoRepository,
         IParcelLifecycleNodeRepository lifecycleRepository,
@@ -30,6 +33,7 @@ public class ChuteLandingCompletedEventHandler : INotificationHandler<ChuteLandi
         ISystemClock clock)
     {
         _logger = logger;
+        _apiAdapterFactory = apiAdapterFactory;
         _logRepository = logRepository;
         _parcelInfoRepository = parcelInfoRepository;
         _lifecycleRepository = lifecycleRepository;
@@ -71,6 +75,30 @@ public class ChuteLandingCompletedEventHandler : INotificationHandler<ChuteLandi
             EventTime = notification.LandedAt,
             Description = $"落格完成: 实际格口={notification.ActualChute}, 目标格口={parcel.TargetChute}"
         };
+
+        // 通知WCS系统落格完成 / Notify WCS system about chute landing completion
+        try
+        {
+            await _apiAdapterFactory.GetActiveAdapter().NotifyChuteLandingAsync(
+                parcel.ParcelId,
+                notification.ActualChute,
+                parcel.TargetChute,
+                cancellationToken).ConfigureAwait(false);
+            
+            _logger.LogInformation(
+                "已通知WCS落格完成: ParcelId={ParcelId}, ActualChute={ActualChute}, TargetChute={TargetChute}",
+                parcel.ParcelId, notification.ActualChute, parcel.TargetChute);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, 
+                "通知WCS落格完成失败: ParcelId={ParcelId}, ActualChute={ActualChute}",
+                parcel.ParcelId, notification.ActualChute);
+            
+            await _logRepository.LogWarningAsync(
+                $"通知WCS落格完成失败: {parcel.ParcelId}",
+                ex.Message).ConfigureAwait(false);
+        }
 
         // 并行执行数据库和缓存操作，互不影响
         // Execute database and cache operations in parallel without waiting for each other

@@ -432,7 +432,6 @@ try
                 // Register application services (Singleton mode, except database)
                 services.AddSingleton<PerformanceMetricService>();
                 services.AddSingleton<IRuleEngineService, RuleEngineService>();
-                services.AddScoped<IParcelProcessingService, ParcelProcessingService>();
                 services.AddSingleton<RuleValidationService>();
                 services.AddScoped<IDataAnalysisService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.DataAnalysisService>();
                 services.AddSingleton<IMonitoringService, ZakYip.Sorting.RuleEngine.Infrastructure.Services.MonitoringService>();
