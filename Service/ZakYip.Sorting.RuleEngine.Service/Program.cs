@@ -207,6 +207,10 @@ try
                         services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelInfoRepository>();
                         services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelLifecycleNodeRepository>();
                         logger.Info("使用MySQL包裹信息仓储");
+                        
+                        // 注册包裹信息应用服务（Scoped）
+                        services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                        logger.Info("已注册包裹信息应用服务（Scoped）");
                     }
                     catch (Exception ex)
                     {
@@ -226,6 +230,10 @@ try
                         services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
                         services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
                         logger.Info("降级使用SQLite包裹信息仓储");
+                        
+                        // 注册包裹信息应用服务（Scoped）
+                        services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                        logger.Info("已注册包裹信息应用服务（Scoped）");
                     }
                 }
                 else
@@ -246,6 +254,10 @@ try
                     services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
                     services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
                     logger.Info("使用SQLite包裹信息仓储");
+                    
+                    // 注册包裹信息应用服务（Scoped）
+                    services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                    logger.Info("已注册包裹信息应用服务（Scoped）");
                 }
 
                 // 配置HttpClient用于WCS API
@@ -427,6 +439,20 @@ try
                 // 注册系统时钟（单例模式）
                 // Register system clock (Singleton mode)
                 services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock, ZakYip.Sorting.RuleEngine.Infrastructure.Services.SystemClock>();
+
+                // 注册WCS API通信日志后台服务（Singleton + HostedService）
+                // Register WCS API log background service (Singleton + HostedService)
+                services.AddSingleton<WcsApiLogBackgroundService>();
+                services.AddHostedService(sp => sp.GetRequiredService<WcsApiLogBackgroundService>());
+
+                // 注册API请求日志后台服务（Singleton + HostedService）
+                // Register API request log background service (Singleton + HostedService)
+                var useMySql = appSettings.MySql.Enabled && !string.IsNullOrEmpty(appSettings.MySql.ConnectionString);
+                services.AddSingleton(sp => new ApiRequestLogBackgroundService(
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILogger<ApiRequestLogBackgroundService>>(),
+                    useMySql));
+                services.AddHostedService(sp => sp.GetRequiredService<ApiRequestLogBackgroundService>());
 
                 // 注册应用服务（单例模式，除数据库外）
                 // Register application services (Singleton mode, except database)

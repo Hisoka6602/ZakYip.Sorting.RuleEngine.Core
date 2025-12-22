@@ -51,7 +51,7 @@ public class ParcelController : ControllerBase
     [ProducesResponseType(typeof(ParcelInfo), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<ParcelInfo>> GetParcel(
+    public async Task<ActionResult<ParcelInfo>> GetParcelById(
         [FromRoute] string parcelId,
         CancellationToken cancellationToken = default)
     {
@@ -73,6 +73,64 @@ public class ParcelController : ControllerBase
         {
             _logger.LogError(ex, "获取包裹详情时发生错误: ParcelId={ParcelId}", parcelId);
             return StatusCode(500, new { error = "获取包裹详情时发生内部错误", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 查询包裹列表（按创建时间倒序）
+    /// Query parcel list (ordered by creation time descending)
+    /// </summary>
+    /// <param name="page">页码（从1开始）/ Page number (1-based)</param>
+    /// <param name="pageSize">每页大小（最大1000）/ Page size (max 1000)</param>
+    /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
+    /// <returns>包裹列表和总数 / Parcel list and total count</returns>
+    /// <response code="200">成功返回包裹列表 / Successfully returns parcel list</response>
+    /// <response code="400">请求参数无效 / Invalid request parameters</response>
+    /// <response code="500">服务器内部错误 / Internal server error</response>
+    [HttpGet]
+    [SwaggerOperation(
+        Summary = "查询包裹列表",
+        Description = "查询包裹列表，按创建时间倒序排列，支持分页。使用 AsNoTracking 优化查询性能，适合高并发场景。",
+        OperationId = "GetParcels",
+        Tags = new[] { "Parcel" }
+    )]
+    [ProducesResponseType(typeof(ParcelSearchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ParcelSearchResponse>> GetParcels(
+        [FromQuery, SwaggerParameter("页码（从1开始）")] int page = 1,
+        [FromQuery, SwaggerParameter("每页大小（最大1000）")] int pageSize = 100,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var validationResult = ValidatePaginationParameters(page, pageSize);
+            if (validationResult != null)
+            {
+                return validationResult;
+            }
+
+            _logger.LogDebug("查询包裹列表: Page={Page}, PageSize={PageSize}", page, pageSize);
+
+            // 使用 SearchAsync 并按创建时间倒序查询
+            // Use SearchAsync and order by creation time descending
+            var (items, totalCount) = await _parcelRepository.SearchAsync(
+                status: null, 
+                lifecycleStage: null, 
+                bagId: null, 
+                startTime: null, 
+                endTime: null, 
+                page: page, 
+                pageSize: pageSize, 
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            return Ok(new ParcelSearchResponse(items, totalCount, page, pageSize, totalPages));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "查询包裹列表时发生错误");
+            return StatusCode(500, new { error = "查询包裹列表时发生内部错误", message = ex.Message });
         }
     }
 
@@ -110,14 +168,10 @@ public class ParcelController : ControllerBase
     {
         try
         {
-            if (page < 1)
+            var validationResult = ValidatePaginationParameters(page, pageSize);
+            if (validationResult != null)
             {
-                return BadRequest(new { error = "页码必须大于0" });
-            }
-
-            if (pageSize < 1 || pageSize > 1000)
-            {
-                return BadRequest(new { error = "每页大小必须在1-1000之间" });
+                return validationResult;
             }
 
             _logger.LogDebug("搜索包裹: Status={Status}, LifecycleStage={LifecycleStage}, BagId={BagId}, Page={Page}, PageSize={PageSize}",
@@ -134,6 +188,25 @@ public class ParcelController : ControllerBase
             _logger.LogError(ex, "搜索包裹时发生错误");
             return StatusCode(500, new { error = "搜索包裹时发生内部错误", message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// 验证分页参数
+    /// Validate pagination parameters
+    /// </summary>
+    private BadRequestObjectResult? ValidatePaginationParameters(int page, int pageSize)
+    {
+        if (page < 1)
+        {
+            return BadRequest(new { error = "页码必须大于0" });
+        }
+
+        if (pageSize < 1 || pageSize > 1000)
+        {
+            return BadRequest(new { error = "每页大小必须在1-1000之间" });
+        }
+
+        return null;
     }
 
     /// <summary>

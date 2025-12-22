@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Annotations;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Application.Mappers;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -15,6 +17,7 @@ using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostCollection;
 using ZakYip.Sorting.RuleEngine.Infrastructure.ApiClients.PostProcessingCenter;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 using Newtonsoft.Json;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
@@ -35,14 +38,18 @@ public class ApiClientTestController : ControllerBase
     private readonly WdtErpFlagshipApiClient? _wdtErpFlagshipApiClient;
     private readonly PostCollectionApiClient? _postCollectionApiClient;
     private readonly PostProcessingCenterApiClient? _postProcessingCenterApiClient;
-    private readonly MySqlLogDbContext? _mysqlContext;
-    private readonly SqliteLogDbContext? _sqliteContext;
+    private readonly WcsApiLogBackgroundService _wcsApiLogBackgroundService;
+    private readonly ApiRequestLogBackgroundService _apiRequestLogBackgroundService;
 
     public ApiClientTestController(
         ILogger<ApiClientTestController> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        WcsApiLogBackgroundService wcsApiLogBackgroundService,
+        ApiRequestLogBackgroundService apiRequestLogBackgroundService)
     {
         _logger = logger;
+        _wcsApiLogBackgroundService = wcsApiLogBackgroundService;
+        _apiRequestLogBackgroundService = apiRequestLogBackgroundService;
         
         // Try to get clients from DI, they may not be registered
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
@@ -50,10 +57,6 @@ public class ApiClientTestController : ControllerBase
         _wdtErpFlagshipApiClient = serviceProvider.GetService<WdtErpFlagshipApiClient>();
         _postCollectionApiClient = serviceProvider.GetService<PostCollectionApiClient>();
         _postProcessingCenterApiClient = serviceProvider.GetService<PostProcessingCenterApiClient>();
-        
-        // Get database contexts for logging
-        _mysqlContext = serviceProvider.GetService<MySqlLogDbContext>();
-        _sqliteContext = serviceProvider.GetService<SqliteLogDbContext>();
     }
 
     /// <summary>
@@ -248,8 +251,11 @@ public class ApiClientTestController : ControllerBase
                 FormattedCurl = response.FormattedCurl
             };
 
-            // Log the test request
-            await LogApiTestRequestAsync(clientName, request, testResponse).ConfigureAwait(false);
+            // Log the test request (incoming API request to our server) - non-blocking
+            LogApiTestRequest(clientName, request, testResponse);
+            
+            // Log the WCS API communication (outgoing API call to WCS/ERP) - non-blocking via Channel
+            LogWcsApiCommunication(response, clientName);
 
             _logger.LogInformation(
                 "{DisplayName} API测试完成，条码: {Barcode}, 方法: {Method}, 结果: {Success}",
@@ -266,10 +272,12 @@ public class ApiClientTestController : ControllerBase
     }
 
     /// <summary>
-    /// 记录API测试请求日志
-    /// Log API test request
+    /// 记录API测试请求日志（incoming request to our server）
+    /// Log API test request (incoming request to our server)
+    /// 使用Channel队列，零阻塞，零线程消耗
+    /// Uses Channel queue, zero blocking, zero thread consumption
     /// </summary>
-    private async Task LogApiTestRequestAsync(
+    private void LogApiTestRequest(
         string apiClientName, 
         ApiClientTestRequest request, 
         ApiClientTestResponse response)
@@ -299,27 +307,45 @@ public class ApiClientTestController : ControllerBase
                 ErrorMessage = response.ErrorMessage
             };
 
-            // Try to save to MySQL first, then SQLite if MySQL is not available
-            if (_mysqlContext != null)
-            {
-                await _mysqlContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
-                await _mysqlContext.SaveChangesAsync().ConfigureAwait(false);
-                _logger.LogDebug("API测试日志已保存到MySQL，ApiClient: {ApiClientName}", apiClientName);
-            }
-            else if (_sqliteContext != null)
-            {
-                await _sqliteContext.ApiRequestLogs.AddAsync(requestLog).ConfigureAwait(false);
-                await _sqliteContext.SaveChangesAsync().ConfigureAwait(false);
-                _logger.LogDebug("API测试日志已保存到SQLite，ApiClient: {ApiClientName}", apiClientName);
-            }
-            else
-            {
-                _logger.LogWarning("无法保存API测试日志，数据库上下文未配置");
-            }
+            // 通过后台服务Channel队列入队，非阻塞
+            // Enqueue via background service Channel queue, non-blocking
+            _apiRequestLogBackgroundService.EnqueueLog(requestLog);
+            
+            _logger.LogDebug("API测试日志已入队，ApiClient: {ApiClientName}", apiClientName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "保存API测试日志时发生错误");
+            _logger.LogError(ex, "入队API测试日志时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 记录WCS API通信日志（outgoing API call to WCS/ERP）
+    /// Log WCS API communication (outgoing API call to WCS/ERP)
+    /// 使用Channel队列，零阻塞，零线程消耗
+    /// Uses Channel queue, zero blocking, zero thread consumption
+    /// </summary>
+    private void LogWcsApiCommunication(WcsApiResponse response, string apiClientName)
+    {
+        try
+        {
+            // 使用共享映射器，避免代码重复（影分身）
+            // Use shared mapper to avoid code duplication (shadow clone)
+            var apiLog = WcsApiResponseMapper.ToApiCommunicationLog(response);
+
+            // 通过后台服务Channel队列入队，非阻塞
+            // Enqueue via background service Channel queue, non-blocking
+            _wcsApiLogBackgroundService.EnqueueLog(apiLog);
+            
+            _logger.LogDebug(
+                "WCS API通信日志已入队，ApiClient: {ApiClientName}, ParcelId: {ParcelId}, Success: {Success}",
+                apiClientName, response.ParcelId, apiLog.IsSuccess);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "入队WCS API通信日志时发生错误，ApiClient: {ApiClientName}", apiClientName);
+            // 不抛出异常，避免影响主业务流程
+            // Do not throw exception to avoid affecting main business flow
         }
     }
 
