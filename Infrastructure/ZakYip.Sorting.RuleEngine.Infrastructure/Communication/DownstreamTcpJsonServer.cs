@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
-using ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
@@ -21,7 +21,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 /// - 消息广播到所有连接的客户端
 /// - 事件驱动架构（无数据库依赖）
 /// </remarks>
-public sealed class DownstreamTcpJsonServer : IDisposable
+public sealed class DownstreamTcpJsonServer : IDownstreamCommunication, IDisposable
 {
     private readonly ILogger<DownstreamTcpJsonServer> _logger;
     private readonly ISystemClock _systemClock;
@@ -324,7 +324,9 @@ public sealed class DownstreamTcpJsonServer : IDisposable
                     ActualChuteId = notification.ActualChuteId,
                     CompletedAt = notification.CompletedAt,
                     IsSuccess = notification.IsSuccess,
-                    FinalStatus = notification.FinalStatus,
+                    FinalStatus = Enum.TryParse<Domain.Enums.ParcelFinalStatus>(notification.FinalStatus, ignoreCase: true, out var status)
+                        ? status
+                        : Domain.Enums.ParcelFinalStatus.ExecutionError,
                     FailureReason = notification.FailureReason,
                     ReceivedAt = _systemClock.LocalNow,
                     ClientId = clientId
@@ -334,6 +336,49 @@ public sealed class DownstreamTcpJsonServer : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[{LocalTime}] 解析落格完成通知失败", _systemClock.LocalNow);
+        }
+    }
+
+    /// <summary>
+    /// 广播格口分配通知到所有连接的客户端（JSON字符串重载）
+    /// Broadcast chute assignment to all connected clients (JSON string overload)
+    /// </summary>
+    public async Task BroadcastChuteAssignmentAsync(string chuteAssignmentJson)
+    {
+        var bytes = Encoding.UTF8.GetBytes(chuteAssignmentJson.TrimEnd('\n') + "\n");
+        
+        var disconnectedClients = new List<string>();
+
+        foreach (var kvp in _clients)
+        {
+            try
+            {
+                if (_service?.Clients.TryGetClient(kvp.Key, out var socketClient) ?? false)
+                {
+                    await socketClient.SendAsync(bytes);
+
+                    _logger.LogDebug(
+                        "[{LocalTime}] [服务端模式-广播] 已向客户端 {ClientId} 广播格口分配通知",
+                        _systemClock.LocalNow,
+                        kvp.Key);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[{LocalTime}] [服务端模式-广播失败] 向客户端 {ClientId} 广播消息失败: {Message}",
+                    _systemClock.LocalNow,
+                    kvp.Key,
+                    ex.Message);
+                disconnectedClients.Add(kvp.Key);
+            }
+        }
+
+        // 清理断开的客户端
+        foreach (var clientId in disconnectedClients)
+        {
+            _clients.TryRemove(clientId, out _);
         }
     }
 
@@ -355,43 +400,7 @@ public sealed class DownstreamTcpJsonServer : IDisposable
         };
 
         var json = JsonSerializer.Serialize(notification);
-        var bytes = Encoding.UTF8.GetBytes(json + "\n");
-
-        var disconnectedClients = new List<string>();
-
-        foreach (var kvp in _clients)
-        {
-            try
-            {
-                if (_service?.Clients.TryGetClient(kvp.Key, out var socketClient) ?? false)
-                {
-                    await socketClient.SendAsync(bytes);
-
-                    _logger.LogDebug(
-                        "[{LocalTime}] [服务端模式-广播] 已向客户端 {ClientId} 广播包裹 {ParcelId} 的格口分配: {ChuteId}",
-                        _systemClock.LocalNow,
-                        kvp.Key,
-                        parcelId,
-                        chuteId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "[{LocalTime}] [服务端模式-广播失败] 向客户端 {ClientId} 广播消息失败: {Message}",
-                    _systemClock.LocalNow,
-                    kvp.Key,
-                    ex.Message);
-                disconnectedClients.Add(kvp.Key);
-            }
-        }
-
-        // 清理断开的客户端
-        foreach (var clientId in disconnectedClients)
-        {
-            _clients.TryRemove(clientId, out _);
-        }
+        await BroadcastChuteAssignmentAsync(json);
     }
 
     private static void ValidateServerOptions(string host, int port)

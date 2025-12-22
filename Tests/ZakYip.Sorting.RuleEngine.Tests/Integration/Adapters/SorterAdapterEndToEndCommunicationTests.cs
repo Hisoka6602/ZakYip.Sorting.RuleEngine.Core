@@ -248,7 +248,7 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         var mockScope = new Mock<IServiceScope>();
         var mockServiceProvider = new Mock<IServiceProvider>();
         
-        mockClock.Setup(x => x.UtcNow).Returns(DateTimeOffset.Now);
+        mockClock.Setup(x => x.UtcNow).Returns(new DateTime(2024, 1, 1, 12, 0, 0));
 
         mockLogRepository.Setup(x => x.LogCommunicationAsync(
             It.IsAny<CommunicationType>(),
