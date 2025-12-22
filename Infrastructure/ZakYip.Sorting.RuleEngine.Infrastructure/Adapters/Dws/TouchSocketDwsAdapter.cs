@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
@@ -19,7 +20,7 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
 {
     private readonly ILogger<TouchSocketDwsAdapter> _logger;
-    private readonly ICommunicationLogRepository _communicationLogRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IDwsDataParser? _dataParser;
     private readonly DwsDataTemplate? _dataTemplate;
     private readonly string _host;
@@ -43,7 +44,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         string host,
         int port,
         ILogger<TouchSocketDwsAdapter> logger,
-        ICommunicationLogRepository communicationLogRepository,
+        IServiceScopeFactory serviceScopeFactory,
         IDwsDataParser? dataParser = null,
         DwsDataTemplate? dataTemplate = null,
         int maxConnections = 1000,
@@ -53,7 +54,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         _host = host;
         _port = port;
         _logger = logger;
-        _communicationLogRepository = communicationLogRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _dataParser = dataParser;
         _dataTemplate = dataTemplate;
         _maxConnections = maxConnections;
@@ -95,21 +96,34 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
             _isRunning = true;
             _logger.LogInformation("DWS TCP监听已启动: {Host}:{Port}", _host, _port);
 
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                $"DWS TCP监听已启动: {_host}:{_port}",
-                isSuccess: true);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    $"DWS TCP监听已启动: {_host}:{_port}",
+                    isSuccess: true);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "启动DWS TCP监听失败");
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                $"启动DWS TCP监听失败: {ex.Message}",
-                isSuccess: false,
-                errorMessage: ex.Message);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    $"启动DWS TCP监听失败: {ex.Message}",
+                    isSuccess: false,
+                    errorMessage: ex.Message);
+            }
             throw;
         }
     }
@@ -132,11 +146,18 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
             _isRunning = false;
 
             _logger.LogInformation("DWS TCP监听已停止");
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                "DWS TCP监听已停止",
-                isSuccess: true);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    "DWS TCP监听已停止",
+                    isSuccess: true);
+            }
         }
         catch (Exception ex)
         {
@@ -150,12 +171,18 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         {
             _logger.LogInformation("收到DWS数据: {Data}, 来自: {RemoteEndPoint}", data, client.IP);
 
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                data,
-                remoteAddress: client.IP?.ToString(),
-                isSuccess: true);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    data,
+                    remoteAddress: client.IP?.ToString(),
+                    isSuccess: true);
+            }
 
             DwsData? dwsData = null;
 
@@ -187,13 +214,20 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理DWS数据失败: {Data}", data);
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                data,
-                remoteAddress: client.IP?.ToString(),
-                isSuccess: false,
-                errorMessage: ex.Message);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    data,
+                    remoteAddress: client.IP?.ToString(),
+                    isSuccess: false,
+                    errorMessage: ex.Message);
+            }
         }
     }
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using TouchSocket.Core;
@@ -18,7 +19,7 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
     private const string DefaultTerminator = "\n"; // 默认终止符 / Default terminator
     
     private readonly ILogger<TouchSocketDwsTcpClientAdapter> _logger;
-    private readonly ICommunicationLogRepository _communicationLogRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IDwsDataParser _dataParser;
     private readonly string _host;
     private readonly int _port;
@@ -39,7 +40,7 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
         int port,
         DwsDataTemplate dataTemplate,
         ILogger<TouchSocketDwsTcpClientAdapter> logger,
-        ICommunicationLogRepository communicationLogRepository,
+        IServiceScopeFactory serviceScopeFactory,
         IDwsDataParser dataParser,
         bool autoReconnect = true,
         int reconnectIntervalSeconds = 5)
@@ -48,7 +49,7 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
         _port = port;
         _dataTemplate = dataTemplate;
         _logger = logger;
-        _communicationLogRepository = communicationLogRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _dataParser = dataParser;
         _autoReconnect = autoReconnect;
         _reconnectIntervalSeconds = reconnectIntervalSeconds;
@@ -105,21 +106,35 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
             await _tcpClient.ConnectAsync();
 
             _logger.LogInformation("DWS TCP客户端已连接: {Host}:{Port}", _host, _port);
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                $"DWS TCP客户端已连接: {_host}:{_port}",
-                isSuccess: true);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    $"DWS TCP客户端已连接: {_host}:{_port}",
+                    isSuccess: true);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "连接DWS TCP服务器失败");
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                $"连接DWS TCP服务器失败: {ex.Message}",
-                isSuccess: false,
-                errorMessage: ex.Message);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    $"连接DWS TCP服务器失败: {ex.Message}",
+                    isSuccess: false,
+                    errorMessage: ex.Message);
+            }
             throw;
         }
     }
@@ -166,11 +181,18 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
             _isRunning = false;
 
             _logger.LogInformation("DWS TCP客户端已断开");
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                "DWS TCP客户端已断开",
-                isSuccess: true);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    "DWS TCP客户端已断开",
+                    isSuccess: true);
+            }
         }
         catch (Exception ex)
         {
@@ -184,12 +206,18 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
         {
             _logger.LogInformation("收到DWS数据: {Data}", data);
 
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                data,
-                remoteAddress: _host,
-                isSuccess: true);
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    data,
+                    remoteAddress: _host,
+                    isSuccess: true);
+            }
 
             // 使用数据解析器解析数据
             // Use data parser to parse data
@@ -202,13 +230,20 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理DWS数据失败: {Data}", data);
-            await _communicationLogRepository.LogCommunicationAsync(
-                CommunicationType.Tcp,
-                CommunicationDirection.Inbound,
-                data,
-                remoteAddress: _host,
-                isSuccess: false,
-                errorMessage: ex.Message);
+            
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var communicationLogRepository = scope.ServiceProvider.GetRequiredService<ICommunicationLogRepository>();
+                await communicationLogRepository.LogCommunicationAsync(
+                    CommunicationType.Tcp,
+                    CommunicationDirection.Inbound,
+                    data,
+                    remoteAddress: _host,
+                    isSuccess: false,
+                    errorMessage: ex.Message);
+            }
         }
     }
 
