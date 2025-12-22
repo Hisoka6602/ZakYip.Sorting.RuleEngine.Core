@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
@@ -22,7 +23,7 @@ public class DwsAdapterManager : IDwsAdapterManager
     private readonly ILogger<DwsAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ISystemClock _clock;
-    private readonly IDwsDataTemplateRepository _templateRepository;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ICommunicationLogRepository _communicationLogRepository;
     private DwsConfig? _currentConfig;
     private IDwsAdapter? _currentAdapter;
@@ -34,13 +35,13 @@ public class DwsAdapterManager : IDwsAdapterManager
         ILogger<DwsAdapterManager> logger,
         ILoggerFactory loggerFactory,
         ISystemClock clock,
-        IDwsDataTemplateRepository templateRepository,
+        IServiceScopeFactory serviceScopeFactory,
         ICommunicationLogRepository communicationLogRepository)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
         _clock = clock;
-        _templateRepository = templateRepository;
+        _serviceScopeFactory = serviceScopeFactory;
         _communicationLogRepository = communicationLogRepository;
     }
 
@@ -54,11 +55,20 @@ public class DwsAdapterManager : IDwsAdapterManager
                 "开始连接DWS: Mode={Mode}, Host={Host}, Port={Port}",
                 config.Mode, config.Host, config.Port);
 
-            // 获取数据模板 / Get data template
-            var template = await _templateRepository.GetByIdAsync(config.DataTemplateId).ConfigureAwait(false);
-            if (template == null)
+            // 使用 IServiceScopeFactory 创建 scope 来访问 scoped repository
+            // Use IServiceScopeFactory to create scope to access scoped repository
+            DwsDataTemplate template;
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                throw new InvalidOperationException($"无法找到数据模板: {config.DataTemplateId} / Cannot find data template");
+                var templateRepository = scope.ServiceProvider.GetRequiredService<IDwsDataTemplateRepository>();
+                
+                // 获取数据模板 / Get data template
+                var fetchedTemplate = await templateRepository.GetByIdAsync(config.DataTemplateId).ConfigureAwait(false);
+                if (fetchedTemplate == null)
+                {
+                    throw new InvalidOperationException($"无法找到数据模板: {config.DataTemplateId} / Cannot find data template");
+                }
+                template = fetchedTemplate;
             }
 
             IDwsAdapter adapter;
