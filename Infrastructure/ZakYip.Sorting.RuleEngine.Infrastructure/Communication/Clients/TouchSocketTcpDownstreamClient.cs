@@ -186,7 +186,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
             _client = new TcpClient();
 
             // 配置TouchSocket客户端
-            await _client.SetupAsync(new TouchSocketConfig()
+            using var config = new TouchSocketConfig()
                 .SetRemoteIPHost($"{host}:{port}")
                 .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")
                 {
@@ -195,7 +195,9 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
                 .ConfigurePlugins(a =>
                 {
                     a.Add<TouchSocketReceivePlugin>();
-                })).ConfigureAwait(false);
+                });
+            
+            await _client.SetupAsync(config).ConfigureAwait(false);
 
             // 注册事件
             _client.Received += OnMessageReceived;
@@ -245,7 +247,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
         ClientConnected.SafeInvoke(this, new ClientConnectionEventArgs
         {
             ClientId = $"{client.IP}:{client.Port}",
-            ConnectedAt = DateTimeOffset.Now,
+            ConnectedAt = _systemClock.LocalNow,
             ClientAddress = $"{client.IP}:{client.Port}"
         }, _logger, nameof(ClientConnected));
 
@@ -263,7 +265,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
         ClientDisconnected.SafeInvoke(this, new ClientConnectionEventArgs
         {
             ClientId = $"{client.IP}:{client.Port}",
-            ConnectedAt = DateTimeOffset.Now,
+            ConnectedAt = _systemClock.LocalNow,
             ClientAddress = $"{client.IP}:{client.Port}"
         }, _logger, nameof(ClientDisconnected));
 
@@ -438,7 +440,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
         {
             ParcelId = parcelId,
             ChuteId = chuteId,
-            AssignedAt = DateTimeOffset.Now,
+            AssignedAt = _systemClock.LocalNow,
             DwsPayload = dwsPayload,
             Metadata = null
         };
@@ -447,71 +449,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
         await BroadcastChuteAssignmentAsync(json);
     }
 
-    /// <summary>
-    /// 广播格口分配通知到WheelDiverterSorter（已弃用，保留用于向后兼容）
-    /// Broadcast chute assignment notification to WheelDiverterSorter
-    /// </summary>
-    /// <remarks>
-    /// RuleEngine的核心职责：发送格口分配通知
-    /// RuleEngine's core responsibility: send chute assignment notification
-    /// </remarks>
-    [Obsolete("请使用 BroadcastChuteAssignmentAsync(string) 重载 / Please use BroadcastChuteAssignmentAsync(string) overload")]
-    private async Task BroadcastChuteAssignmentAsyncLegacy(
-        long parcelId,
-        long chuteId,
-        DwsPayload? dwsPayload = null,
-        CancellationToken cancellationToken = default)
-    {
-        ThrowIfDisposed();
 
-        if (!IsConnected)
-        {
-            _logger.LogWarning(
-                "[{LocalTime}] 无法发送格口分配通知：客户端未连接",
-                _systemClock.LocalNow);
-            return;
-        }
-
-        var notification = new ChuteAssignmentNotification
-        {
-            ParcelId = parcelId,
-            ChuteId = chuteId,
-            AssignedAt = DateTimeOffset.Now,
-            DwsPayload = dwsPayload,
-            Metadata = null
-        };
-
-        var json = JsonSerializer.Serialize(notification);
-        var bytes = Encoding.UTF8.GetBytes(json + "\n");
-
-        try
-        {
-            _logger.LogInformation(
-                "[{LocalTime}] [客户端模式-发送] 发送格口分配通知 | ParcelId={ParcelId} | ChuteId={ChuteId}",
-                _systemClock.LocalNow,
-                parcelId,
-                chuteId);
-
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(_options.TimeoutMs);
-
-            await _client!.SendAsync(bytes).ConfigureAwait(false);
-
-            _logger.LogInformation(
-                "[{LocalTime}] [客户端模式-发送成功] 格口分配通知已发送 | ParcelId={ParcelId} | 字节数={ByteCount}",
-                _systemClock.LocalNow,
-                parcelId,
-                bytes.Length);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "[{LocalTime}] [客户端模式-发送失败] 发送格口分配通知失败 | ParcelId={ParcelId}",
-                _systemClock.LocalNow,
-                parcelId);
-        }
-    }
 
     private void StartAutoReconnect()
     {

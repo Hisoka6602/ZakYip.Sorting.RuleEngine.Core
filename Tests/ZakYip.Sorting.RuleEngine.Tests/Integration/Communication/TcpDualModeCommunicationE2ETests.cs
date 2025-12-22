@@ -76,7 +76,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         var parcelDetected = new ParcelDetectionNotification
         {
             ParcelId = 12345,
-            DetectionTime = DateTimeOffset.Now
+            DetectionTime = new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero)
         };
         var json = JsonSerializer.Serialize(parcelDetected);
         await wheelDiverterClient.SendAsync(Encoding.UTF8.GetBytes(json + "\n"));
@@ -109,9 +109,10 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         // 模拟WheelDiverterSorter接收消息
         string? receivedJson = null;
         var wheelDiverterClient = new TcpClient();
-        await wheelDiverterClient.SetupAsync(new TouchSocketConfig()
+        using var clientConfig = new TouchSocketConfig()
             .SetRemoteIPHost($"127.0.0.1:{ServerModeTestPort + 1}")
-            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
+        await wheelDiverterClient.SetupAsync(clientConfig);
         
         wheelDiverterClient.Received += (c, e) =>
         {
@@ -177,9 +178,10 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
     private async Task<TcpClient> CreateMockWheelDiverterSorterClient(int port)
     {
         var client = new TcpClient();
-        await client.SetupAsync(new TouchSocketConfig()
+        using var config = new TouchSocketConfig()
             .SetRemoteIPHost($"127.0.0.1:{port}")
-            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
+        await client.SetupAsync(config);
         await client.ConnectAsync();
         return client;
     }
@@ -189,9 +191,10 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         Action<string>? onMessageReceived = null)
     {
         var server = new TcpService();
-        await server.SetupAsync(new TouchSocketConfig()
+        using var config = new TouchSocketConfig()
             .SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{port}") })
-            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
+        await server.SetupAsync(config);
 
         if (onMessageReceived != null)
         {
@@ -210,7 +213,6 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
     private async Task BroadcastToAllClients<T>(TcpService server, T message)
     {
         var json = JsonSerializer.Serialize(message);
-        var bytes = Encoding.UTF8.GetBytes(json + "\n");
         
         // TouchSocket TcpService.GetClients() is protected, 
         // so we store client reference when creating server
