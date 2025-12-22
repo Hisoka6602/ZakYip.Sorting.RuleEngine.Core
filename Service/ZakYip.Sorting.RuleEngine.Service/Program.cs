@@ -468,6 +468,46 @@ try
                 services.AddSingleton<ParcelCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
 
+                // 注册下游通信服务（根据配置选择Server或Client模式）
+                // Register downstream communication (Server or Client mode based on config)
+                services.AddSingleton<IDownstreamCommunication>(sp =>
+                {
+                    // 从LiteDB读取Sorter配置
+                    using var scope = sp.CreateScope();
+                    var sorterConfigRepo = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
+                    var sorterConfig = sorterConfigRepo.GetByIdAsync(ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig.SingletonId).GetAwaiter().GetResult();
+                    
+                    var logger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>>();
+                    var clock = sp.GetRequiredService<ISystemClock>();
+                    
+                    // 根据配置选择Server或Client模式
+                    if (sorterConfig?.ConnectionMode == "Server")
+                    {
+                        // Server模式：RuleEngine作为服务器
+                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
+                            logger,
+                            clock,
+                            sorterConfig.Host,
+                            sorterConfig.Port);
+                    }
+                    else
+                    {
+                        // Client模式：RuleEngine作为客户端
+                        var clientLogger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>>();
+                        var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
+                        {
+                            TcpServer = sorterConfig != null ? $"{sorterConfig.Host}:{sorterConfig.Port}" : "localhost:8002",
+                            TimeoutMs = sorterConfig?.TimeoutSeconds * 1000 ?? 30000,
+                            RetryCount = 3,
+                            RetryDelayMs = sorterConfig?.ReconnectIntervalSeconds * 1000 ?? 5000
+                        };
+                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
+                            clientLogger,
+                            connectionOptions,
+                            clock);
+                    }
+                });
+
                 // 注册适配器管理器（单例）
                 // Register adapter managers (Singleton)
                 services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();

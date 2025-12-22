@@ -112,16 +112,17 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         using var clientConfig = new TouchSocketConfig()
             .SetRemoteIPHost($"127.0.0.1:{ServerModeTestPort + 1}")
             .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
-        await wheelDiverterClient.SetupAsync(clientConfig);
         
+        // 先设置事件处理器，再setup和connect
         wheelDiverterClient.Received += (c, e) =>
         {
             receivedJson = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
             return Task.CompletedTask;
         };
-
+        
+        await wheelDiverterClient.SetupAsync(clientConfig);
         await wheelDiverterClient.ConnectAsync();
-        await Task.Delay(500);
+        await Task.Delay(1000); // 等待客户端完全连接
 
         // Act - RuleEngine发送格口分配
         await server.BroadcastChuteAssignmentAsync(
@@ -129,7 +130,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
             chuteId: 3,
             dwsPayload: null);
         
-        await Task.Delay(1000);
+        await Task.Delay(1500); // 增加等待时间确保消息被接收
 
         // Assert
         Assert.NotNull(receivedJson);
@@ -153,22 +154,123 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
     /// E2E测试：Client模式 - 接收包裹检测通知
     /// E2E Test: Client mode - Receive parcel detection notification
     /// </summary>
-    [Fact(Skip = "需要重构测试辅助方法")]
+    [Fact]
     public async Task ClientMode_ShouldReceiveParcelDetected_FromWheelDiverterSorter()
     {
-        // TODO: 需要保存client引用来发送消息
-        await Task.CompletedTask;
+        // Arrange - 创建模拟的WheelDiverterSorter服务器
+        var mockServer = await CreateMockWheelDiverterSorterServer(ClientModeTestPort);
+        await Task.Delay(500);
+
+        // 创建RuleEngine客户端
+        var connectionOptions = new ConnectionOptions
+        {
+            TcpServer = $"127.0.0.1:{ClientModeTestPort}",
+            TimeoutMs = 30000,
+            RetryCount = 3,
+            RetryDelayMs = 1000
+        };
+        var client = new TouchSocketTcpDownstreamClient(
+            _clientLogger,
+            connectionOptions,
+            _systemClock);
+
+        ParcelNotificationReceivedEventArgs? receivedEvent = null;
+        client.ParcelNotificationReceived += (sender, e) => receivedEvent = e;
+
+        await client.StartAsync();
+        await Task.Delay(1000); // 等待连接建立
+
+        // Act - WheelDiverterSorter服务器发送包裹检测通知
+        var parcelDetected = new ParcelDetectionNotification
+        {
+            ParcelId = 54321,
+            DetectionTime = new DateTimeOffset(2024, 1, 1, 14, 0, 0, TimeSpan.Zero)
+        };
+        var json = JsonSerializer.Serialize(parcelDetected);
+        
+        // 向所有连接的客户端广播消息
+        foreach (var socketClient in mockServer.SocketClients)
+        {
+            await socketClient.SendAsync(Encoding.UTF8.GetBytes(json + "\n"));
+        }
+        
+        await Task.Delay(1500); // 等待消息处理
+
+        // Assert
+        Assert.NotNull(receivedEvent);
+        Assert.Equal(54321, receivedEvent.ParcelId);
+
+        // Cleanup
+        await client.StopAsync();
+        client.Dispose();
+        await mockServer.StopAsync();
+        mockServer.Dispose();
     }
 
     /// <summary>
     /// E2E测试：Client模式 - 发送格口分配通知
     /// E2E Test: Client mode - Send chute assignment notification
     /// </summary>
-    [Fact(Skip = "需要重构测试辅助方法")]
+    [Fact]
     public async Task ClientMode_ShouldSendChuteAssignment_ToWheelDiverterSorter()
     {
-        // TODO: 需要保存client引用来接收消息
-        await Task.CompletedTask;
+        // Arrange - 创建模拟的WheelDiverterSorter服务器
+        string? receivedJson = null;
+        var mockServer = new TcpService();
+        using var serverConfig = new TouchSocketConfig()
+            .SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{ClientModeTestPort + 1}") })
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
+        
+        mockServer.Received += (client, e) =>
+        {
+            receivedJson = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            return Task.CompletedTask;
+        };
+        
+        await mockServer.SetupAsync(serverConfig);
+        await mockServer.StartAsync();
+        await Task.Delay(500);
+
+        // 创建RuleEngine客户端
+        var connectionOptions = new ConnectionOptions
+        {
+            TcpServer = $"127.0.0.1:{ClientModeTestPort + 1}",
+            TimeoutMs = 30000,
+            RetryCount = 3,
+            RetryDelayMs = 1000
+        };
+        var client = new TouchSocketTcpDownstreamClient(
+            _clientLogger,
+            connectionOptions,
+            _systemClock);
+
+        await client.StartAsync();
+        await Task.Delay(1000); // 等待连接建立
+
+        // Act - RuleEngine客户端发送格口分配通知
+        var notification = new ChuteAssignmentNotification
+        {
+            ParcelId = 99999,
+            ChuteId = 5,
+            AssignedAt = _systemClock.LocalNow
+        };
+        var json = JsonSerializer.Serialize(notification);
+        await client.BroadcastChuteAssignmentAsync(json);
+        
+        await Task.Delay(1500); // 等待消息发送
+
+        // Assert
+        Assert.NotNull(receivedJson);
+        var receivedNotification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(receivedJson);
+        Assert.NotNull(receivedNotification);
+        Assert.Equal(99999, receivedNotification.ParcelId);
+        Assert.Equal(5, receivedNotification.ChuteId);
+
+        // Cleanup
+        await client.StopAsync();
+        client.Dispose();
+        await mockServer.StopAsync();
+        mockServer.Dispose();
     }
 
     #endregion
