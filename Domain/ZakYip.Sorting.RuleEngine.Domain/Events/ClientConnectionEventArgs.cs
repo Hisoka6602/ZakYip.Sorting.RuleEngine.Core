@@ -1,4 +1,4 @@
-namespace ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 客户端连接/断开事件参数
@@ -24,11 +24,11 @@ public sealed class ClientConnectionEventArgs : EventArgs
     /// 连接时间
     /// Connection time
     /// </summary>
-    public DateTimeOffset ConnectedAt { get; init; }
+    public required DateTimeOffset ConnectedAt { get; init; }
 
     /// <summary>
     /// 客户端地址（IP:Port）
     /// Client address (IP:Port)
     /// </summary>
-    public string? ClientAddress { get; init; }
+    public required string ClientAddress { get; init; }
 }

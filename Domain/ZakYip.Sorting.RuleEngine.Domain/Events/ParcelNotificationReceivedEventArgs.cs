@@ -1,4 +1,4 @@
-namespace ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 包裹通知接收事件参数
@@ -16,7 +16,7 @@ public sealed class ParcelNotificationReceivedEventArgs : EventArgs
     /// 接收时间
     /// Received time
     /// </summary>
-    public DateTimeOffset ReceivedAt { get; init; }
+    public required DateTime ReceivedAt { get; init; }
 
     /// <summary>
     /// 客户端ID

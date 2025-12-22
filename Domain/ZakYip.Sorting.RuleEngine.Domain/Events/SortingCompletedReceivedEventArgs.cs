@@ -1,4 +1,4 @@
-namespace ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 落格完成通知接收事件参数
@@ -31,7 +31,7 @@ public sealed class SortingCompletedReceivedEventArgs : EventArgs
     public required bool IsSuccess { get; init; }
 
     /// <summary>
-    /// 最终状态
+    /// 最终状态（Success, Timeout, Lost, ExecutionError）
     /// Final status
     /// </summary>
     public required string FinalStatus { get; init; }
@@ -46,7 +46,7 @@ public sealed class SortingCompletedReceivedEventArgs : EventArgs
     /// 接收时间
     /// Received time
     /// </summary>
-    public DateTimeOffset ReceivedAt { get; init; }
+    public required DateTime ReceivedAt { get; init; }
 
     /// <summary>
     /// 客户端ID

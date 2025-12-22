@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
-using ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Communication;

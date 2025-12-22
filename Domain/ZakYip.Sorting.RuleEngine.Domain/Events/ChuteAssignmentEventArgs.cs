@@ -1,6 +1,4 @@
-using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
-
-namespace ZakYip.Sorting.RuleEngine.Application.Events.Communication;
+namespace ZakYip.Sorting.RuleEngine.Domain.Events;
 
 /// <summary>
 /// 格口分配事件参数
@@ -31,10 +29,10 @@ public sealed record class ChuteAssignmentEventArgs
     public required DateTimeOffset AssignedAt { get; init; }
 
     /// <summary>
-    /// DWS测量数据（可选）
-    /// DWS measurement data (optional)
+    /// DWS测量数据（可选）- 使用object避免Domain层依赖Application层
+    /// DWS measurement data (optional) - Use object to avoid Domain depending on Application
     /// </summary>
-    public DwsPayload? DwsPayload { get; init; }
+    public object? DwsPayload { get; init; }
 
     /// <summary>
     /// 额外的元数据（可选）
