@@ -37,12 +37,15 @@ public class ApiClientTestController : ControllerBase
     private readonly PostProcessingCenterApiClient? _postProcessingCenterApiClient;
     private readonly MySqlLogDbContext? _mysqlContext;
     private readonly SqliteLogDbContext? _sqliteContext;
+    private readonly IApiCommunicationLogRepository _apiCommunicationLogRepository;
 
     public ApiClientTestController(
         ILogger<ApiClientTestController> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IApiCommunicationLogRepository apiCommunicationLogRepository)
     {
         _logger = logger;
+        _apiCommunicationLogRepository = apiCommunicationLogRepository;
         
         // Try to get clients from DI, they may not be registered
         _jushuitanErpApiClient = serviceProvider.GetService<JushuitanErpApiClient>();
@@ -248,8 +251,11 @@ public class ApiClientTestController : ControllerBase
                 FormattedCurl = response.FormattedCurl
             };
 
-            // Log the test request
+            // Log the test request (incoming API request to our server)
             await LogApiTestRequestAsync(clientName, request, testResponse).ConfigureAwait(false);
+            
+            // Log the WCS API communication (outgoing API call to WCS/ERP)
+            await LogWcsApiCommunicationAsync(response, clientName).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "{DisplayName} API测试完成，条码: {Barcode}, 方法: {Method}, 结果: {Success}",
@@ -266,8 +272,8 @@ public class ApiClientTestController : ControllerBase
     }
 
     /// <summary>
-    /// 记录API测试请求日志
-    /// Log API test request
+    /// 记录API测试请求日志（incoming request to our server）
+    /// Log API test request (incoming request to our server)
     /// </summary>
     private async Task LogApiTestRequestAsync(
         string apiClientName, 
@@ -320,6 +326,44 @@ public class ApiClientTestController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "保存API测试日志时发生错误");
+        }
+    }
+
+    /// <summary>
+    /// 记录WCS API通信日志（outgoing API call to WCS/ERP）
+    /// Log WCS API communication (outgoing API call to WCS/ERP)
+    /// </summary>
+    private async Task LogWcsApiCommunicationAsync(WcsApiResponse response, string apiClientName)
+    {
+        try
+        {
+            var apiLog = new ApiCommunicationLog
+            {
+                ParcelId = response.ParcelId,
+                RequestUrl = response.RequestUrl,
+                RequestBody = response.RequestBody,
+                RequestHeaders = response.RequestHeaders,
+                RequestTime = response.RequestTime,
+                DurationMs = response.DurationMs,
+                ResponseTime = response.ResponseTime,
+                ResponseBody = response.ResponseBody,
+                ResponseStatusCode = response.ResponseStatusCode,
+                ResponseHeaders = response.ResponseHeaders,
+                FormattedCurl = response.FormattedCurl,
+                CommunicationType = CommunicationType.Http,
+                IsSuccess = response.RequestStatus == ApiRequestStatus.Success,
+                ErrorMessage = response.ErrorMessage
+            };
+
+            await _apiCommunicationLogRepository.SaveAsync(apiLog).ConfigureAwait(false);
+            _logger.LogDebug(
+                "WCS API通信日志已保存，ApiClient: {ApiClientName}, ParcelId: {ParcelId}, Success: {Success}",
+                apiClientName, response.ParcelId, apiLog.IsSuccess);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "保存WCS API通信日志时发生错误，ApiClient: {ApiClientName}", apiClientName);
+            // 不抛出异常，避免影响主业务流程
         }
     }
 

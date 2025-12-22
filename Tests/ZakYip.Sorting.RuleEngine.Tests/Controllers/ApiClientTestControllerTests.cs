@@ -21,6 +21,7 @@ public class ApiClientTestControllerTests
     private readonly Mock<ILogger<ApiClientTestController>> _mockLogger;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IWcsApiAdapter> _mockWcsApiAdapter;
+    private readonly Mock<IApiCommunicationLogRepository> _mockApiCommunicationLogRepository;
     private readonly ApiClientTestController _controller;
 
     public ApiClientTestControllerTests()
@@ -28,6 +29,7 @@ public class ApiClientTestControllerTests
         _mockLogger = new Mock<ILogger<ApiClientTestController>>();
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockWcsApiAdapter = new Mock<IWcsApiAdapter>();
+        _mockApiCommunicationLogRepository = new Mock<IApiCommunicationLogRepository>();
 
         // Setup mock WcsApiAdapter in service provider
         _mockServiceProvider.Setup(sp => sp.GetService(typeof(IWcsApiAdapter)))
@@ -35,7 +37,8 @@ public class ApiClientTestControllerTests
 
         _controller = new ApiClientTestController(
             _mockLogger.Object,
-            _mockServiceProvider.Object
+            _mockServiceProvider.Object,
+            _mockApiCommunicationLogRepository.Object
         );
 
         // Setup HttpContext
@@ -373,10 +376,13 @@ public class ApiClientTestControllerTests
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(It.IsAny<Type>()))
             .Returns(null); // 返回 null 表示未配置
+        
+        var mockApiCommunicationLogRepository = new Mock<IApiCommunicationLogRepository>();
 
         var controller = new ApiClientTestController(
             _mockLogger.Object,
-            mockServiceProvider.Object
+            mockServiceProvider.Object,
+            mockApiCommunicationLogRepository.Object
         );
 
         controller.ControllerContext = new ControllerContext
