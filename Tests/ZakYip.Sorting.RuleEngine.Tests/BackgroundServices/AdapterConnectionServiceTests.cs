@@ -53,8 +53,8 @@ public class AdapterConnectionServiceTests
             Port = 2001,
             DataTemplateId = 1,
             IsEnabled = true,
-            CreatedAt = new DateTime(2025, 12, 22, 10, 0, 0),
-            UpdatedAt = new DateTime(2025, 12, 22, 10, 0, 0)
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local),
+            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local)
         };
 
         _dwsConfigRepositoryMock
@@ -96,8 +96,8 @@ public class AdapterConnectionServiceTests
             Port = 2001,
             DataTemplateId = 1,
             IsEnabled = false,
-            CreatedAt = new DateTime(2025, 12, 22, 10, 0, 0),
-            UpdatedAt = new DateTime(2025, 12, 22, 10, 0, 0)
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local),
+            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local)
         };
 
         _dwsConfigRepositoryMock
@@ -139,8 +139,8 @@ public class AdapterConnectionServiceTests
             Port = 2001,
             DataTemplateId = 1,
             IsEnabled = true,
-            CreatedAt = new DateTime(2025, 12, 22, 10, 0, 0),
-            UpdatedAt = new DateTime(2025, 12, 22, 10, 0, 0)
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local),
+            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local)
         };
 
         _dwsConfigRepositoryMock
