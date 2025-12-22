@@ -216,7 +216,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
             
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8";
             
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -312,7 +312,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJSM", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -395,7 +395,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getGKCX", arg0);
 
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8";
 
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -503,7 +503,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getGKCX", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -642,7 +642,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
             
             // 生成请求头信息用于日志记录
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8";
             
             // 生成curl命令
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
@@ -758,7 +758,7 @@ public class PostProcessingCenterApiClient : IWcsApiAdapter
             var soapRequest = BuildSoapEnvelope("getYJLG", arg0);
 
             // 生成请求头信息
-            var requestHeaders = "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: ";
+            var requestHeaders = "Content-Type: text/xml; charset=utf-8";
 
             // 生成curl命令（异常情况下也必须生成）
             var curlCommand = ApiRequestHelper.GenerateFormattedCurl(
