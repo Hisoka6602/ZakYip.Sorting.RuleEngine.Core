@@ -16,7 +16,7 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 public class SorterAdapterManager : ISorterAdapterManager
 {
     // 类型名称常量 / Type name constants
-    internal const string TcpSorterAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter.TcpSorterAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
+    internal const string TouchSocketSorterAdapterTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter.TouchSocketSorterAdapter, ZakYip.Sorting.RuleEngine.Infrastructure";
     internal const string DownstreamTcpJsonServerTypeName = "ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer, ZakYip.Sorting.RuleEngine.Infrastructure";
     internal const string ChuteAssignmentNotificationTypeName = "ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream.ChuteAssignmentNotification, ZakYip.Sorting.RuleEngine.Application";
     internal const string ChuteAssignmentType = "ChuteAssignment";
@@ -119,30 +119,40 @@ public class SorterAdapterManager : ISorterAdapterManager
     private ISorterAdapter CreateTcpAdapter(SorterConfig config)
     {
         var connectionMode = config.ConnectionMode.ToUpperInvariant();
-        var logger = _loggerFactory.CreateLogger<object>(); // Generic logger for TcpSorterAdapter
         
-        // 使用反射创建 TcpSorterAdapter，避免直接引用 Infrastructure 层
-        // Use reflection to create TcpSorterAdapter to avoid direct reference to Infrastructure layer
-        var adapterType = Type.GetType(TcpSorterAdapterTypeName);
+        // 使用反射创建 TouchSocketSorterAdapter，避免直接引用 Infrastructure 层
+        // Use reflection to create TouchSocketSorterAdapter to avoid direct reference to Infrastructure layer
+        var adapterType = Type.GetType(TouchSocketSorterAdapterTypeName);
         
         if (adapterType == null)
         {
-            throw new InvalidOperationException("无法加载 TcpSorterAdapter 类型 / Cannot load TcpSorterAdapter type");
+            throw new InvalidOperationException("无法加载 TouchSocketSorterAdapter 类型 / Cannot load TouchSocketSorterAdapter type");
         }
 
         if (connectionMode == "CLIENT")
         {
-            // Client 模式：主动连接到下游（TcpSorterAdapter 默认行为）
-            // Client mode: actively connect to downstream (TcpSorterAdapter default behavior)
+            // Client 模式：主动连接到下游（TouchSocketSorterAdapter）
+            // Client mode: actively connect to downstream (TouchSocketSorterAdapter)
             
-            // TcpSorterAdapter构造函数：(string host, int port, ILogger logger, ISystemClock clock, MySqlLogDbContext?, SqliteLogDbContext?)
-            // 传递必需的参数：host, port, logger, clock
-            // 可选参数 mysqlContext 和 sqliteContext 设为 null（由DI管理的DbContext不应传递到这里）
-            var adapter = Activator.CreateInstance(adapterType, config.Host, config.Port, logger, _clock, null, null) as ISorterAdapter;
+            // 获取必需的服务
+            var logger = _loggerFactory.CreateLogger(adapterType);
+            
+            // TouchSocketSorterAdapter构造函数：(string host, int port, ILogger, IServiceScopeFactory, ISystemClock, reconnectIntervalMs, receiveBufferSize, sendBufferSize)
+            var adapter = Activator.CreateInstance(
+                adapterType, 
+                config.Host, 
+                config.Port, 
+                logger, 
+                _serviceScopeFactory,  // 传递IServiceScopeFactory而不是scoped服务
+                _clock,
+                5000,  // reconnectIntervalMs
+                8192,  // receiveBufferSize
+                8192   // sendBufferSize
+            ) as ISorterAdapter;
             
             if (adapter == null)
             {
-                throw new InvalidOperationException("无法创建 TcpSorterAdapter 实例 / Cannot create TcpSorterAdapter instance");
+                throw new InvalidOperationException("无法创建 TouchSocketSorterAdapter 实例 / Cannot create TouchSocketSorterAdapter instance");
             }
 
             _logger.LogInformation(

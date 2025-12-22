@@ -62,20 +62,15 @@ public class AdapterConnectionService : IHostedService
             var dwsConfigRepository = scope.ServiceProvider.GetRequiredService<IDwsConfigRepository>();
             var config = await dwsConfigRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
 
-            if (config == null)
+            if (config?.IsEnabled != true)
             {
-                _logger.LogInformation("DWS配置不存在，跳过连接 / DWS configuration does not exist, skipping connection");
-                return;
-            }
-
-            if (!config.IsEnabled)
-            {
-                _logger.LogInformation("DWS配置已禁用，跳过连接 / DWS configuration is disabled, skipping connection");
+                _logger.LogInformation(
+                    "DWS配置不存在或已禁用，跳过连接 / DWS configuration does not exist or is disabled, skipping connection");
                 return;
             }
 
             _logger.LogInformation(
-                "DWS配置已启用，开始连接: Mode={Mode}, Host={Host}, Port={Port}",
+                "DWS配置已启用，开始连接 / DWS configuration enabled, connecting: Mode={Mode}, Host={Host}, Port={Port}",
                 config.Mode, config.Host, config.Port);
 
             await _dwsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
@@ -86,27 +81,19 @@ public class AdapterConnectionService : IHostedService
         }
         catch (InvalidOperationException ex)
         {
-            // 配置错误或适配器初始化失败 / Configuration error or adapter initialization failure
-            _logger.LogError(ex, 
-                "DWS适配器初始化失败，请检查配置 / DWS adapter initialization failed, please check configuration");
+            _logger.LogError(ex, "DWS适配器初始化失败，请检查配置 / DWS adapter initialization failed");
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            // 网络连接失败（可恢复） / Network connection failure (recoverable)
-            _logger.LogWarning(ex, 
-                "DWS网络连接失败，稍后将自动重试 / DWS network connection failed, will retry automatically later");
+            _logger.LogWarning(ex, "DWS网络连接失败，适配器将自动重试 / DWS network connection failed, adapter will auto-retry");
         }
         catch (TimeoutException ex)
         {
-            // 连接超时（可恢复） / Connection timeout (recoverable)
-            _logger.LogWarning(ex, 
-                "DWS连接超时，稍后将自动重试 / DWS connection timeout, will retry automatically later");
+            _logger.LogWarning(ex, "DWS连接超时，适配器将自动重试 / DWS connection timeout, adapter will auto-retry");
         }
         catch (Exception ex)
         {
-            // 其他未预期错误 / Other unexpected errors
-            _logger.LogError(ex, 
-                "DWS连接时发生未预期错误 / Unexpected error occurred during DWS connection");
+            _logger.LogError(ex, "DWS连接时发生未预期错误 / Unexpected error during DWS connection");
         }
     }
 
@@ -121,20 +108,15 @@ public class AdapterConnectionService : IHostedService
             var sorterConfigRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
             var config = await sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
 
-            if (config == null)
+            if (config?.IsEnabled != true)
             {
-                _logger.LogInformation("分拣机配置不存在，跳过连接 / Sorter configuration does not exist, skipping connection");
-                return;
-            }
-
-            if (!config.IsEnabled)
-            {
-                _logger.LogInformation("分拣机配置已禁用，跳过连接 / Sorter configuration is disabled, skipping connection");
+                _logger.LogInformation(
+                    "分拣机配置不存在或已禁用，跳过连接 / Sorter configuration does not exist or is disabled, skipping connection");
                 return;
             }
 
             _logger.LogInformation(
-                "分拣机配置已启用，开始连接: Protocol={Protocol}, Host={Host}, Port={Port}",
+                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: Protocol={Protocol}, Host={Host}, Port={Port}",
                 config.Protocol, config.Host, config.Port);
 
             await _sorterAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
@@ -145,27 +127,19 @@ public class AdapterConnectionService : IHostedService
         }
         catch (InvalidOperationException ex)
         {
-            // 配置错误或适配器初始化失败 / Configuration error or adapter initialization failure
-            _logger.LogError(ex, 
-                "分拣机适配器初始化失败，请检查配置 / Sorter adapter initialization failed, please check configuration");
+            _logger.LogError(ex, "分拣机适配器初始化失败，请检查配置 / Sorter adapter initialization failed");
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            // 网络连接失败（可恢复） / Network connection failure (recoverable)
-            _logger.LogWarning(ex, 
-                "分拣机网络连接失败，稍后将自动重试 / Sorter network connection failed, will retry automatically later");
+            _logger.LogWarning(ex, "分拣机网络连接失败，适配器将自动重试 / Sorter network connection failed, adapter will auto-retry");
         }
         catch (TimeoutException ex)
         {
-            // 连接超时（可恢复） / Connection timeout (recoverable)
-            _logger.LogWarning(ex, 
-                "分拣机连接超时，稍后将自动重试 / Sorter connection timeout, will retry automatically later");
+            _logger.LogWarning(ex, "分拣机连接超时，适配器将自动重试 / Sorter connection timeout, adapter will auto-retry");
         }
         catch (Exception ex)
         {
-            // 其他未预期错误 / Other unexpected errors
-            _logger.LogError(ex, 
-                "分拣机连接时发生未预期错误 / Unexpected error occurred during Sorter connection");
+            _logger.LogError(ex, "分拣机连接时发生未预期错误 / Unexpected error during Sorter connection");
         }
     }
 
