@@ -13,7 +13,7 @@ public record class SortingCompletedNotificationDto
     /// Message type, fixed value "SortingCompleted"
     /// </summary>
     [JsonPropertyName("Type")]
-    public required string Type { get; init; }
+    public string Type { get; init; } = "SortingCompleted";
 
     /// <summary>
     /// 包裹 ID
@@ -56,4 +56,18 @@ public record class SortingCompletedNotificationDto
     /// </summary>
     [JsonPropertyName("FailureReason")]
     public string? FailureReason { get; init; }
+
+    /// <summary>
+    /// 受影响的包裹ID列表（仅在 FinalStatus = Lost 时有值）
+    /// Affected parcel IDs (only has value when FinalStatus = Lost)
+    /// </summary>
+    /// <remarks>
+    /// 当包裹丢失时，在丢失包裹创建之后、丢失检测之前创建的包裹会受到影响，
+    /// 这些包裹的任务方向已被改为直行以导向异常格口。
+    /// When a parcel is lost, parcels created after the lost parcel creation 
+    /// but before loss detection are affected, and their task directions 
+    /// have been changed to straight to direct to exception chute.
+    /// </remarks>
+    [JsonPropertyName("AffectedParcelIds")]
+    public IReadOnlyList<long>? AffectedParcelIds { get; init; }
 }
