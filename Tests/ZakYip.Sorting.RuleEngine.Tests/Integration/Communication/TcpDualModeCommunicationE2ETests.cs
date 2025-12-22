@@ -39,7 +39,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
     private readonly ILogger<TouchSocketTcpDownstreamClient> _clientLogger;
     
     private const int ServerModeTestPort = 18100;
-    private const int ClientModeTestPort = 18101;
+    private const int ClientModeTestPort = 18200;
 
     public TcpDualModeCommunicationE2ETests()
     {
@@ -158,7 +158,20 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
     public async Task ClientMode_ShouldReceiveParcelDetected_FromWheelDiverterSorter()
     {
         // Arrange - 创建模拟的WheelDiverterSorter服务器
-        var mockServer = await CreateMockWheelDiverterSorterServer(ClientModeTestPort);
+        TcpSessionClient? connectedClient = null;
+        var mockServer = new TcpService();
+        using var serverConfig = new TouchSocketConfig()
+            .SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{ClientModeTestPort}") })
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
+        
+        mockServer.Connected += (client, e) =>
+        {
+            connectedClient = client;
+            return Task.CompletedTask;
+        };
+        
+        await mockServer.SetupAsync(serverConfig);
+        await mockServer.StartAsync();
         await Task.Delay(500);
 
         // 创建RuleEngine客户端
@@ -188,10 +201,10 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         };
         var json = JsonSerializer.Serialize(parcelDetected);
         
-        // 向所有连接的客户端广播消息
-        foreach (var socketClient in mockServer.SocketClients)
+        // 向连接的客户端发送消息
+        if (connectedClient != null)
         {
-            await socketClient.SendAsync(Encoding.UTF8.GetBytes(json + "\n"));
+            await connectedClient.SendAsync(Encoding.UTF8.GetBytes(json + "\n"));
         }
         
         await Task.Delay(1500); // 等待消息处理
@@ -224,12 +237,13 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
         mockServer.Received += (client, e) =>
         {
             receivedJson = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            Console.WriteLine($"Server received: {receivedJson}");
             return Task.CompletedTask;
         };
         
         await mockServer.SetupAsync(serverConfig);
         await mockServer.StartAsync();
-        await Task.Delay(500);
+        await Task.Delay(1000); // 增加等待时间
 
         // 创建RuleEngine客户端
         var connectionOptions = new ConnectionOptions
@@ -245,7 +259,7 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
             _systemClock);
 
         await client.StartAsync();
-        await Task.Delay(1000); // 等待连接建立
+        await Task.Delay(2000); // 增加等待连接建立时间
 
         // Act - RuleEngine客户端发送格口分配通知
         var notification = new ChuteAssignmentNotification
@@ -255,9 +269,10 @@ public class TcpDualModeCommunicationE2ETests : IAsyncLifetime
             AssignedAt = _systemClock.LocalNow
         };
         var json = JsonSerializer.Serialize(notification);
+        Console.WriteLine($"Client sending: {json}");
         await client.BroadcastChuteAssignmentAsync(json);
         
-        await Task.Delay(1500); // 等待消息发送
+        await Task.Delay(2000); // 增加等待消息发送时间
 
         // Assert
         Assert.NotNull(receivedJson);

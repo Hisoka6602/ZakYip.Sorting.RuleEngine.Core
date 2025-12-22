@@ -229,6 +229,12 @@ public sealed class DownstreamTcpJsonServer : IDownstreamCommunication, IDisposa
         {
             json = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
             
+            // 忽略空消息（心跳包或连接关闭时的空行）
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return Task.CompletedTask;
+            }
+            
             _logger.LogInformation(
                 "[{LocalTime}] [服务端模式-接收消息] 收到客户端 {ClientId} 的消息 | 消息内容={MessageContent}",
                 _systemClock.LocalNow,
