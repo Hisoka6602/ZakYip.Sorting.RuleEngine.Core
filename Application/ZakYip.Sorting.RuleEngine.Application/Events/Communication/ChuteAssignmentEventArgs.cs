@@ -1,3 +1,5 @@
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
+
 namespace ZakYip.Sorting.RuleEngine.Application.Events.Communication;
 
 /// <summary>
@@ -39,53 +41,4 @@ public sealed record class ChuteAssignmentEventArgs
     /// Additional metadata (optional)
     /// </summary>
     public Dictionary<string, string>? Metadata { get; init; }
-}
-
-/// <summary>
-/// DWS测量数据
-/// DWS measurement data
-/// </summary>
-public sealed record class DwsPayload
-{
-    /// <summary>
-    /// 重量（克）
-    /// Weight in grams
-    /// </summary>
-    public decimal WeightGrams { get; init; }
-
-    /// <summary>
-    /// 长度（毫米）
-    /// Length in millimeters
-    /// </summary>
-    public decimal LengthMm { get; init; }
-
-    /// <summary>
-    /// 宽度（毫米）
-    /// Width in millimeters
-    /// </summary>
-    public decimal WidthMm { get; init; }
-
-    /// <summary>
-    /// 高度（毫米）
-    /// Height in millimeters
-    /// </summary>
-    public decimal HeightMm { get; init; }
-
-    /// <summary>
-    /// 体积重量（克，可选）
-    /// Volumetric weight in grams (optional)
-    /// </summary>
-    public decimal? VolumetricWeightGrams { get; init; }
-
-    /// <summary>
-    /// 条码（可选）
-    /// Barcode (optional)
-    /// </summary>
-    public string? Barcode { get; init; }
-
-    /// <summary>
-    /// 测量时间
-    /// Measurement time
-    /// </summary>
-    public DateTimeOffset MeasuredAt { get; init; }
 }

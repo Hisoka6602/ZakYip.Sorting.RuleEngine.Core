@@ -244,7 +244,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDisposable
 
         ClientConnected.SafeInvoke(this, new ClientConnectionEventArgs
         {
-            ClientId = client.Id,
+            ClientId = $"{client.IP}:{client.Port}",
             ConnectedAt = DateTimeOffset.Now,
             ClientAddress = $"{client.IP}:{client.Port}"
         }, _logger, nameof(ClientConnected));
@@ -262,7 +262,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDisposable
 
         ClientDisconnected.SafeInvoke(this, new ClientConnectionEventArgs
         {
-            ClientId = client.Id,
+            ClientId = $"{client.IP}:{client.Port}",
             ConnectedAt = DateTimeOffset.Now,
             ClientAddress = $"{client.IP}:{client.Port}"
         }, _logger, nameof(ClientDisconnected));
@@ -337,7 +337,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDisposable
                 {
                     ParcelId = notification.ParcelId,
                     ReceivedAt = _systemClock.LocalNow,
-                    ClientId = _client?.Id ?? "Unknown"
+                    ClientId = _client != null ? $"{_client.IP}:{_client.Port}" : "Unknown"
                 }, _logger, nameof(ParcelNotificationReceived));
             }
         }
@@ -368,7 +368,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDisposable
                     FinalStatus = notification.FinalStatus,
                     FailureReason = notification.FailureReason,
                     ReceivedAt = _systemClock.LocalNow,
-                    ClientId = _client?.Id ?? "Unknown"
+                    ClientId = _client != null ? $"{_client.IP}:{_client.Port}" : "Unknown"
                 }, _logger, nameof(SortingCompletedReceived));
             }
         }
