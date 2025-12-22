@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Tests.Mocks;
 using Moq;
@@ -16,12 +17,18 @@ public class TouchSocketDwsAdapterTests : IDisposable
 {
     private readonly Mock<ILogger<TouchSocketDwsAdapter>> _mockLogger;
     private readonly Mock<ICommunicationLogRepository> _mockLogRepository;
+    private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
+    private readonly Mock<IServiceScope> _mockScope;
+    private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly TouchSocketDwsAdapter _adapter;
 
     public TouchSocketDwsAdapterTests()
     {
         _mockLogger = new Mock<ILogger<TouchSocketDwsAdapter>>();
         _mockLogRepository = new Mock<ICommunicationLogRepository>();
+        _mockScopeFactory = new Mock<IServiceScopeFactory>();
+        _mockScope = new Mock<IServiceScope>();
+        _mockServiceProvider = new Mock<IServiceProvider>();
 
         // Setup mock to return completed tasks
         _mockLogRepository.Setup(x => x.LogCommunicationAsync(
@@ -34,25 +41,31 @@ public class TouchSocketDwsAdapterTests : IDisposable
             It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
+        // Setup IServiceScopeFactory mock
+        _mockServiceProvider.Setup(x => x.GetService(typeof(ICommunicationLogRepository)))
+            .Returns(_mockLogRepository.Object);
+        _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
+        _mockScopeFactory.Setup(x => x.CreateScope()).Returns(_mockScope.Object);
+
         _adapter = new TouchSocketDwsAdapter(
             "localhost",
             8081,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockScopeFactory.Object);
     }
 
     [Fact]
     public void AdapterName_ShouldReturnCorrectName()
     {
         // Assert
-        Assert.Equal("TouchSocket-DWS", _adapter.AdapterName);
+        Assert.Equal("TouchSocket-DWS-Server", _adapter.AdapterName);
     }
 
     [Fact]
     public void ProtocolType_ShouldReturnTCP()
     {
         // Assert
-        Assert.Equal("TCP", _adapter.ProtocolType);
+        Assert.Equal("TCP-Server", _adapter.ProtocolType);
     }
 
     [Fact]
@@ -63,14 +76,14 @@ public class TouchSocketDwsAdapterTests : IDisposable
             "test-host",
             12345,
             _mockLogger.Object,
-            _mockLogRepository.Object,
+            _mockScopeFactory.Object,
             maxConnections: 500,
             receiveBufferSize: 4096,
             sendBufferSize: 4096);
 
         // Assert
-        Assert.Equal("TouchSocket-DWS", adapter.AdapterName);
-        Assert.Equal("TCP", adapter.ProtocolType);
+        Assert.Equal("TouchSocket-DWS-Server", adapter.AdapterName);
+        Assert.Equal("TCP-Server", adapter.ProtocolType);
     }
 
     [Fact]
@@ -91,7 +104,7 @@ public class TouchSocketDwsAdapterTests : IDisposable
             "localhost",
             8081,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockScopeFactory.Object);
 
         // Act & Assert
         // The event should be null initially (no subscribers)
@@ -106,7 +119,7 @@ public class TouchSocketDwsAdapterTests : IDisposable
             "localhost",
             8081,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockScopeFactory.Object);
 
         // Act
         var exception = Record.Exception(() =>
@@ -129,7 +142,7 @@ public class TouchSocketDwsAdapterTests : IDisposable
             "localhost",
             8081,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockScopeFactory.Object);
 
         // Act & Assert
         var exception = Record.Exception(() => adapter.Dispose());
@@ -144,7 +157,7 @@ public class TouchSocketDwsAdapterTests : IDisposable
             "localhost",
             8081,
             _mockLogger.Object,
-            _mockLogRepository.Object);
+            _mockScopeFactory.Object);
 
         // Act & Assert
         adapter.Dispose();

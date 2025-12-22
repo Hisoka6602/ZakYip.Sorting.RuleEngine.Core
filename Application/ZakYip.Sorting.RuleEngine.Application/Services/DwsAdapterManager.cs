@@ -24,7 +24,6 @@ public class DwsAdapterManager : IDwsAdapterManager
     private readonly ILoggerFactory _loggerFactory;
     private readonly ISystemClock _clock;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ICommunicationLogRepository _communicationLogRepository;
     private DwsConfig? _currentConfig;
     private IDwsAdapter? _currentAdapter;
     private object? _tcpServer; // For Server mode: UpstreamTcpServer or similar
@@ -35,14 +34,12 @@ public class DwsAdapterManager : IDwsAdapterManager
         ILogger<DwsAdapterManager> logger,
         ILoggerFactory loggerFactory,
         ISystemClock clock,
-        IServiceScopeFactory serviceScopeFactory,
-        ICommunicationLogRepository communicationLogRepository)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
         _clock = clock;
         _serviceScopeFactory = serviceScopeFactory;
-        _communicationLogRepository = communicationLogRepository;
     }
 
     public bool IsConnected => _isConnected;
@@ -164,7 +161,7 @@ public class DwsAdapterManager : IDwsAdapterManager
 
         // TouchSocketDwsTcpClientAdapter构造函数：
         // (string host, int port, DwsDataTemplate dataTemplate, ILogger logger, 
-        //  ICommunicationLogRepository communicationLogRepository, IDwsDataParser dataParser,
+        //  IServiceScopeFactory serviceScopeFactory, IDwsDataParser dataParser,
         //  bool autoReconnect, int reconnectIntervalSeconds)
         var adapter = Activator.CreateInstance(
             adapterType,
@@ -172,7 +169,7 @@ public class DwsAdapterManager : IDwsAdapterManager
             config.Port,
             template,
             logger,
-            _communicationLogRepository,
+            _serviceScopeFactory,
             parser,
             config.AutoReconnect,
             config.ReconnectIntervalSeconds
@@ -209,7 +206,7 @@ public class DwsAdapterManager : IDwsAdapterManager
         var parser = CreateDwsDataParser();
 
         // TouchSocketDwsAdapter构造函数：
-        // (string host, int port, ILogger logger, ICommunicationLogRepository communicationLogRepository,
+        // (string host, int port, ILogger logger, IServiceScopeFactory serviceScopeFactory,
         //  IDwsDataParser? dataParser, DwsDataTemplate? dataTemplate,
         //  int maxConnections, int receiveBufferSize, int sendBufferSize)
         var adapter = Activator.CreateInstance(
@@ -217,7 +214,7 @@ public class DwsAdapterManager : IDwsAdapterManager
             config.Host,
             config.Port,
             logger,
-            _communicationLogRepository,
+            _serviceScopeFactory,
             parser,
             template,
             config.MaxConnections,

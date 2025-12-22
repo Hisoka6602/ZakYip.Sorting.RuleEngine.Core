@@ -49,4 +49,10 @@ public record ApiClientTestRequest
     /// Chute ID (for NotifyChuteLanding method)
     /// </summary>
     public string? ChuteId { get; init; }
+
+    /// <summary>
+    /// API方法名称
+    /// API method name
+    /// </summary>
+    public WcsApiMethod? MethodName { get; init; }
 }
