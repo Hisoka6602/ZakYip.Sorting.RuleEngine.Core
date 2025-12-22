@@ -16,8 +16,10 @@ public class SorterAdapterManager : ISorterAdapterManager
 {
     private readonly ILogger<SorterAdapterManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock _clock;
     private SorterConfig? _currentConfig;
     private ISorterAdapter? _currentAdapter;
+    private object? _tcpServer; // DownstreamTcpJsonServer instance for Server mode
     private bool _isConnected;
     private readonly object _lock = new();
 
