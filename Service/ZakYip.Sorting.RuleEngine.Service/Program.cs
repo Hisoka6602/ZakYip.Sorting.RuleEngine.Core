@@ -487,78 +487,28 @@ try
                     return sorterConfigCache;
                 });
 
-                // 注册下游通信服务（根据配置选择Server或Client模式）
-                // Register downstream communication (Server or Client mode based on config)
-                // 
-                // **全局单例 / Global Singleton**: 
-                // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
-                // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
-                // 
-                // **空对象模式 / Null Object Pattern**:
-                // 当配置不存在或禁用时，返回 NullDownstreamCommunication 空对象实现
-                // When config does not exist or is disabled, return NullDownstreamCommunication null object implementation
-                services.AddSingleton<IDownstreamCommunication>(sp =>
-                {
-                    var logger = sp.GetRequiredService<ILogger<Program>>();
-                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                    var clock = sp.GetRequiredService<ISystemClock>();
-                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
-                    
-                    try
-                    {
-                        // 使用 scope 来访问 scoped repository
-                        using var scope = serviceScopeFactory.CreateScope();
-                        var configRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
-                        var sorterConfig = configRepository.GetByIdAsync(SorterConfig.SingletonId).GetAwaiter().GetResult();
-                        
-                        if (sorterConfig == null || !sorterConfig.IsEnabled)
-                        {
-                            logger.LogInformation("Sorter配置不存在或已禁用，使用空对象实现 / Sorter config does not exist or is disabled, using null object implementation");
-                            return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.NullDownstreamCommunication();
-                        }
-                        
-                        // 根据配置选择Server或Client模式
-                        var mode = sorterConfig.ConnectionMode.ToUpperInvariant();
-                        
-                        if (mode == "SERVER")
-                        {
-                            // Server模式：RuleEngine作为服务器
-                            var serverLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>();
-                            var server = new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
-                                serverLogger,
-                                clock,
-                                sorterConfig.Host,
-                                sorterConfig.Port);
-                            
-                            logger.LogInformation("已创建下游通信 Server: Host={Host}, Port={Port}", sorterConfig.Host, sorterConfig.Port);
-                            return server;
-                        }
-                        else // "CLIENT"
-                        {
-                            // Client模式：RuleEngine作为客户端
-                            var clientLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>();
-                            var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
-                            {
-                                TcpServer = $"{sorterConfig.Host}:{sorterConfig.Port}",
-                                TimeoutMs = sorterConfig.TimeoutSeconds * 1000,
-                                RetryCount = 3,
-                                RetryDelayMs = sorterConfig.ReconnectIntervalSeconds * 1000
-                            };
-                            var client = new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
-                                clientLogger,
-                                connectionOptions,
-                                clock);
-                            
-                            logger.LogInformation("已创建下游通信 Client: Host={Host}, Port={Port}", sorterConfig.Host, sorterConfig.Port);
-                            return client;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "创建下游通信失败，使用空对象实现 / Failed to create downstream communication, using null object implementation");
-                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.NullDownstreamCommunication();
-                    }
-                });
+                // 注册下游通信工厂和管理器（支持配置热更新）
+                // Register downstream communication factory and manager (supports configuration hot reload)
+                //
+                // **工厂模式 / Factory Pattern**:
+                // DownstreamCommunicationFactory 负责根据配置创建具体实例（Server或Client）
+                // DownstreamCommunicationFactory creates concrete instances (Server or Client) based on configuration
+                //
+                // **管理器模式 / Manager Pattern**:
+                // DownstreamCommunicationManager 管理实例生命周期，支持配置热更新
+                // DownstreamCommunicationManager manages instance lifecycle and supports configuration hot reload
+                //
+                // **热更新机制 / Hot Reload Mechanism**:
+                // 当 SorterConfig 变更时，SorterConfigChangedEventHandler 调用 manager.ReloadAsync()
+                // 重新加载配置、停止旧实例、创建新实例、启动新实例
+                // When SorterConfig changes, SorterConfigChangedEventHandler calls manager.ReloadAsync()
+                // to reload config, stop old instance, create new instance, and start new instance
+                services.AddSingleton<ZakYip.Sorting.RuleEngine.Domain.Interfaces.IDownstreamCommunicationFactory,
+                    ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamCommunicationFactory>();
+                
+                services.AddSingleton<IDownstreamCommunication, 
+                    ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamCommunicationManager>();
+
 
                 // 注册适配器管理器（单例）
                 // Register adapter managers (Singleton)

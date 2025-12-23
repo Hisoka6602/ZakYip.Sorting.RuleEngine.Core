@@ -118,25 +118,29 @@ public class AdapterConnectionService : IHostedService
                 return;
             }
 
-            var sorterConfigRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
-            var config = await sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
+            _logger.LogInformation(
+                "检查下游通信状态: IsEnabled={IsEnabled}, Type={Type}",
+                _downstreamCommunication.IsEnabled,
+                _downstreamCommunication.GetType().Name);
 
-            if (config?.IsEnabled != true)
+            // 如果当前未启用，跳过连接（可能是配置不存在或已禁用）
+            // Skip connection if currently disabled (config may not exist or is disabled)
+            if (!_downstreamCommunication.IsEnabled)
             {
                 _logger.LogInformation(
-                    "分拣机配置不存在或已禁用，跳过连接 / Sorter configuration does not exist or is disabled, skipping connection");
+                    "下游通信当前未启用（可能是配置不存在或已禁用）/ " +
+                    "Downstream communication currently disabled (config may not exist or is disabled)");
+                _logger.LogInformation(
+                    "系统将等待配置更新，配置更新后会自动连接 / " +
+                    "System will wait for config update, will auto-connect after config update");
                 return;
             }
 
-            _logger.LogInformation(
-                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: Protocol={Protocol}, ConnectionMode={ConnectionMode}",
-                config.Protocol, config.ConnectionMode);
+            _logger.LogInformation("分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting");
 
             await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation(
-                "分拣机连接成功 / Sorter connection successful: Protocol={Protocol}, ConnectionMode={ConnectionMode}",
-                config.Protocol, config.ConnectionMode);
+            _logger.LogInformation("分拣机连接已启动 / Sorter connection started");
         }
         catch (InvalidOperationException ex)
         {
