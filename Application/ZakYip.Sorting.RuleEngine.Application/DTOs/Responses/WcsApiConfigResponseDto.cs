@@ -7,6 +7,12 @@ namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
 public record class WcsApiConfigResponseDto
 {
     /// <summary>
+    /// 激活的WCS API适配器类型
+    /// Active WCS API adapter type
+    /// </summary>
+    public required string ActiveAdapterType { get; init; }
+    
+    /// <summary>
     /// API接口URL
     /// API endpoint URL
     /// </summary>

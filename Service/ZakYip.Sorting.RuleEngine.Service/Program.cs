@@ -380,14 +380,20 @@ try
                 services.AddSingleton<MockWcsApiAdapter>();
                 services.AddSingleton<IWcsApiAdapter>(sp => sp.GetRequiredService<MockWcsApiAdapter>());
 
-                // 注册适配器工厂 - 根据配置和自动应答模式选择激活的适配器
-                // Register adapter factory - selects active adapter based on configuration and auto-response mode
+                // 注册适配器工厂 - 根据配置和自动应答模式选择激活的适配器（支持热更新）
+                // Register adapter factory - selects active adapter based on configuration and auto-response mode (with hot reload support)
                 services.AddSingleton<IWcsApiAdapterFactory>(sp =>
                 {
                     var adapters = sp.GetServices<IWcsApiAdapter>();
                     var autoResponseModeService = sp.GetRequiredService<IAutoResponseModeService>();
                     var loggerFactory = sp.GetRequiredService<ILogger<WcsApiAdapterFactory>>();
-                    return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, autoResponseModeService, loggerFactory);
+                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                    
+                    // 创建一个包装的 repository，通过 scope 访问
+                    // Create a wrapper repository that accesses via scope
+                    var configRepository = new WcsApiConfigRepositoryWrapper(serviceScopeFactory);
+                    
+                    return new WcsApiAdapterFactory(adapters, appSettings.ActiveApiAdapter, autoResponseModeService, configRepository, loggerFactory);
                 });
 
                 // 注册仓储（数据库访问层保持Scoped）

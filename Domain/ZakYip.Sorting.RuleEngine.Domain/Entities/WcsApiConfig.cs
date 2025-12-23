@@ -47,6 +47,21 @@ public record class WcsApiConfig
     public bool DisableSslValidation { get; init; } = false;
     
     /// <summary>
+    /// 激活的WCS API适配器类型
+    /// Active WCS API adapter type
+    /// </summary>
+    /// <remarks>
+    /// 可选值 / Available options: 
+    /// - WcsApiClient (标准WCS API / Standard WCS API)
+    /// - JushuitanErpApiClient (聚水潭ERP / Jushuituan ERP)
+    /// - WdtWmsApiClient (旺店通WMS / WDT WMS)
+    /// - WdtErpFlagshipApiClient (旺店通旗舰版ERP / WDT Flagship ERP)
+    /// - PostCollectionApiClient (邮政揽收 / Post Collection)
+    /// - PostProcessingCenterApiClient (邮政处理中心 / Post Processing Center)
+    /// </remarks>
+    public required string ActiveAdapterType { get; init; }
+    
+    /// <summary>
     /// 是否启用
     /// Is enabled
     /// </summary>
