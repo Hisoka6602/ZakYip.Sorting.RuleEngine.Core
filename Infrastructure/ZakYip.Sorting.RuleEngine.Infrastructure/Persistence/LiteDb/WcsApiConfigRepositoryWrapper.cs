@@ -20,49 +20,49 @@ public sealed class WcsApiConfigRepositoryWrapper : IWcsApiConfigRepository
     public async Task<IEnumerable<WcsApiConfig>> GetAllAsync()
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.GetAllAsync().ConfigureAwait(false);
     }
 
     public async Task<IEnumerable<WcsApiConfig>> GetEnabledConfigsAsync()
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.GetEnabledConfigsAsync().ConfigureAwait(false);
     }
 
     public async Task<WcsApiConfig?> GetByIdAsync(string configId)
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.GetByIdAsync(configId).ConfigureAwait(false);
     }
 
     public async Task<bool> AddAsync(WcsApiConfig config)
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.AddAsync(config).ConfigureAwait(false);
     }
 
     public async Task<bool> UpdateAsync(WcsApiConfig config)
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.UpdateAsync(config).ConfigureAwait(false);
     }
 
     public async Task<bool> DeleteAsync(string configId)
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.DeleteAsync(configId).ConfigureAwait(false);
     }
 
     public async Task<bool> UpsertAsync(WcsApiConfig config)
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IWcsApiConfigRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<LiteDbWcsApiConfigRepository>();
         return await repository.UpsertAsync(config).ConfigureAwait(false);
     }
 }
