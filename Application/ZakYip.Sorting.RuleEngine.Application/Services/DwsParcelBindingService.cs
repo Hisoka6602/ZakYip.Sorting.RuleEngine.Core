@@ -163,8 +163,8 @@ public class DwsParcelBindingService
                 "DWS数据不包含ParcelId，尝试从缓存查找最新未绑定包裹: Barcode={Barcode}",
                 dwsData.Barcode);
 
-            // 优先从缓存查找（性能更好，避免数据库查询）
-            // First try cache (better performance, avoids database query)
+            // ⚠️ 硬性要求：只从缓存查找，永远不从数据库读取包裹用于分拣
+            // Hard requirement: Only find from cache, NEVER read parcel from database for sorting
             var latestParcel = await GetLatestUnboundParcelAsync(cancellationToken).ConfigureAwait(false);
             
             if (latestParcel != null)
@@ -175,28 +175,10 @@ public class DwsParcelBindingService
                 return latestParcel.ParcelId;
             }
 
-            // 如果缓存中没有，尝试从数据库查找（降级方案）
-            // If not in cache, try database as fallback
-            _logger.LogDebug(
-                "缓存中未找到未绑定包裹，尝试从数据库查找: Barcode={Barcode}",
-                dwsData.Barcode);
-
-            latestParcel = await _parcelInfoRepository
-                .GetLatestWithoutDwsDataAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (latestParcel != null)
-            {
-                _logger.LogInformation(
-                    "✅ 从数据库找到最新未绑定包裹: ParcelId={ParcelId}，将绑定到 Barcode={Barcode}",
-                    latestParcel.ParcelId, dwsData.Barcode);
-                return latestParcel.ParcelId;
-            }
-
             // 场景3: 未找到现有包裹，自动创建新包裹（使用条码或时间戳作为ParcelId）
             // Scenario 3: No existing parcel found, auto-create new parcel (use Barcode or timestamp as ParcelId)
             _logger.LogInformation(
-                "🆕 缓存和数据库均未找到未绑定的包裹，将自动创建新包裹: Barcode={Barcode}",
+                "🆕 缓存中未找到未绑定的包裹，将自动创建新包裹: Barcode={Barcode}",
                 dwsData.Barcode);
             
             // 生成ParcelId：优先使用Barcode，如果为空则使用时间戳
@@ -263,38 +245,30 @@ public class DwsParcelBindingService
     }
 
     /// <summary>
-    /// 获取最新的未绑定包裹（优先缓存，降级数据库）
-    /// Get the latest unbound parcel (cache first, database fallback)
+    /// 获取最新的未绑定包裹（仅从缓存）
+    /// Get the latest unbound parcel (cache only)
     /// </summary>
     /// <remarks>
-    /// 注意：由于 IMemoryCache 不支持条件查询，当前实现从数据库查询后尝试从缓存加载
-    /// Note: Since IMemoryCache doesn't support conditional queries, current implementation queries database then tries cache
+    /// ⚠️ 硬性要求：永远不从数据库读取包裹用于分拣
+    /// ⚠️ Hard requirement: NEVER read parcel from database for sorting
+    /// 
+    /// 注意：由于 IMemoryCache 不支持条件查询或遍历所有键，当前实现直接返回 null
+    /// Note: Since IMemoryCache doesn't support conditional queries or iterating all keys, current implementation returns null directly
+    /// 
+    /// 如果需要从缓存查找未绑定包裹，需要：
+    /// If need to find unbound parcel from cache, need to:
+    /// 1. 维护一个独立的未绑定包裹ID队列（如 ConcurrentQueue）
+    /// 2. 或使用支持遍历的缓存实现（如 Redis）
+    /// 
+    /// 当前设计：DWS数据到达时，如果没有ParcelId，直接创建新包裹
+    /// Current design: When DWS data arrives without ParcelId, create new parcel directly
     /// </remarks>
-    private async Task<ParcelInfo?> GetLatestUnboundParcelAsync(CancellationToken cancellationToken)
+    private Task<ParcelInfo?> GetLatestUnboundParcelAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            // 从数据库查询最新未绑定包裹的ID
-            var latestParcel = await _parcelInfoRepository
-                .GetLatestWithoutDwsDataAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (latestParcel == null)
-            {
-                return null;
-            }
-
-            // 尝试从缓存加载完整的包裹信息（可能有更新的数据）
-            // Try to load full parcel info from cache (may have more up-to-date data)
-            var cachedParcel = await _cacheService.GetAsync(latestParcel.ParcelId, cancellationToken)
-                .ConfigureAwait(false);
-
-            return cachedParcel ?? latestParcel;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "从缓存获取最新包裹失败，将使用降级方案");
-            return null;
-        }
+        // ⚠️ 硬性要求：永远不从数据库读取包裹用于分拣
+        // Hard requirement: NEVER read parcel from database for sorting
+        
+        _logger.LogDebug("缓存不支持遍历，无法查找最新未绑定包裹，将创建新包裹");
+        return Task.FromResult<ParcelInfo?>(null);
     }
 }
