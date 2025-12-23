@@ -193,10 +193,62 @@ public class DwsParcelBindingService
                 return latestParcel.ParcelId;
             }
 
-            _logger.LogWarning(
-                "⚠️ 缓存和数据库均未找到未绑定的包裹，无法绑定DWS数据: Barcode={Barcode}",
+            // 场景3: 未找到现有包裹，自动创建新包裹（使用条码或时间戳作为ParcelId）
+            // Scenario 3: No existing parcel found, auto-create new parcel (use Barcode or timestamp as ParcelId)
+            _logger.LogInformation(
+                "🆕 缓存和数据库均未找到未绑定的包裹，将自动创建新包裹: Barcode={Barcode}",
                 dwsData.Barcode);
-            return null;
+            
+            // 生成ParcelId：优先使用Barcode，如果为空则使用时间戳
+            // Generate ParcelId: prefer Barcode, fallback to timestamp if empty
+            var newParcelId = !string.IsNullOrEmpty(dwsData.Barcode) 
+                ? dwsData.Barcode 
+                : _clock.LocalNow.ToString("yyyyMMddHHmmssfff", System.Globalization.CultureInfo.InvariantCulture);
+            
+            // 创建新包裹
+            // Create new parcel
+            var newParcel = new ParcelInfo
+            {
+                ParcelId = newParcelId,
+                Barcode = dwsData.Barcode,
+                LifecycleStage = Domain.Enums.ParcelLifecycleStage.Created,
+                CreatedAt = _clock.LocalNow
+            };
+            
+            try
+            {
+                // 保存到数据库
+                // Save to database
+                await _parcelInfoRepository.AddAsync(newParcel, cancellationToken).ConfigureAwait(false);
+                
+                // 添加到缓存
+                // Add to cache
+                await _cacheService.SetAsync(newParcel, cancellationToken).ConfigureAwait(false);
+                
+                _logger.LogInformation(
+                    "✅ 新包裹已创建: ParcelId={ParcelId}, Barcode={Barcode}",
+                    newParcelId, dwsData.Barcode);
+                
+                // 记录创建日志
+                // Log creation
+                await _logRepository.LogInfoAsync(
+                    $"自动创建包裹: ParcelId={newParcelId}",
+                    $"DWS数据到达但未找到预先创建的包裹，已自动创建。Barcode={dwsData.Barcode}").ConfigureAwait(false);
+                
+                return newParcelId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "❌ 创建新包裹失败: Barcode={Barcode}",
+                    dwsData.Barcode);
+                
+                await _logRepository.LogErrorAsync(
+                    $"创建包裹失败: Barcode={dwsData.Barcode}",
+                    ex.Message).ConfigureAwait(false);
+                
+                return null;
+            }
         }
         catch (Exception ex)
         {
