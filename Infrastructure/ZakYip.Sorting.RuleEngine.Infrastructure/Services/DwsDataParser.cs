@@ -20,6 +20,7 @@ public class DwsDataParser : IDwsDataParser
 
     private static readonly Dictionary<string, string> FieldMappings = new()
     {
+        { "ParcelId", "ParcelId" },
         { "Code", "Barcode" },
         { "Barcode", "Barcode" },
         { "Weight", "Weight" },
