@@ -176,9 +176,9 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
     {
         var client = new TcpClient();
         
-        var config = new TouchSocketConfig()
+        client.Setup(new TouchSocketConfig()
             .SetRemoteIPHost(new IPHost($"127.0.0.1:{TestPort}"))
-            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"));
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
 
         client.Received += (sender, e) =>
         {

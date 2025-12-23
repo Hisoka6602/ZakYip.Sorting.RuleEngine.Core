@@ -202,10 +202,25 @@ echo "失败率: $(awk "BEGIN {printf \"%.2f%%\", ($failed/$total)*100}")"
 
 ### 敏感信息保护
 
-日志中的敏感信息已自动脱敏：
-- **API密钥** - 显示为 `***`
-- **认证token** - 自动隐藏
-- **个人信息** - 根据配置脱敏
+日志中的敏感HTTP Header已自动脱敏：
+- **API密钥（X-API-Key）** - 只显示前4个字符，其余显示为 `***` (例如: `abcd***`)
+- **认证Token（Authorization, X-Auth-Token）** - 只显示前4个字符，其余显示为 `***`
+- **Cookie和Set-Cookie** - 自动脱敏处理
+- **其他认证相关Header** - 包括 `Proxy-Authorization`, `WWW-Authenticate`, `X-Access-Token`, `X-Refresh-Token`
+
+**脱敏示例**:
+```json
+{
+  "X-API-Key": "abcd***",
+  "Content-Type": "application/json",
+  "Authorization": "Bear***"
+}
+```
+
+**注意**: 请求和响应的**消息体（Body）不会自动脱敏**。如果Body中包含敏感个人信息（如姓名、身份证号、手机号等），这些信息会被完整记录。建议：
+- 在系统设计中避免在请求/响应Body中传递不必要的敏感个人信息
+- 结合日志保留策略，定期清理历史日志
+- 在生产环境中限制日志文件的访问权限
 
 ### 访问权限
 
