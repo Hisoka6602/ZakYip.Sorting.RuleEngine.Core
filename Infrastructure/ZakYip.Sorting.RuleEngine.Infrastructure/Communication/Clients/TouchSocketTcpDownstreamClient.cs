@@ -402,16 +402,19 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
     /// RuleEngine的核心职责：发送格口分配通知
     /// RuleEngine's core responsibility: send chute assignment notification
     /// </remarks>
+    /// <exception cref="InvalidOperationException">客户端未连接时抛出 / Thrown when client is not connected</exception>
     public async Task BroadcastChuteAssignmentAsync(string chuteAssignmentJson)
     {
         ThrowIfDisposed();
 
         if (!IsConnected)
         {
-            _logger.LogWarning(
-                "[{LocalTime}] 无法发送格口分配通知：客户端未连接",
-                _systemClock.LocalNow);
-            return;
+            var errorMsg = "无法发送格口分配通知：客户端未连接到WheelDiverterSorter / Cannot send chute assignment: client not connected to WheelDiverterSorter";
+            _logger.LogError(
+                "[{LocalTime}] {ErrorMessage}",
+                _systemClock.LocalNow,
+                errorMsg);
+            throw new InvalidOperationException(errorMsg);
         }
 
         var bytes = Encoding.UTF8.GetBytes(chuteAssignmentJson.TrimEnd('\n') + "\n");
@@ -435,6 +438,7 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
                 ex,
                 "[{LocalTime}] [客户端模式-发送失败] 发送格口分配通知失败",
                 _systemClock.LocalNow);
+            throw;  // 重新抛出异常，让调用者知道发送失败 / Re-throw exception to let caller know send failed
         }
     }
 
