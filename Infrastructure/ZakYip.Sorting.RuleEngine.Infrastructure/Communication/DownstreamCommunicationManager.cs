@@ -113,6 +113,8 @@ public sealed class DownstreamCommunicationManager : IReloadableDownstreamCommun
         catch (Exception ex)
         {
             _logger.LogError(ex, "加载分拣机配置失败，使用空对象实现 / Failed to load Sorter config, using null object implementation");
+            // 发生异常时返回空对象，确保 _current 不为 null
+            // Return null object on exception to ensure _current is not null
             return new NullDownstreamCommunication();
         }
     }
@@ -160,6 +162,7 @@ public sealed class DownstreamCommunicationManager : IReloadableDownstreamCommun
     /// 5. 释放旧实例资源
     /// 
     /// **线程安全 / Thread Safety**: 使用信号量确保同一时间只有一个重载操作
+    /// **事件安全 / Event Safety**: 事件订阅/取消订阅在锁内进行，确保原子性
     /// </remarks>
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
@@ -179,7 +182,14 @@ public sealed class DownstreamCommunicationManager : IReloadableDownstreamCommun
             // 停止旧实例
             // Stop old instance
             _logger.LogInformation("停止旧的下游通信实例 / Stopping old downstream communication instance");
-            await _current.StopAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _current.StopAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "停止旧实例时发生异常，继续重载流程 / Exception while stopping old instance, continuing reload");
+            }
 
             // 保存旧实例引用以便后续释放
             // Save old instance reference for later disposal
@@ -197,22 +207,49 @@ public sealed class DownstreamCommunicationManager : IReloadableDownstreamCommun
                 _logger.LogInformation(
                     "启动新的下游通信实例: Protocol={Protocol}, Mode={Mode}, Host={Host}:{Port}",
                     newConfig.Protocol, newConfig.ConnectionMode, newConfig.Host, newConfig.Port);
-                await _current.StartAsync(cancellationToken).ConfigureAwait(false);
+                
+                try
+                {
+                    await _current.StartAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "启动新实例失败，回滚到空对象实现 / Failed to start new instance, rolling back to null object");
+                    // 启动失败时，替换为空对象，避免系统处于不一致状态
+                    // On start failure, replace with null object to avoid inconsistent state
+                    _current = new NullDownstreamCommunication();
+                }
             }
 
-            // 释放旧实例
-            // Dispose old instance
-            if (oldInstance is IDisposable disposable)
+            // 延迟释放旧实例，确保所有正在进行的操作完成
+            // Delay disposal of old instance to ensure ongoing operations complete
+            _ = Task.Run(async () =>
             {
-                disposable.Dispose();
-            }
+                try
+                {
+                    // 等待一小段时间，让正在进行的操作完成
+                    // Wait a short period for ongoing operations to complete
+                    await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                    
+                    if (oldInstance is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                        _logger.LogDebug("旧实例已释放 / Old instance disposed");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "释放旧实例时发生异常 / Exception while disposing old instance");
+                }
+            }, CancellationToken.None);
 
             _logger.LogInformation("下游通信配置重新加载完成 / Downstream communication configuration reload completed");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "重新加载下游通信配置失败 / Failed to reload downstream communication configuration");
-            throw;
+            // 不重新抛出异常，避免影响调用者
+            // Don't rethrow to avoid impacting the caller
         }
         finally
         {
@@ -243,11 +280,23 @@ public sealed class DownstreamCommunicationManager : IReloadableDownstreamCommun
 
         try
         {
-            _current.StopAsync().GetAwaiter().GetResult();
+            // 使用 Task.Run 避免同步阻塞
+            // Use Task.Run to avoid synchronous blocking
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await _current.StopAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "停止下游通信时发生异常 / Exception occurred while stopping downstream communication");
+                }
+            }).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "停止下游通信时发生异常 / Exception occurred while stopping downstream communication");
+            _logger.LogWarning(ex, "释放资源时发生异常 / Exception during disposal");
         }
 
         if (_current is IDisposable disposable)
