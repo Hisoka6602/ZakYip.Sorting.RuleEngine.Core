@@ -176,7 +176,22 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
     {
         try
         {
-            var data = Encoding.UTF8.GetString(e.ByteBlock.ToArray());
+            // 使用 Span 避免额外的内存分配，并 Trim 去除空白字符
+            // Use Span to avoid extra memory allocation and Trim to remove whitespace
+            var data = Encoding.UTF8.GetString(e.ByteBlock.Span).Trim();
+            
+            // 忽略空消息（心跳包或连接关闭时的空行）
+            // Ignore empty messages (heartbeat or empty lines when connection closes)
+            if (string.IsNullOrWhiteSpace(data))
+            {
+                return;
+            }
+            
+            _logger.LogInformation(
+                "收到DWS数据 | 字节数={ByteCount} | 客户端={ClientId} | 数据={Data}",
+                e.ByteBlock.Length,
+                client.Id,
+                data);
             
             if (client is ITcpSession session)
             {
@@ -185,7 +200,7 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "处理TCP接收数据失败");
+            _logger.LogError(ex, "处理TCP接收数据失败 | 客户端={ClientId}", client.Id);
         }
     }
 
