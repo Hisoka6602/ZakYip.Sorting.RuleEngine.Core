@@ -119,28 +119,28 @@ public class AdapterConnectionService : IHostedService
             }
 
             _logger.LogInformation(
-                "检查下游通信状态: IsEnabled={IsEnabled}, Type={Type}",
-                _downstreamCommunication.IsEnabled,
-                _downstreamCommunication.GetType().Name);
+                "启动下游通信，将从数据库加载配置 / Starting downstream communication, will load config from database");
 
-            // 如果当前未启用，跳过连接（可能是配置不存在或已禁用）
-            // Skip connection if currently disabled (config may not exist or is disabled)
-            if (!_downstreamCommunication.IsEnabled)
-            {
-                _logger.LogInformation(
-                    "下游通信当前未启用（可能是配置不存在或已禁用）/ " +
-                    "Downstream communication currently disabled (config may not exist or is disabled)");
-                _logger.LogInformation(
-                    "系统将等待配置更新，配置更新后会自动连接 / " +
-                    "System will wait for config update, will auto-connect after config update");
-                return;
-            }
-
-            _logger.LogInformation("分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting");
-
+            // 调用 StartAsync() 触发配置加载和连接
+            // StartAsync() 内部会从数据库加载配置，并根据 IsEnabled 决定是否实际启动连接
+            // Call StartAsync() to trigger config loading and connection
+            // StartAsync() internally loads config from database and decides whether to actually start based on IsEnabled
             await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("分拣机连接已启动 / Sorter connection started");
+            // 加载完成后检查是否已启用
+            // Check if enabled after config is loaded
+            if (_downstreamCommunication.IsEnabled)
+            {
+                _logger.LogInformation(
+                    "分拣机连接已启动: Type={Type}",
+                    _downstreamCommunication.GetType().Name);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "分拣机配置不存在或已禁用，连接未启动 / " +
+                    "Sorter configuration does not exist or is disabled, connection not started");
+            }
         }
         catch (InvalidOperationException ex)
         {

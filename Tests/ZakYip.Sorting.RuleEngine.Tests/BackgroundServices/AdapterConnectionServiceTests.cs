@@ -195,6 +195,12 @@ public class AdapterConnectionServiceTests
             .Setup(x => x.GetByIdAsync(SorterConfig.SingletonId))
             .ReturnsAsync(sorterConfig);
 
+        // 设置 downstream communication mock 在调用 StartAsync 后返回 true
+        // Setup downstream communication mock to return true for IsEnabled after StartAsync is called
+        _downstreamCommunicationMock
+            .Setup(x => x.IsEnabled)
+            .Returns(true);
+
         var service = new AdapterConnectionService(
             _serviceProvider,
             _dwsAdapterMock.Object,
@@ -205,6 +211,56 @@ public class AdapterConnectionServiceTests
         await service.StartAsync(CancellationToken.None).ConfigureAwait(false);
 
         // Assert
+        _downstreamCommunicationMock.Verify(
+            x => x.StartAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// 测试：分拣机配置已禁用时，仍然会调用StartAsync加载配置，但连接不会启动
+    /// Test: Should still call StartAsync to load config when Sorter configuration is disabled, but connection won't start
+    /// </summary>
+    [Fact]
+    public async Task StartAsync_SorterConfigDisabled_ShouldCallStartAsyncButNotConnect()
+    {
+        // Arrange
+        var sorterConfig = new SorterConfig
+        {
+            ConfigId = SorterConfig.SingletonId,
+            Protocol = "TCP",
+            Host = "127.0.0.1",
+            Port = 3001,
+            IsEnabled = false,
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local),
+            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Local)
+        };
+
+        _dwsConfigRepositoryMock
+            .Setup(x => x.GetByIdAsync(DwsConfig.SingletonId))
+            .ReturnsAsync((DwsConfig?)null);
+
+        _sorterConfigRepositoryMock
+            .Setup(x => x.GetByIdAsync(SorterConfig.SingletonId))
+            .ReturnsAsync(sorterConfig);
+
+        // 设置 downstream communication mock 返回 false（配置禁用）
+        // Setup downstream communication mock to return false (config disabled)
+        _downstreamCommunicationMock
+            .Setup(x => x.IsEnabled)
+            .Returns(false);
+
+        var service = new AdapterConnectionService(
+            _serviceProvider,
+            _dwsAdapterMock.Object,
+            _downstreamCommunicationMock.Object,
+            _loggerMock.Object);
+
+        // Act
+        await service.StartAsync(CancellationToken.None).ConfigureAwait(false);
+
+        // Assert
+        // StartAsync 应该被调用以触发配置加载（即使配置禁用）
+        // StartAsync should be called to trigger config loading (even if config is disabled)
         _downstreamCommunicationMock.Verify(
             x => x.StartAsync(It.IsAny<CancellationToken>()),
             Times.Once);
