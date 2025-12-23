@@ -18,7 +18,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 {
     private readonly ILogger<DwsDataReceivedEventHandler> _logger;
     private readonly IWcsApiAdapterFactory _apiAdapterFactory;
-    private readonly IDownstreamCommunication? _downstreamCommunication;
+    private readonly IDownstreamCommunication _downstreamCommunication;
     private readonly ILogRepository _logRepository;
     private readonly IPublisher _publisher;
     private readonly ISystemClock _clock;
@@ -29,7 +29,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
         IWcsApiAdapterFactory apiAdapterFactory,
-        IDownstreamCommunication? downstreamCommunication,
+        IDownstreamCommunication downstreamCommunication,
         ILogRepository logRepository,
         IPublisher publisher,
         ISystemClock clock,
@@ -142,7 +142,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                     // 发送格口分配到分拣机 / Send chute assignment to sorter
                     try
                     {
-                        if (_downstreamCommunication != null)
+                        if (_downstreamCommunication.IsEnabled)
                         {
                             // 使用 TryParse 安全解析 ParcelId
                             if (!long.TryParse(parcel.ParcelId, out var parcelIdValue))
@@ -177,7 +177,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                         else
                         {
                             _logger.LogWarning(
-                                "下游通信未配置，无法发送格口分配: ParcelId={ParcelId}, TargetChute={TargetChute}",
+                                "下游通信未配置或已禁用，无法发送格口分配: ParcelId={ParcelId}, TargetChute={TargetChute}",
                                 parcel.ParcelId, parcel.TargetChute);
                         }
                     }

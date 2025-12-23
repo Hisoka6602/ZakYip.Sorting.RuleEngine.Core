@@ -26,7 +26,7 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
 {
     private readonly ILogger<SorterConfigChangedEventHandler> _logger;
     private readonly ILogRepository _logRepository;
-    private readonly IDownstreamCommunication? _downstreamCommunication;
+    private readonly IDownstreamCommunication _downstreamCommunication;
     private readonly ISorterConfigRepository _configRepository;
 
     /// <summary>
@@ -36,7 +36,7 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
     public SorterConfigChangedEventHandler(
         ILogger<SorterConfigChangedEventHandler> logger,
         ILogRepository logRepository,
-        IDownstreamCommunication? downstreamCommunication,
+        IDownstreamCommunication downstreamCommunication,
         ISorterConfigRepository configRepository)
     {
         _logger = logger;
@@ -58,9 +58,9 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
 
         try
         {
-            if (_downstreamCommunication == null)
+            if (!_downstreamCommunication.IsEnabled)
             {
-                _logger.LogWarning("下游通信未配置，跳过配置热更新 / Downstream communication not configured, skipping hot reload");
+                _logger.LogWarning("下游通信未配置或已禁用，跳过配置热更新 / Downstream communication not configured or disabled, skipping hot reload");
                 return;
             }
 

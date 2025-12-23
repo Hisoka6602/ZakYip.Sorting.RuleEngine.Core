@@ -21,6 +21,7 @@ public sealed class NullDownstreamCommunication : IDownstreamCommunication
     /// Whether it is enabled (null object pattern always returns false)
     /// </summary>
     public bool IsEnabled => false;
+
     /// <summary>
     /// 启动通信（空操作）
     /// Start communication (no-op)

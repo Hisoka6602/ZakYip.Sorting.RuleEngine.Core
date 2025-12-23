@@ -14,14 +14,14 @@ public class ConfigReloadService : IConfigReloadService
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IDwsAdapter? _dwsAdapter;
-    private readonly IDownstreamCommunication? _downstreamCommunication;
+    private readonly IDownstreamCommunication _downstreamCommunication;
     private readonly ConfigCacheService _configCacheService;
     private readonly ILogger<ConfigReloadService> _logger;
 
     public ConfigReloadService(
         IServiceScopeFactory serviceScopeFactory,
         IDwsAdapter? dwsAdapter,
-        IDownstreamCommunication? downstreamCommunication,
+        IDownstreamCommunication downstreamCommunication,
         ConfigCacheService configCacheService,
         ILogger<ConfigReloadService> logger)
     {
@@ -93,9 +93,9 @@ public class ConfigReloadService : IConfigReloadService
         
         try
         {
-            if (_downstreamCommunication == null)
+            if (!_downstreamCommunication.IsEnabled)
             {
-                _logger.LogWarning("下游通信未配置，跳过重新加载");
+                _logger.LogWarning("下游通信未配置或已禁用，跳过重新加载");
                 return;
             }
 

@@ -16,14 +16,14 @@ public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchComp
 {
     private readonly ILogger<RuleMatchCompletedEventHandler> _logger;
     private readonly ILogRepository _logRepository;
-    private readonly IDownstreamCommunication? _downstreamCommunication;
+    private readonly IDownstreamCommunication _downstreamCommunication;
     private readonly IParcelInfoRepository _parcelRepository;
     private readonly ISystemClock _clock;
 
     public RuleMatchCompletedEventHandler(
         ILogger<RuleMatchCompletedEventHandler> logger,
         ILogRepository logRepository,
-        IDownstreamCommunication? downstreamCommunication,
+        IDownstreamCommunication downstreamCommunication,
         IParcelInfoRepository parcelRepository,
         ISystemClock clock)
     {
@@ -71,7 +71,7 @@ public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchComp
         // Send chute number to downstream sorter system
         try
         {
-            if (_downstreamCommunication != null)
+            if (_downstreamCommunication.IsEnabled)
             {
                 // 使用 TryParse 安全解析 ParcelId
                 if (!long.TryParse(notification.ParcelId, out var parcelIdValue))
@@ -115,11 +115,11 @@ public class RuleMatchCompletedEventHandler : INotificationHandler<RuleMatchComp
             else
             {
                 _logger.LogWarning(
-                    "下游通信未配置，无法发送格口号: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
+                    "下游通信未配置或已禁用，无法发送格口号: ParcelId={ParcelId}, ChuteNumber={ChuteNumber}",
                     notification.ParcelId, notification.ChuteNumber);
                 await _logRepository.LogWarningAsync(
                     $"格口号发送失败: {notification.ParcelId}",
-                    "下游通信未配置").ConfigureAwait(false);
+                    "下游通信未配置或已禁用").ConfigureAwait(false);
             }
         }
         catch (Exception ex)
