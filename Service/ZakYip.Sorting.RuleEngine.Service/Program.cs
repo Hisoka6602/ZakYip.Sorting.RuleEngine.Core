@@ -325,7 +325,12 @@ try
                 {
                     var loggerJst = sp.GetRequiredService<ILogger<JushuitanErpApiClient>>();
                     var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
-                    var configRepo = sp.GetRequiredService<IJushuitanErpConfigRepository>();
+                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                    
+                    // ✅ 使用 Wrapper 避免 DI 生命周期违规：Singleton/Transient 服务不能直接注入 Scoped 服务
+                    // Use Wrapper to avoid DI lifetime violation: Singleton/Transient service cannot directly inject Scoped service
+                    var configRepo = new ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.LiteDb.JushuitanErpConfigRepositoryWrapper(serviceScopeFactory);
+                    
                     return new JushuitanErpApiClient(
                         client,
                         loggerJst,
