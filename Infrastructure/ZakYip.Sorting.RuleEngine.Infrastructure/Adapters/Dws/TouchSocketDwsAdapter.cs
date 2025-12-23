@@ -4,12 +4,9 @@ using System.Text;
 using System.Text.Json;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
-using MediatR;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
-using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 
@@ -267,33 +264,15 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
                     "✅ DWS数据解析成功 | Barcode={Barcode}, Weight={Weight}g, L×W×H={L}×{W}×{H}cm",
                     dwsData.Barcode, dwsData.Weight, dwsData.Length, dwsData.Width, dwsData.Height);
 
-                // 使用 scope 发布 MediatR 事件，让 DwsDataReceivedEventHandler 处理包裹绑定
-                // Use scope to publish MediatR event, let DwsDataReceivedEventHandler handle parcel binding
-                using (var scope = _serviceScopeFactory.CreateScope())
-                {
-                    var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
-                    var clock = scope.ServiceProvider.GetRequiredService<ISystemClock>();
-                    
-                    // 发布事件 - 这将触发 DwsDataReceivedEventHandler 进行包裹绑定
-                    // Publish event - this will trigger DwsDataReceivedEventHandler for parcel binding
-                    await publisher.Publish(new DwsDataReceivedEvent
-                    {
-                        ParcelId = dwsData.ParcelId,  // ✅ 使用DWS数据中的ParcelId
-                        DwsData = dwsData,
-                        ReceivedAt = clock.LocalNow,
-                        SourceAddress = client.IP?.ToString()
-                    }).ConfigureAwait(false);
-                    
-                    _logger.LogInformation(
-                        "📢 已发布DwsDataReceivedEvent事件 | ParcelId={ParcelId}, Barcode={Barcode}",
-                        dwsData.ParcelId, dwsData.Barcode);
-                }
-
-                // 触发旧的事件委托（向后兼容）
-                // Trigger old event delegate (backward compatible)
+                // 触发事件委托，让订阅者处理 DWS 数据
+                // Trigger event delegate for subscribers to handle DWS data
                 if (OnDwsDataReceived != null)
                 {
-                    await OnDwsDataReceived.Invoke(dwsData);
+                    await OnDwsDataReceived.Invoke(dwsData).ConfigureAwait(false);
+                    
+                    _logger.LogInformation(
+                        "📢 已触发 OnDwsDataReceived 事件 | ParcelId={ParcelId}, Barcode={Barcode}",
+                        dwsData.ParcelId, dwsData.Barcode);
                 }
             }
             else
