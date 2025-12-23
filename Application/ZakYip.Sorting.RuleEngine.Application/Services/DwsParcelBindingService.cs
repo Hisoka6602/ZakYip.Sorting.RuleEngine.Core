@@ -30,9 +30,8 @@ public class DwsParcelBindingService
     private readonly ILogRepository _logRepository;
     private readonly ISystemClock _clock;
     private readonly IParcelInfoRepository _parcelInfoRepository;
-    private readonly IParcelLifecycleNodeRepository _lifecycleRepository;
     private readonly ParcelCacheService _cacheService;
-    private readonly IDwsCommunicationLogRepository _dwsCommunicationLogRepository;
+    private readonly DwsCommunicationLogService _dwsCommunicationLogService;
 
     public DwsParcelBindingService(
         ILogger<DwsParcelBindingService> logger,
@@ -40,18 +39,16 @@ public class DwsParcelBindingService
         ILogRepository logRepository,
         ISystemClock clock,
         IParcelInfoRepository parcelInfoRepository,
-        IParcelLifecycleNodeRepository lifecycleRepository,
         ParcelCacheService cacheService,
-        IDwsCommunicationLogRepository dwsCommunicationLogRepository)
+        DwsCommunicationLogService dwsCommunicationLogService)
     {
         _logger = logger;
         _publisher = publisher;
         _logRepository = logRepository;
         _clock = clock;
         _parcelInfoRepository = parcelInfoRepository;
-        _lifecycleRepository = lifecycleRepository;
         _cacheService = cacheService;
-        _dwsCommunicationLogRepository = dwsCommunicationLogRepository;
+        _dwsCommunicationLogService = dwsCommunicationLogService;
     }
 
     /// <summary>
@@ -69,9 +66,13 @@ public class DwsParcelBindingService
                 "📦 [步骤1-DWS接收] 处理DWS数据: ParcelId={ParcelId}, Barcode={Barcode}, Weight={Weight}g",
                 dwsData.ParcelId, dwsData.Barcode, dwsData.Weight);
 
-            // ✅ 持久化DWS通信日志（确保数据不丢失，即使后续流程失败）
-            // Persist DWS communication log (ensure data is not lost even if subsequent process fails)
-            await SaveDwsCommunicationLogAsync(dwsData, sourceAddress, cancellationToken).ConfigureAwait(false);
+            // ✅ 持久化DWS通信日志（并行执行，不阻塞关键业务路径）
+            // Persist DWS communication log (parallel execution, don't block critical business path)
+            var logTask = Task.Run(async () =>
+            {
+                await _dwsCommunicationLogService.SaveAsync(dwsData, sourceAddress, cancellationToken)
+                    .ConfigureAwait(false);
+            }, cancellationToken);
 
             // 🔍 智能包裹绑定：ParcelId为空时自动查找最新未绑定包裹
             // Smart parcel binding: auto-find latest unbound parcel when ParcelId is empty
@@ -85,6 +86,9 @@ public class DwsParcelBindingService
                 await _logRepository.LogWarningAsync(
                     $"DWS数据无法绑定: Barcode={dwsData.Barcode}",
                     "未找到待绑定的包裹。包裹必须由下游分拣机预先创建。").ConfigureAwait(false);
+                
+                // 等待日志任务完成
+                await logTask.ConfigureAwait(false);
                 return;
             }
 
@@ -107,6 +111,9 @@ public class DwsParcelBindingService
             _logger.LogInformation(
                 "📢 [步骤2-事件发布] DwsDataReceivedEvent 已发布 / Event published: ParcelId={ParcelId}",
                 parcelId);
+            
+            // 等待日志任务完成（不阻塞事件发布）
+            await logTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -130,8 +137,8 @@ public class DwsParcelBindingService
     }
 
     /// <summary>
-    /// 查找或绑定包裹ID
-    /// Find or bind parcel ID
+    /// 查找或绑定包裹ID（从缓存或数据库）
+    /// Find or bind parcel ID (from cache or database)
     /// </summary>
     /// <param name="dwsData">DWS数据 / DWS data</param>
     /// <param name="cancellationToken">取消令牌 / Cancellation token</param>
@@ -158,7 +165,7 @@ public class DwsParcelBindingService
 
             // 优先从缓存查找（性能更好，避免数据库查询）
             // First try cache (better performance, avoids database query)
-            var latestParcel = await TryGetLatestParcelFromCacheAsync(cancellationToken).ConfigureAwait(false);
+            var latestParcel = await GetLatestUnboundParcelAsync(cancellationToken).ConfigureAwait(false);
             
             if (latestParcel != null)
             {
@@ -204,25 +211,18 @@ public class DwsParcelBindingService
     }
 
     /// <summary>
-    /// 尝试从缓存获取最新的未绑定包裹（没有Barcode的包裹）
-    /// Try to get the latest unbound parcel (parcel without Barcode) from cache
+    /// 获取最新的未绑定包裹（优先缓存，降级数据库）
+    /// Get the latest unbound parcel (cache first, database fallback)
     /// </summary>
     /// <remarks>
-    /// 注意：IMemoryCache 不支持按条件查询，这里使用数据库查询后再尝试从缓存加载
-    /// 未来可以考虑使用 ParcelOrchestrationService 的队列机制来实现真正的FIFO
-    /// 
-    /// Note: IMemoryCache doesn't support conditional queries, using database query then cache load
-    /// Future: Consider using ParcelOrchestrationService's queue mechanism for true FIFO
+    /// 注意：由于 IMemoryCache 不支持条件查询，当前实现从数据库查询后尝试从缓存加载
+    /// Note: Since IMemoryCache doesn't support conditional queries, current implementation queries database then tries cache
     /// </remarks>
-    private async Task<ParcelInfo?> TryGetLatestParcelFromCacheAsync(CancellationToken cancellationToken)
+    private async Task<ParcelInfo?> GetLatestUnboundParcelAsync(CancellationToken cancellationToken)
     {
         try
         {
-            // TODO: 未来优化 - 集成 ParcelOrchestrationService 的 _processingContexts 队列
-            // 当前实现：由于 IMemoryCache 不支持按条件遍历，暂时使用数据库查询获取ParcelId，然后从缓存加载
-            // Future optimization: Integrate with ParcelOrchestrationService's _processingContexts queue
-            // Current: Since IMemoryCache doesn't support conditional iteration, use DB to get ParcelId then load from cache
-            
+            // 从数据库查询最新未绑定包裹的ID
             var latestParcel = await _parcelInfoRepository
                 .GetLatestWithoutDwsDataAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -243,47 +243,6 @@ public class DwsParcelBindingService
         {
             _logger.LogDebug(ex, "从缓存获取最新包裹失败，将使用降级方案");
             return null;
-        }
-    }
-
-    /// <summary>
-    /// 持久化DWS通信日志（确保数据不丢失，即使后续流程失败）
-    /// Persist DWS communication log (ensure data is not lost even if subsequent process fails)
-    /// </summary>
-    private async Task SaveDwsCommunicationLogAsync(DwsData dwsData, string? sourceAddress, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var log = new DwsCommunicationLog
-            {
-                CommunicationType = CommunicationType.Tcp,
-                DwsAddress = sourceAddress ?? "未知DWS地址 / Unknown DWS Address",
-                OriginalContent = JsonSerializer.Serialize(dwsData),
-                FormattedContent = JsonSerializer.Serialize(dwsData, new JsonSerializerOptions { WriteIndented = true }),
-                Barcode = dwsData.Barcode,
-                Weight = dwsData.Weight,
-                Volume = dwsData.Volume,
-                ImagesJson = dwsData.Images != null && dwsData.Images.Any() 
-                    ? JsonSerializer.Serialize(dwsData.Images) 
-                    : null,
-                CommunicationTime = _clock.LocalNow,
-                IsSuccess = true,
-                ErrorMessage = null
-            };
-
-            await _dwsCommunicationLogRepository.SaveAsync(log, cancellationToken).ConfigureAwait(false);
-
-            _logger.LogDebug(
-                "DWS通信日志已保存: Barcode={Barcode}, Weight={Weight}g",
-                dwsData.Barcode, dwsData.Weight);
-        }
-        catch (Exception ex)
-        {
-            // ⚠️ 持久化失败不应阻止DWS数据处理，仅记录错误
-            // Persistence failure should not block DWS data processing, just log error
-            _logger.LogError(ex,
-                "❌ 保存DWS通信日志失败: Barcode={Barcode}",
-                dwsData.Barcode);
         }
     }
 }

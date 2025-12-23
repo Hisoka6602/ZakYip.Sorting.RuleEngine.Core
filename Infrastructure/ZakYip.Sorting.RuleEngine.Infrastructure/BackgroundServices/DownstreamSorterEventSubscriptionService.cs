@@ -122,11 +122,23 @@ public sealed class DownstreamSorterEventSubscriptionService : IHostedService
                 SortingMode = SortingMode.RuleBased
             };
 
-            // ✅ 关键优化：立即加入队列（让DWS可以获取），数据库操作并行执行，互不阻塞
-            // Critical optimization: Immediately add to queue (so DWS can access), database operations execute in parallel without blocking
+            // ✅ 关键优化：立即加入队列（让DWS可以获取），数据库和缓存操作并行执行，互不阻塞
+            // Critical optimization: Immediately add to queue (so DWS can access), database and cache operations execute in parallel without blocking
             
-            // 1. 立即加入队列和缓存（关键路径，DWS需要）
-            await cacheService.SetAsync(parcel, CancellationToken.None).ConfigureAwait(false);
+            // 1. 缓存和队列操作并行执行（关键路径，DWS需要）
+            // ⚠️ 注意：parcel对象在多个后台任务中被并发访问（只读），确保ParcelInfo是线程安全的或不被修改
+            // Note: parcel object is concurrently accessed (read-only) in multiple background tasks, ensure ParcelInfo is thread-safe or not modified
+            var cacheTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await cacheService.SetAsync(parcel, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "写入缓存失败，但不影响业务流程: ParcelId={ParcelId}", parcelId);
+                }
+            });
             
             // 2. 加入编排队列（FIFO，供DWS绑定使用）
             var queueTask = Task.Run(async () =>
@@ -204,12 +216,14 @@ public sealed class DownstreamSorterEventSubscriptionService : IHostedService
             {
                 try
                 {
-                    await Task.WhenAll(queueTask, dbTask, lifecycleTask, logTask).ConfigureAwait(false);
+                    await Task.WhenAll(cacheTask, queueTask, dbTask, lifecycleTask, logTask).ConfigureAwait(false);
                     _logger.LogDebug("包裹所有后台任务完成: ParcelId={ParcelId}", parcelId);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 已经在各个任务中记录了异常，这里忽略
+                    // Task.WhenAll 失败，可能是AggregateException；各个任务内部已记录具体异常，这里补充汇总日志
+                    // Task.WhenAll failed, possibly AggregateException; individual tasks have logged specific exceptions, add summary log here
+                    _logger.LogDebug(ex, "后台任务执行异常（已在各任务中记录）: ParcelId={ParcelId}", parcelId);
                 }
             });
         }
@@ -284,6 +298,8 @@ public sealed class DownstreamSorterEventSubscriptionService : IHostedService
 
             // ✅ 关键优化：数据库更新和缓存更新并行执行，不互相阻塞
             // Critical optimization: Database and cache updates execute in parallel without blocking each other
+            // ⚠️ 注意：parcel对象在多个后台任务中被并发访问（只读），确保ParcelInfo是线程安全的或不被修改
+            // Note: parcel object is concurrently accessed (read-only) in multiple background tasks, ensure ParcelInfo is thread-safe or not modified
             var dbTask = Task.Run(async () =>
             {
                 try
@@ -455,9 +471,11 @@ public sealed class DownstreamSorterEventSubscriptionService : IHostedService
                     await Task.WhenAll(dbTask, cacheTask, lifecycleTask, logTask).ConfigureAwait(false);
                     _logger.LogDebug("包裹分拣完成所有后台任务: ParcelId={ParcelId}", parcelId);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 已经在各个任务中记录了异常，这里忽略
+                    // Task.WhenAll 失败，可能是AggregateException；各个任务内部已记录具体异常，这里补充汇总日志
+                    // Task.WhenAll failed, possibly AggregateException; individual tasks have logged specific exceptions, add summary log here
+                    _logger.LogDebug(ex, "后台任务执行异常（已在各任务中记录）: ParcelId={ParcelId}", parcelId);
                 }
             });
         }

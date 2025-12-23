@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -39,7 +40,9 @@ public abstract class BaseParcelInfoRepository<TContext> : IParcelInfoRepository
                 .FirstOrDefaultAsync(p => p.ParcelId == parcelId, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex.Message.Contains("doesn't exist") || ex.Message.Contains("不存在"))
+        catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.NoSuchTable || 
+                                         ex.Message.Contains("doesn't exist") || 
+                                         ex.Message.Contains("不存在"))
         {
             // 表不存在时返回null，不抛出异常，确保不影响业务流程
             // Return null when table doesn't exist, don't throw exception to ensure business flow continues
@@ -169,7 +172,9 @@ public abstract class BaseParcelInfoRepository<TContext> : IParcelInfoRepository
                 .FirstOrDefaultAsync(cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex.Message.Contains("doesn't exist") || ex.Message.Contains("不存在"))
+        catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.NoSuchTable || 
+                                         ex.Message.Contains("doesn't exist") || 
+                                         ex.Message.Contains("不存在"))
         {
             // 表不存在时返回null，不抛出异常
             // Return null when table doesn't exist, don't throw exception

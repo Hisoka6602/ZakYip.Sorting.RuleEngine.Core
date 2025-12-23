@@ -25,7 +25,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     private readonly IParcelInfoRepository _parcelInfoRepository;
     private readonly IParcelLifecycleNodeRepository _lifecycleRepository;
     private readonly ParcelCacheService _cacheService;
-    private readonly IDwsCommunicationLogRepository _dwsCommunicationLogRepository;
+    private readonly DwsCommunicationLogService _dwsCommunicationLogService;
 
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
@@ -37,7 +37,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         IParcelInfoRepository parcelInfoRepository,
         IParcelLifecycleNodeRepository lifecycleRepository,
         ParcelCacheService cacheService,
-        IDwsCommunicationLogRepository dwsCommunicationLogRepository)
+        DwsCommunicationLogService dwsCommunicationLogService)
     {
         _logger = logger;
         _apiAdapterFactory = apiAdapterFactory;
@@ -48,7 +48,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         _parcelInfoRepository = parcelInfoRepository;
         _lifecycleRepository = lifecycleRepository;
         _cacheService = cacheService;
-        _dwsCommunicationLogRepository = dwsCommunicationLogRepository;
+        _dwsCommunicationLogService = dwsCommunicationLogService;
     }
 
     public async Task Handle(DwsDataReceivedEvent notification, CancellationToken cancellationToken)
@@ -57,11 +57,12 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
             "处理DWS数据接收事件: ParcelId={ParcelId}, Weight={Weight}g",
             notification.ParcelId, notification.DwsData.Weight);
 
-        // ✅ 持久化DWS通信日志（确保数据不丢失）
-        // Persist DWS communication log (ensure data is not lost)
-        await SaveDwsCommunicationLogAsync(notification.DwsData, notification.SourceAddress, cancellationToken).ConfigureAwait(false);
+        // ✅ 持久化DWS通信日志（使用共享服务，消除重复代码）
+        // Persist DWS communication log (use shared service, eliminate duplicate code)
+        await _dwsCommunicationLogService.SaveAsync(notification.DwsData, notification.SourceAddress, cancellationToken).ConfigureAwait(false);
 
-        // 从缓存获取或从数据库加载包裹
+        // 从缓存获取或从数据库加载包裹（ParcelId已经由DwsParcelBindingService确定）
+        // Get from cache or load from database (ParcelId already determined by DwsParcelBindingService)
         var parcel = await _cacheService.GetOrLoadAsync(
             notification.ParcelId,
             _parcelInfoRepository,
@@ -69,32 +70,11 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 
         if (parcel == null)
         {
-            // 如果包裹不存在，尝试获取最新创建且未赋值DWS的包裹（Barcode为空）
-            // If parcel not found, try to get the latest created parcel without DWS data (Barcode is empty)
-            parcel = await _parcelInfoRepository.GetLatestWithoutDwsDataAsync(cancellationToken).ConfigureAwait(false);
-            
-            if (parcel == null)
-            {
-                _logger.LogWarning("未找到包裹或最新未赋值DWS的包裹: ParcelId={ParcelId}", notification.ParcelId);
-                await _logRepository.LogWarningAsync(
-                    $"DWS数据无法绑定: ParcelId={notification.ParcelId}",
-                    "未找到等待DWS数据的包裹（无Barcode的包裹）").ConfigureAwait(false);
-                return;
-            }
-            
-            _logger.LogInformation(
-                "🔗 [步骤2-DWS绑定] DWS数据已绑定到包裹 / DWS data bound to parcel: DwsParcelId={DwsParcelId} → ActualParcelId={ActualParcelId}, Barcode={Barcode}",
-                notification.ParcelId, parcel.ParcelId, notification.DwsData.Barcode);
-            
-            await _logRepository.LogInfoAsync(
-                $"[DWS绑定] DWS数据已绑定: DwsId={notification.ParcelId} → ParcelId={parcel.ParcelId}",
-                $"Barcode={notification.DwsData.Barcode}, Weight={notification.DwsData.Weight}g").ConfigureAwait(false);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "✅ [步骤2-DWS绑定] DWS数据已匹配到包裹 / DWS data matched to parcel: ParcelId={ParcelId}, Barcode={Barcode}",
-                parcel.ParcelId, notification.DwsData.Barcode);
+            _logger.LogWarning("包裹不存在: ParcelId={ParcelId}", notification.ParcelId);
+            await _logRepository.LogWarningAsync(
+                $"DWS数据无法应用到包裹: ParcelId={notification.ParcelId}",
+                "包裹不存在").ConfigureAwait(false);
+            return;
         }
 
         // 赋值DWS信息
@@ -294,31 +274,5 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         // TODO: 根据实际API响应格式解析目标格口
         // Parse target chute based on actual API response format
         return response.ResponseBody;
-    }
-
-    /// <summary>
-    /// 保存DWS通信日志到数据库（确保持久化）
-    /// Save DWS communication log to database (ensure persistence)
-    /// </summary>
-    private async Task SaveDwsCommunicationLogAsync(DwsData dwsData, string? sourceAddress, CancellationToken cancellationToken)
-    {
-        var log = new DwsCommunicationLog
-        {
-            CommunicationType = CommunicationType.Tcp,
-            DwsAddress = sourceAddress ?? "未知DWS地址 / Unknown DWS Address",
-            OriginalContent = JsonSerializer.Serialize(dwsData),
-            FormattedContent = JsonSerializer.Serialize(dwsData, new JsonSerializerOptions { WriteIndented = true }),
-            Barcode = dwsData.Barcode,
-            Weight = dwsData.Weight,
-            Volume = dwsData.Volume,
-            ImagesJson = dwsData.Images != null && dwsData.Images.Any() 
-                ? JsonSerializer.Serialize(dwsData.Images) 
-                : null,
-            CommunicationTime = _clock.LocalNow,
-            IsSuccess = true,
-            ErrorMessage = null
-        };
-
-        await _dwsCommunicationLogRepository.SaveAsync(log, cancellationToken).ConfigureAwait(false);
     }
 }
