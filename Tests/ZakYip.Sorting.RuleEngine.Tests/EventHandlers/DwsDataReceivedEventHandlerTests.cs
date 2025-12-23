@@ -22,7 +22,7 @@ public class DwsDataReceivedEventHandlerTests
     private readonly Mock<ILogger<DwsDataReceivedEventHandler>> _mockLogger;
     private readonly Mock<IWcsApiAdapterFactory> _mockFactory;
     private readonly Mock<IWcsApiAdapter> _mockAdapter;
-    private readonly Mock<ISorterAdapterManager> _mockSorterManager;
+    private readonly Mock<IDownstreamCommunication> _mockSorterManager;
     private readonly Mock<ILogRepository> _mockLogRepository;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly Mock<IParcelInfoRepository> _mockParcelRepository;
@@ -36,7 +36,7 @@ public class DwsDataReceivedEventHandlerTests
         _mockFactory = new Mock<IWcsApiAdapterFactory>();
         _mockAdapter = new Mock<IWcsApiAdapter>();
         _mockFactory.Setup(f => f.GetActiveAdapter()).Returns(_mockAdapter.Object);
-        _mockSorterManager = new Mock<ISorterAdapterManager>();
+        _mockSorterManager = new Mock<IDownstreamCommunication>();
         _mockLogRepository = new Mock<ILogRepository>();
         _mockPublisher = new Mock<IPublisher>();
         _mockParcelRepository = new Mock<IParcelInfoRepository>();

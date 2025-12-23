@@ -1,6 +1,5 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Constants;
 using ZakYip.Sorting.RuleEngine.Domain.Events;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
@@ -13,13 +12,13 @@ namespace ZakYip.Sorting.RuleEngine.Application.EventHandlers;
 /// <remarks>
 /// 处理分拣机配置变更事件，负责：
 /// - 记录配置变更日志
-/// - 重新连接分拣机适配器以应用新配置
+/// - 重新启动下游通信以应用新配置
 /// - 触发配置缓存失效
 /// - 确保配置变更无需重启服务即可生效（热更新）
 /// 
 /// Handles Sorter configuration change events, responsible for:
 /// - Logging configuration changes
-/// - Reconnecting Sorter adapter to apply new configuration
+/// - Restarting downstream communication to apply new configuration
 /// - Triggering configuration cache invalidation
 /// - Ensuring configuration changes take effect without service restart (hot reload)
 /// </remarks>
@@ -27,7 +26,7 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
 {
     private readonly ILogger<SorterConfigChangedEventHandler> _logger;
     private readonly ILogRepository _logRepository;
-    private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ISorterConfigRepository _configRepository;
 
     /// <summary>
@@ -37,12 +36,12 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
     public SorterConfigChangedEventHandler(
         ILogger<SorterConfigChangedEventHandler> logger,
         ILogRepository logRepository,
-        ISorterAdapterManager sorterAdapterManager,
+        IDownstreamCommunication? downstreamCommunication,
         ISorterConfigRepository configRepository)
     {
         _logger = logger;
         _logRepository = logRepository;
-        _sorterAdapterManager = sorterAdapterManager;
+        _downstreamCommunication = downstreamCommunication;
         _configRepository = configRepository;
     }
 
@@ -59,6 +58,12 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
 
         try
         {
+            if (_downstreamCommunication == null)
+            {
+                _logger.LogWarning("下游通信未配置，跳过配置热更新 / Downstream communication not configured, skipping hot reload");
+                return;
+            }
+
             // 记录配置变更日志 / Log configuration change
             await _logRepository.LogInfoAsync(
                 "分拣机配置已变更 / Sorter Configuration Changed",
@@ -69,48 +74,32 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
                 $"状态 / Enabled: {notification.IsEnabled}, " +
                 $"原因 / Reason: {notification.Reason ?? ConfigChangeReasons.UserUpdate}").ConfigureAwait(false);
 
-            // 如果配置被禁用，断开连接 / If configuration is disabled, disconnect
+            // 停止现有连接 / Stop existing connection
+            _logger.LogInformation("停止下游通信以应用新配置 / Stopping downstream communication to apply new configuration");
+            await _downstreamCommunication.StopAsync(cancellationToken).ConfigureAwait(false);
+
+            // 如果配置被禁用，仅停止不重启 / If configuration is disabled, only stop without restart
             if (!notification.IsEnabled)
             {
-                _logger.LogInformation("分拣机配置已禁用，断开现有连接 / Sorter config disabled, disconnecting existing connections");
-                
-                if (_sorterAdapterManager.IsConnected)
-                {
-                    await _sorterAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("分拣机连接已断开 / Sorter connection disconnected");
-                }
+                _logger.LogInformation("分拣机配置已禁用，不重启下游通信 / Sorter config disabled, not restarting downstream communication");
+                await _logRepository.LogInfoAsync(
+                    "下游通信已停止 / Downstream Communication Stopped",
+                    "配置已禁用 / Configuration disabled").ConfigureAwait(false);
                 return;
             }
 
-            // 重新加载完整配置 / Reload full configuration
-            // Note: We need to fetch from database to get all properties (TimeoutSeconds, AutoReconnect, etc.)
-            // that are required for connection but not included in the lightweight event notification
-            var config = await _configRepository.GetByIdAsync(notification.ConfigId).ConfigureAwait(false);
-            if (config == null)
-            {
-                _logger.LogWarning("无法找到分拣机配置: ConfigId={ConfigId} / Cannot find Sorter config", notification.ConfigId);
-                return;
-            }
-
-            // 如果已连接，先断开 / If already connected, disconnect first
-            if (_sorterAdapterManager.IsConnected)
-            {
-                _logger.LogInformation("断开现有分拣机连接以应用新配置 / Disconnecting existing Sorter connection to apply new config");
-                await _sorterAdapterManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            // 使用新配置重新连接 / Reconnect with new configuration
-            _logger.LogInformation("使用新配置连接分拣机 / Connecting Sorter with new configuration");
-            await _sorterAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            // 重新启动下游通信 / Restart downstream communication
+            _logger.LogInformation("重新启动下游通信 / Restarting downstream communication");
+            await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation(
                 "分拣机配置热更新成功 / Sorter configuration hot reload successful: " +
                 "Protocol={Protocol}, Mode={Mode}, Host={Host}:{Port}",
-                config.Protocol, config.ConnectionMode, config.Host, config.Port);
+                notification.Protocol, notification.ConnectionMode, notification.Host, notification.Port);
 
             await _logRepository.LogInfoAsync(
                 "分拣机配置热更新成功 / Sorter Hot Reload Successful",
-                $"新配置已应用 / New configuration applied: {config.Protocol} protocol, {config.ConnectionMode} mode @ {config.Host}:{config.Port}").ConfigureAwait(false);
+                $"新配置已应用 / New configuration applied: {notification.Protocol} protocol, {notification.ConnectionMode} mode @ {notification.Host}:{notification.Port}").ConfigureAwait(false);
         }
         catch (Exception ex)
         {

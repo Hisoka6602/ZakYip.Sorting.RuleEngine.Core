@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -16,19 +15,19 @@ namespace ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices;
 public class AdapterConnectionService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly IDwsAdapterManager _dwsAdapterManager;
-    private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly IDwsAdapter? _dwsAdapter;
+    private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ILogger<AdapterConnectionService> _logger;
 
     public AdapterConnectionService(
         IServiceProvider serviceProvider,
-        IDwsAdapterManager dwsAdapterManager,
-        ISorterAdapterManager sorterAdapterManager,
+        IDwsAdapter? dwsAdapter,
+        IDownstreamCommunication? downstreamCommunication,
         ILogger<AdapterConnectionService> logger)
     {
         _serviceProvider = serviceProvider;
-        _dwsAdapterManager = dwsAdapterManager;
-        _sorterAdapterManager = sorterAdapterManager;
+        _dwsAdapter = dwsAdapter;
+        _downstreamCommunication = downstreamCommunication;
         _logger = logger;
     }
 
@@ -59,6 +58,13 @@ public class AdapterConnectionService : IHostedService
     {
         try
         {
+            if (_dwsAdapter == null)
+            {
+                _logger.LogInformation(
+                    "DWS适配器未配置，跳过连接 / DWS adapter not configured, skipping connection");
+                return;
+            }
+
             var dwsConfigRepository = scope.ServiceProvider.GetRequiredService<IDwsConfigRepository>();
             var config = await dwsConfigRepository.GetByIdAsync(DwsConfig.SingletonId).ConfigureAwait(false);
 
@@ -70,14 +76,14 @@ public class AdapterConnectionService : IHostedService
             }
 
             _logger.LogInformation(
-                "DWS配置已启用，开始连接 / DWS configuration enabled, connecting: Mode={Mode}, Host={Host}, Port={Port}",
-                config.Mode, config.Host, config.Port);
+                "DWS配置已启用，开始连接 / DWS configuration enabled, connecting: AdapterName={AdapterName}, Protocol={Protocol}",
+                _dwsAdapter.AdapterName, _dwsAdapter.ProtocolType);
 
-            await _dwsAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            await _dwsAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "DWS连接成功 / DWS connection successful: Mode={Mode}, Host={Host}:{Port}",
-                config.Mode, config.Host, config.Port);
+                "DWS连接成功 / DWS connection successful: AdapterName={AdapterName}, Protocol={Protocol}",
+                _dwsAdapter.AdapterName, _dwsAdapter.ProtocolType);
         }
         catch (InvalidOperationException ex)
         {
@@ -105,6 +111,13 @@ public class AdapterConnectionService : IHostedService
     {
         try
         {
+            if (_downstreamCommunication == null)
+            {
+                _logger.LogInformation(
+                    "下游通信未配置，跳过连接 / Downstream communication not configured, skipping connection");
+                return;
+            }
+
             var sorterConfigRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
             var config = await sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
 
@@ -116,14 +129,14 @@ public class AdapterConnectionService : IHostedService
             }
 
             _logger.LogInformation(
-                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: Protocol={Protocol}, Host={Host}, Port={Port}",
-                config.Protocol, config.Host, config.Port);
+                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: Protocol={Protocol}, ConnectionMode={ConnectionMode}",
+                config.Protocol, config.ConnectionMode);
 
-            await _sorterAdapterManager.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "分拣机连接成功 / Sorter connection successful: Protocol={Protocol}, Host={Host}:{Port}",
-                config.Protocol, config.Host, config.Port);
+                "分拣机连接成功 / Sorter connection successful: Protocol={Protocol}, ConnectionMode={ConnectionMode}",
+                config.Protocol, config.ConnectionMode);
         }
         catch (InvalidOperationException ex)
         {

@@ -16,22 +16,28 @@ public class RuleMatchCompletedEventHandlerTests
 {
     private readonly Mock<ILogger<RuleMatchCompletedEventHandler>> _mockLogger;
     private readonly Mock<ILogRepository> _mockLogRepository;
-    private readonly Mock<ISorterAdapterManager> _mockSorterAdapterManager;
+    private readonly Mock<IDownstreamCommunication> _mockDownstreamCommunication;
     private readonly Mock<IParcelInfoRepository> _mockParcelRepository;
+    private readonly Mock<ISystemClock> _mockClock;
     private readonly RuleMatchCompletedEventHandler _handler;
 
     public RuleMatchCompletedEventHandlerTests()
     {
         _mockLogger = new Mock<ILogger<RuleMatchCompletedEventHandler>>();
         _mockLogRepository = new Mock<ILogRepository>();
-        _mockSorterAdapterManager = new Mock<ISorterAdapterManager>();
+        _mockDownstreamCommunication = new Mock<IDownstreamCommunication>();
         _mockParcelRepository = new Mock<IParcelInfoRepository>();
+        _mockClock = new Mock<ISystemClock>();
+        
+        // Setup clock to return a fixed time
+        _mockClock.Setup(x => x.LocalNow).Returns(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local));
         
         _handler = new RuleMatchCompletedEventHandler(
             _mockLogger.Object, 
             _mockLogRepository.Object,
-            _mockSorterAdapterManager.Object,
-            _mockParcelRepository.Object);
+            _mockDownstreamCommunication.Object,
+            _mockParcelRepository.Object,
+            _mockClock.Object);
     }
 
     [Fact]

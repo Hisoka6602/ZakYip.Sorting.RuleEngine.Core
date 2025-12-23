@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using ZakYip.Sorting.RuleEngine.Application.Interfaces;
+using System.Text.Json;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
@@ -17,7 +18,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 {
     private readonly ILogger<DwsDataReceivedEventHandler> _logger;
     private readonly IWcsApiAdapterFactory _apiAdapterFactory;
-    private readonly ISorterAdapterManager _sorterAdapterManager;
+    private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ILogRepository _logRepository;
     private readonly IPublisher _publisher;
     private readonly ISystemClock _clock;
@@ -28,7 +29,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
         IWcsApiAdapterFactory apiAdapterFactory,
-        ISorterAdapterManager sorterAdapterManager,
+        IDownstreamCommunication? downstreamCommunication,
         ILogRepository logRepository,
         IPublisher publisher,
         ISystemClock clock,
@@ -38,7 +39,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     {
         _logger = logger;
         _apiAdapterFactory = apiAdapterFactory;
-        _sorterAdapterManager = sorterAdapterManager;
+        _downstreamCommunication = downstreamCommunication;
         _logRepository = logRepository;
         _publisher = publisher;
         _clock = clock;
@@ -141,21 +142,42 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                     // 发送格口分配到分拣机 / Send chute assignment to sorter
                     try
                     {
-                        var sendSuccess = await _sorterAdapterManager.SendChuteNumberAsync(
-                            parcel.ParcelId,
-                            parcel.TargetChute,
-                            cancellationToken).ConfigureAwait(false);
-                        
-                        if (sendSuccess)
+                        if (_downstreamCommunication != null)
                         {
-                            _logger.LogInformation(
-                                "已发送格口分配到分拣机: ParcelId={ParcelId}, TargetChute={TargetChute}",
-                                parcel.ParcelId, parcel.TargetChute);
+                            // 使用 TryParse 安全解析 ParcelId
+                            if (!long.TryParse(parcel.ParcelId, out var parcelIdValue))
+                            {
+                                _logger.LogWarning("解析 ParcelId 失败，输入值无效: {ParcelId}", parcel.ParcelId);
+                            }
+                            else if (!long.TryParse(parcel.TargetChute, out var chuteIdValue))
+                            {
+                                _logger.LogWarning("解析 TargetChute 失败，输入值无效: {TargetChute}", parcel.TargetChute);
+                            }
+                            else
+                            {
+                                // 构造 ChuteAssignmentNotification 对象
+                                var chuteNotification = new ChuteAssignmentNotification
+                                {
+                                    ParcelId = parcelIdValue,
+                                    ChuteId = chuteIdValue,
+                                    AssignedAt = _clock.LocalNow
+                                };
+
+                                // 序列化为JSON
+                                var json = JsonSerializer.Serialize(chuteNotification);
+
+                                // 调用下游通信接口发送
+                                await _downstreamCommunication.BroadcastChuteAssignmentAsync(json).ConfigureAwait(false);
+
+                                _logger.LogInformation(
+                                    "已发送格口分配到分拣机: ParcelId={ParcelId}, TargetChute={TargetChute}",
+                                    parcel.ParcelId, parcel.TargetChute);
+                            }
                         }
                         else
                         {
                             _logger.LogWarning(
-                                "发送格口分配到分拣机失败: ParcelId={ParcelId}, TargetChute={TargetChute}",
+                                "下游通信未配置，无法发送格口分配: ParcelId={ParcelId}, TargetChute={TargetChute}",
                                 parcel.ParcelId, parcel.TargetChute);
                         }
                     }

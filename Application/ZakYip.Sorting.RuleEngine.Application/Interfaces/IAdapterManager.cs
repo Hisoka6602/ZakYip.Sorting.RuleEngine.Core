@@ -6,10 +6,10 @@ namespace ZakYip.Sorting.RuleEngine.Application.Interfaces;
 /// </summary>
 /// <typeparam name="TConfig">配置类型 / Configuration type</typeparam>
 /// <remarks>
-/// 此接口消除了 IWcsAdapterManager、ISorterAdapterManager 和 IDwsAdapterManager 之间的重复定义，
+/// 此接口提供适配器管理的通用功能。
 /// 遵循DRY原则。
-/// This interface eliminates duplicate definitions among IWcsAdapterManager, ISorterAdapterManager, 
-/// and IDwsAdapterManager, following the DRY principle.
+/// This interface provides common adapter management functionality, 
+/// following the DRY principle.
 /// </remarks>
 public interface IAdapterManager<TConfig> where TConfig : class
 {

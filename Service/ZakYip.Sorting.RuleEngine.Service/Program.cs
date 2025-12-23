@@ -13,6 +13,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 using ZakYip.Sorting.RuleEngine.Application.Services;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using ZakYip.Sorting.RuleEngine.Service.Configuration;
@@ -491,39 +493,66 @@ try
                 // **全局单例 / Global Singleton**: 
                 // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
                 // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
-                services.AddSingleton<IDownstreamCommunication>(sp =>
+                services.AddSingleton<IDownstreamCommunication?>(sp =>
                 {
-                    // 从缓存获取Sorter配置（避免每次DI解析都访问数据库）
-                    var sorterConfig = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Entities.SorterConfig?>();
-                    
-                    var logger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>>();
+                    var logger = sp.GetRequiredService<ILogger<Program>>();
+                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
                     var clock = sp.GetRequiredService<ISystemClock>();
+                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
                     
-                    // 根据配置选择Server或Client模式
-                    if (sorterConfig?.ConnectionMode == "Server")
+                    try
                     {
-                        // Server模式：RuleEngine作为服务器
-                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
-                            logger,
-                            clock,
-                            sorterConfig.Host,
-                            sorterConfig.Port);
-                    }
-                    else
-                    {
-                        // Client模式：RuleEngine作为客户端
-                        var clientLogger = sp.GetRequiredService<ILogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>>();
-                        var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
+                        // 使用 scope 来访问 scoped repository
+                        using var scope = serviceScopeFactory.CreateScope();
+                        var configRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
+                        var sorterConfig = configRepository.GetByIdAsync(SorterConfig.SingletonId).GetAwaiter().GetResult();
+                        
+                        if (sorterConfig == null || !sorterConfig.IsEnabled)
                         {
-                            TcpServer = sorterConfig != null ? $"{sorterConfig.Host}:{sorterConfig.Port}" : "localhost:8002",
-                            TimeoutMs = sorterConfig?.TimeoutSeconds * 1000 ?? 30000,
-                            RetryCount = 3,
-                            RetryDelayMs = sorterConfig?.ReconnectIntervalSeconds * 1000 ?? 5000
-                        };
-                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
-                            clientLogger,
-                            connectionOptions,
-                            clock);
+                            logger.LogInformation("Sorter配置不存在或已禁用，不创建下游通信 / Sorter config does not exist or is disabled, not creating downstream communication");
+                            return null;
+                        }
+                        
+                        // 根据配置选择Server或Client模式
+                        var mode = sorterConfig.ConnectionMode.ToUpperInvariant();
+                        
+                        if (mode == "SERVER")
+                        {
+                            // Server模式：RuleEngine作为服务器
+                            var serverLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer>();
+                            var server = new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.DownstreamTcpJsonServer(
+                                serverLogger,
+                                clock,
+                                sorterConfig.Host,
+                                sorterConfig.Port);
+                            
+                            logger.LogInformation("已创建下游通信 Server: Host={Host}, Port={Port}", sorterConfig.Host, sorterConfig.Port);
+                            return server;
+                        }
+                        else // "CLIENT"
+                        {
+                            // Client模式：RuleEngine作为客户端
+                            var clientLogger = loggerFactory.CreateLogger<ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient>();
+                            var connectionOptions = new ZakYip.Sorting.RuleEngine.Application.Options.ConnectionOptions
+                            {
+                                TcpServer = $"{sorterConfig.Host}:{sorterConfig.Port}",
+                                TimeoutMs = sorterConfig.TimeoutSeconds * 1000,
+                                RetryCount = 3,
+                                RetryDelayMs = sorterConfig.ReconnectIntervalSeconds * 1000
+                            };
+                            var client = new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.Clients.TouchSocketTcpDownstreamClient(
+                                clientLogger,
+                                connectionOptions,
+                                clock);
+                            
+                            logger.LogInformation("已创建下游通信 Client: Host={Host}, Port={Port}", sorterConfig.Host, sorterConfig.Port);
+                            return client;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "创建下游通信失败");
+                        return null;
                     }
                 });
 
@@ -531,14 +560,104 @@ try
                 // Register adapter managers (Singleton)
                 // 
                 // **全局单例约束 / Global Singleton Constraint**:
-                // - IDwsAdapterManager: 全局只能有一个DWS TCP实例
+                // - IDwsAdapter: 全局只能有一个DWS TCP实例（根据配置自动选择 Server 或 Client）
                 // - ISorterAdapterManager: 全局只能有一个Sorter TCP实例  
                 // - DWS和Sorter可以并存，但各自全局唯一
-                // - IDwsAdapterManager: Only one DWS TCP instance globally
+                // - IDwsAdapter: Only one DWS TCP instance globally (automatically selects Server or Client based on config)
                 // - ISorterAdapterManager: Only one Sorter TCP instance globally
                 // - DWS and Sorter can coexist, but each is globally unique
-                services.AddSingleton<IDwsAdapterManager, DwsAdapterManager>();
-                services.AddSingleton<ISorterAdapterManager, SorterAdapterManager>();
+                
+                // 注册 DWS 适配器（根据配置选择具体实现，直接依赖注入，无反射）
+                // Register DWS adapter (select implementation based on configuration, direct DI, no reflection)
+                services.AddSingleton<IDwsAdapter?>(sp =>
+                {
+                    var logger = sp.GetRequiredService<ILogger<Program>>();
+                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                    var clock = sp.GetRequiredService<ISystemClock>();
+                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                    var dataParser = sp.GetRequiredService<IDwsDataParser>();
+                    
+                    try
+                    {
+                        // 使用 scope 来访问 scoped repository
+                        using var scope = serviceScopeFactory.CreateScope();
+                        var configRepository = scope.ServiceProvider.GetRequiredService<IDwsConfigRepository>();
+                        var config = configRepository.GetByIdAsync(DwsConfig.SingletonId).GetAwaiter().GetResult();
+                        
+                        if (config == null || !config.IsEnabled)
+                        {
+                            logger.LogInformation("DWS配置不存在或已禁用，不创建适配器 / DWS config does not exist or is disabled, not creating adapter");
+                            return null;
+                        }
+                        
+                        // 获取数据模板
+                        var templateRepository = scope.ServiceProvider.GetRequiredService<IDwsDataTemplateRepository>();
+                        var template = templateRepository.GetByIdAsync(config.DataTemplateId).GetAwaiter().GetResult();
+                        
+                        if (template == null)
+                        {
+                            logger.LogWarning("未找到数据模板 ID={TemplateId}，使用默认模板", config.DataTemplateId);
+                            template = new DwsDataTemplate
+                            {
+                                TemplateId = 0,
+                                Name = "默认模板",
+                                Template = "{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}",
+                                IsEnabled = true,
+                                CreatedAt = clock.LocalNow,
+                                UpdatedAt = clock.LocalNow
+                            };
+                        }
+                        
+                        // 根据模式创建适配器（直接依赖注入，无反射）
+                        var mode = config.Mode.ToUpperInvariant();
+                        
+                        if (mode == "CLIENT")
+                        {
+                            // TCP Client 模式 - 直接创建实例
+                            var clientLogger = loggerFactory.CreateLogger<TouchSocketDwsTcpClientAdapter>();
+                            
+                            var adapter = new TouchSocketDwsTcpClientAdapter(
+                                config.Host,
+                                config.Port,
+                                template,
+                                clientLogger,
+                                serviceScopeFactory,
+                                dataParser,
+                                config.AutoReconnect,
+                                config.ReconnectIntervalSeconds
+                            );
+                            
+                            logger.LogInformation("已创建 DWS TCP Client 适配器: Host={Host}, Port={Port}", config.Host, config.Port);
+                            return adapter;
+                        }
+                        else // "SERVER"
+                        {
+                            // TCP Server 模式 - 直接创建实例
+                            var serverLogger = loggerFactory.CreateLogger<TouchSocketDwsAdapter>();
+                            
+                            var adapter = new TouchSocketDwsAdapter(
+                                config.Host,
+                                config.Port,
+                                serverLogger,
+                                serviceScopeFactory,
+                                dataParser,
+                                template,
+                                config.MaxConnections,
+                                config.ReceiveBufferSize,
+                                config.SendBufferSize
+                            );
+                            
+                            logger.LogInformation("已创建 DWS TCP Server 适配器: Host={Host}, Port={Port}, MaxConnections={MaxConnections}", 
+                                config.Host, config.Port, config.MaxConnections);
+                            return adapter;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "创建 DWS 适配器失败");
+                        return null;
+                    }
+                });
 
                 // 注册包裹活动追踪器（用于空闲检测）
                 services.AddSingleton<IParcelActivityTracker, ZakYip.Sorting.RuleEngine.Infrastructure.Services.ParcelActivityTracker>();
