@@ -473,7 +473,12 @@ try
                 // 注册配置热更新服务（单例）
                 // Register configuration hot-reload service (Singleton)
                 services.AddSingleton<ConfigCacheService>();
+                
+                // 注册包裹队列服务（单例，使用 ConcurrentDictionary + FIFO）
+                // Register parcel queue service (Singleton, uses ConcurrentDictionary + FIFO)
+                services.AddSingleton<ParcelQueueService>();
                 services.AddSingleton<ParcelCacheService>();
+                
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
                 
                 // 注册 DWS 包裹绑定服务（Scoped）
