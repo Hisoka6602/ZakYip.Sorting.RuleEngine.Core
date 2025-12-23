@@ -19,6 +19,7 @@ public class AdapterConnectionService : IHostedService
     private readonly IDwsAdapter? _dwsAdapter;
     private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ILogger<AdapterConnectionService> _logger;
+    private Func<DwsData, Task>? _dwsDataReceivedHandler;
 
     public AdapterConnectionService(
         IServiceProvider serviceProvider,
@@ -82,7 +83,7 @@ public class AdapterConnectionService : IHostedService
 
             // 🔗 订阅 DWS 数据接收事件，绑定到包裹处理服务
             // Subscribe to DWS data received event and bind to parcel processing service
-            _dwsAdapter.OnDwsDataReceived += async (dwsData) =>
+            _dwsDataReceivedHandler = async (dwsData) =>
             {
                 try
                 {
@@ -100,6 +101,8 @@ public class AdapterConnectionService : IHostedService
                     _logger.LogError(ex, "处理DWS数据绑定失败: Barcode={Barcode}", dwsData.Barcode);
                 }
             };
+
+            _dwsAdapter.OnDwsDataReceived += _dwsDataReceivedHandler;
 
             await _dwsAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
 
@@ -189,6 +192,15 @@ public class AdapterConnectionService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("适配器连接服务停止 / Adapter connection service stopping");
+        
+        // 取消订阅 DWS 数据接收事件，防止内存泄漏
+        // Unsubscribe from DWS data received event to prevent memory leaks
+        if (_dwsAdapter != null && _dwsDataReceivedHandler != null)
+        {
+            _dwsAdapter.OnDwsDataReceived -= _dwsDataReceivedHandler;
+            _dwsDataReceivedHandler = null;
+        }
+        
         return Task.CompletedTask;
     }
 }

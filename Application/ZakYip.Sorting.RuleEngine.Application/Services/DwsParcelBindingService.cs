@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.Extensions.Logging;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
