@@ -69,8 +69,8 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 
         if (parcel == null)
         {
-            // 如果包裹不存在，尝试获取最新创建且未赋值DWS的包裹
-            // If parcel not found, try to get the latest created parcel without DWS data
+            // 如果包裹不存在，尝试获取最新创建且未赋值DWS的包裹（Barcode为空）
+            // If parcel not found, try to get the latest created parcel without DWS data (Barcode is empty)
             parcel = await _parcelInfoRepository.GetLatestWithoutDwsDataAsync(cancellationToken).ConfigureAwait(false);
             
             if (parcel == null)
@@ -78,7 +78,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
                 _logger.LogWarning("未找到包裹或最新未赋值DWS的包裹: ParcelId={ParcelId}", notification.ParcelId);
                 await _logRepository.LogWarningAsync(
                     $"DWS数据无法绑定: ParcelId={notification.ParcelId}",
-                    "未找到等待DWS数据的包裹").ConfigureAwait(false);
+                    "未找到等待DWS数据的包裹（无Barcode的包裹）").ConfigureAwait(false);
                 return;
             }
             
@@ -98,7 +98,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         }
 
         // 赋值DWS信息
-        // Assign DWS information (ensures each DWS data binds to exactly one parcel)
+        // Assign DWS information (ensures each DWS data binds to exactly one parcel based on Barcode)
         parcel.Weight = notification.DwsData.Weight;
         parcel.Volume = notification.DwsData.Volume;
         parcel.Length = notification.DwsData.Length;
