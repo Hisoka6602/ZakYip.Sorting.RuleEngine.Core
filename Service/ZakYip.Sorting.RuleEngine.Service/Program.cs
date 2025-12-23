@@ -479,6 +479,10 @@ try
                 // 注册 DWS 包裹绑定服务（Scoped）
                 // Register DWS parcel binding service (Scoped)
                 services.AddScoped<DwsParcelBindingService>();
+                
+                // 注册 DWS 通信日志服务（Scoped）- 消除影分身代码
+                // Register DWS communication log service (Scoped) - Eliminate shadow clone code
+                services.AddScoped<DwsCommunicationLogService>();
 
                 // 预加载Sorter配置以避免在DI工厂中使用GetAwaiter().GetResult()
                 // Pre-load Sorter config to avoid GetAwaiter().GetResult() in DI factory
