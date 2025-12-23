@@ -647,6 +647,7 @@ try
                 // Adapter connection service must start after configuration cache preload
                 services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.ConfigurationCachePreloadService>();
                 services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.AdapterConnectionService>();
+                services.AddHostedService<ZakYip.Sorting.RuleEngine.Infrastructure.BackgroundServices.DownstreamSorterEventSubscriptionService>();
                 services.AddHostedService<ParcelQueueProcessorService>();
                 services.AddHostedService<DwsTimeoutCheckerService>();
                 services.AddHostedService<DataCleanupService>();
