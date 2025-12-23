@@ -80,6 +80,7 @@ public class ApiClientRequiredFieldsTests
             ConfigId = WcsApiConfig.SingletonId,
             Url = "http://localhost:8080",
             TimeoutMs = 30000,
+            ActiveAdapterType = "WcsApiClient",
             IsEnabled = true,
             Description = "Test config",
             CreatedAt = clock.LocalNow,

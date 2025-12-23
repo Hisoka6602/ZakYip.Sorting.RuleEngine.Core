@@ -27,6 +27,7 @@ public class DwsDataReceivedEventHandlerTests
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly Mock<IParcelInfoRepository> _mockParcelRepository;
     private readonly Mock<IParcelLifecycleNodeRepository> _mockLifecycleRepository;
+    private readonly Mock<IDwsCommunicationLogRepository> _mockDwsCommunicationLogRepository;
     private readonly ParcelCacheService _cacheService;
     private readonly DwsDataReceivedEventHandler _handler;
 
@@ -41,6 +42,7 @@ public class DwsDataReceivedEventHandlerTests
         _mockPublisher = new Mock<IPublisher>();
         _mockParcelRepository = new Mock<IParcelInfoRepository>();
         _mockLifecycleRepository = new Mock<IParcelLifecycleNodeRepository>();
+        _mockDwsCommunicationLogRepository = new Mock<IDwsCommunicationLogRepository>();
         
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
         var cacheLogger = new Mock<ILogger<ParcelCacheService>>();
@@ -56,7 +58,8 @@ public class DwsDataReceivedEventHandlerTests
             clock,
             _mockParcelRepository.Object,
             _mockLifecycleRepository.Object,
-            _cacheService);
+            _cacheService,
+            _mockDwsCommunicationLogRepository.Object);
             
         // Setup默认返回值
         _mockParcelRepository.Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
