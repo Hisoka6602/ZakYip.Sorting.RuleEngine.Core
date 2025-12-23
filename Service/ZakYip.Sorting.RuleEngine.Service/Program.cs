@@ -493,7 +493,12 @@ try
                 // **全局单例 / Global Singleton**: 
                 // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
                 // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
-                services.AddSingleton<IDownstreamCommunication?>(sp =>
+                // 
+                // ⚠️ 注意 / Note: 注册为非空类型 IDownstreamCommunication，但工厂可以返回 null
+                // ⚠️ Note: Registered as non-nullable type IDownstreamCommunication, but factory can return null
+                // 这是ASP.NET Core DI的要求：服务类型必须是非空的，即使实例可以为null
+                // This is an ASP.NET Core DI requirement: service type must be non-nullable, even if instance can be null
+                services.AddSingleton<IDownstreamCommunication>(sp =>
                 {
                     var logger = sp.GetRequiredService<ILogger<Program>>();
                     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -569,7 +574,12 @@ try
                 
                 // 注册 DWS 适配器（根据配置选择具体实现，直接依赖注入，无反射）
                 // Register DWS adapter (select implementation based on configuration, direct DI, no reflection)
-                services.AddSingleton<IDwsAdapter?>(sp =>
+                // 
+                // ⚠️ 注意 / Note: 注册为非空类型 IDwsAdapter，但工厂可以返回 null
+                // ⚠️ Note: Registered as non-nullable type IDwsAdapter, but factory can return null
+                // 这是ASP.NET Core DI的要求：服务类型必须是非空的，即使实例可以为null
+                // This is an ASP.NET Core DI requirement: service type must be non-nullable, even if instance can be null
+                services.AddSingleton<IDwsAdapter>(sp =>
                 {
                     var logger = sp.GetRequiredService<ILogger<Program>>();
                     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
