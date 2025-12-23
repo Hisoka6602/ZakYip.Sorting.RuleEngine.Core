@@ -494,10 +494,9 @@ try
                 // IDownstreamCommunication确保全局只有一个Sorter TCP实例，可与DWS TCP实例并存
                 // IDownstreamCommunication ensures only one Sorter TCP instance globally, can coexist with DWS TCP instance
                 // 
-                // ⚠️ 注意 / Note: 注册为非空类型 IDownstreamCommunication，但工厂可以返回 null
-                // ⚠️ Note: Registered as non-nullable type IDownstreamCommunication, but factory can return null
-                // 这是ASP.NET Core DI的要求：服务类型必须是非空的，即使实例可以为null
-                // This is an ASP.NET Core DI requirement: service type must be non-nullable, even if instance can be null
+                // **空对象模式 / Null Object Pattern**:
+                // 当配置不存在或禁用时，返回 NullDownstreamCommunication 空对象实现
+                // When config does not exist or is disabled, return NullDownstreamCommunication null object implementation
                 services.AddSingleton<IDownstreamCommunication>(sp =>
                 {
                     var logger = sp.GetRequiredService<ILogger<Program>>();
@@ -514,8 +513,8 @@ try
                         
                         if (sorterConfig == null || !sorterConfig.IsEnabled)
                         {
-                            logger.LogInformation("Sorter配置不存在或已禁用，不创建下游通信 / Sorter config does not exist or is disabled, not creating downstream communication");
-                            return null;
+                            logger.LogInformation("Sorter配置不存在或已禁用，使用空对象实现 / Sorter config does not exist or is disabled, using null object implementation");
+                            return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.NullDownstreamCommunication();
                         }
                         
                         // 根据配置选择Server或Client模式
@@ -556,8 +555,8 @@ try
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "创建下游通信失败");
-                        return null;
+                        logger.LogError(ex, "创建下游通信失败，使用空对象实现 / Failed to create downstream communication, using null object implementation");
+                        return new ZakYip.Sorting.RuleEngine.Infrastructure.Communication.NullDownstreamCommunication();
                     }
                 });
 
