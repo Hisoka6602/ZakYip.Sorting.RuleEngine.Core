@@ -32,10 +32,22 @@ public abstract class BaseParcelInfoRepository<TContext> : IParcelInfoRepository
     {
         ArgumentNullException.ThrowIfNull(parcelId);
         
-        return await Context.ParcelInfos
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ParcelId == parcelId, cancellationToken)
-            .ConfigureAwait(false);
+        try
+        {
+            return await Context.ParcelInfos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.ParcelId == parcelId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex.Message.Contains("doesn't exist") || ex.Message.Contains("不存在"))
+        {
+            // 表不存在时返回null，不抛出异常，确保不影响业务流程
+            // Return null when table doesn't exist, don't throw exception to ensure business flow continues
+            Logger.LogWarning(ex,
+                "数据库表不存在，返回null: ParcelId={ParcelId}",
+                parcelId);
+            return null;
+        }
     }
 
     public virtual async Task<bool> AddAsync(ParcelInfo parcelInfo, CancellationToken cancellationToken = default)
@@ -148,12 +160,23 @@ public abstract class BaseParcelInfoRepository<TContext> : IParcelInfoRepository
 
     public virtual async Task<ParcelInfo?> GetLatestWithoutDwsDataAsync(CancellationToken cancellationToken = default)
     {
-        return await Context.ParcelInfos
-            .AsNoTracking()
-            .Where(p => string.IsNullOrEmpty(p.Barcode))
-            .OrderByDescending(p => p.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false);
+        try
+        {
+            return await Context.ParcelInfos
+                .AsNoTracking()
+                .Where(p => string.IsNullOrEmpty(p.Barcode))
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex.Message.Contains("doesn't exist") || ex.Message.Contains("不存在"))
+        {
+            // 表不存在时返回null，不抛出异常
+            // Return null when table doesn't exist, don't throw exception
+            Logger.LogWarning(ex,
+                "数据库表不存在，无法查找最新未绑定包裹，返回null");
+            return null;
+        }
     }
 
     public virtual async Task<IReadOnlyList<ParcelInfo>> GetByBagIdAsync(string bagId, CancellationToken cancellationToken = default)
