@@ -67,33 +67,20 @@ public class DwsParcelBindingService
 
         if (parcel == null)
         {
-            // 如果包裹不存在，尝试获取最新创建且未赋值DWS的包裹（Barcode为空）
-            // If parcel not found, try to get the latest created parcel without DWS data (Barcode is empty)
-            parcel = await _parcelInfoRepository.GetLatestWithoutDwsDataAsync(cancellationToken).ConfigureAwait(false);
-            
-            if (parcel == null)
-            {
-                _logger.LogWarning("未找到包裹或最新未赋值DWS的包裹: ParcelId={ParcelId}", dwsData.ParcelId);
-                await _logRepository.LogWarningAsync(
-                    $"DWS数据无法绑定: ParcelId={dwsData.ParcelId}",
-                    "未找到等待DWS数据的包裹（无Barcode的包裹）").ConfigureAwait(false);
-                return;
-            }
-            
-            _logger.LogInformation(
-                "🔗 [步骤2-DWS绑定] DWS数据已绑定到包裹 / DWS data bound to parcel: DwsParcelId={DwsParcelId} → ActualParcelId={ActualParcelId}, Barcode={Barcode}",
-                dwsData.ParcelId, parcel.ParcelId, dwsData.Barcode);
-            
-            await _logRepository.LogInfoAsync(
-                $"[DWS绑定] DWS数据已绑定: DwsId={dwsData.ParcelId} → ParcelId={parcel.ParcelId}",
-                $"Barcode={dwsData.Barcode}, Weight={dwsData.Weight}g").ConfigureAwait(false);
+            // 包裹必须由分拣机预先创建，DWS服务不创建包裹
+            // Parcel must be pre-created by sorter, DWS service does not create parcels
+            _logger.LogWarning(
+                "未找到包裹，无法绑定DWS数据: ParcelId={ParcelId}, Barcode={Barcode}. 包裹必须由分拣机预先创建。",
+                dwsData.ParcelId, dwsData.Barcode);
+            await _logRepository.LogWarningAsync(
+                $"DWS数据无法绑定: ParcelId={dwsData.ParcelId}",
+                "未找到对应包裹。包裹必须由分拣机预先创建。").ConfigureAwait(false);
+            return;
         }
-        else
-        {
-            _logger.LogInformation(
-                "✅ [步骤2-DWS绑定] DWS数据已匹配到包裹 / DWS data matched to parcel: ParcelId={ParcelId}, Barcode={Barcode}",
-                parcel.ParcelId, dwsData.Barcode);
-        }
+
+        _logger.LogInformation(
+            "✅ [步骤2-DWS绑定] DWS数据已匹配到包裹 / DWS data matched to parcel: ParcelId={ParcelId}, Barcode={Barcode}",
+            parcel.ParcelId, dwsData.Barcode);
 
         // 赋值DWS信息
         parcel.Weight = dwsData.Weight;
