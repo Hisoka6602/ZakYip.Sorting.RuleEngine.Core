@@ -204,15 +204,6 @@ try
                         // 使用MySQL配置审计日志仓储
                         services.AddScoped<IConfigurationAuditLogRepository, MySqlConfigurationAuditLogRepository>();
                         logger.Info("使用MySQL配置审计日志仓储");
-                        
-                        // 使用MySQL包裹信息仓储
-                        services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelInfoRepository>();
-                        services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.MySql.MySqlParcelLifecycleNodeRepository>();
-                        logger.Info("使用MySQL包裹信息仓储");
-                        
-                        // 注册包裹信息应用服务（Scoped）
-                        services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
-                        logger.Info("已注册包裹信息应用服务（Scoped）");
                     }
                     catch (Exception ex)
                     {
@@ -227,15 +218,6 @@ try
                         // 降级使用SQLite配置审计日志仓储
                         services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
                         logger.Info("降级使用SQLite配置审计日志仓储");
-                        
-                        // 降级使用SQLite包裹信息仓储
-                        services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
-                        services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
-                        logger.Info("降级使用SQLite包裹信息仓储");
-                        
-                        // 注册包裹信息应用服务（Scoped）
-                        services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
-                        logger.Info("已注册包裹信息应用服务（Scoped）");
                     }
                 }
                 else
@@ -251,15 +233,6 @@ try
                     // 使用SQLite配置审计日志仓储
                     services.AddScoped<IConfigurationAuditLogRepository, SqliteConfigurationAuditLogRepository>();
                     logger.Info("使用SQLite配置审计日志仓储");
-                    
-                    // 使用SQLite包裹信息仓储
-                    services.AddScoped<IParcelInfoRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelInfoRepository>();
-                    services.AddScoped<IParcelLifecycleNodeRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.Sqlite.SqliteParcelLifecycleNodeRepository>();
-                    logger.Info("使用SQLite包裹信息仓储");
-                    
-                    // 注册包裹信息应用服务（Scoped）
-                    services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
-                    logger.Info("已注册包裹信息应用服务（Scoped）");
                 }
 
                 // 配置HttpClient用于WCS API
@@ -432,6 +405,17 @@ try
                 services.AddScoped<IJushuitanErpConfigRepository, LiteDbJushuitanErpConfigRepository>();
                 services.AddScoped<IWdtWmsConfigRepository, LiteDbWdtWmsConfigRepository>();
                 services.AddScoped<IWdtErpFlagshipConfigRepository, LiteDbWdtErpFlagshipConfigRepository>();
+
+                // 注册包裹信息仓储（LiteDB）
+                // Register Parcel Info repositories (LiteDB)
+                services.AddScoped<IParcelInfoRepository, LiteDbParcelInfoRepository>();
+                services.AddScoped<IParcelLifecycleNodeRepository, LiteDbParcelLifecycleNodeRepository>();
+                logger.Info("使用LiteDB包裹信息仓储 / Using LiteDB Parcel Info repositories");
+                
+                // 注册包裹信息应用服务（Scoped）
+                // Register Parcel Info application service (Scoped)
+                services.AddScoped<IParcelInfoAppService, ParcelInfoAppService>();
+                logger.Info("已注册包裹信息应用服务（Scoped）/ Registered Parcel Info application service (Scoped)");
 
                 // 注册DWS数据解析器
                 // Register DWS data parser

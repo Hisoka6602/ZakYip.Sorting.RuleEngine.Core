@@ -33,6 +33,7 @@ public class WcsApiClientTests
             Url = "https://api.example.com",
             TimeoutMs = 30000,
             IsEnabled = true,
+            ActiveAdapterType = "WcsApiClient",
             Description = "Test config",
             CreatedAt = clock.LocalNow,
             UpdatedAt = clock.LocalNow
