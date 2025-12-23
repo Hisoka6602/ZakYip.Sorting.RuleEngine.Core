@@ -8,8 +8,14 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Entities;
 public class DwsData
 {
     /// <summary>
-    /// 条码
-    /// Barcode identifier
+    /// 包裹ID（唯一标识，通常是时间戳或序列号）
+    /// Parcel ID (unique identifier, usually timestamp or sequence number)
+    /// </summary>
+    public string ParcelId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 条码（快递单号、运单号等）
+    /// Barcode (tracking number, waybill number, etc.)
     /// </summary>
     public string Barcode { get; set; } = string.Empty;
     /// 重量（单位：克）

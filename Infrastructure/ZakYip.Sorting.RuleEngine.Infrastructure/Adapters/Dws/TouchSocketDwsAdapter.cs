@@ -278,15 +278,15 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
                     // Publish event - this will trigger DwsDataReceivedEventHandler for parcel binding
                     await publisher.Publish(new DwsDataReceivedEvent
                     {
-                        ParcelId = dwsData.Barcode ?? "UNKNOWN",  // DWS数据中的Barcode作为ParcelId
+                        ParcelId = dwsData.ParcelId,  // ✅ 使用DWS数据中的ParcelId
                         DwsData = dwsData,
                         ReceivedAt = clock.LocalNow,
                         SourceAddress = client.IP?.ToString()
                     }).ConfigureAwait(false);
                     
                     _logger.LogInformation(
-                        "📢 已发布DwsDataReceivedEvent事件 | ParcelId={ParcelId}",
-                        dwsData.Barcode ?? "UNKNOWN");
+                        "📢 已发布DwsDataReceivedEvent事件 | ParcelId={ParcelId}, Barcode={Barcode}",
+                        dwsData.ParcelId, dwsData.Barcode);
                 }
 
                 // 触发旧的事件委托（向后兼容）

@@ -19,9 +19,9 @@ public record class DwsDataTemplate
     /// Template name
     public required string Name { get; init; }
     /// 数据模板格式，使用占位符定义字段位置
-    /// 示例：{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}
+    /// 示例：{ParcelId},{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}
     /// Data template format, using placeholders to define field positions
-    /// Example: {Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}
+    /// Example: {ParcelId},{Code},{Weight},{Length},{Width},{Height},{Volume},{Timestamp}
     public required string Template { get; init; }
     /// 字段分隔符，默认为逗号
     /// Field delimiter, default is comma
