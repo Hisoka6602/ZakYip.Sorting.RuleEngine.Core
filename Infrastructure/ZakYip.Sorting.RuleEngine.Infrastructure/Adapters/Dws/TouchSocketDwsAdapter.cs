@@ -83,12 +83,11 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
                 .ConfigureContainer(a =>
                 {
                     a.AddLogger(new TouchSocketLogger(_logger));
-                })
-                .ConfigurePlugins(a =>
-                {
-                    a.Add<DwsDataPlugin>()
-                        .SetOnDataReceived(OnDataReceived);
                 });
+
+            // 直接订阅事件，不使用插件
+            // Subscribe to events directly without using plugins
+            _tcpService.Received += OnTcpServiceReceived;
 
             await _tcpService.SetupAsync(config);
             await _tcpService.StartAsync();
@@ -140,6 +139,10 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
 
         try
         {
+            // 取消订阅事件，防止内存泄漏
+            // Unsubscribe from events to prevent memory leaks
+            _tcpService.Received -= OnTcpServiceReceived;
+            
             await _tcpService.StopAsync();
             _tcpService.Dispose();
             _tcpService = null;
@@ -165,6 +168,31 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
         }
     }
 
+    /// <summary>
+    /// TCP服务接收数据事件处理
+    /// TCP service data received event handler
+    /// </summary>
+    private async Task OnTcpServiceReceived(TcpSessionClient client, ReceivedDataEventArgs e)
+    {
+        try
+        {
+            var data = Encoding.UTF8.GetString(e.ByteBlock.ToArray());
+            
+            if (client is ITcpSession session)
+            {
+                await OnDataReceived(session, data).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理TCP接收数据失败");
+        }
+    }
+
+    /// <summary>
+    /// 处理接收到的DWS数据
+    /// Process received DWS data
+    /// </summary>
     private async Task OnDataReceived(ITcpSession client, string data)
     {
         try
@@ -234,30 +262,6 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
     public void Dispose()
     {
         StopAsync().Wait();
-    }
-
-    /// <summary>
-    /// DWS数据接收插件
-    /// </summary>
-    private class DwsDataPlugin : PluginBase, ITcpReceivedPlugin
-    {
-        private Func<ITcpSession, string, Task>? _onDataReceived;
-
-        public DwsDataPlugin SetOnDataReceived(Func<ITcpSession, string, Task> handler)
-        {
-            _onDataReceived = handler;
-            return this;
-        }
-
-        public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
-        {
-            if (_onDataReceived != null)
-            {
-                var data = Encoding.UTF8.GetString(e.ByteBlock.ToArray());
-                await _onDataReceived(client, data);
-            }
-            await e.InvokeNext();
-        }
     }
 
     /// <summary>
