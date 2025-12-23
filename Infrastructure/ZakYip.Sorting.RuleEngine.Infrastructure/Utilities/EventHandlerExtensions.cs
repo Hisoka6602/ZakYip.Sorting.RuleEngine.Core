@@ -106,4 +106,56 @@ public static class EventHandlerExtensions
             }
         }
     }
+
+    /// <summary>
+    /// 安全调用异步事件委托（Func&lt;T, Task&gt;）- 捕获并记录每个订阅者的异常，但不阻止其他订阅者执行
+    /// Safely invoke async event delegate (Func&lt;T, Task&gt;) - catch and log each subscriber's exception without blocking others
+    /// </summary>
+    /// <typeparam name="T">事件参数类型 / Event argument type</typeparam>
+    /// <param name="asyncEventHandler">异步事件处理器 / Async event handler</param>
+    /// <param name="args">事件参数 / Event argument</param>
+    /// <param name="logger">日志记录器（可选） / Logger (optional)</param>
+    /// <param name="eventName">事件名称（用于日志） / Event name (for logging)</param>
+    /// <remarks>
+    /// 此方法用于安全调用 Func&lt;T, Task&gt; 类型的异步事件委托（如 DWS 数据接收事件）
+    /// This method is used to safely invoke Func&lt;T, Task&gt; type async event delegates (e.g., DWS data received event)
+    /// 
+    /// 使用场景 / Use cases:
+    /// - DWS 适配器接收到数据后触发事件，防止订阅者异常导致适配器崩溃
+    /// - DWS adapter triggers event after receiving data, preventing subscriber exceptions from crashing the adapter
+    /// - 任何使用 Func&lt;T, Task&gt; 类型异步委托的场景
+    /// - Any scenario using Func&lt;T, Task&gt; type async delegates
+    /// </remarks>
+    public static async Task SafeInvokeAsync<T>(
+        this Func<T, Task>? asyncEventHandler,
+        T args,
+        ILogger? logger = null,
+        string? eventName = null)
+    {
+        if (asyncEventHandler == null)
+        {
+            return;
+        }
+
+        var invocationList = asyncEventHandler.GetInvocationList();
+        var eventNameDisplay = eventName ?? typeof(T).Name;
+
+        foreach (var handler in invocationList)
+        {
+            try
+            {
+                await ((Func<T, Task>)handler).Invoke(args).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception but continue invoking other subscribers
+                logger?.LogError(
+                    ex,
+                    "订阅者处理异步事件 '{EventName}' 时发生异常 / Subscriber threw exception while handling async event '{EventName}': Target={Target}, Method={Method}",
+                    eventNameDisplay,
+                    handler.Target?.GetType().Name ?? "Unknown",
+                    handler.Method.Name);
+            }
+        }
+    }
 }

@@ -272,7 +272,12 @@ try
                 {
                     var loggerWcs = sp.GetRequiredService<ILogger<WcsApiClient>>();
                     var clock = sp.GetRequiredService<ZakYip.Sorting.RuleEngine.Domain.Interfaces.ISystemClock>();
-                    var configRepo = sp.GetRequiredService<IWcsApiConfigRepository>();
+                    var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                    
+                    // ✅ 使用 Wrapper 避免 DI 生命周期违规：Transient 服务不能直接注入 Scoped 服务
+                    // Use Wrapper to avoid DI lifetime violation: Transient service cannot directly inject Scoped service
+                    var configRepo = new WcsApiConfigRepositoryWrapper(serviceScopeFactory);
+                    
                     return new WcsApiClient(
                         client,
                         loggerWcs,
@@ -470,6 +475,10 @@ try
                 services.AddSingleton<ConfigCacheService>();
                 services.AddSingleton<ParcelCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
+                
+                // 注册 DWS 包裹绑定服务（Scoped）
+                // Register DWS parcel binding service (Scoped)
+                services.AddScoped<DwsParcelBindingService>();
 
                 // 预加载Sorter配置以避免在DI工厂中使用GetAwaiter().GetResult()
                 // Pre-load Sorter config to avoid GetAwaiter().GetResult() in DI factory

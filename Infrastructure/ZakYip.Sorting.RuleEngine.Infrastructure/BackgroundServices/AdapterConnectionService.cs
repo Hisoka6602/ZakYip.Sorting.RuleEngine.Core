@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ZakYip.Sorting.RuleEngine.Application.Services;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
@@ -18,6 +19,7 @@ public class AdapterConnectionService : IHostedService
     private readonly IDwsAdapter? _dwsAdapter;
     private readonly IDownstreamCommunication? _downstreamCommunication;
     private readonly ILogger<AdapterConnectionService> _logger;
+    private Func<DwsData, Task>? _dwsDataReceivedHandler;
 
     public AdapterConnectionService(
         IServiceProvider serviceProvider,
@@ -78,6 +80,29 @@ public class AdapterConnectionService : IHostedService
             _logger.LogInformation(
                 "DWS配置已启用，开始连接 / DWS configuration enabled, connecting: AdapterName={AdapterName}, Protocol={Protocol}",
                 _dwsAdapter.AdapterName, _dwsAdapter.ProtocolType);
+
+            // 🔗 订阅 DWS 数据接收事件，绑定到包裹处理服务
+            // Subscribe to DWS data received event and bind to parcel processing service
+            _dwsDataReceivedHandler = async (dwsData) =>
+            {
+                try
+                {
+                    // 创建新的 scope 来解析 Scoped 服务
+                    // Create new scope to resolve Scoped services
+                    using var bindingScope = _serviceProvider.CreateScope();
+                    var bindingService = bindingScope.ServiceProvider.GetRequiredService<DwsParcelBindingService>();
+                    
+                    // 处理 DWS 数据并绑定到包裹
+                    // Process DWS data and bind to parcel
+                    await bindingService.HandleDwsDataAsync(dwsData, null, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "处理DWS数据绑定失败: Barcode={Barcode}", dwsData.Barcode);
+                }
+            };
+
+            _dwsAdapter.OnDwsDataReceived += _dwsDataReceivedHandler;
 
             await _dwsAdapter.StartAsync(cancellationToken).ConfigureAwait(false);
 
@@ -167,6 +192,15 @@ public class AdapterConnectionService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("适配器连接服务停止 / Adapter connection service stopping");
+        
+        // 取消订阅 DWS 数据接收事件，防止内存泄漏
+        // Unsubscribe from DWS data received event to prevent memory leaks
+        if (_dwsAdapter != null && _dwsDataReceivedHandler != null)
+        {
+            _dwsAdapter.OnDwsDataReceived -= _dwsDataReceivedHandler;
+            _dwsDataReceivedHandler = null;
+        }
+        
         return Task.CompletedTask;
     }
 }
