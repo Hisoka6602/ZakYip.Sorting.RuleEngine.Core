@@ -79,17 +79,27 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
             var config = new TouchSocketConfig();
             config.SetListenIPHosts(new IPHost[] { new IPHost($"{_host}:{_port}") })
                 .SetMaxCount(_maxConnections) // 设置最大连接数（连接池大小）
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
+                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")
+                {
+                    CacheTimeout = TimeSpan.FromSeconds(30)
+                })
                 .ConfigureContainer(a =>
                 {
                     a.AddLogger(new TouchSocketLogger(_logger));
+                })
+                .ConfigurePlugins(a =>
+                {
+                    // 添加空插件以确保事件管道正常工作
+                    // Add empty plugin to ensure event pipeline works correctly
+                    a.Add<DwsReceivedPlugin>();
                 });
 
-            // 直接订阅事件，不使用插件
-            // Subscribe to events directly without using plugins
+            await _tcpService.SetupAsync(config);
+
+            // ✅ 在 Setup 之后订阅事件（关键！）
+            // Subscribe to events AFTER Setup (critical!)
             _tcpService.Received += OnTcpServiceReceived;
 
-            await _tcpService.SetupAsync(config);
             await _tcpService.StartAsync();
 
             _isRunning = true;
@@ -277,6 +287,24 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
     public void Dispose()
     {
         StopAsync().Wait();
+    }
+
+    /// <summary>
+    /// DWS数据接收插件 - 确保事件管道正常工作
+    /// DWS data reception plugin - Ensures event pipeline works correctly
+    /// </summary>
+    /// <remarks>
+    /// 这个插件不做任何处理，只是调用 InvokeNext() 确保事件能传递到订阅的事件处理器
+    /// This plugin does nothing but call InvokeNext() to ensure events are passed to subscribed handlers
+    /// </remarks>
+    private class DwsReceivedPlugin : PluginBase, ITcpReceivedPlugin
+    {
+        public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+        {
+            // 消息已经由 TerminatorPackageAdapter 处理，这里只需要传递到下一个处理器
+            // Message has been processed by TerminatorPackageAdapter, just pass to next handler
+            return e.InvokeNext();
+        }
     }
 
     /// <summary>
