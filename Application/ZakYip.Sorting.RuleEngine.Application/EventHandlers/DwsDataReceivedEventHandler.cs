@@ -25,6 +25,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     private readonly IParcelInfoRepository _parcelInfoRepository;
     private readonly IParcelLifecycleNodeRepository _lifecycleRepository;
     private readonly ParcelCacheService _cacheService;
+    private readonly IDwsCommunicationLogRepository _dwsCommunicationLogRepository;
 
     public DwsDataReceivedEventHandler(
         ILogger<DwsDataReceivedEventHandler> logger,
@@ -35,7 +36,8 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         ISystemClock clock,
         IParcelInfoRepository parcelInfoRepository,
         IParcelLifecycleNodeRepository lifecycleRepository,
-        ParcelCacheService cacheService)
+        ParcelCacheService cacheService,
+        IDwsCommunicationLogRepository dwsCommunicationLogRepository)
     {
         _logger = logger;
         _apiAdapterFactory = apiAdapterFactory;
@@ -46,6 +48,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         _parcelInfoRepository = parcelInfoRepository;
         _lifecycleRepository = lifecycleRepository;
         _cacheService = cacheService;
+        _dwsCommunicationLogRepository = dwsCommunicationLogRepository;
     }
 
     public async Task Handle(DwsDataReceivedEvent notification, CancellationToken cancellationToken)
@@ -53,6 +56,10 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         _logger.LogInformation(
             "处理DWS数据接收事件: ParcelId={ParcelId}, Weight={Weight}g",
             notification.ParcelId, notification.DwsData.Weight);
+
+        // ✅ 持久化DWS通信日志（确保数据不丢失）
+        // Persist DWS communication log (ensure data is not lost)
+        await SaveDwsCommunicationLogAsync(notification.DwsData, notification.SourceAddress, cancellationToken).ConfigureAwait(false);
 
         // 从缓存获取或从数据库加载包裹
         var parcel = await _cacheService.GetOrLoadAsync(
@@ -270,5 +277,31 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
         // TODO: 根据实际API响应格式解析目标格口
         // Parse target chute based on actual API response format
         return response.ResponseBody;
+    }
+
+    /// <summary>
+    /// 保存DWS通信日志到数据库（确保持久化）
+    /// Save DWS communication log to database (ensure persistence)
+    /// </summary>
+    private async Task SaveDwsCommunicationLogAsync(DwsData dwsData, string? sourceAddress, CancellationToken cancellationToken)
+    {
+        var log = new DwsCommunicationLog
+        {
+            CommunicationType = CommunicationType.Tcp,
+            DwsAddress = sourceAddress ?? "未知DWS地址 / Unknown DWS Address",
+            OriginalContent = JsonSerializer.Serialize(dwsData),
+            FormattedContent = JsonSerializer.Serialize(dwsData, new JsonSerializerOptions { WriteIndented = true }),
+            Barcode = dwsData.Barcode,
+            Weight = dwsData.Weight,
+            Volume = dwsData.Volume,
+            ImagesJson = dwsData.Images != null && dwsData.Images.Any() 
+                ? JsonSerializer.Serialize(dwsData.Images) 
+                : null,
+            CommunicationTime = _clock.LocalNow,
+            IsSuccess = true,
+            ErrorMessage = null
+        };
+
+        await _dwsCommunicationLogRepository.SaveAsync(log, cancellationToken).ConfigureAwait(false);
     }
 }

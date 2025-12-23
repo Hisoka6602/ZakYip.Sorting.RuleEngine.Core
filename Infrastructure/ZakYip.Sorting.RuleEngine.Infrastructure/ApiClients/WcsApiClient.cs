@@ -81,6 +81,7 @@ public class WcsApiClient : IWcsApiAdapter
                 config = new WcsApiConfig
                 {
                     ConfigId = WcsApiConfig.SingletonId,
+                    ActiveAdapterType = "WcsApiClient", // 默认适配器类型
                     Url = "http://localhost:8080/wcs", // 默认URL，需要通过API更新
                     ApiKey = null,
                     TimeoutMs = 30000,

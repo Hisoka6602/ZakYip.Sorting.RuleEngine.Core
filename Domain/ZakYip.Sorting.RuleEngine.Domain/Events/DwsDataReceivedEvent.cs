@@ -23,4 +23,10 @@ public record class DwsDataReceivedEvent : INotification
     /// 接收时间
     /// </summary>
     public DateTime ReceivedAt { get; init; } = SystemClockProvider.LocalNow;
+
+    /// <summary>
+    /// DWS设备地址或连接信息（IP:Port或设备ID）
+    /// DWS device address or connection info (IP:Port or device ID)
+    /// </summary>
+    public string? SourceAddress { get; init; }
 }

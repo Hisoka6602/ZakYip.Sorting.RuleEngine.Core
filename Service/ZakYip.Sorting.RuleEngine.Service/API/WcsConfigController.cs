@@ -1,28 +1,39 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using ZakYip.Sorting.RuleEngine.Application.DTOs.Requests;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Responses;
+using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 
 namespace ZakYip.Sorting.RuleEngine.Service.API;
 
 /// <summary>
-/// WCS配置控制器 / WCS Configuration Controller
+/// WCS适配器选择控制器 / WCS Adapter Selection Controller
 /// </summary>
+/// <remarks>
+/// 本控制器仅负责选择使用哪个WCS适配器，不包含具体API配置。
+/// 具体的API配置（URL、ApiKey等）请使用 ApiClientConfigController。
+/// This controller only handles WCS adapter selection, not specific API configurations.
+/// For specific API configurations (URL, ApiKey, etc.), use ApiClientConfigController.
+/// </remarks>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class WcsConfigController : ControllerBase
 {
     private readonly IWcsApiAdapterFactory _wcsApiAdapterFactory;
+    private readonly IWcsApiConfigRepository _wcsApiConfigRepository;
     private readonly ILogger<WcsConfigController> _logger;
     private readonly ISystemClock _clock;
 
     public WcsConfigController(
         IWcsApiAdapterFactory wcsApiAdapterFactory,
+        IWcsApiConfigRepository wcsApiConfigRepository,
         ILogger<WcsConfigController> logger,
         ISystemClock clock)
     {
         _wcsApiAdapterFactory = wcsApiAdapterFactory;
+        _wcsApiConfigRepository = wcsApiConfigRepository;
         _logger = logger;
         _clock = clock;
     }
@@ -91,6 +102,119 @@ public class WcsConfigController : ControllerBase
             _logger.LogError(ex, "获取可用适配器列表失败");
             return StatusCode(500, ApiResponse<List<AdapterInfoDto>>.FailureResult(
                 $"获取列表失败: {ex.Message}", "GET_ADAPTERS_FAILED"));
+        }
+    }
+
+    /// <summary>
+    /// 更新WCS适配器配置（支持热更新）/ Update WCS Adapter Configuration (with hot reload)
+    /// </summary>
+    /// <param name="request">更新请求</param>
+    /// <returns>更新结果</returns>
+    /// <response code="200">更新成功，适配器已切换</response>
+    /// <response code="400">请求参数错误</response>
+    /// <response code="500">服务器内部错误</response>
+    /// <remarks>
+    /// 更新配置后，系统会立即切换到指定的WCS适配器，无需重启应用程序。
+    /// 
+    /// 示例请求:
+    /// 
+    ///     PUT /api/WcsConfig
+    ///     {
+    ///       "activeAdapter": "JushuitanErpApiClient",
+    ///       "isEnabled": true,
+    ///       "description": "切换到聚水潭ERP"
+    ///     }
+    /// </remarks>
+    [HttpPut]
+    [SwaggerOperation(
+        Summary = "更新WCS适配器配置",
+        Description = "更新当前激活的WCS适配器并触发热更新。支持在运行时动态切换不同的WCS API客户端（如聚水潭ERP、旺店通WMS等），无需重启应用。",
+        OperationId = "UpdateWcsConfig",
+        Tags = new[] { "WCS配置 / WCS Configuration" }
+    )]
+    [SwaggerResponse(200, "更新成功", typeof(ApiResponse<WcsConfigResponseDto>))]
+    [SwaggerResponse(400, "请求参数错误", typeof(ApiResponse<WcsConfigResponseDto>))]
+    [SwaggerResponse(500, "服务器内部错误", typeof(ApiResponse<WcsConfigResponseDto>))]
+    public async Task<ActionResult<ApiResponse<WcsConfigResponseDto>>> UpdateConfig(
+        [FromBody, SwaggerRequestBody("WCS适配器配置更新请求", Required = true)] WcsConfigUpdateRequest request)
+    {
+        try
+        {
+            // 验证适配器名称
+            var availableAdapters = GetAvailableAdapters();
+            var isValidAdapter = availableAdapters.Any(a => 
+                a.Name == request.ActiveAdapter || 
+                a.Name.Contains(request.ActiveAdapter, StringComparison.OrdinalIgnoreCase));
+            
+            if (!isValidAdapter)
+            {
+                return BadRequest(ApiResponse<WcsConfigResponseDto>.FailureResult(
+                    $"无效的适配器名称: {request.ActiveAdapter}。可用适配器: {string.Join(", ", availableAdapters.Select(a => a.Name))} / Invalid adapter name", 
+                    "INVALID_ADAPTER"));
+            }
+
+            var now = _clock.LocalNow;
+            
+            // 检查配置是否存在
+            var existingConfig = await _wcsApiConfigRepository.GetByIdAsync(WcsApiConfig.SingletonId).ConfigureAwait(false);
+            
+            // 保留原有的 URL、ApiKey 等配置，只更新 ActiveAdapterType
+            var config = new WcsApiConfig
+            {
+                ConfigId = WcsApiConfig.SingletonId,
+                ActiveAdapterType = request.ActiveAdapter,
+                Url = existingConfig?.Url ?? "http://localhost",
+                ApiKey = existingConfig?.ApiKey,
+                TimeoutMs = existingConfig?.TimeoutMs ?? 30000,
+                DisableSslValidation = existingConfig?.DisableSslValidation ?? false,
+                IsEnabled = request.IsEnabled,
+                Description = request.Description,
+                CreatedAt = existingConfig?.CreatedAt ?? now,
+                UpdatedAt = now
+            };
+
+            bool success;
+            if (existingConfig == null)
+            {
+                success = await _wcsApiConfigRepository.AddAsync(config).ConfigureAwait(false);
+                _logger.LogInformation("创建WCS适配器配置: {Adapter} / Created WCS adapter config", request.ActiveAdapter);
+            }
+            else
+            {
+                success = await _wcsApiConfigRepository.UpdateAsync(config).ConfigureAwait(false);
+                _logger.LogInformation("更新WCS适配器配置: {OldAdapter} -> {NewAdapter} / Updated WCS adapter config", 
+                    existingConfig.ActiveAdapterType, request.ActiveAdapter);
+            }
+
+            if (!success)
+            {
+                return StatusCode(500, ApiResponse<WcsConfigResponseDto>.FailureResult(
+                    "保存配置失败 / Failed to save config", 
+                    "SAVE_FAILED"));
+            }
+
+            // 触发适配器工厂重新加载（热更新）
+            // Trigger adapter factory to reload (hot update)
+            _wcsApiAdapterFactory.InvalidateCache();
+            _logger.LogInformation("WCS适配器配置已更新并触发热更新 / WCS adapter config updated and hot reload triggered");
+
+            var dto = new WcsConfigResponseDto
+            {
+                ActiveAdapter = request.ActiveAdapter,
+                IsEnabled = request.IsEnabled,
+                AvailableAdapters = availableAdapters,
+                Description = GetAdapterDescription(request.ActiveAdapter),
+                Timestamp = now
+            };
+
+            return Ok(ApiResponse<WcsConfigResponseDto>.SuccessResult(dto));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新WCS适配器配置失败 / Failed to update WCS adapter config");
+            return StatusCode(500, ApiResponse<WcsConfigResponseDto>.FailureResult(
+                $"更新配置失败: {ex.Message} / Failed to update config: {ex.Message}", 
+                "UPDATE_FAILED"));
         }
     }
 
