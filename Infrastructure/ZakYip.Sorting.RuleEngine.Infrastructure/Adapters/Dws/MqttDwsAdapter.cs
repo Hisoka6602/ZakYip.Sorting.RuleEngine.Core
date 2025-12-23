@@ -1,12 +1,13 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient;
-using System.Text;
-using System.Text.Json;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Utilities;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 
@@ -231,9 +232,11 @@ public class MqttDwsAdapter : IDwsAdapter, IDisposable
                 PropertyNameCaseInsensitive = true
             });
 
-            if (dwsData != null && OnDwsDataReceived != null)
+            if (dwsData != null)
             {
-                await OnDwsDataReceived.Invoke(dwsData);
+                // 🛡️ 安全触发事件委托，防止订阅者异常导致适配器崩溃
+                // Safely trigger event delegate, prevent subscriber exceptions from crashing adapter
+                await OnDwsDataReceived.SafeInvokeAsync(dwsData, _logger, nameof(OnDwsDataReceived)).ConfigureAwait(false);
             }
         }
         catch (Exception ex)

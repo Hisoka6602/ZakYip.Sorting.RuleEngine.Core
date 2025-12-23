@@ -7,6 +7,7 @@ using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Utilities;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
 
@@ -264,16 +265,13 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
                     "✅ DWS数据解析成功 | Barcode={Barcode}, Weight={Weight}g, L×W×H={L}×{W}×{H}cm",
                     dwsData.Barcode, dwsData.Weight, dwsData.Length, dwsData.Width, dwsData.Height);
 
-                // 触发事件委托，让订阅者处理 DWS 数据
-                // Trigger event delegate for subscribers to handle DWS data
-                if (OnDwsDataReceived != null)
-                {
-                    await OnDwsDataReceived.Invoke(dwsData).ConfigureAwait(false);
-                    
-                    _logger.LogInformation(
-                        "📢 已触发 OnDwsDataReceived 事件 | ParcelId={ParcelId}, Barcode={Barcode}",
-                        dwsData.ParcelId, dwsData.Barcode);
-                }
+                // 🛡️ 安全触发事件委托，防止订阅者异常导致适配器崩溃
+                // Safely trigger event delegate, prevent subscriber exceptions from crashing adapter
+                await OnDwsDataReceived.SafeInvokeAsync(dwsData, _logger, nameof(OnDwsDataReceived)).ConfigureAwait(false);
+                
+                _logger.LogInformation(
+                    "📢 已触发 OnDwsDataReceived 事件 | ParcelId={ParcelId}, Barcode={Barcode}",
+                    dwsData.ParcelId, dwsData.Barcode);
             }
             else
             {

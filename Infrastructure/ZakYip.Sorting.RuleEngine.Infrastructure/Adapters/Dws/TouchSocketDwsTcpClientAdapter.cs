@@ -6,6 +6,7 @@ using TouchSocket.Sockets;
 using ZakYip.Sorting.RuleEngine.Domain.Entities;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Utilities;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Dws;
@@ -167,9 +168,11 @@ public class TouchSocketDwsTcpClientAdapter : IDwsAdapter, IDisposable, IAsyncDi
 
             // 使用数据解析器解析数据 / Use data parser to parse data
             var dwsData = _dataParser.Parse(data, _dataTemplate);
-            if (dwsData != null && OnDwsDataReceived != null)
+            if (dwsData != null)
             {
-                await OnDwsDataReceived.Invoke(dwsData).ConfigureAwait(false);
+                // 🛡️ 安全触发事件委托，防止订阅者异常导致适配器崩溃
+                // Safely trigger event delegate, prevent subscriber exceptions from crashing adapter
+                await OnDwsDataReceived.SafeInvokeAsync(dwsData, _logger, nameof(OnDwsDataReceived)).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
