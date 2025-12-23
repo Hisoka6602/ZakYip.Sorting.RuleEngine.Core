@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using ZakYip.Sorting.RuleEngine.Application.JsonConverters;
+using ZakYip.Sorting.RuleEngine.Domain.Enums;
 
 namespace ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 
@@ -47,8 +49,13 @@ public record class SortingCompletedNotificationDto
     /// 最终状态: Success, Timeout, Lost, ExecutionError
     /// Final status: Success, Timeout, Lost, ExecutionError
     /// </summary>
+    /// <remarks>
+    /// 使用自定义转换器支持数字和字符串双模式反序列化
+    /// Uses custom converter to support both number and string deserialization
+    /// </remarks>
     [JsonPropertyName("FinalStatus")]
-    public required string FinalStatus { get; init; }
+    [JsonConverter(typeof(ParcelFinalStatusConverter))]
+    public required ParcelFinalStatus FinalStatus { get; init; }
 
     /// <summary>
     /// 失败原因（失败时提供）
