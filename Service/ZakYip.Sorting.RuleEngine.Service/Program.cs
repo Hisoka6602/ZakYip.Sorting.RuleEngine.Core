@@ -475,6 +475,10 @@ try
                 services.AddSingleton<ConfigCacheService>();
                 services.AddSingleton<ParcelCacheService>();
                 services.AddSingleton<IConfigReloadService, ConfigReloadService>();
+                
+                // 注册 DWS 包裹绑定服务（Scoped）
+                // Register DWS parcel binding service (Scoped)
+                services.AddScoped<DwsParcelBindingService>();
 
                 // 预加载Sorter配置以避免在DI工厂中使用GetAwaiter().GetResult()
                 // Pre-load Sorter config to avoid GetAwaiter().GetResult() in DI factory
