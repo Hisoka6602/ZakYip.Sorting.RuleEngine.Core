@@ -123,8 +123,8 @@ public class AdapterConnectionService : IHostedService
                 _downstreamCommunication.IsEnabled,
                 _downstreamCommunication.GetType().Name);
 
-            // 如果使用的是 NullDownstreamCommunication，说明配置不存在或已禁用
-            // 稍后当配置更新时，会通过 SorterConfigChangedEvent 触发热更新
+            // 如果当前未启用，跳过连接（可能是配置不存在或已禁用）
+            // Skip connection if currently disabled (config may not exist or is disabled)
             if (!_downstreamCommunication.IsEnabled)
             {
                 _logger.LogInformation(
@@ -136,36 +136,11 @@ public class AdapterConnectionService : IHostedService
                 return;
             }
 
-            var sorterConfigRepository = scope.ServiceProvider.GetRequiredService<ISorterConfigRepository>();
-            var config = await sorterConfigRepository.GetByIdAsync(SorterConfig.SingletonId).ConfigureAwait(false);
-
-            if (config == null)
-            {
-                _logger.LogWarning(
-                    "分拣机配置不存在，跳过连接 / Sorter configuration does not exist, skipping connection");
-                _logger.LogInformation(
-                    "提示：请通过 API 创建分拣机配置 / Hint: Please create Sorter configuration via API");
-                return;
-            }
-
-            if (!config.IsEnabled)
-            {
-                _logger.LogInformation(
-                    "分拣机配置已禁用，跳过连接 / Sorter configuration is disabled, skipping connection");
-                return;
-            }
-
-            _logger.LogInformation(
-                "分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting: " +
-                "Protocol={Protocol}, ConnectionMode={ConnectionMode}, Host={Host}:{Port}",
-                config.Protocol, config.ConnectionMode, config.Host, config.Port);
+            _logger.LogInformation("分拣机配置已启用，开始连接 / Sorter configuration enabled, connecting");
 
             await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation(
-                "分拣机连接成功 / Sorter connection successful: " +
-                "Protocol={Protocol}, ConnectionMode={ConnectionMode}, Host={Host}:{Port}",
-                config.Protocol, config.ConnectionMode, config.Host, config.Port);
+            _logger.LogInformation("分拣机连接已启动 / Sorter connection started");
         }
         catch (InvalidOperationException ex)
         {

@@ -14,6 +14,7 @@ public interface IReloadableDownstreamCommunication : IDownstreamCommunication
     /// 重新加载配置（配置变更时调用）
     /// Reload configuration (called when configuration changes)
     /// </summary>
+    /// <returns>重载是否成功 / Whether reload succeeded</returns>
     /// <remarks>
     /// 执行流程：
     /// 1. 加载新配置
@@ -29,5 +30,5 @@ public interface IReloadableDownstreamCommunication : IDownstreamCommunication
     /// 4. If new config is enabled, start new instance
     /// 5. Dispose old instance resources
     /// </remarks>
-    Task ReloadAsync(CancellationToken cancellationToken = default);
+    Task<bool> ReloadAsync(CancellationToken cancellationToken = default);
 }

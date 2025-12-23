@@ -73,16 +73,26 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
             if (_downstreamCommunication is IReloadableDownstreamCommunication reloadableComm)
             {
                 _logger.LogInformation("使用可重载的下游通信进行配置热更新 / Using reloadable downstream communication for configuration hot reload");
-                await reloadableComm.ReloadAsync(cancellationToken).ConfigureAwait(false);
+                var success = await reloadableComm.ReloadAsync(cancellationToken).ConfigureAwait(false);
                 
-                _logger.LogInformation(
-                    "分拣机配置热更新成功 / Sorter configuration hot reload successful: " +
-                    "Protocol={Protocol}, Mode={Mode}, Host={Host}:{Port}, IsEnabled={IsEnabled}",
-                    notification.Protocol, notification.ConnectionMode, notification.Host, notification.Port, notification.IsEnabled);
+                if (success)
+                {
+                    _logger.LogInformation(
+                        "分拣机配置热更新成功 / Sorter configuration hot reload successful: " +
+                        "Protocol={Protocol}, Mode={Mode}, Host={Host}:{Port}, IsEnabled={IsEnabled}",
+                        notification.Protocol, notification.ConnectionMode, notification.Host, notification.Port, notification.IsEnabled);
 
-                await _logRepository.LogInfoAsync(
-                    "分拣机配置热更新成功 / Sorter Hot Reload Successful",
-                    $"新配置已应用 / New configuration applied: {notification.Protocol} protocol, {notification.ConnectionMode} mode @ {notification.Host}:{notification.Port}, Enabled={notification.IsEnabled}").ConfigureAwait(false);
+                    await _logRepository.LogInfoAsync(
+                        "分拣机配置热更新成功 / Sorter Hot Reload Successful",
+                        $"新配置已应用 / New configuration applied: {notification.Protocol} protocol, {notification.ConnectionMode} mode @ {notification.Host}:{notification.Port}, Enabled={notification.IsEnabled}").ConfigureAwait(false);
+                }
+                else
+                {
+                    _logger.LogWarning("分拣机配置热更新失败 / Sorter configuration hot reload failed");
+                    await _logRepository.LogWarningAsync(
+                        "分拣机配置热更新失败 / Sorter Hot Reload Failed",
+                        "配置更新失败，请检查日志 / Configuration update failed, please check logs").ConfigureAwait(false);
+                }
             }
             else
             {
