@@ -195,7 +195,7 @@ public class WcsConfigController : ControllerBase
 
             // 触发适配器工厂重新加载（热更新）
             // Trigger adapter factory to reload (hot update)
-            // Note: 实际的热更新机制需要在 WcsApiAdapterFactory 中实现
+            _wcsApiAdapterFactory.InvalidateCache();
             _logger.LogInformation("WCS适配器配置已更新并触发热更新 / WCS adapter config updated and hot reload triggered");
 
             var dto = new WcsConfigResponseDto

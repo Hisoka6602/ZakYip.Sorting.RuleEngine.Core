@@ -59,7 +59,7 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 
         // ✅ 持久化DWS通信日志（确保数据不丢失）
         // Persist DWS communication log (ensure data is not lost)
-        await SaveDwsCommunicationLogAsync(notification.DwsData, cancellationToken).ConfigureAwait(false);
+        await SaveDwsCommunicationLogAsync(notification.DwsData, notification.SourceAddress, cancellationToken).ConfigureAwait(false);
 
         // 从缓存获取或从数据库加载包裹
         var parcel = await _cacheService.GetOrLoadAsync(
@@ -283,12 +283,12 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
     /// 保存DWS通信日志到数据库（确保持久化）
     /// Save DWS communication log to database (ensure persistence)
     /// </summary>
-    private async Task SaveDwsCommunicationLogAsync(DwsData dwsData, CancellationToken cancellationToken)
+    private async Task SaveDwsCommunicationLogAsync(DwsData dwsData, string? sourceAddress, CancellationToken cancellationToken)
     {
         var log = new DwsCommunicationLog
         {
             CommunicationType = CommunicationType.Tcp,
-            DwsAddress = "DWS-Server", // 可以从配置或事件中获取实际地址
+            DwsAddress = sourceAddress ?? "未知DWS地址 / Unknown DWS Address",
             OriginalContent = JsonSerializer.Serialize(dwsData),
             FormattedContent = JsonSerializer.Serialize(dwsData, new JsonSerializerOptions { WriteIndented = true }),
             Barcode = dwsData.Barcode,
