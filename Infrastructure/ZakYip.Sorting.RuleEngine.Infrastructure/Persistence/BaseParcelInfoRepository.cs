@@ -150,7 +150,7 @@ public abstract class BaseParcelInfoRepository<TContext> : IParcelInfoRepository
     {
         return await Context.ParcelInfos
             .AsNoTracking()
-            .Where(p => p.Weight == null || p.Volume == null)
+            .Where(p => string.IsNullOrEmpty(p.Barcode))
             .OrderByDescending(p => p.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);

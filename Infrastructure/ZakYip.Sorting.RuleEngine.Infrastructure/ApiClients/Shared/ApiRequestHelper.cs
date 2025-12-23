@@ -243,13 +243,66 @@ public static class ApiRequestHelper
     }
 
     /// <summary>
-    /// 格式化请求头为JSON字符串
-    /// Format request headers as JSON string
+    /// 需要脱敏的敏感Header名称列表（不区分大小写）
+    /// List of sensitive header names that need masking (case-insensitive)
+    /// </summary>
+    private static readonly HashSet<string> SensitiveHeaders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "X-API-Key",
+        "Authorization",
+        "X-Auth-Token",
+        "Cookie",
+        "Set-Cookie",
+        "X-Access-Token",
+        "X-Refresh-Token",
+        "Proxy-Authorization",
+        "WWW-Authenticate"
+    };
+
+    /// <summary>
+    /// 脱敏敏感信息：将敏感Header的值替换为"***"
+    /// Mask sensitive information: Replace sensitive header values with "***"
+    /// </summary>
+    /// <param name="headers">原始Header字典 / Original headers dictionary</param>
+    /// <returns>脱敏后的Header字典 / Masked headers dictionary</returns>
+    private static Dictionary<string, string> MaskSensitiveHeaders(Dictionary<string, string> headers)
+    {
+        var maskedHeaders = new Dictionary<string, string>(headers.Count, StringComparer.OrdinalIgnoreCase);
+        
+        foreach (var kvp in headers)
+        {
+            if (SensitiveHeaders.Contains(kvp.Key))
+            {
+                // 脱敏：只显示前4个字符，其余替换为***
+                // Mask: Show only first 4 characters, replace rest with ***
+                var value = kvp.Value;
+                if (value.Length <= 4)
+                {
+                    maskedHeaders[kvp.Key] = "***";
+                }
+                else
+                {
+                    maskedHeaders[kvp.Key] = value.Substring(0, 4) + "***";
+                }
+            }
+            else
+            {
+                maskedHeaders[kvp.Key] = kvp.Value;
+            }
+        }
+        
+        return maskedHeaders;
+    }
+
+    /// <summary>
+    /// 格式化请求头为JSON字符串（自动脱敏敏感信息）
+    /// Format request headers as JSON string (automatically masks sensitive information)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string FormatHeaders(Dictionary<string, string> headers)
     {
-        return JsonSerializer.Serialize(headers, new JsonSerializerOptions
+        var maskedHeaders = MaskSensitiveHeaders(headers);
+        return JsonSerializer.Serialize(maskedHeaders, new JsonSerializerOptions
         {
             WriteIndented = false
         });

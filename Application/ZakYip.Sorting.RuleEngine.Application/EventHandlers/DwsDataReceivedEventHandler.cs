@@ -69,19 +69,36 @@ public class DwsDataReceivedEventHandler : INotificationHandler<DwsDataReceivedE
 
         if (parcel == null)
         {
-            // 如果包裹不存在，尝试获取最新创建且未赋值DWS的包裹
+            // 如果包裹不存在，尝试获取最新创建且未赋值DWS的包裹（Barcode为空）
+            // If parcel not found, try to get the latest created parcel without DWS data (Barcode is empty)
             parcel = await _parcelInfoRepository.GetLatestWithoutDwsDataAsync(cancellationToken).ConfigureAwait(false);
             
             if (parcel == null)
             {
                 _logger.LogWarning("未找到包裹或最新未赋值DWS的包裹: ParcelId={ParcelId}", notification.ParcelId);
+                await _logRepository.LogWarningAsync(
+                    $"DWS数据无法绑定: ParcelId={notification.ParcelId}",
+                    "未找到等待DWS数据的包裹（无Barcode的包裹）").ConfigureAwait(false);
                 return;
             }
             
-            _logger.LogInformation("匹配到最新未赋值DWS的包裹: {ParcelId}", parcel.ParcelId);
+            _logger.LogInformation(
+                "🔗 [步骤2-DWS绑定] DWS数据已绑定到包裹 / DWS data bound to parcel: DwsParcelId={DwsParcelId} → ActualParcelId={ActualParcelId}, Barcode={Barcode}",
+                notification.ParcelId, parcel.ParcelId, notification.DwsData.Barcode);
+            
+            await _logRepository.LogInfoAsync(
+                $"[DWS绑定] DWS数据已绑定: DwsId={notification.ParcelId} → ParcelId={parcel.ParcelId}",
+                $"Barcode={notification.DwsData.Barcode}, Weight={notification.DwsData.Weight}g").ConfigureAwait(false);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "✅ [步骤2-DWS绑定] DWS数据已匹配到包裹 / DWS data matched to parcel: ParcelId={ParcelId}, Barcode={Barcode}",
+                parcel.ParcelId, notification.DwsData.Barcode);
         }
 
         // 赋值DWS信息
+        // Assign DWS information (ensures each DWS data binds to exactly one parcel based on Barcode)
         parcel.Weight = notification.DwsData.Weight;
         parcel.Volume = notification.DwsData.Volume;
         parcel.Length = notification.DwsData.Length;

@@ -9,7 +9,7 @@ using Xunit;
 using ZakYip.Sorting.RuleEngine.Application.DTOs.Downstream;
 using ZakYip.Sorting.RuleEngine.Domain.Enums;
 using ZakYip.Sorting.RuleEngine.Domain.Interfaces;
-using ZakYip.Sorting.RuleEngine.Infrastructure.Adapters.Sorter;
+using ZakYip.Sorting.RuleEngine.Infrastructure.Communication;
 using ZakYip.Sorting.RuleEngine.Infrastructure.Services;
 
 namespace ZakYip.Sorting.RuleEngine.Tests.Integration.Adapters;
@@ -19,15 +19,17 @@ namespace ZakYip.Sorting.RuleEngine.Tests.Integration.Adapters;
 /// Sorter adapter end-to-end communication tests (using TouchSocket, JSON protocol)
 /// </summary>
 /// <remarks>
-/// 协议：Sorter发送JSON格式的ChuteAssignmentNotification
-/// Protocol: Sorter sends JSON format ChuteAssignmentNotification
+/// 协议：RuleEngine广播JSON格式的ChuteAssignmentNotification到Sorter
+/// Protocol: RuleEngine broadcasts JSON format ChuteAssignmentNotification to Sorter
 /// 兼容：ZakYip.WheelDiverterSorter
 /// Compatible with: ZakYip.WheelDiverterSorter
+/// 使用新的TCP通信架构：DownstreamTcpJsonServer
+/// Using new TCP communication architecture: DownstreamTcpJsonServer
 /// </remarks>
 public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
 {
-    private TcpService? _touchSocketServer;
-    private TouchSocketSorterAdapter? _sorterAdapter;
+    private TcpClient? _touchSocketClient;
+    private DownstreamTcpJsonServer? _downstreamServer;
     private const int TestPort = 18002;
     private readonly List<ReceivedMessage> _receivedMessages = new();
     private readonly ISystemClock _clock = new SystemClock();
@@ -44,70 +46,78 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        _sorterAdapter?.Dispose();
+        _downstreamServer?.Dispose();
         
-        if (_touchSocketServer != null)
+        if (_touchSocketClient != null)
         {
-            await _touchSocketServer.StopAsync();
-            _touchSocketServer.Dispose();
+            await _touchSocketClient.CloseAsync();
+            _touchSocketClient.Dispose();
         }
     }
 
     [Fact]
-    public async Task Sorter_ShouldSendData_InCorrectFormat_Successfully()
+    public async Task DownstreamServer_ShouldBroadcastChuteAssignment_InCorrectFormat_Successfully()
     {
-        // Arrange - 创建TouchSocket Server接收数据
-        _touchSocketServer = await CreateTouchSocketServerAsync();
+        // Arrange - 创建DownstreamTcpJsonServer作为服务器
+        _downstreamServer = CreateDownstreamServer();
+        await _downstreamServer.StartAsync();
         await Task.Delay(500); // 等待Server启动
 
-        // 创建Sorter Adapter
-        _sorterAdapter = CreateSorterAdapter();
+        // 创建TouchSocket Client接收数据（模拟WheelDiverterSorter）
+        _touchSocketClient = await CreateTouchSocketClientAsync();
+        await Task.Delay(500); // 等待Client连接
 
-        // Act - Sorter发送数据（协议：JSON格式的ChuteAssignmentNotification）
-        var result = await _sorterAdapter.SendChuteNumberAsync("PARCEL001", "A01");
+        // Act - DownstreamServer广播格口分配（JSON格式的ChuteAssignmentNotification）
+        await _downstreamServer.BroadcastChuteAssignmentAsync(
+            parcelId: 1001,
+            chuteId: 1  // "A01" -> 1
+        );
         await Task.Delay(800); // 等待数据传输和处理
 
-        // Assert - 验证发送成功
-        Assert.True(result, "Sorter应该成功发送数据");
-        
-        // 验证接收到的消息格式和内容
+        // Assert - 验证接收到的消息格式和内容
         Assert.NotEmpty(_receivedMessages);
         var msg = _receivedMessages[0];
         
         // 验证协议字段（与WheelDiverterSorter兼容）
-        Assert.True(long.TryParse(msg.ParcelId, out var parcelId) && parcelId > 0, "ParcelId应该是有效的long值");
-        Assert.Equal("A01", msg.ChuteNumber);  // 验证Chute编号
+        Assert.Equal("1001", msg.ParcelId);
+        Assert.Equal("1", msg.ChuteNumber);  // ChuteId as string
         
         // 验证JSON包含正确的字段名（大写开头，符合WheelDiverterSorter协议）
         Assert.Contains("\"ParcelId\":", msg.RawMessage);  // 大写P
         Assert.Contains("\"ChuteId\":", msg.RawMessage);   // 大写C
         Assert.Contains("\"AssignedAt\":", msg.RawMessage); // 大写A
-        Assert.Contains("\"Metadata\":", msg.RawMessage);   // 大写M
         
         // 验证可以正确反序列化为ChuteAssignmentNotification
         var notification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(msg.RawMessage);
         Assert.NotNull(notification);
-        Assert.Equal(1, notification.ChuteId); // "A01" -> 1
+        Assert.Equal(1001, notification.ParcelId);
+        Assert.Equal(1, notification.ChuteId);
     }
 
     [Fact]
-    public async Task Sorter_ShouldAutoConnect_WhenSendingData()
+    public async Task DownstreamServer_ShouldConnect_WhenClientConnects()
     {
         // Arrange
-        _touchSocketServer = await CreateTouchSocketServerAsync();
+        _downstreamServer = CreateDownstreamServer();
+        await _downstreamServer.StartAsync();
         await Task.Delay(500);
 
-        _sorterAdapter = CreateSorterAdapter();
-
         // Act
-        var isConnectedBefore = await _sorterAdapter.IsConnectedAsync();
-        await _sorterAdapter.SendChuteNumberAsync("TEST001", "B02");
+        var connectedCountBefore = _downstreamServer.ConnectedClientsCount;
+        _touchSocketClient = await CreateTouchSocketClientAsync();
         await Task.Delay(800);
-        var isConnectedAfter = await _sorterAdapter.IsConnectedAsync();
+        var connectedCountAfter = _downstreamServer.ConnectedClientsCount;
+
+        // Broadcast to connected client
+        await _downstreamServer.BroadcastChuteAssignmentAsync(
+            parcelId: 2001,
+            chuteId: 2  // "B02" -> 2
+        );
+        await Task.Delay(800);
 
         // Assert
-        Assert.False(isConnectedBefore); // 初始未连接
-        Assert.True(isConnectedAfter);   // 发送后已连接
+        Assert.Equal(0, connectedCountBefore); // 初始无连接
+        Assert.Equal(1, connectedCountAfter);  // 连接后有1个客户端
         
         // 验证接收到消息
         Assert.NotEmpty(_receivedMessages);
@@ -120,70 +130,71 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         // 验证消息内容
         var notification = JsonSerializer.Deserialize<ChuteAssignmentNotification>(msg.RawMessage);
         Assert.NotNull(notification);
+        Assert.Equal(2001, notification.ParcelId);
         Assert.Equal(2, notification.ChuteId); // "B02" -> 2
     }
 
     [Fact]
-    public async Task Sorter_ShouldSendMultipleMessages_WithCorrectProtocol()
+    public async Task DownstreamServer_ShouldBroadcastMultipleMessages_WithCorrectProtocol()
     {
         // Arrange
-        _touchSocketServer = await CreateTouchSocketServerAsync();
+        _downstreamServer = CreateDownstreamServer();
+        await _downstreamServer.StartAsync();
         await Task.Delay(500);
 
-        _sorterAdapter = CreateSorterAdapter();
+        _touchSocketClient = await CreateTouchSocketClientAsync();
+        await Task.Delay(500);
 
-        // Act - 发送多条消息
-        var result1 = await _sorterAdapter.SendChuteNumberAsync("PKG001", "A01");
-        var result2 = await _sorterAdapter.SendChuteNumberAsync("PKG002", "A02");
-        var result3 = await _sorterAdapter.SendChuteNumberAsync("PKG003", "A03");
+        // Act - 广播多条消息
+        await _downstreamServer.BroadcastChuteAssignmentAsync(parcelId: 3001, chuteId: 1);
+        await _downstreamServer.BroadcastChuteAssignmentAsync(parcelId: 3002, chuteId: 2);
+        await _downstreamServer.BroadcastChuteAssignmentAsync(parcelId: 3003, chuteId: 3);
         await Task.Delay(1500); // 增加等待时间
 
-        // Assert - 验证发送成功
-        Assert.True(result1 && result2 && result3, "所有发送操作应该成功");
-        
-        // 验证接收到的消息数量
+        // Assert - 验证接收到的消息数量
         Assert.True(_receivedMessages.Count >= 3, 
             $"应该接收到至少3条消息，实际接收: {_receivedMessages.Count}");
         
         // 验证每条消息的格式和内容
-        Assert.Contains(_receivedMessages, m => m.ParcelId == "PKG001" && m.ChuteNumber == "A01");
-        Assert.Contains(_receivedMessages, m => m.ParcelId == "PKG002" && m.ChuteNumber == "A02");
-        Assert.Contains(_receivedMessages, m => m.ParcelId == "PKG003" && m.ChuteNumber == "A03");
+        Assert.Contains(_receivedMessages, m => m.ParcelId == "3001" && m.ChuteNumber == "1");
+        Assert.Contains(_receivedMessages, m => m.ParcelId == "3002" && m.ChuteNumber == "2");
+        Assert.Contains(_receivedMessages, m => m.ParcelId == "3003" && m.ChuteNumber == "3");
         
         // 验证消息顺序（如果需要）
         for (int i = 0; i < 3 && i < _receivedMessages.Count; i++)
         {
-            Assert.Equal($"PKG00{i + 1}", _receivedMessages[i].ParcelId);
-            Assert.Equal($"A0{i + 1}", _receivedMessages[i].ChuteNumber);
+            Assert.Equal($"300{i + 1}", _receivedMessages[i].ParcelId);
+            Assert.Equal($"{i + 1}", _receivedMessages[i].ChuteNumber);
         }
     }
 
     /// <summary>
-    /// 创建TouchSocket TCP Server接收Sorter发送的JSON格式数据
-    /// Create TouchSocket TCP Server to receive JSON format data from Sorter
+    /// 创建TouchSocket TCP Client连接到DownstreamServer（模拟WheelDiverterSorter）
+    /// Create TouchSocket TCP Client to connect to DownstreamServer (simulating WheelDiverterSorter)
     /// </summary>
-    private async Task<TcpService> CreateTouchSocketServerAsync()
+    private async Task<TcpClient> CreateTouchSocketClientAsync()
     {
-        var server = new TcpService();
+        var client = new TcpClient();
         
-        using var config = new TouchSocketConfig();
-        config.SetListenIPHosts(new IPHost[] { new IPHost($"127.0.0.1:{TestPort}") })
-            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n"))
-            .ConfigurePlugins(a =>
-            {
-                a.Add<SorterMessageReceiverPlugin>()
-                    .SetMessageHandler(OnMessageReceived);
-            });
+        client.Setup(new TouchSocketConfig()
+            .SetRemoteIPHost(new IPHost($"127.0.0.1:{TestPort}"))
+            .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")));
 
-        await server.SetupAsync(config);
-        await server.StartAsync();
+        client.Received += (sender, e) =>
+        {
+            var message = Encoding.UTF8.GetString(e.ByteBlock.ToArray()).Trim();
+            OnMessageReceived(message);
+            return Task.CompletedTask;
+        };
+
+        await client.ConnectAsync();
         
-        return server;
+        return client;
     }
 
     /// <summary>
-    /// 处理接收到的Sorter消息（JSON格式：ChuteAssignmentNotification）
-    /// Handle received Sorter message (JSON format: ChuteAssignmentNotification)
+    /// 处理接收到的消息（JSON格式：ChuteAssignmentNotification）
+    /// Handle received message (JSON format: ChuteAssignmentNotification)
     /// </summary>
     private void OnMessageReceived(string rawMessage)
     {
@@ -213,64 +224,22 @@ public class SorterAdapterEndToEndCommunicationTests : IAsyncLifetime
         catch (Exception ex)
         {
             // 记录解析错误 - 这表明协议有问题
-            throw new InvalidOperationException($"解析Sorter JSON消息失败: {rawMessage}", ex);
+            throw new InvalidOperationException($"解析JSON消息失败: {rawMessage}", ex);
         }
     }
 
     /// <summary>
-    /// TouchSocket插件：接收Sorter发送的消息
-    /// TouchSocket plugin: Receive messages sent by Sorter
+    /// 创建DownstreamTcpJsonServer实例
+    /// Create DownstreamTcpJsonServer instance
     /// </summary>
-    private class SorterMessageReceiverPlugin : PluginBase, ITcpReceivedPlugin
+    private DownstreamTcpJsonServer CreateDownstreamServer()
     {
-        private Action<string>? _messageHandler;
+        var mockLogger = new Mock<ILogger<DownstreamTcpJsonServer>>();
 
-        public SorterMessageReceiverPlugin SetMessageHandler(Action<string> handler)
-        {
-            _messageHandler = handler;
-            return this;
-        }
-
-        public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
-        {
-            var message = Encoding.UTF8.GetString(e.ByteBlock.ToArray()).Trim();
-            _messageHandler?.Invoke(message);
-            await e.InvokeNext();
-        }
-    }
-
-    private TouchSocketSorterAdapter CreateSorterAdapter()
-    {
-        var mockLogger = new Mock<ILogger<TouchSocketSorterAdapter>>();
-        var mockLogRepository = new Mock<ICommunicationLogRepository>();
-        var mockClock = new Mock<ISystemClock>();
-        var mockScopeFactory = new Mock<IServiceScopeFactory>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        
-        mockClock.Setup(x => x.UtcNow).Returns(new DateTime(2024, 1, 1, 12, 0, 0));
-
-        mockLogRepository.Setup(x => x.LogCommunicationAsync(
-            It.IsAny<CommunicationType>(),
-            It.IsAny<CommunicationDirection>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<bool>(),
-            It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
-
-        mockServiceProvider.Setup(x => x.GetService(typeof(ICommunicationLogRepository)))
-            .Returns(mockLogRepository.Object);
-        mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
-        mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
-
-        return new TouchSocketSorterAdapter(
-            "127.0.0.1",
-            TestPort,
+        return new DownstreamTcpJsonServer(
             mockLogger.Object,
-            mockScopeFactory.Object,
-            mockClock.Object,
-            reconnectIntervalMs: 1000);
+            _clock,
+            "127.0.0.1",
+            TestPort);
     }
 }
