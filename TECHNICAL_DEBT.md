@@ -49,7 +49,7 @@ This document records identified technical debt in the project. Before opening a
 | **ConfigId迁移未完成** | **0 项** | **✅ 无 None** | **✅ 已完成 (见 TD-CONFIG-001)** |
 | **WcsApiResponse字段赋值** | **3 个API客户端 + 45个测试错误** | **🔴 高 High** | **⏳ 进行中 90% (见 TD-WCSAPI-002)** |
 | **DI生命周期违规** | **0 项（DwsAdapterManager已删除）** | **✅ 无 None** | **✅ 已解决 (见 TD-DI-001 - DwsAdapterManager已删除)** |
-| **TCP通信层重构未完成** | **Phase 5+7 待完成（27%剩余）** | **🟡 中 Medium** | **⏳ Phase 3-4完成73% (见下方详情)** |
+| **TCP通信层重构未完成** | **Phase 5+7 待完成（27%剩余）+ TD-TCP-003新增** | **🟡 中 Medium** | **⏳ Phase 3-4完成73% (见下方详情)** |
 
 > **🎉 最新更新 / Latest Update (2025-12-22)**: 
 > - ⏳ **编译错误：** 45 个 (90% 进度：API客户端3/6完成，测试文件80%完成，见 TD-WCSAPI-002)
@@ -3553,14 +3553,267 @@ Phase 3-4已在PR #184中完成：
 
 ---
 
-**最后更新 / Last Updated**: 2025-12-22  
+### TD-TCP-003: TCP通信层架构重构 - 统一Server/Client模式到单一类实现 / TCP Communication Layer Architecture Refactoring - Unify Server/Client Modes into Single Class Implementation
+
+**创建日期 / Created**: 2025-12-23  
+**类别 / Category**: 架构重构 / Architecture Refactoring  
+**严重程度 / Severity**: 🟡 中 Medium  
+**状态 / Status**: 📋 待实现 / To Be Implemented  
+**预估工作量 / Estimated Effort**: 16-20 小时 / 16-20 hours
+
+#### 背景 / Background
+
+当前TCP通信层有**4个独立的类实现**，分别处理Server和Client两种连接模式：
+
+1. **下游通信（分拣机）**:
+   - `DownstreamTcpJsonServer` (556行) - Server模式
+   - `TouchSocketTcpDownstreamClient` (594行) - Client模式
+
+2. **DWS通信**:
+   - `TouchSocketDwsAdapter` (293行) - Server模式
+   - `TouchSocketDwsTcpClientAdapter` (275行) - Client模式
+
+虽然这些类**不是影分身**（它们服务于不同的连接模式），但存在**30-50%的代码重复**，包括：
+- JSON消息解析逻辑
+- 事件触发逻辑
+- 错误处理逻辑
+- 日志记录模式
+
+#### 问题详情 / Problem Details
+
+**当前设计的问题 / Issues with Current Design:**
+
+1. **代码维护困难** - 每个功能需要在Server和Client类中分别实现
+2. **测试覆盖重复** - 需要为Server和Client分别编写测试
+3. **bug修复成本高** - 修复bug需要在两个类中同步修改
+4. **配置复杂** - 需要通过Factory根据模式选择不同的实现类
+
+**技术债务统计 / Technical Debt Statistics:**
+- 总代码行数: 1,718行 (4个类)
+- 估算重复代码: ~600行 (35%)
+- 涉及文件: 4个实现类 + 2个Factory类
+
+#### 重构目标 / Refactoring Goals
+
+**目标架构 / Target Architecture:**
+
+1. **统一接口** - 只定义2个接口:
+   - `IDwsAdapter` - DWS通信接口
+   - `IDownstreamCommunication` - 分拣机通信接口
+
+2. **单一类实现** - 每个接口只有1个实现类:
+   - `TouchSocketDwsAdapter` - 同时支持Server和Client模式
+   - `TouchSocketDownstreamCommunication` - 同时支持Server和Client模式
+
+3. **通过配置切换模式** - 不是通过Factory选择不同类，而是通过配置参数:
+   ```csharp
+   public enum TcpConnectionMode
+   {
+       Server,  // 被动监听
+       Client   // 主动连接
+   }
+   
+   public class TouchSocketDwsAdapter : IDwsAdapter
+   {
+       public TouchSocketDwsAdapter(
+           TcpConnectionMode mode,  // Server或Client
+           string host,
+           int port,
+           ...)
+       {
+           _mode = mode;
+           // 根据mode初始化不同的TouchSocket组件
+       }
+   }
+   ```
+
+4. **无需Factory** - 直接通过DI注入，配置从appsettings.json读取
+
+5. **无需热更新** - 修改连接参数后提示重启即可
+
+#### 实施计划 / Implementation Plan
+
+##### Phase 1: DWS通信层重构 (预估6-8小时)
+
+**步骤 / Steps:**
+
+1. **合并TouchSocketDwsAdapter和TouchSocketDwsTcpClientAdapter**
+   - 添加`TcpConnectionMode`枚举和`_mode`字段
+   - 在构造函数中根据mode初始化TcpService或TcpClient
+   - 提取公共的数据解析逻辑到私有方法
+   - 统一事件触发逻辑
+
+2. **更新Program.cs中的DI配置**
+   - 移除Factory模式
+   - 从配置读取ConnectionMode
+   - 直接注册TouchSocketDwsAdapter
+
+3. **删除冗余代码**
+   - 删除TouchSocketDwsTcpClientAdapter类
+   - 删除相关Factory代码
+
+4. **测试验证**
+   - 测试Server模式
+   - 测试Client模式
+   - 确保两种模式功能一致
+
+##### Phase 2: 下游通信层重构 (预估6-8小时)
+
+**步骤 / Steps:**
+
+1. **合并DownstreamTcpJsonServer和TouchSocketTcpDownstreamClient**
+   - 添加`TcpConnectionMode`参数
+   - 统一消息解析逻辑（ParcelNotification, SortingCompleted）
+   - 统一事件触发逻辑
+   - 提取公共的错误处理和日志记录
+
+2. **更新Program.cs中的DI配置**
+   - 移除DownstreamCommunicationFactory
+   - 从配置读取ConnectionMode
+   - 直接注册单一实现类
+
+3. **删除冗余代码**
+   - 删除TouchSocketTcpDownstreamClient类
+   - 删除DownstreamCommunicationFactory类
+
+4. **测试验证**
+   - 测试Server模式（RuleEngine作为服务端）
+   - 测试Client模式（RuleEngine作为客户端）
+   - 确保格口分配、分拣完成通知等功能正常
+
+##### Phase 3: 配置和文档更新 (预估2-3小时)
+
+**步骤 / Steps:**
+
+1. **更新appsettings.json配置**
+   ```json
+   {
+     "DwsConnection": {
+       "Mode": "Server",  // 或 "Client"
+       "Host": "0.0.0.0",
+       "Port": 8001
+     },
+     "DownstreamConnection": {
+       "Mode": "Client",  // 或 "Server"
+       "Host": "192.168.1.100",
+       "Port": 8002
+     }
+   }
+   ```
+
+2. **更新配置验证逻辑**
+   - 添加连接参数变更检测
+   - 添加重启提示逻辑
+
+3. **更新文档**
+   - 更新DWS_CONFIGURATION_GUIDE.md
+   - 更新架构文档
+   - 添加迁移指南
+
+##### Phase 4: 代码审查和测试 (预估2-3小时)
+
+**步骤 / Steps:**
+
+1. **代码审查**
+   - 检查代码重复率（目标: <5%）
+   - 检查影分身代码（目标: 0）
+   - 运行jscpd和shadow-clone-check.sh
+
+2. **集成测试**
+   - 测试DWS Server模式
+   - 测试DWS Client模式
+   - 测试Downstream Server模式
+   - 测试Downstream Client模式
+
+3. **性能测试**
+   - 确保重构后性能不降低
+   - 测试连接稳定性
+
+#### 重构后的收益 / Benefits After Refactoring
+
+**代码质量提升 / Code Quality Improvements:**
+- ✅ 减少约600行重复代码 (35%减少)
+- ✅ 从4个类减少到2个类
+- ✅ 统一的维护和测试
+- ✅ 更清晰的架构
+
+**维护成本降低 / Maintenance Cost Reduction:**
+- ✅ bug修复只需改一个地方
+- ✅ 新功能只需实现一次
+- ✅ 测试覆盖更简单
+
+**配置简化 / Configuration Simplification:**
+- ✅ 无需Factory模式
+- ✅ 直接DI注入
+- ✅ 配置更直观
+
+#### 迁移风险评估 / Migration Risk Assessment
+
+**风险等级 / Risk Level**: 🟡 中 Medium
+
+**潜在风险 / Potential Risks:**
+1. **功能回归** - 重构可能引入新bug
+   - **缓解措施**: 完整的集成测试
+2. **性能影响** - 可能影响连接性能
+   - **缓解措施**: 性能基准测试
+3. **配置迁移** - 现有部署需要更新配置
+   - **缓解措施**: 提供迁移指南和向后兼容
+
+#### 依赖要求 / Dependencies
+
+**技术要求 / Technical Requirements:**
+- ✅ 继续使用TouchSocket库（无需引入新依赖）
+- ✅ 保持现有接口`IDwsAdapter`和`IDownstreamCommunication`
+- ✅ 向后兼容现有功能
+
+**前置条件 / Prerequisites:**
+- TD-WCSAPI-002 完成（确保编译通过）
+- 当前TCP通信功能稳定运行
+
+#### 验收标准 / Acceptance Criteria
+
+**必须满足 / Must Meet:**
+- [ ] DWS通信只有1个实现类（同时支持Server/Client）
+- [ ] 分拣机通信只有1个实现类（同时支持Server/Client）
+- [ ] 代码重复率 ≤ 5%
+- [ ] 无影分身代码
+- [ ] 编译0错误，0警告
+- [ ] 所有集成测试通过
+- [ ] 配置文档完整
+
+**应该满足 / Should Meet:**
+- [ ] 性能不降低
+- [ ] 代码行数减少≥30%
+- [ ] 单元测试覆盖率≥80%
+
+#### 参考资料 / References
+
+- TCP通信实现分析报告: `/tmp/tcp_analysis_report.md`
+- 当前实现:
+  - `Infrastructure/Communication/DownstreamTcpJsonServer.cs`
+  - `Infrastructure/Communication/Clients/TouchSocketTcpDownstreamClient.cs`
+  - `Infrastructure/Adapters/Dws/TouchSocketDwsAdapter.cs`
+  - `Infrastructure/Adapters/Dws/TouchSocketDwsTcpClientAdapter.cs`
+
+#### 注意事项 / Notes
+
+⚠️ **重要**:
+1. 这不是删除"影分身"，而是**架构优化**
+2. Server/Client模式都是合法的业务需求
+3. 目标是**减少重复代码**，不是减少功能
+4. 需要**完整测试**确保功能不丢失
+
+---
+
+**最后更新 / Last Updated**: 2025-12-23  
 **更新人 / Updated By**: GitHub Copilot Agent  
 **当前PR状态 / Current PR Status**: ✅ Phase 3-4 完成（73%），可以合并  
-**下一个PR / Next PR**: Phase 5+7 完成剩余27%工作（预估4-6小时）
+**下一个PR / Next PR**: Phase 5+7 完成剩余27%工作（预估4-6小时）+ TD-TCP-003实施（预估16-20小时）
 
 **🎯 快速行动指南 / Quick Action Guide**:
 1. **合并当前PR #184** - Phase 3-4已完成，质量达标（0 errors, 0影分身, 0反射）
 2. **立即创建新PR** - 完成Phase 5（Repository去重）+ Phase 7（DI配置+测试）
 3. **预期时间** - 1天内可完成（4-6小时工作量）
 4. **最终目标** - 代码重复率≤5%，应用可运行，所有测试通过
+5. **后续PR** - TD-TCP-003 TCP通信层重构（预估2-3天，16-20小时）
 
