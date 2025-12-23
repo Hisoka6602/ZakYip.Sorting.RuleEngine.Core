@@ -269,12 +269,22 @@ public class WcsApiClient : IWcsApiAdapter
             formattedCurl = await ApiRequestHelper.GenerateFormattedCurlFromRequestAsync(request);
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
+            // 🔧 新增：记录完整的请求详情到日志文件
+            _logger.LogInformation(
+                "WCS API请求 [ScanParcel] - URL: {Url}, Barcode: {Barcode}, RequestBody: {RequestBody}, Headers: {Headers}",
+                requestUrl, barcode, json, requestHeaders);
+
             // 发送POST请求
             response = await _httpClient.SendAsync(request, cancellationToken);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             stopwatch.Stop();
+
+            // 🔧 新增：记录完整的响应详情到日志文件
+            _logger.LogInformation(
+                "WCS API响应 [ScanParcel] - Barcode: {Barcode}, StatusCode: {StatusCode}, Duration: {Duration}ms, ResponseBody: {ResponseBody}, ResponseHeaders: {ResponseHeaders}",
+                barcode, response.StatusCode, stopwatch.ElapsedMilliseconds, responseContent, responseHeaders);
 
             if (response.IsSuccessStatusCode)
             {
@@ -318,6 +328,12 @@ public class WcsApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            // 🔧 新增：记录异常详情到日志文件
+            _logger.LogError(ex, 
+                "WCS API异常 [ScanParcel] - Barcode: {Barcode}, Duration: {Duration}ms, RequestBody: {RequestBody}, Exception: {Exception}",
+                barcode, stopwatch.ElapsedMilliseconds, json, ex.ToString());
+
             _logger.LogError(ex, "扫描包裹异常，条码: {Barcode}, 耗时: {Duration}ms", barcode, stopwatch.ElapsedMilliseconds);
 
             return CreateExceptionResponse(
@@ -404,12 +420,22 @@ public class WcsApiClient : IWcsApiAdapter
             formattedCurl = await ApiRequestHelper.GenerateFormattedCurlFromRequestAsync(request);
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
+            // 🔧 新增：记录完整的请求详情到日志文件
+            _logger.LogInformation(
+                "WCS API请求 [RequestChute] - URL: {Url}, ParcelId: {ParcelId}, Barcode: {Barcode}, RequestBody: {RequestBody}, Headers: {Headers}",
+                requestUrl, parcelId, dwsData.Barcode, json, requestHeaders);
+
             // 发送POST请求
             response = await _httpClient.SendAsync(request, cancellationToken);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
             
             stopwatch.Stop();
+
+            // 🔧 新增：记录完整的响应详情到日志文件
+            _logger.LogInformation(
+                "WCS API响应 [RequestChute] - ParcelId: {ParcelId}, Barcode: {Barcode}, StatusCode: {StatusCode}, Duration: {Duration}ms, ResponseBody: {ResponseBody}, ResponseHeaders: {ResponseHeaders}",
+                parcelId, dwsData.Barcode, response.StatusCode, stopwatch.ElapsedMilliseconds, responseContent, responseHeaders);
 
             if (response.IsSuccessStatusCode)
             {
@@ -455,6 +481,12 @@ public class WcsApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            // 🔧 新增：记录异常详情到日志文件
+            _logger.LogError(ex, 
+                "WCS API异常 [RequestChute] - ParcelId: {ParcelId}, Barcode: {Barcode}, Duration: {Duration}ms, RequestBody: {RequestBody}, Exception: {Exception}",
+                parcelId, dwsData.Barcode, stopwatch.ElapsedMilliseconds, json, ex.ToString());
+            
             _logger.LogError(ex, "请求格口异常，包裹ID: {ParcelId}, 耗时: {Duration}ms", parcelId, stopwatch.ElapsedMilliseconds);
 
             return CreateExceptionResponse(
@@ -551,12 +583,22 @@ public class WcsApiClient : IWcsApiAdapter
                 requestBody);
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
+            // 🔧 新增：记录完整的请求详情到日志文件（不包含二进制数据）
+            _logger.LogInformation(
+                "WCS API请求 [UploadImage] - URL: {Url}, Barcode: {Barcode}, ImageSize: {Size} bytes, ContentType: {ContentType}, Headers: {Headers}",
+                requestUrl, barcode, imageData.Length, contentType, requestHeaders);
+
             // 发送POST请求
             response = await _httpClient.SendAsync(request, cancellationToken);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             stopwatch.Stop();
+
+            // 🔧 新增：记录完整的响应详情到日志文件
+            _logger.LogInformation(
+                "WCS API响应 [UploadImage] - Barcode: {Barcode}, StatusCode: {StatusCode}, Duration: {Duration}ms, ResponseBody: {ResponseBody}, ResponseHeaders: {ResponseHeaders}",
+                barcode, response.StatusCode, stopwatch.ElapsedMilliseconds, responseContent, responseHeaders);
 
             if (response.IsSuccessStatusCode)
             {
@@ -600,6 +642,12 @@ public class WcsApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            // 🔧 新增：记录异常详情到日志文件
+            _logger.LogError(ex, 
+                "WCS API异常 [UploadImage] - Barcode: {Barcode}, ImageSize: {Size} bytes, Duration: {Duration}ms, Exception: {Exception}",
+                barcode, imageData.Length, stopwatch.ElapsedMilliseconds, ex.ToString());
+            
             _logger.LogError(ex, "上传图片异常，条码: {Barcode}, 耗时: {Duration}ms", barcode, stopwatch.ElapsedMilliseconds);
 
             return CreateExceptionResponse(
@@ -681,12 +729,22 @@ public class WcsApiClient : IWcsApiAdapter
             
             requestHeaders = ApiRequestHelper.GetFormattedHeadersFromRequest(request);
 
+            // 🔧 新增：记录完整的请求详情到日志文件
+            _logger.LogInformation(
+                "WCS API请求 [NotifyChuteLanding] - URL: {Url}, ParcelId: {ParcelId}, ChuteId: {ChuteId}, Barcode: {Barcode}, RequestBody: {RequestBody}, Headers: {Headers}",
+                requestUrl, parcelId, chuteId, barcode, requestBody, requestHeaders);
+
             // 发送POST请求
             response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
             responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             responseHeaders = ApiRequestHelper.GetFormattedHeadersFromResponse(response);
 
             stopwatch.Stop();
+
+            // 🔧 新增：记录完整的响应详情到日志文件
+            _logger.LogInformation(
+                "WCS API响应 [NotifyChuteLanding] - ParcelId: {ParcelId}, ChuteId: {ChuteId}, Barcode: {Barcode}, StatusCode: {StatusCode}, Duration: {Duration}ms, ResponseBody: {ResponseBody}, ResponseHeaders: {ResponseHeaders}",
+                parcelId, chuteId, barcode, response.StatusCode, stopwatch.ElapsedMilliseconds, responseContent, responseHeaders);
 
             if (response.IsSuccessStatusCode)
             {
@@ -730,6 +788,12 @@ public class WcsApiClient : IWcsApiAdapter
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            // 🔧 新增：记录异常详情到日志文件
+            _logger.LogError(ex, 
+                "WCS API异常 [NotifyChuteLanding] - ParcelId: {ParcelId}, ChuteId: {ChuteId}, Barcode: {Barcode}, Duration: {Duration}ms, RequestBody: {RequestBody}, Exception: {Exception}",
+                parcelId, chuteId, barcode, stopwatch.ElapsedMilliseconds, requestBody, ex.ToString());
+            
             _logger.LogError(ex, "落格回调异常，包裹ID: {ParcelId}, 格口: {ChuteId}, 耗时: {Duration}ms", 
                 parcelId, chuteId, stopwatch.ElapsedMilliseconds);
 
