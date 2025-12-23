@@ -355,19 +355,42 @@ public sealed class DownstreamTcpJsonServer : IDownstreamCommunication, IDisposa
     /// 广播格口分配通知到所有连接的客户端（JSON字符串重载）
     /// Broadcast chute assignment to all connected clients (JSON string overload)
     /// </summary>
+    /// <exception cref="InvalidOperationException">服务器未运行或没有连接的客户端时抛出 / Thrown when server is not running or no clients connected</exception>
     public async Task BroadcastChuteAssignmentAsync(string chuteAssignmentJson)
     {
+        if (!_isRunning || _service == null)
+        {
+            var errorMsg = "无法广播格口分配通知：TCP服务器未运行 / Cannot broadcast chute assignment: TCP server not running";
+            _logger.LogError(
+                "[{LocalTime}] {ErrorMessage}",
+                _systemClock.LocalNow,
+                errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        if (_clients.IsEmpty)
+        {
+            var errorMsg = "无法广播格口分配通知：没有连接的客户端 / Cannot broadcast chute assignment: no clients connected";
+            _logger.LogWarning(
+                "[{LocalTime}] {ErrorMessage}",
+                _systemClock.LocalNow,
+                errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
         var bytes = Encoding.UTF8.GetBytes(chuteAssignmentJson.TrimEnd('\n') + "\n");
         
         var disconnectedClients = new List<string>();
+        var sendSuccessCount = 0;
 
         foreach (var kvp in _clients)
         {
             try
             {
-                if (_service?.Clients.TryGetClient(kvp.Key, out var socketClient) ?? false)
+                if (_service.Clients.TryGetClient(kvp.Key, out var socketClient))
                 {
                     await socketClient.SendAsync(bytes);
+                    sendSuccessCount++;
 
                     _logger.LogDebug(
                         "[{LocalTime}] [服务端模式-广播] 已向客户端 {ClientId} 广播格口分配通知",
@@ -392,6 +415,24 @@ public sealed class DownstreamTcpJsonServer : IDownstreamCommunication, IDisposa
         {
             _clients.TryRemove(clientId, out _);
         }
+
+        // 如果没有成功发送到任何客户端，抛出异常
+        // If failed to send to any client, throw exception
+        if (sendSuccessCount == 0)
+        {
+            var errorMsg = $"格口分配通知广播失败：所有客户端({_clients.Count})都已断开或发送失败 / Broadcast failed: all clients ({_clients.Count}) disconnected or send failed";
+            _logger.LogError(
+                "[{LocalTime}] {ErrorMessage}",
+                _systemClock.LocalNow,
+                errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        _logger.LogInformation(
+            "[{LocalTime}] [服务端模式-广播成功] 成功广播到 {SuccessCount}/{TotalCount} 个客户端",
+            _systemClock.LocalNow,
+            sendSuccessCount,
+            _clients.Count + disconnectedClients.Count);
     }
 
     /// <summary>
