@@ -27,14 +27,14 @@ public class SortingMachineController : ControllerBase
     private readonly ISorterConfigRepository _configRepository;
     private readonly ISystemClock _clock;
     private readonly IPublisher _publisher;
-    private readonly IDownstreamCommunication? _downstreamCommunication;
+    private readonly IDownstreamCommunication _downstreamCommunication;
     private readonly ILogger<SortingMachineController> _logger;
 
     public SortingMachineController(
         ISorterConfigRepository configRepository,
         ISystemClock clock,
         IPublisher publisher,
-        IDownstreamCommunication? downstreamCommunication,
+        IDownstreamCommunication downstreamCommunication,
         ILogger<SortingMachineController> logger)
     {
         _configRepository = configRepository;
@@ -296,14 +296,16 @@ public class SortingMachineController : ControllerBase
                 "收到测试格口请求 - ParcelId: {ParcelId}, ChuteNumber: {ChuteNumber}",
                 request.ParcelId, request.ChuteNumber);
 
-            if (_downstreamCommunication == null)
+            // 检查是否已启用（配置禁用时 IsEnabled 返回 false）
+            // Check if it's enabled (IsEnabled returns false when config is disabled)
+            if (!_downstreamCommunication.IsEnabled)
             {
                 return BadRequest(new TestChuteResponse
                 {
                     Success = false,
                     ParcelId = request.ParcelId,
                     ChuteNumber = request.ChuteNumber,
-                    Message = "发送失败：分拣机未配置 / Send failed: Sorter not configured",
+                    Message = "发送失败：分拣机未配置或已禁用 / Send failed: Sorter not configured or disabled",
                     FormattedMessage = ""
                 });
             }

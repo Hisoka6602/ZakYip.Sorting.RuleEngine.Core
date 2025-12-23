@@ -65,6 +65,12 @@ public sealed class TouchSocketTcpDownstreamClient : IDownstreamCommunication, I
     private const int MaxBackoffMs = 2000;
 
     /// <summary>
+    /// 是否已启用（Client 模式始终返回 true）
+    /// Whether it is enabled (Client mode always returns true)
+    /// </summary>
+    public bool IsEnabled => true;
+
+    /// <summary>
     /// 客户端是否已连接
     /// Whether the client is connected
     /// </summary>

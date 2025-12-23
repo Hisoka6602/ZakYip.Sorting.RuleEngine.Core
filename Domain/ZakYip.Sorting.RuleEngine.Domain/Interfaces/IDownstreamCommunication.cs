@@ -16,6 +16,12 @@ namespace ZakYip.Sorting.RuleEngine.Domain.Interfaces;
 public interface IDownstreamCommunication
 {
     /// <summary>
+    /// 是否已启用（配置存在且已启用）
+    /// Whether it is enabled (configuration exists and is enabled)
+    /// </summary>
+    bool IsEnabled { get; }
+
+    /// <summary>
     /// 启动通信（Server模式：开始监听；Client模式：连接到服务器）
     /// Start communication (Server mode: start listening; Client mode: connect to server)
     /// </summary>

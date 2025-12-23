@@ -33,6 +33,12 @@ public sealed class DownstreamTcpJsonServer : IDownstreamCommunication, IDisposa
     private bool _isRunning;
     private bool _disposed;
 
+    /// <summary>
+    /// 是否已启用（Server 模式始终返回 true）
+    /// Whether it is enabled (Server mode always returns true)
+    /// </summary>
+    public bool IsEnabled => true;
+
     public bool IsRunning => _isRunning;
     public int ConnectedClientsCount => _clients.Count;
 
