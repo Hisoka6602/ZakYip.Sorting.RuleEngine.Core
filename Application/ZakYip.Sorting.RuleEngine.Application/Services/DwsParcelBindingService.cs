@@ -15,13 +15,16 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// <remarks>
 /// 此服务负责：
 /// 1. 持久化DWS通信日志
-/// 2. 绑定DWS数据到包裹（ParcelId为空时自动查找）
+/// 2. 绑定DWS数据到包裹（ParcelId为空时自动创建新包裹）
 /// 3. 发布DwsDataReceivedEvent给MediatR，触发完整业务流程（规则引擎+WCS+格口分配）
 /// 
 /// This service is responsible for:
 /// 1. Persisting DWS communication log
-/// 2. Binding DWS data to parcel (auto-find when ParcelId is empty)
+/// 2. Binding DWS data to parcel (auto-create new parcel when ParcelId is empty)
 /// 3. Publishing DwsDataReceivedEvent to MediatR to trigger complete business flow (rule engine + WCS + chute assignment)
+/// 
+/// ⚠️ 硬性要求：ParcelId只能从缓存获取，永远不从数据库读取包裹用于分拣
+/// ⚠️ Hard requirement: ParcelId can only be obtained from cache, NEVER read parcel from database for sorting
 /// </remarks>
 public class DwsParcelBindingService
 {
