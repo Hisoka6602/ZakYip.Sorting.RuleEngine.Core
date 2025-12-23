@@ -405,6 +405,7 @@ try
                 // IMonitoringAlertRepository is now registered above based on database configuration (MySQL or SQLite)
                 services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
                 services.AddScoped<ICommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.CommunicationLogRepository>();
+                services.AddScoped<IDwsCommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.DwsCommunicationLogRepository>();
 
                 // 注册DWS相关仓储
                 // Register DWS-related repositories

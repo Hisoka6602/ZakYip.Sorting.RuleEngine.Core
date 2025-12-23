@@ -52,6 +52,7 @@ class Program
         var testConfig = new WcsApiConfig
         {
             ConfigId = WcsApiConfig.SingletonId,
+            ActiveAdapterType = "WcsApiClient",
             Url = BASE_URL,
             ApiKey = API_KEY,
             TimeoutMs = TIMEOUT_SECONDS * 1000,
