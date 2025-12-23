@@ -406,6 +406,7 @@ try
                 services.AddScoped<IApiCommunicationLogRepository, ApiCommunicationLogRepository>();
                 services.AddScoped<ICommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.CommunicationLogRepository>();
                 services.AddScoped<IDwsCommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.DwsCommunicationLogRepository>();
+                services.AddScoped<ISorterCommunicationLogRepository, ZakYip.Sorting.RuleEngine.Infrastructure.Persistence.CommunicationLogs.SorterCommunicationLogRepository>();
 
                 // 注册DWS相关仓储
                 // Register DWS-related repositories
