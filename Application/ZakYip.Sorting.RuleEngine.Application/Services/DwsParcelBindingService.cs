@@ -15,13 +15,16 @@ namespace ZakYip.Sorting.RuleEngine.Application.Services;
 /// <remarks>
 /// 此服务负责：
 /// 1. 持久化DWS通信日志
-/// 2. 绑定DWS数据到包裹（ParcelId为空时自动查找）
+/// 2. 绑定DWS数据到包裹（ParcelId为空时直接放弃，DWS不能创建包裹）
 /// 3. 发布DwsDataReceivedEvent给MediatR，触发完整业务流程（规则引擎+WCS+格口分配）
 /// 
 /// This service is responsible for:
 /// 1. Persisting DWS communication log
-/// 2. Binding DWS data to parcel (auto-find when ParcelId is empty)
+/// 2. Binding DWS data to parcel (give up directly when ParcelId is empty, DWS cannot create parcels)
 /// 3. Publishing DwsDataReceivedEvent to MediatR to trigger complete business flow (rule engine + WCS + chute assignment)
+/// 
+/// ⚠️ 硬性要求：ParcelId只能从DWS数据中获取，DWS不能创建包裹，包裹必须由下游分拣机预先创建
+/// ⚠️ Hard requirement: ParcelId can only be obtained from DWS data, DWS cannot create parcels, parcels must be pre-created by downstream sorter
 /// </remarks>
 public class DwsParcelBindingService
 {
@@ -157,45 +160,15 @@ public class DwsParcelBindingService
                 return dwsData.ParcelId;
             }
 
-            // 场景2: DWS数据中没有ParcelId（常见情况），从缓存中查找最新未绑定Barcode的包裹
-            // Scenario 2: DWS data doesn't contain ParcelId (common case), find latest parcel without Barcode from cache
-            _logger.LogInformation(
-                "DWS数据不包含ParcelId，尝试从缓存查找最新未绑定包裹: Barcode={Barcode}",
-                dwsData.Barcode);
-
-            // 优先从缓存查找（性能更好，避免数据库查询）
-            // First try cache (better performance, avoids database query)
-            var latestParcel = await GetLatestUnboundParcelAsync(cancellationToken).ConfigureAwait(false);
+            // 场景2: DWS数据中没有ParcelId，直接放弃（DWS不能创建包裹）
+            // Scenario 2: DWS data doesn't contain ParcelId, give up directly (DWS cannot create parcels)
             
-            if (latestParcel != null)
-            {
-                _logger.LogInformation(
-                    "✅ 从缓存找到最新未绑定包裹: ParcelId={ParcelId}，将绑定到 Barcode={Barcode}",
-                    latestParcel.ParcelId, dwsData.Barcode);
-                return latestParcel.ParcelId;
-            }
-
-            // 如果缓存中没有，尝试从数据库查找（降级方案）
-            // If not in cache, try database as fallback
-            _logger.LogDebug(
-                "缓存中未找到未绑定包裹，尝试从数据库查找: Barcode={Barcode}",
-                dwsData.Barcode);
-
-            latestParcel = await _parcelInfoRepository
-                .GetLatestWithoutDwsDataAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (latestParcel != null)
-            {
-                _logger.LogInformation(
-                    "✅ 从数据库找到最新未绑定包裹: ParcelId={ParcelId}，将绑定到 Barcode={Barcode}",
-                    latestParcel.ParcelId, dwsData.Barcode);
-                return latestParcel.ParcelId;
-            }
-
+            // ⚠️ 硬性要求：ParcelId只能从缓存获取，不能从数据库读取，也不能自动创建
+            // Hard requirement: ParcelId can only be obtained from cache, cannot read from database, cannot auto-create
             _logger.LogWarning(
-                "⚠️ 缓存和数据库均未找到未绑定的包裹，无法绑定DWS数据: Barcode={Barcode}",
+                "⚠️ DWS数据不包含ParcelId，无法绑定。DWS不能创建包裹，必须由下游分拣机预先创建: Barcode={Barcode}",
                 dwsData.Barcode);
+            
             return null;
         }
         catch (Exception ex)
@@ -206,42 +179,6 @@ public class DwsParcelBindingService
             
             // 数据库异常不应阻止DWS数据接收，返回null并记录警告
             // Database exception should not block DWS data reception, return null and log warning
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// 获取最新的未绑定包裹（优先缓存，降级数据库）
-    /// Get the latest unbound parcel (cache first, database fallback)
-    /// </summary>
-    /// <remarks>
-    /// 注意：由于 IMemoryCache 不支持条件查询，当前实现从数据库查询后尝试从缓存加载
-    /// Note: Since IMemoryCache doesn't support conditional queries, current implementation queries database then tries cache
-    /// </remarks>
-    private async Task<ParcelInfo?> GetLatestUnboundParcelAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            // 从数据库查询最新未绑定包裹的ID
-            var latestParcel = await _parcelInfoRepository
-                .GetLatestWithoutDwsDataAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (latestParcel == null)
-            {
-                return null;
-            }
-
-            // 尝试从缓存加载完整的包裹信息（可能有更新的数据）
-            // Try to load full parcel info from cache (may have more up-to-date data)
-            var cachedParcel = await _cacheService.GetAsync(latestParcel.ParcelId, cancellationToken)
-                .ConfigureAwait(false);
-
-            return cachedParcel ?? latestParcel;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "从缓存获取最新包裹失败，将使用降级方案");
             return null;
         }
     }
