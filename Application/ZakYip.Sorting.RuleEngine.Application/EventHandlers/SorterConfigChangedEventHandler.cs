@@ -58,12 +58,6 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
 
         try
         {
-            if (!_downstreamCommunication.IsEnabled)
-            {
-                _logger.LogWarning("下游通信未配置或已禁用，跳过配置热更新 / Downstream communication not configured or disabled, skipping hot reload");
-                return;
-            }
-
             // 记录配置变更日志 / Log configuration change
             await _logRepository.LogInfoAsync(
                 "分拣机配置已变更 / Sorter Configuration Changed",
@@ -74,32 +68,45 @@ public class SorterConfigChangedEventHandler : INotificationHandler<SorterConfig
                 $"状态 / Enabled: {notification.IsEnabled}, " +
                 $"原因 / Reason: {notification.Reason ?? ConfigChangeReasons.UserUpdate}").ConfigureAwait(false);
 
-            // 停止现有连接 / Stop existing connection
-            _logger.LogInformation("停止下游通信以应用新配置 / Stopping downstream communication to apply new configuration");
-            await _downstreamCommunication.StopAsync(cancellationToken).ConfigureAwait(false);
-
-            // 如果配置被禁用，仅停止不重启 / If configuration is disabled, only stop without restart
-            if (!notification.IsEnabled)
+            // 检查是否支持热更新（实现了 IReloadableDownstreamCommunication）
+            // Check if hot reload is supported (implements IReloadableDownstreamCommunication)
+            if (_downstreamCommunication is IReloadableDownstreamCommunication reloadableComm)
             {
-                _logger.LogInformation("分拣机配置已禁用，不重启下游通信 / Sorter config disabled, not restarting downstream communication");
+                _logger.LogInformation("使用可重载的下游通信进行配置热更新 / Using reloadable downstream communication for configuration hot reload");
+                await reloadableComm.ReloadAsync(cancellationToken).ConfigureAwait(false);
+                
+                _logger.LogInformation(
+                    "分拣机配置热更新成功 / Sorter configuration hot reload successful: " +
+                    "Protocol={Protocol}, Mode={Mode}, Host={Host}:{Port}, IsEnabled={IsEnabled}",
+                    notification.Protocol, notification.ConnectionMode, notification.Host, notification.Port, notification.IsEnabled);
+
                 await _logRepository.LogInfoAsync(
-                    "下游通信已停止 / Downstream Communication Stopped",
-                    "配置已禁用 / Configuration disabled").ConfigureAwait(false);
-                return;
+                    "分拣机配置热更新成功 / Sorter Hot Reload Successful",
+                    $"新配置已应用 / New configuration applied: {notification.Protocol} protocol, {notification.ConnectionMode} mode @ {notification.Host}:{notification.Port}, Enabled={notification.IsEnabled}").ConfigureAwait(false);
             }
+            else
+            {
+                // 降级处理：使用传统的停止/启动方式
+                // Fallback: Use traditional stop/start approach
+                _logger.LogWarning(
+                    "下游通信不支持热更新，使用传统停止/启动方式 / Downstream communication doesn't support hot reload, using traditional stop/start approach");
 
-            // 重新启动下游通信 / Restart downstream communication
-            _logger.LogInformation("重新启动下游通信 / Restarting downstream communication");
-            await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
-            
-            _logger.LogInformation(
-                "分拣机配置热更新成功 / Sorter configuration hot reload successful: " +
-                "Protocol={Protocol}, Mode={Mode}, Host={Host}:{Port}",
-                notification.Protocol, notification.ConnectionMode, notification.Host, notification.Port);
+                await _downstreamCommunication.StopAsync(cancellationToken).ConfigureAwait(false);
 
-            await _logRepository.LogInfoAsync(
-                "分拣机配置热更新成功 / Sorter Hot Reload Successful",
-                $"新配置已应用 / New configuration applied: {notification.Protocol} protocol, {notification.ConnectionMode} mode @ {notification.Host}:{notification.Port}").ConfigureAwait(false);
+                if (notification.IsEnabled)
+                {
+                    await _downstreamCommunication.StartAsync(cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("分拣机配置已重启 / Sorter configuration restarted");
+                }
+                else
+                {
+                    _logger.LogInformation("分拣机配置已禁用，未重启 / Sorter configuration disabled, not restarted");
+                }
+
+                await _logRepository.LogInfoAsync(
+                    "分拣机配置已应用 / Sorter Configuration Applied",
+                    $"配置已{(notification.IsEnabled ? "启用" : "禁用")} / Configuration {(notification.IsEnabled ? "enabled" : "disabled")}").ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
