@@ -79,10 +79,8 @@ public class TouchSocketDwsAdapter : IDwsAdapter, IDisposable
             var config = new TouchSocketConfig();
             config.SetListenIPHosts(new IPHost[] { new IPHost($"{_host}:{_port}") })
                 .SetMaxCount(_maxConnections) // 设置最大连接数（连接池大小）
-                .SetTcpDataHandlingAdapter(() => new TerminatorPackageAdapter("\n")
-                {
-                    CacheTimeout = TimeSpan.FromSeconds(30)
-                })
+                // 不使用 TerminatorPackageAdapter，直接接收原始数据
+                // Do not use TerminatorPackageAdapter, receive raw data directly
                 .ConfigureContainer(a =>
                 {
                     a.AddLogger(new TouchSocketLogger(_logger));
